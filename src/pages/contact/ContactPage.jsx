@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { MapPin, Mail, CheckCircle, ClipboardList, Linkedin, MessageSquare, Phone } from 'lucide-react';
+import { MapPin, Mail, CheckCircle, ClipboardList, Briefcase, MessageSquare, Phone } from 'lucide-react';
 import glbajajLogo from '../../assets/images/logos/glbajaj-logo.png';
+import Footer from '../../shared/Footer';
+import ParticleBackground from '../../shared/ParticleBackground';
 import './ContactPage.css';
 
 const EMAIL = 'nexasphere@glbajajgroup.org';
@@ -229,6 +231,7 @@ function MessageCTA() {
 export default function ContactPage({ onBack }) {
   return (
     <div className="pg-contact" id="pg-contact">
+      <ParticleBackground />
       <div className="contact-hero">
         <div className="contact-hero-bg" />
         {onBack && (
@@ -251,7 +254,7 @@ export default function ContactPage({ onBack }) {
       <div className="container" style={{ paddingBottom: 80 }}>
         <div className="contact-cards-grid cin-container">
           <ContactCard icon={<Mail size={24} />} label="Email" delay={0} value={EMAIL} href={`mailto:${EMAIL}`} color="var(--c1)" />
-          <ContactCard icon={<Linkedin size={24} />} label="LinkedIn" delay={0.08} value="NexaSphere · GL Bajaj" href={LINKEDIN} color="var(--c2)" />
+          <ContactCard icon={<Briefcase size={24} />} label="LinkedIn" delay={0.08} value="NexaSphere · GL Bajaj" href={LINKEDIN} color="var(--c2)" />
           <ContactCard icon={<MessageSquare size={24} />} label="WhatsApp Community" delay={0.16} value="Join our active community group" href={WHATSAPP} color="var(--c5)" />
         </div>
 
@@ -285,6 +288,8 @@ export default function ContactPage({ onBack }) {
           </a>
         </div>
       </div>
+
+      <Footer />
     </div>
   );
 }

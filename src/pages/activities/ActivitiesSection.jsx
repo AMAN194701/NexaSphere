@@ -20,7 +20,9 @@ function ActivityCard({ a, idx, onNav }) {
         onClick={() => onNav('activity', a.title)}
       >
         <div className="timeline-event-header">
-          <DynamicIcon name={a.icon} size={24} />
+          <span style={{ display: 'flex', flexShrink: 0, color: 'var(--c1)' }}>
+            <DynamicIcon name={a.icon} size={24} />
+          </span>
           <div className="timeline-event-name">{a.title}</div>
           <span className="view-details-badge">Explore →</span>
         </div>

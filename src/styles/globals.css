@@ -113,7 +113,7 @@ button, a { touch-action: manipulation; -webkit-tap-highlight-color: transparent
 
 #back-to-top {
   position: fixed;
-  bottom: 28px; right: 28px;
+  bottom: 28px; left: 28px;
   width: 44px; height: 44px;
   border-radius: 50%;
   background: var(--gradient-logo);
@@ -123,7 +123,7 @@ button, a { touch-action: manipulation; -webkit-tap-highlight-color: transparent
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  z-index: 800;
+  z-index: 10020;
   box-shadow: 0 0 20px rgba(230, 57, 70, 0.4), 0 4px 16px rgba(0,0,0,.3);
   border: none;
   opacity: 0;
@@ -159,7 +159,7 @@ button, a { touch-action: manipulation; -webkit-tap-highlight-color: transparent
 @media (max-width: 768px) {
   .section   { padding: 68px 0; }
   .container { padding: 0 16px; }
-  #back-to-top { bottom: 18px; }
+  #back-to-top { bottom: 18px; left: 18px; }
 }
 
 .app-main {

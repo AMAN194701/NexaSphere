@@ -34,6 +34,7 @@ function ThemeToggle({ theme, onToggle }) {
 export default function Navbar({ activeTab, onTabChange, onToggleTheme, theme }) {
   const [scrolled, setScrolled] = useState(false);
   const [mobile, setMobile] = useState(window.innerWidth <= MOBILE_BREAKPOINT);
+  const goHome = () => onTabChange('Home');
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > SCROLL_THRESHOLD);
@@ -50,10 +51,18 @@ export default function Navbar({ activeTab, onTabChange, onToggleTheme, theme })
     return (
       <nav className="ns-navbar-mobile">
         <div className="ns-mobile-top">
-          <img src={nexasphereAppLogo} alt="NexaSphere" className="ns-mobile-logo-ns" />
-          <span className="ns-mobile-brand">
-            <span>NexaSphere</span>
-          </span>
+          <button
+            type="button"
+            onClick={goHome}
+            aria-label="Go to Home"
+            className="ns-mobile-brand"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 10, font: 'inherit', color: 'inherit' }}
+          >
+            <img src={nexasphereAppLogo} alt="NexaSphere" className="ns-mobile-logo-ns" />
+            <span>
+              NexaSphere
+            </span>
+          </button>
           <ThemeToggle theme={theme} onToggle={onToggleTheme} />
         </div>
         <div className="ns-mobile-tabs">
@@ -74,11 +83,17 @@ export default function Navbar({ activeTab, onTabChange, onToggleTheme, theme })
   return (
     <nav className={`ns-navbar${scrolled ? ' scrolled' : ''}`}>
       <div className="container">
-        <div className="ns-nav-logos">
+        <button
+          type="button"
+          className="ns-nav-logos"
+          onClick={goHome}
+          aria-label="Go to Home"
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit', color: 'inherit' }}
+        >
           <img src={nexasphereAppLogo} alt="NexaSphere" className="ns-nav-logo-ns" />
           <div className="ns-nav-divider" />
           <span className="ns-nav-brand">NexaSphere</span>
-        </div>
+        </button>
 
         <div className="ns-nav-right">
           <ul className="ns-nav-tabs">

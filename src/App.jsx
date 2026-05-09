@@ -40,6 +40,7 @@ import { events as fallbackEvents } from './data/eventsData';
 import Cursor from './components/Cursor';
 import Wipe from './components/Wipe';
 import PageIn from './components/PageIn';
+import { DynamicIcon } from './shared/Icons';
 
 import { useInteractionEffects } from './hooks/useInteractionEffects';
 import { useBackToTop, useActiveTabObserver } from './hooks/useScrollLogic';
@@ -121,6 +122,18 @@ export default function App() {
           </PageIn>
         )}
 
+        {page?.type === 'join' && (
+          <PageIn k="pg-membership">
+            <MembershipPage onBack={actions.onBackHome} />
+          </PageIn>
+        )}
+
+        {page?.type === 'apply' && (
+          <PageIn k="pg-recruitment">
+            <RecruitmentPage onBack={actions.onBackHome} />
+          </PageIn>
+        )}
+
         {page?.type === 'section' && page.section !== 'Home' ? (
           <SectionContent page={page} eventsData={eventsData} actions={actions} />
         ) : (
@@ -130,7 +143,11 @@ export default function App() {
         )}
       </main>
 
-      {cinDone && <button id="back-to-top" aria-label="Back to top">↑</button>}
+      {cinDone && (
+        <button id="back-to-top" aria-label="Back to top">
+          <DynamicIcon name="ArrowUp" size={18} />
+        </button>
+      )}
     </>
   );
 }

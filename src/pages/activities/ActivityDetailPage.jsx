@@ -163,10 +163,13 @@ function EventCard({ event, activityColor, onSelect, onDelete }) {
                 background: 'rgba(34,197,94,0.12)', color: '#22c55e',
                 border: '1px solid rgba(34,197,94,0.3)', fontWeight: 700,
                 textTransform: 'uppercase', letterSpacing: '0.05em', flexShrink: 0,
-              }}>✅ Completed</span>
+                display: 'inline-flex', alignItems: 'center', gap: '4px',
+              }}><DynamicIcon name="CheckCircle" size={12} /> Completed</span>
             )}
           </div>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: '10px' }}>📅 {event.date}</div>
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <DynamicIcon name="Calendar" size={14} /> {event.date}
+          </div>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', margin: '0 0 12px', lineHeight: 1.6 }}>
             {event.tagline || event.description}
           </p>
@@ -225,9 +228,12 @@ function UpcomingCard({ event, color }) {
           fontSize: '0.68rem', padding: '2px 8px', borderRadius: '20px',
           background: `${color}15`, color, border: `1px solid ${color}40`,
           fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', flexShrink: 0,
-        }}>🔜 Upcoming</span>
+          display: 'inline-flex', alignItems: 'center', gap: '4px',
+        }}><DynamicIcon name="Calendar" size={12} /> Upcoming</span>
       </div>
-      <div style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginBottom: '6px' }}>📅 {event.date}</div>
+      <div style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <DynamicIcon name="Calendar" size={13} /> {event.date}
+      </div>
       <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: 0 }}>{event.description}</p>
     </div>
   );
@@ -269,8 +275,7 @@ export default function ActivityDetailPage({ activity, onBack, onSelectEvent }) 
         const data = await res.json();
         setDynamicEvents(Array.isArray(data) ? data : []);
       }
-    } catch (err) {
-      console.error('Failed to fetch dynamic events:', err);
+    } catch {
     } finally {
       setLoading(false);
     }
@@ -339,8 +344,9 @@ export default function ActivityDetailPage({ activity, onBack, onSelectEvent }) 
               filter: `drop-shadow(0 0 24px rgba(${rgb},0.6))`,
               animation: 'float 4s ease-in-out infinite',
               display: 'inline-block',
+              color,
             }}>
-              {activity.icon}
+              <DynamicIcon name={activity.icon} size={72} />
             </div>
             <h1 style={{
               fontFamily: 'Orbitron, monospace',
@@ -433,7 +439,7 @@ export default function ActivityDetailPage({ activity, onBack, onSelectEvent }) 
 
         {!loading && completedEvents.length === 0 && upcomingEvents.length === 0 && (
           <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '80px 0' }}>
-            <div style={{ fontSize: '4rem', marginBottom: '16px' }}>{activity.icon}</div>
+            <div style={{ fontSize: '4rem', marginBottom: '16px', color }}><DynamicIcon name={activity.icon} size={56} /></div>
             <p>Events coming soon. Watch this space!</p>
           </div>
         )}
