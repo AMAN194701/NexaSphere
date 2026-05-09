@@ -680,3 +680,54 @@
 [data-theme="light"] .ns-footer-email-link { color: #CC1111 !important; }
 
 
+
+/* ── Navbar CTA buttons (desktop) ─────────────────────────────────────────── */
+.ns-nav-ctas {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 8px;
+}
+.ns-nav-cta-btn {
+  padding: 5px 14px !important;
+  font-size: .75rem !important;
+  letter-spacing: .07em;
+  white-space: nowrap;
+}
+
+/* ── Mobile navbar CTA pills ──────────────────────────────────────────────── */
+.ns-mobile-cta {
+  flex-shrink: 0;
+  color: var(--c1) !important;
+  border: 1.5px solid var(--c1b) !important;
+  border-radius: 20px !important;
+  padding: 3px 12px !important;
+  margin-left: 4px;
+  font-size: .72rem !important;
+  background: var(--c1a) !important;
+  transition: background .2s, color .2s !important;
+}
+.ns-mobile-cta:hover,
+.ns-mobile-cta:active {
+  background: var(--c1) !important;
+  color: #fff !important;
+}
+.ns-mobile-cta-apply {
+  background: linear-gradient(135deg, var(--c1), var(--c2)) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+}
+.ns-mobile-cta-apply:hover,
+.ns-mobile-cta-apply:active {
+  filter: brightness(1.12);
+}
+[data-theme="light"] .ns-mobile-cta {
+  color: #CC1111 !important;
+  border-color: rgba(204,17,17,.3) !important;
+  background: rgba(204,17,17,.07) !important;
+}
+[data-theme="light"] .ns-mobile-cta-apply {
+  background: linear-gradient(135deg, #CC1111, #880000) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+}

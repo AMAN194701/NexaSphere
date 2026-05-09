@@ -196,7 +196,8 @@ function Cursor() {
 }
 
 export default function App() {
-  const [cinDone,  setCinDone]  = useState(false);
+  // Skip intro for returning visitors; set flag on first completion
+  const [cinDone,  setCinDone]  = useState(() => !!localStorage.getItem('ns_intro_seen'));
   const [activeTab,setActiveTab]= useState('Home');
   const [mobile,   setMobile]   = useState(window.innerWidth<=768);
   const [wipeOn,   setWipeOn]   = useState(false);
@@ -394,7 +395,10 @@ export default function App() {
       {/* Move Chatbot to the very top to bypass all other logic */}
       <Chatbot /> 
 
-      {!cinDone && <CinematicOpening theme={theme} onDone={() => setCinDone(true)}/>}
+      {!cinDone && <CinematicOpening theme={theme} onDone={() => {
+        localStorage.setItem('ns_intro_seen', '1');
+        setCinDone(true);
+      }}/>}
 
       {cinDone && <ScrollProgress />}
       <Cursor/>
@@ -403,7 +407,7 @@ export default function App() {
       {cinDone && <AmbientOrbs theme={theme}/>}
       {cinDone && <GeometricGridBackground theme={theme} />}
       {cinDone && <ParticleBackground theme={theme}/>}
-      {cinDone && <Navbar activeTab={activeTab} onTabChange={onTab} onToggleTheme={toggleTheme} theme={theme}/>}
+      {cinDone && <Navbar activeTab={activeTab} onTabChange={onTab} onToggleTheme={toggleTheme} theme={theme} onApply={openApply} onJoin={openJoin}/>}
 
       <main style={{paddingTop:nh, position:'relative', zIndex:1}}>
         {/* If page is null, show home sections. Otherwise show the specific page. */}
@@ -417,6 +421,8 @@ export default function App() {
              {page.type === 'activity' && cur && <ActivityDetailPage activity={cur} onBack={onBackMain} onSelectEvent={onEvent}/>}
              {page.type === 'apply' && <RecruitmentPage onBack={onBackHome}/>}
              {page.type === 'join' && <MembershipPage onBack={onBackHome}/>}
+             {/* 404 fallback for unknown page types */}
+             {page.type && !['section','activity','event','apply','join'].includes(page.type) && <NotFoundPage onGoHome={onBackHome}/>}
            </PageIn>
         ) : (
           cinDone && (
@@ -438,5 +444,16 @@ export default function App() {
 
       {cinDone && <button id="back-to-top" aria-label="Back to top">↑</button>}
     </>
+  );
+}
+
+function NotFoundPage({ onGoHome }) {
+  return (
+    <div style={{minHeight:'80vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',textAlign:'center',padding:'40px 24px'}}>
+      <div style={{fontFamily:"'Orbitron',monospace",fontSize:'clamp(5rem,18vw,10rem)',fontWeight:900,background:'linear-gradient(135deg,#CC1111 0%,#EE2222 50%,#FF4444 100%)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',backgroundClip:'text',lineHeight:1,marginBottom:'16px'}}>404</div>
+      <h2 style={{fontFamily:"'Orbitron',monospace",fontSize:'clamp(1rem,3vw,1.5rem)',fontWeight:700,color:'var(--t1)',marginBottom:'12px'}}>Page Not Found</h2>
+      <p style={{color:'var(--t2)',fontSize:'1rem',maxWidth:'380px',lineHeight:1.7,marginBottom:'32px'}}>The page you&apos;re looking for doesn&apos;t exist or may have moved.</p>
+      <button className="btn btn-primary" onClick={onGoHome} style={{cursor:'pointer'}}>← Go Home</button>
+    </div>
   );
 }
