@@ -3,6 +3,8 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  // Supports Vercel (/) and GitHub Pages (/NexaSphere/) via env var
+  base: process.env.VITE_BASE_PATH || '/',
   plugins: [
     react(),
     VitePWA({
@@ -55,7 +57,6 @@ export default defineConfig({
       }
     })
   ],
-  base: "/",
   server: {
     port: 5175,
     proxy: {
