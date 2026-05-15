@@ -16,8 +16,8 @@
 
 | Resource               | Link                                                                           |
 | ---------------------- | ------------------------------------------------------------------------------ |
-| 🌐 **Live Website**    | [nexasphere-glbajaj.vercel.app](https://nexasphere-glbajaj.vercel.app/) / [nexa-sphere-sigma.vercel.app](https://nexa-sphere-sigma.vercel.app/) |
-| 🔑 **Admin Dashboard** | [admin-nexasphere.vercel.app](https://admin-nexasphere.vercel.app/) / [admin-dashboard-navy-pi.vercel.app](https://admin-dashboard-navy-pi-22.vercel.app/) |
+| 🌐 **Live Website**    | [nexasphere-glbajaj.vercel.app](https://nexasphere-glbajaj.vercel.app/) |
+| 🔑 **Admin Dashboard** | [admin-nexasphere.vercel.app](https://admin-nexasphere.vercel.app/) |
 | 📧 **Contact**         | nexasphere@glbajajgroup.org                                                    |
 | 💼 **Institution**     | GL Bajaj Group of Institutions, Mathura                                        |
 
@@ -119,7 +119,6 @@ nexasphere/
 │   ├── package.json
 │   ├── vite.config.js
 │   ├── vercel.json
-│   ├── netlify.toml
 │   └── index.html
 │
 └── README.md                        ← This File
@@ -456,7 +455,7 @@ railway up
 ```
 ADMIN_EMAIL=nexasphere@glbajajgroup.org
 ADMIN_PASSWORD=Admin@123
-CORS_ORIGIN=https://nexasphere-glbajaj.vercel.app,https://admin-nexasphere.vercel.app,https://nexa-sphere-sigma.vercel.app,https://admin-dashboard-navy-pi-22.vercel.app
+CORS_ORIGIN=https://nexasphere-glbajaj.vercel.app,https://admin-nexasphere.vercel.app
 DB_URL=jdbc:postgresql://[provided-by-railway]:5432/railway
 DB_DRIVER=org.postgresql.Driver
 DB_USER=[provided-by-railway]
@@ -704,11 +703,11 @@ All rights reserved. Not for external distribution.
   </tr>
   <tr>
     <td>🌐 Website</td>
-    <td>nexasphere-glbajaj.vercel.app / nexa-sphere-sigma.vercel.app</td>
+    <td>nexasphere-glbajaj.vercel.app</td>
   </tr>
   <tr>
     <td>👨‍💼 Admin Panel</td>
-    <td>admin-nexasphere.vercel.app / admin-dashboard-navy-pi.vercel.app</td>
+    <td>admin-nexasphere.vercel.app</td>
   </tr>
 </table>
 
