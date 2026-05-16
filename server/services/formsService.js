@@ -3,6 +3,7 @@ import { google } from 'googleapis';
 import { normalize as normalizePath } from 'path';
 import { ZodError } from 'zod';
 import { normalizeFormSubmission } from '../validators/formSchemas.js';
+import { ValidationError } from '../utils/errors.js';
 
 function toSafeString(value, max = 4000) {
   return String(value ?? '').trim().slice(0, max);
@@ -81,9 +82,7 @@ export const formsService = {
     } catch (e) {
       if (e instanceof ZodError) {
         const issues = e.issues.map((issue) => ({ path: issue.path.join('.'), message: issue.message }));
-        const err = new Error('Invalid form submission');
-        err.details = issues;
-        throw err;
+        throw new ValidationError('Invalid form submission', issues);
       }
       throw e;
     }

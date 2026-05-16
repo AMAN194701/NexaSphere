@@ -2,6 +2,7 @@ import { supabaseRequest, HAS_SUPABASE } from '../storage/supabaseClient.js';
 import { readContent, writeContent } from '../storage/contentFileStore.js';
 import { sanitizeActivityEventRecord } from '../utils/sanitize.js';
 import { coreTeamService } from './coreTeamService.js';
+import { ValidationError, UnauthorizedError } from '../utils/errors.js';
 
 function toSafeString(value, max = 4000) {
   return String(value ?? '').trim().slice(0, max);
@@ -46,7 +47,7 @@ export const activityEventsService = {
     };
 
     if (!event.name || !event.date || !event.description) {
-      throw new Error('Event name, date and description are required.');
+      throw new ValidationError('Event name, date and description are required.');
     }
 
     if (HAS_SUPABASE) {
@@ -101,7 +102,7 @@ export const activityEventsService = {
 
   async assertCanManage(auth) {
     const expectedPassword = process.env.ADMIN_EVENT_PASSWORD || 'Admin@123';
-    if (String(auth?.password || '') !== expectedPassword) throw new Error('Unauthorized');
+    if (String(auth?.password || '') !== expectedPassword) throw new UnauthorizedError('Unauthorized');
     const n = String(auth?.name || '').trim().toLowerCase();
     const e = String(auth?.email || '').trim().toLowerCase();
     const p = normalizePhone(auth?.phone);
@@ -112,7 +113,7 @@ export const activityEventsService = {
       String(m.email || '').toLowerCase() === e &&
       String(m.whatsapp || '').replace(/[^\d]/g, '') === p
     );
-    if (!ok) throw new Error('Unauthorized');
+    if (!ok) throw new UnauthorizedError('Unauthorized');
   },
 };
 import { activityEventsRepository } from '../repositories/activityEventsRepository.js';

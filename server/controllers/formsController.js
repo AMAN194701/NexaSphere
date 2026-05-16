@@ -1,13 +1,5 @@
 import { formsService } from '../services/formsService.js';
-
-function wrapAsync(fn) {
-  return (req, res) => Promise.resolve(fn(req, res)).catch((e) => {
-    if (e && e.message === 'Invalid form submission' && e.details) {
-      return res.status(400).json({ error: e.message, issues: e.details });
-    }
-    return res.status(500).json({ error: e?.message || 'Internal server error' });
-  });
-}
+import { wrapAsync } from '../middleware/asyncHandler.js';
 
 export function makeHandleForm(formType) {
   return wrapAsync(async (req, res) => {
