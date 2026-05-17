@@ -7,6 +7,7 @@ import './styles/components.css';
 import './styles/aurora.css';
 import './styles/motion.css';
 import SearchBar from './components/SearchBar';
+import NotificationBell from './components/NotificationBell';
 
 import ParticleBackground  from './shared/ParticleBackground';
 import GeometricGridBackground from './shared/GeometricGridBackground';
