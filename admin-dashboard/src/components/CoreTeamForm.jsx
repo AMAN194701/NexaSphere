@@ -3,7 +3,7 @@ import { api } from '../services/api';
 import { AdminIcon } from './AdminIcon';
 
 const ROLES = ['President', 'Vice President', 'Secretary', 'Technical Lead', 'Design Lead', 'Marketing Lead', 'Member'];
-const empty = { name: '', role: 'Member', branch: '', year: '', section: '', email: '', linkedin: '', photo: '' };
+const empty = { name: '', role: 'Member', branch: '', year: '', email: '', linkedin: '', photo: '' };
 
 export function CoreTeamForm({ onClose }) {
   const [form, setForm] = useState(empty);
@@ -11,16 +11,6 @@ export function CoreTeamForm({ onClose }) {
   const [error, setError] = useState('');
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
-
-  const handleFileChange = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      set('photo', reader.result);
-    };
-    reader.readAsDataURL(file);
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -63,10 +53,6 @@ export function CoreTeamForm({ onClose }) {
             <input value={form.year} onChange={e => set('year', e.target.value)} placeholder="e.g. 2nd Year" />
           </div>
           <div className="form-row">
-            <label>Section</label>
-            <input value={form.section} onChange={e => set('section', e.target.value)} placeholder="e.g. A" />
-          </div>
-          <div className="form-row">
             <label>Email</label>
             <input value={form.email} onChange={e => set('email', e.target.value)} type="email" />
           </div>
@@ -75,11 +61,8 @@ export function CoreTeamForm({ onClose }) {
             <input value={form.linkedin} onChange={e => set('linkedin', e.target.value)} type="url" />
           </div>
           <div className="form-row">
-            <label>Photo</label>
-            <input type="file" accept="image/*" onChange={handleFileChange} />
-            {form.photo && (
-              <img src={form.photo} alt="Preview" style={{ width: 50, height: 50, borderRadius: '50%', objectFit: 'cover', marginTop: 8 }} />
-            )}
+            <label>Photo URL</label>
+            <input value={form.photo} onChange={e => set('photo', e.target.value)} type="url" />
           </div>
           {error && <div className="form-error">{error}</div>}
           <div className="form-actions">

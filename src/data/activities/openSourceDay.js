@@ -37,7 +37,14 @@ const openSourceDay = {
     // },
   ],
 
-  upcomingEvents: [],
+  upcomingEvents: [
+    {
+      name: 'Open Source Day 1.0',
+      date: 'Coming Soon',
+      description:
+        'First open source contribution drive. Pick a project, make an impact, and join the global developer community.',
+    },
+  ],
 };
 
 export default openSourceDay;

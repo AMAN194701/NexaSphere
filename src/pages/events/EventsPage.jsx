@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
+import { events as fallbackEvents } from '../../data/eventsData';
 import { BannerOrbs } from '../../shared/MotionLayer';
 import Footer from '../../shared/Footer';
 import { DynamicIcon } from '../../shared/Icons';
 
-export default function EventsPage({ onBack, onEventClick, events = [] }) {
+export default function EventsPage({ onBack, onEventClick, events = fallbackEvents }) {
   useEffect(() => {
     window.scrollTo({ top: 0 });
     const obs = new IntersectionObserver(entries => {
@@ -81,7 +82,7 @@ export default function EventsPage({ onBack, onEventClick, events = [] }) {
                     )}
                   </div>
                   <div className="timeline-event-date" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <DynamicIcon name="Calendar" size={14} /> {ev.dateText ?? ev.date}
+                    <DynamicIcon name="Calendar" size={14} /> {ev.date}
                   </div>
                   <p className="timeline-event-desc">{ev.description}</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '7px', flexWrap: 'wrap' }}>

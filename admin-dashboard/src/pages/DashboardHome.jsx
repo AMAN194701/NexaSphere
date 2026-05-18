@@ -11,19 +11,17 @@ export function DashboardHome() {
     Promise.all([
       api.events.getAll().catch(() => ({ events: [] })),
       api.coreTeam.getAll().catch(() => ({ members: [] })),
-      api.submissions.getMembership().catch(() => ({ submissions: [] })),
-      api.submissions.getRecruitment().catch(() => ({ submissions: [] })),
-    ]).then(([eventsData, teamData, membershipData, recruitmentData]) => {
+      api.membership.getAll().catch(() => ({ responses: [] })),
+    ]).then(([eventsData, teamData, membershipData]) => {
       const events = eventsData?.events ?? [];
-      const team = teamData?.members ?? [];
-      const mSubmissions = membershipData?.submissions ?? [];
-      const rSubmissions = recruitmentData?.submissions ?? [];
+      const team = teamData?.members ?? teamData ?? [];
+      const applications = membershipData?.responses ?? [];
       
       setStats({
         totalEvents: events.length,
         upcomingEvents: events.filter(e => e.status === 'upcoming').length,
         teamMembers: team.length,
-        totalApplications: mSubmissions.length + rSubmissions.length
+        totalApplications: applications.length
       });
       setLoading(false);
     });

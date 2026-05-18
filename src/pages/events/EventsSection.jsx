@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
+import { events as fallbackEvents } from '../../data/eventsData';
 import { DynamicIcon } from '../../shared/Icons';
 
-export default function EventsSection({ onEventClick, events = [] }) {
+export default function EventsSection({ onEventClick, events = fallbackEvents }) {
   useEffect(()=>{
     const obs=new IntersectionObserver(entries=>{
       entries.forEach(e=>{

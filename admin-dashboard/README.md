@@ -141,7 +141,16 @@ npm run dev
 
 <br/>
 
-Admin credentials are configured on the Spring Boot server with `ADMIN_EMAIL` and `ADMIN_PASSWORD`. Do not commit real production credentials.
+<table align="center">
+  <tr>
+    <td><strong>Email</strong></td>
+    <td>nexasphere@glbajajgroup.org</td>
+  </tr>
+  <tr>
+    <td><strong>Password</strong></td>
+    <td>Admin@123</td>
+  </tr>
+</table>
 
 <br/>
 

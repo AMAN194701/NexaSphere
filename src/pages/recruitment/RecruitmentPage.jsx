@@ -212,6 +212,7 @@ function RolesGuideModal({ onClose }) {
 const WHATSAPP_SCREENING = 'https://chat.whatsapp.com/EFbDGo6awGP2L0laESg3lq';
 const WHATSAPP_COMMUNITY = 'https://chat.whatsapp.com/FhpJEaod2g419jFMfqrhGZ';
 const LINKEDIN_PAGE      = 'https://www.linkedin.com/showcase/glbajaj-nexasphere/';
+const RECRUITMENT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzo1g6WNiO-f8kySE4Mqbdlh3VxZx9pRGLcjt7qyzRCNB1TMK0kRwjZbDD2UsaJFQ0q/exec';
 
 const ROLE_OPTIONS = [
   'Technical Lead',
@@ -461,41 +462,11 @@ export default function RecruitmentPage({ onBack }) {
   const [step, setStep] = useState(0); 
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+  const [alreadySubmitted, setAlreadySubmitted] = useState(false);
   const [err, setErr] = useState('');
   const [showRoles, setShowRoles] = useState(false); 
   const topRef = useRef(null);
 
-  const [form, setForm] = useState({
-    fullName: '',
-    collegeEmail: '',
-    whatsapp: '',
-    year: '',
-    branch: '',
-    branchOther: '',
-    section: '',
-    sectionOther: '',
-
-    role: '',
-    interests: [],
-
-    skills: '',
-    comms: '',
-    campusExp: '',
-    campusExpDetails: '',
-    links: '',
-
-    commitHours: '',
-    attendCampus: '',
-    assessmentOk: '',
-
-    whyJoin: '',
-    anythingElse: '',
-
-    declarations: {
-      truth: false,
-      time: false,
-      participate: false,
-      disagree: false,
   
   useEffect(() => {
     try {
@@ -1265,36 +1236,42 @@ export default function RecruitmentPage({ onBack }) {
     setBusy(true);
     try {
       const payload = {
-        fullName:     form.fullName.trim(),
-        collegeEmail: form.collegeEmail.trim().toLowerCase(),
-        whatsapp:     form.whatsapp,
-        year:         form.year,
-        branch:       form.branch === 'Other' ? (form.branchOther || 'Other') : form.branch,
-        section:      form.section === 'Other' ? (form.sectionOther || 'Other') : form.section,
-        role:         form.role,
-        interests:    Array.isArray(form.interests) ? form.interests.join(', ') : '',
-        skills:       form.skills.trim(),
-        whyJoin:      form.whyJoin.trim(),
+        ...form,
+        
+        branch: form.branch === 'Other' ? (form.branchOther || 'Other') : form.branch,
+        section: form.section === 'Other' ? (form.sectionOther || 'Other') : form.section,
+        interests: Array.isArray(form.interests) ? form.interests.join(', ') : '',
+        declarationAccepted: !!form.declarations?.truth && !!form.declarations?.time && !!form.declarations?.participate && !form.declarations?.disagree,
+        declarationSelected: Object.entries(form.declarations || {}).filter(([,v])=>!!v).map(([k])=>k).join(', '),
+        submittedAt: new Date().toISOString(),
+        userAgent: navigator.userAgent,
       };
 
-      const base = (import.meta?.env?.VITE_API_BASE || '').replace(/\/+$/, '');
-      const url = base ? `${base}/api/submissions/recruitment` : '/api/submissions/recruitment';
+      
+      const emailKey = String(form.collegeEmail || '').trim().toLowerCase();
+      try {
+        const existing = JSON.parse(localStorage.getItem('ns_submitted_emails') || '[]');
+        if (existing.includes(emailKey)) {
+          setErr('This email address has already been used to submit an application. Each applicant may submit only once.');
+          setBusy(false);
+          return;
+        }
+      } catch { /* ignore */ }
 
-      const res = await fetch(url, {
+      const res = await fetch(RECRUITMENT_SCRIPT_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(payload),
       });
-
       const data = await res.json().catch(() => ({}));
-
-      if (res.status === 409) {
-        throw new Error('This email has already been used to submit an application.');
-      }
-      if (!res.ok) {
+      if (!res.ok || (data && data.ok === false)) {
         throw new Error(data?.error || 'Submission failed');
       }
-
+      try {
+        const existing = JSON.parse(localStorage.getItem('ns_submitted_emails') || '[]');
+        existing.push(emailKey);
+        localStorage.setItem('ns_submitted_emails', JSON.stringify(existing));
+      } catch { /* ignore */ }
       setDone(true);
       scrollTop();
     } catch (e) {
@@ -1513,7 +1490,48 @@ export default function RecruitmentPage({ onBack }) {
           </div>
 
           <div className="apply-body">
-            {done ? (
+            {alreadySubmitted && !done ? (
+              <div style={{
+                background: 'rgba(255,45,120,.08)',
+                border: '1px solid rgba(255,45,120,.22)',
+                borderRadius: 'var(--r3)',
+                padding: '20px 22px',
+                textAlign: 'center',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'center', color: '#ff2d78', marginBottom: 10 }}><DynamicIcon name="AlertTriangle" size={22} /></div>
+                <div style={{ color: 'var(--t1)', fontWeight: 700, fontSize: '1rem', marginBottom: 12 }}>Application Already Submitted</div>
+                <div style={{ color: 'var(--t2)', fontSize: '.88rem', lineHeight: 1.65, marginBottom: 24 }}>
+                  An application form has already been submitted from this device.<br/>
+                  If you need to update your application, please contact us at{' '}
+                  <a href="mailto:nexasphere@glbajajgroup.org" style={{ color: 'var(--c1)', fontWeight: 600 }}>
+                    nexasphere@glbajajgroup.org
+                  </a>
+                </div>
+
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
+                  <a
+                    href={WHATSAPP_SCREENING}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-whatsapp"
+                    style={{ flex: 1, minWidth: 0, justifyContent: 'center' }}
+                  >
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                      Core Team Screening <IconArrowRight />
+                    </span>
+                  </a>
+                  <a
+                    href={LINKEDIN_PAGE || 'https://www.linkedin.com/showcase/glbajaj-nexasphere/'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-outline"
+                    style={{ flex: 1, minWidth: 0, justifyContent: 'center' }}
+                  >
+                    NexaSphere LinkedIn
+                  </a>
+                </div>
+              </div>
+            ) : done ? (
               <div style={{ display: 'grid', gap: 18 }}>
                 <div style={{
                   background: 'linear-gradient(135deg, rgba(0,212,255,.08), rgba(123,111,255,.06))',

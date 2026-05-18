@@ -17,10 +17,10 @@ import java.util.UUID;
 @Service
 public class AdminAuthService {
 
-    @Value("${ADMIN_EMAIL}")
+    @Value("${ADMIN_EMAIL:nexasphere@glbajajgroup.org}")
     private String adminEmail;
 
-    @Value("${ADMIN_PASSWORD}")
+    @Value("${ADMIN_PASSWORD:Admin@123}")
     private String adminPassword;
 
     private final TokenService tokenService;

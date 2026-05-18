@@ -3,15 +3,16 @@ import { api } from '../services/api';
 import { Skeleton } from '../components/Skeleton';
 import { AdminIcon } from '../components/AdminIcon';
 
+const isOfflineMode = !import.meta.env.VITE_MEMBERSHIP_SCRIPT_URL;
+
 const COLUMNS = [
-  { key: 'fullName',       label: 'Full Name' },
-  { key: 'collegeEmail',   label: 'Email' },
-  { key: 'rollNumber',     label: 'Roll No.' },
-  { key: 'course',         label: 'Course' },
-  { key: 'branch',         label: 'Branch' },
+  { key: 'fullName',      label: 'Full Name' },
+  { key: 'collegeEmail',  label: 'Email' },
+  { key: 'rollNumber',    label: 'Roll No.' },
+  { key: 'course',        label: 'Course' },
+  { key: 'branch',        label: 'Branch' },
   { key: 'groupsSelected', label: 'Groups Interested' },
-  { key: 'status',         label: 'Status' },
-  { key: 'submittedAt',    label: 'Submitted At' },
+  { key: 'submittedAt',   label: 'Submitted At' },
 ];
 
 function formatDate(val) {
@@ -47,25 +48,16 @@ export function MembershipResponsesManager() {
   const [search, setSearch]       = useState('');
 
   useEffect(() => {
-    api.submissions.getMembership()
+    api.membership.getAll()
       .then(data => {
-        setResponses(data?.submissions ?? []);
+        setResponses(data?.responses ?? []);
         setLoading(false);
       })
       .catch(err => {
-        setError(err.message || 'Failed to load membership submissions');
+        setError(err.message || 'Failed to load responses');
         setLoading(false);
       });
   }, []);
-
-  const handleStatusUpdate = async (id, newStatus) => {
-    try {
-      await api.submissions.updateMembershipStatus(id, newStatus);
-      setResponses(prev => prev.map(r => r.id === id ? { ...r, status: newStatus } : r));
-    } catch (err) {
-      alert('Failed to update status: ' + err.message);
-    }
-  };
 
   const filtered = responses.filter(r =>
     COLUMNS.some(c =>
@@ -99,6 +91,17 @@ export function MembershipResponsesManager() {
         </div>
       </div>
 
+      {/* Offline mode banner */}
+      {isOfflineMode && (
+        <div style={{
+          background: 'rgba(234,179,8,0.12)', border: '1px solid rgba(234,179,8,0.4)',
+          borderRadius: 10, padding: '10px 16px', marginBottom: 20,
+          color: '#ca8a04', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8
+        }}>
+          <AdminIcon name="AlertTriangle" size={16} />
+          <span><strong>Offline Mode</strong> — Connect Google Apps Script for live membership data. Set <code>VITE_MEMBERSHIP_SCRIPT_URL</code> in your <code>.env</code>.</span>
+        </div>
+      )}
 
       {loading && (
         <div>
@@ -162,19 +165,7 @@ export function MembershipResponsesManager() {
                 >
                   {COLUMNS.map(c => (
                     <td key={c.key} style={{ padding: '12px 16px', color: 'var(--text)', verticalAlign: 'top' }}>
-                      {c.key === 'submittedAt' ? formatDate(row[c.key]) : (
-                        c.key === 'status' ? (
-                          <select 
-                            value={row.status || 'applied'} 
-                            onChange={(e) => handleStatusUpdate(row.id, e.target.value)}
-                            style={{ padding: '4px 8px', borderRadius: 4, background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', fontSize: 12 }}
-                          >
-                            <option value="applied">Applied</option>
-                            <option value="onboarded">Onboarded</option>
-                            <option value="rejected">Rejected</option>
-                          </select>
-                        ) : (row[c.key] ?? '—')
-                      )}
+                      {c.key === 'submittedAt' ? formatDate(row[c.key]) : (row[c.key] ?? '—')}
                     </td>
                   ))}
                 </tr>

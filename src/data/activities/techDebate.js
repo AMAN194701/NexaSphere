@@ -39,7 +39,14 @@ const techDebate = {
     // },
   ],
 
-  upcomingEvents: [],
+  upcomingEvents: [
+    {
+      name: 'Tech Debate 1.0',
+      date: 'Coming Soon',
+      description:
+        'First tech debate session. Motion: "AI will replace human creativity." — Which side are you on?',
+    },
+  ],
 };
 
 export default techDebate;
