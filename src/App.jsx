@@ -5,181 +5,206 @@ import './styles/animations.css';
 import './styles/chatbot.css';
 import './styles/components.css';
 import './styles/portfolio.css';
-
 import './styles/aurora.css';
 import './styles/motion.css';
-import SearchBar from './components/SearchBar';
 
-import ParticleBackground  from './shared/ParticleBackground';
+import SearchBar            from './components/SearchBar';
+import ParticleBackground   from './shared/ParticleBackground';
 import GeometricGridBackground from './shared/GeometricGridBackground';
-import ScrollProgress      from './shared/ScrollProgress';
-import Navbar              from './shared/Navbar';
-import HeroSection         from './pages/home/HeroSection';
-import ActivitiesSection   from './pages/activities/ActivitiesSection';
-import EventsSection       from './pages/events/EventsSection';
-import AboutSection        from './pages/about/AboutSection';
-import TeamSection         from './pages/team/TeamSection';
-import Footer              from './shared/Footer';
-import ActivityDetailPage  from './pages/activities/ActivityDetailPage';
-import EventDetailPage     from './pages/events/EventDetailPage';
-import CinematicOpening    from './shared/CinematicOpening';
-import Chatbot             from './shared/Chatbot';
+import ScrollProgress       from './shared/ScrollProgress';
+import Navbar               from './shared/Navbar';
+import HeroSection          from './pages/home/HeroSection';
+import ActivitiesSection    from './pages/activities/ActivitiesSection';
+import EventsSection        from './pages/events/EventsSection';
+import AboutSection         from './pages/about/AboutSection';
+import TeamSection          from './pages/team/TeamSection';
+import Footer               from './shared/Footer';
+import ActivityDetailPage   from './pages/activities/ActivityDetailPage';
+import EventDetailPage      from './pages/events/EventDetailPage';
+import CinematicOpening     from './shared/CinematicOpening';
+import Chatbot              from './shared/Chatbot';
 import {
   AmbientOrbs, SectionDivider, PageFlash, BannerOrbs,
   useNsReveal, useHeroParallax,
   useNavScrollTint, useGlobalMouseParallax, useMagneticCards,
 } from './shared/MotionLayer';
-import ActivitiesPage      from './pages/activities/ActivitiesPage';
-import EventsPage          from './pages/events/EventsPage';
-import AboutPage           from './pages/about/AboutPage';
-import TeamPage            from './pages/team/TeamPage';
-import ContactPage         from './pages/contact/ContactPage';
-import RecruitmentPage     from './pages/recruitment/RecruitmentPage';
-import MembershipPage      from './pages/membership/MembershipPage';
-import AdminPage           from './pages/admin/AdminPage';
-import RoadmapsPage        from './pages/roadmaps/RoadmapsPage';
-import ProjectsPage        from './pages/projects/ProjectsPage';
-import PortfolioBuilder    from './components/portfolio/PortfolioBuilder';
-import PublicPortfolio     from './pages/portfolio/PublicPortfolio';
-
-import { activityPages }   from './data/activities/index';
+import ActivitiesPage    from './pages/activities/ActivitiesPage';
+import EventsPage        from './pages/events/EventsPage';
+import AboutPage         from './pages/about/AboutPage';
+import TeamPage          from './pages/team/TeamPage';
+import ContactPage       from './pages/contact/ContactPage';
+import RecruitmentPage   from './pages/recruitment/RecruitmentPage';
+import MembershipPage    from './pages/membership/MembershipPage';
+import AdminPage         from './pages/admin/AdminPage';
+import RoadmapsPage      from './pages/roadmaps/RoadmapsPage';
+import ProjectsPage      from './pages/projects/ProjectsPage';
+import PortfolioBuilder  from './components/portfolio/PortfolioBuilder';
+import PublicPortfolio   from './pages/portfolio/PublicPortfolio';
+import { activityPages } from './data/activities/index';
 import { events as fallbackEvents } from './data/eventsData';
-import nexasphereLogo      from './assets/images/logos/nexasphere-logo.png';
-
-import Terminal from './components/developer/Terminal';
+import nexasphereLogo    from './assets/images/logos/nexasphere-logo.png';
+import Terminal          from './components/developer/Terminal';
 import { useDeveloperMode } from './hooks/useDeveloperMode';
-
 import { BookmarkProvider } from './context/BookmarkContext';
-import BookmarksDrawer from './components/bookmarks/BookmarksDrawer';
+import BookmarksDrawer   from './components/bookmarks/BookmarksDrawer';
 
-const MNH = 88, DNH = 64;
+/* ── Constants ── */
+const MNH  = 88;
+const DNH  = 64;
 const TABS = ['Home','Activities','Events','Projects','Roadmaps','Portfolio','About','Team','Contact'];
+const SECTION_TABS = ['Activities','Events','Projects','Roadmaps','Portfolio','About','Team','Contact'];
+const VALID_PAGE_TYPES = ['section','activity','event','apply','join','portfolio','admin'];
 
-/* ── Page wipe transition ── */
+/* ─────────────────────────────────────────
+   Wipe — page transition overlay
+───────────────────────────────────────── */
 function Wipe({ on, ph }) {
   if (!on) return null;
+  const anim = ph === 'out' ? 'wipeDown' : 'wipeUp';
   return (
     <>
-      <div style={{position:'fixed',inset:0,zIndex:8000,background:'var(--bg)',animation:`${ph==='out'?'wipeDown .27s':'wipeUp .30s'} cubic-bezier(.77,0,.18,1) forwards`,pointerEvents:'all'}}/>
-      <div style={{position:'fixed',inset:0,zIndex:8001,background:'linear-gradient(90deg,#CC1111,#880000,#EE2222)',opacity:.09,animation:`${ph==='out'?'wipeDown .20s .04s':'wipeUp .24s .04s'} cubic-bezier(.77,0,.18,1) forwards`,pointerEvents:'none'}}/>
-      {ph==='out'&&<div className="wipe-shimmer" aria-hidden="true"/>}
-      {ph==='in'&&<PageFlash/>}
-      {ph==='out'&&<div style={{position:'fixed',top:'50%',left:'50%',transform:'translate(-50%,-50%)',zIndex:8002,pointerEvents:'none',opacity:0,animation:'splashIn .16s .1s ease forwards'}}>
-        <img src={nexasphereLogo} style={{height:'46px',mixBlendMode:'screen',filter:'drop-shadow(0 0 12px var(--c1))',opacity:.6}} alt=""/>
-      </div>}
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 8000,
+        background: 'var(--bg)',
+        animation: `${anim} ${ph === 'out' ? '.27s' : '.30s'} cubic-bezier(.77,0,.18,1) forwards`,
+        pointerEvents: 'all',
+      }}/>
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 8001,
+        background: 'linear-gradient(90deg,#CC1111,#880000,#EE2222)',
+        opacity: 0.09,
+        animation: `${anim} ${ph === 'out' ? '.20s .04s' : '.24s .04s'} cubic-bezier(.77,0,.18,1) forwards`,
+        pointerEvents: 'none',
+      }}/>
+      {ph === 'out' && <div className="wipe-shimmer" aria-hidden="true"/>}
+      {ph === 'in'  && <PageFlash/>}
+      {ph === 'out' && (
+        <div style={{
+          position: 'fixed', top: '50%', left: '50%',
+          transform: 'translate(-50%,-50%)',
+          zIndex: 8002, pointerEvents: 'none',
+          opacity: 0, animation: 'splashIn .16s .1s ease forwards',
+        }}>
+          <img
+            src={nexasphereLogo}
+            alt=""
+            style={{
+              height: '46px',
+              mixBlendMode: 'screen',
+              filter: 'drop-shadow(0 0 12px var(--c1))',
+              opacity: 0.6,
+            }}
+          />
+        </div>
+      )}
     </>
   );
 }
 
-/* ── Page enter animation ── */
+/* ─────────────────────────────────────────
+   PageIn — enter animation wrapper
+───────────────────────────────────────── */
 function PageIn({ children, k }) {
-  const [r, setR] = useState(false);
-  useEffect(()=>{ const raf=requestAnimationFrame(()=>setR(true)); return()=>cancelAnimationFrame(raf); },[k]);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setReady(true));
+    return () => cancelAnimationFrame(raf);
+  }, [k]);
+
   return (
-    <div style={{opacity:r?1:0,transform:r?'none':'translateY(16px) scale(.99)',transition:'opacity .42s cubic-bezier(.22,1,.36,1),transform .42s cubic-bezier(.22,1,.36,1)',willChange:'opacity,transform'}}>
+    <div style={{
+      opacity:   ready ? 1 : 0,
+      transform: ready ? 'none' : 'translateY(16px) scale(.99)',
+      transition: 'opacity .42s cubic-bezier(.22,1,.36,1), transform .42s cubic-bezier(.22,1,.36,1)',
+      willChange: 'opacity, transform',
+    }}>
       {children}
     </div>
   );
 }
 
-/* ── Anti-gravity orb cursor ── */
+/* ─────────────────────────────────────────
+   Cursor — anti-gravity orb
+───────────────────────────────────────── */
 function Cursor() {
-  const orbRef  = useRef(null);
-  const trailRef= useRef(null);
-  const glowRef = useRef(null);
-  const stateRef= useRef({
-    mx:0, my:0,
-    ox:0, oy:0,
-    floatY:0, floatPhase:0,
-    hovering:false,
-    clicking:false,
+  const orbRef   = useRef(null);
+  const trailRef = useRef(null);
+  const glowRef  = useRef(null);
+  const stateRef = useRef({
+    mx: 0, my: 0,
+    ox: 0, oy: 0,
+    floatY: 0, floatPhase: 0,
+    hovering: false,
+    clicking: false,
     visible: true,
-    raf:null
+    raf: null,
   });
 
-  useEffect(()=>{
-    if(window.matchMedia('(hover:none)').matches) return;
-    document.body.style.cursor='none';
+  useEffect(() => {
+    if (window.matchMedia('(hover:none)').matches) return;
+    document.body.style.cursor = 'none';
+
     const s = stateRef.current;
-    const onMove = e => { s.mx = e.clientX; s.my = e.clientY; };
-    const onDown = () => { s.clicking = true; };
-    const onUp   = () => { s.clicking = false; };
-    const onOver = e => {
-      s.hovering = !!(e.target.closest('button,a,[role="button"],[tabindex]'));
+
+    const onMove  = e => { s.mx = e.clientX; s.my = e.clientY; };
+    const onDown  = ()  => { s.clicking = true; };
+    const onUp    = ()  => { s.clicking = false; };
+    const onOver  = e  => {
+      s.hovering = !!e.target.closest('button,a,[role="button"],[tabindex]');
     };
-
-
-    const onMouseLeave = () => {
+    const onLeave = () => {
       s.visible = false;
-      if (orbRef.current) orbRef.current.style.display = 'none';
-      if (trailRef.current) trailRef.current.style.display = 'none';
-      if (glowRef.current) glowRef.current.style.display = 'none';
+      [orbRef, trailRef, glowRef].forEach(r => {
+        if (r.current) r.current.style.opacity = '0';
+      });
     };
-    
-    const onMouseEnter = () => {
+    const onEnter = () => {
       s.visible = true;
-      if (orbRef.current) orbRef.current.style.display = 'block';
-      if (trailRef.current) trailRef.current.style.display = 'block';
-      if (glowRef.current) glowRef.current.style.display = 'block';
     };
 
+    /* single tick — no duplicate */
     const tick = () => {
+      s.ox += (s.mx - s.ox) * 1.0;
+      s.oy += (s.my - s.oy) * 1.0;
+      s.floatPhase += 0.022;
+      s.floatY =
+        Math.sin(s.floatPhase)       * 2 +
+        Math.sin(s.floatPhase * 1.7) * 1 +
+        Math.sin(s.floatPhase * 0.5) * 1;
 
+      const fy      = s.oy + s.floatY;
+      const scale   = s.clicking ? 0.7 : s.hovering ? 1.55 : 1;
       const opacity = s.visible ? (s.hovering ? 0.95 : 0.82) : 0;
 
-    const tick = () => {
-      s.ox += (s.mx - s.ox) * 1.00;
-      s.oy += (s.my - s.oy) * 1.00;
-      s.floatPhase += 0.022;
-      s.floatY = Math.sin(s.floatPhase) * 2
-               + Math.sin(s.floatPhase * 1.7) * 1
-               + Math.sin(s.floatPhase * 0.5) * 1;
-      const fy = s.oy + s.floatY;
-
-      const scale = s.clicking ? 0.7 : s.hovering ? 1.55 : 1;
-
-    if (orbRef.current) {
-      orbRef.current.style.left = s.ox + 'px';
-      orbRef.current.style.top = fy + 'px';
-      orbRef.current.style.transform = `translate(-50%,-50%) scale(${scale})`;
-      orbRef.current.style.opacity = s.visible ? (s.hovering ? 0.95 : 0.82) : 0;
-    }
-    if (trailRef.current) {
-      trailRef.current.style.left = s.ox + 'px';
-      trailRef.current.style.top = s.oy + s.floatY * 0.4 + 'px';
-      trailRef.current.style.opacity = s.visible ? (s.hovering ? 0 : 0.35) : 0; 
-    }
-    if (glowRef.current) {
-      glowRef.current.style.left = s.mx + 'px';
-      glowRef.current.style.top = s.my + 'px';
-      glowRef.current.style.opacity = s.visible ? 1 : 0; 
-    }
-      const scale   = s.clicking ? 0.7 : s.hovering ? 1.55 : 1;
-      const opacity = s.hovering ? 0.95 : 0.82;
       if (orbRef.current) {
-        orbRef.current.style.left      = s.ox + 'px';
-        orbRef.current.style.top       = fy   + 'px';
+        orbRef.current.style.left      = `${s.ox}px`;
+        orbRef.current.style.top       = `${fy}px`;
         orbRef.current.style.transform = `translate(-50%,-50%) scale(${scale})`;
         orbRef.current.style.opacity   = opacity;
       }
       if (trailRef.current) {
-        trailRef.current.style.left    = s.ox + 'px';
-        trailRef.current.style.top     = s.oy + s.floatY * 0.4 + 'px';
-        trailRef.current.style.opacity = s.hovering ? 0 : 0.35;
+        trailRef.current.style.left    = `${s.ox}px`;
+        trailRef.current.style.top     = `${s.oy + s.floatY * 0.4}px`;
+        trailRef.current.style.opacity = s.visible ? (s.hovering ? 0 : 0.35) : 0;
       }
       if (glowRef.current) {
-        glowRef.current.style.left = s.mx + 'px';
-        glowRef.current.style.top  = s.my + 'px';
+        glowRef.current.style.left    = `${s.mx}px`;
+        glowRef.current.style.top     = `${s.my}px`;
+        glowRef.current.style.opacity = s.visible ? 1 : 0;
       }
+
       s.raf = requestAnimationFrame(tick);
     };
-    window.addEventListener('mousemove', onMove,  { passive:true });
+
+    window.addEventListener('mousemove', onMove,  { passive: true });
     window.addEventListener('mousedown', onDown);
     window.addEventListener('mouseup',   onUp);
-    window.addEventListener('mouseover', onOver,  { passive:true });
-    document.documentElement.addEventListener('mouseleave', onMouseLeave);
-    document.documentElement.addEventListener('mouseenter', onMouseEnter);
+    window.addEventListener('mouseover', onOver,  { passive: true });
+    document.documentElement.addEventListener('mouseleave', onLeave);
+    document.documentElement.addEventListener('mouseenter', onEnter);
     s.raf = requestAnimationFrame(tick);
+
     return () => {
       document.body.style.cursor = '';
       cancelAnimationFrame(s.raf);
@@ -187,122 +212,170 @@ function Cursor() {
       window.removeEventListener('mousedown', onDown);
       window.removeEventListener('mouseup',   onUp);
       window.removeEventListener('mouseover', onOver);
-      document.documentElement.removeEventListener('mouseleave', onMouseLeave);
-      document.documentElement.removeEventListener('mouseenter', onMouseEnter);
+      document.documentElement.removeEventListener('mouseleave', onLeave);
+      document.documentElement.removeEventListener('mouseenter', onEnter);
     };
   }, []);
 
   return (
     <>
+      {/* Ambient glow */}
       <div ref={glowRef} style={{
-        position:'fixed', pointerEvents:'none', zIndex:10000,
-        width:'320px', height:'320px', borderRadius:'50%',
-        background:'radial-gradient(circle, rgba(204,17,17,.055) 0%, rgba(136,0,0,.03) 40%, transparent 70%)',
-        transform:'translate(-50%,-50%)',
-        transition:'opacity .3s',
+        position: 'fixed', pointerEvents: 'none', zIndex: 10000,
+        width: '320px', height: '320px', borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(204,17,17,.055) 0%, rgba(136,0,0,.03) 40%, transparent 70%)',
+        transform: 'translate(-50%,-50%)',
+        transition: 'opacity .3s',
       }}/>
+      {/* Trail */}
       <div ref={trailRef} style={{
-        position:'fixed', pointerEvents:'none', zIndex:10002,
-        width:'28px', height:'28px', borderRadius:'50%',
-        background:'radial-gradient(circle, rgba(204,17,17,0.7) 0%, transparent 70%)',
-        transform:'translate(-50%,-50%)',
-        filter:'blur(6px)',
-        transition:'opacity .25s',
+        position: 'fixed', pointerEvents: 'none', zIndex: 10002,
+        width: '28px', height: '28px', borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(204,17,17,0.7) 0%, transparent 70%)',
+        transform: 'translate(-50%,-50%)',
+        filter: 'blur(6px)',
+        transition: 'opacity .25s',
       }}/>
+      {/* Orb */}
       <div ref={orbRef} style={{
-        position:'fixed', pointerEvents:'none', zIndex:100000,
-        width:'18px', height:'18px', borderRadius:'50%',
-        background:'radial-gradient(circle at 35% 35%, #fff 0%, #CC1111 40%, #880000 100%)',
-        boxShadow:'0 0 10px rgba(204,17,17,.9), 0 0 24px rgba(204,17,17,.5), 0 0 50px rgba(136,0,0,.3)',
-        transition:'transform .08s cubic-bezier(.34,1.56,.64,1), opacity .2s',
+        position: 'fixed', pointerEvents: 'none', zIndex: 100000,
+        width: '18px', height: '18px', borderRadius: '50%',
+        background: 'radial-gradient(circle at 35% 35%, #fff 0%, #CC1111 40%, #880000 100%)',
+        boxShadow: '0 0 10px rgba(204,17,17,.9), 0 0 24px rgba(204,17,17,.5), 0 0 50px rgba(136,0,0,.3)',
+        transition: 'transform .08s cubic-bezier(.34,1.56,.64,1), opacity .2s',
       }}>
         <div style={{
-          position:'absolute', top:'20%', left:'22%',
-          width:'5px', height:'5px', borderRadius:'50%',
-          background:'rgba(255,255,255,.9)',
-          filter:'blur(1px)',
+          position: 'absolute', top: '20%', left: '22%',
+          width: '5px', height: '5px', borderRadius: '50%',
+          background: 'rgba(255,255,255,.9)',
+          filter: 'blur(1px)',
         }}/>
       </div>
     </>
   );
 }
 
-export default function App() {
-  const [cinDone,    setCinDone]    = useState(false);
-  const [activeTab,  setActiveTab]  = useState('Home');
-  const [mobile,     setMobile]     = useState(window.innerWidth <= 768);
-  const [wipeOn,     setWipeOn]     = useState(false);
-  const [wipePh,     setWipePh]     = useState('out');
-  const [page,       setPage]       = useState(null);
-  const [theme,      setTheme]      = useState(() => localStorage.getItem('ns-theme') || 'dark');
-  const [eventsData, setEventsData] = useState(fallbackEvents);
-  const [searchOpen, setSearchOpen] = useState(false);   // ← Search state
-  const [bookmarksOpen, setBookmarksOpen] = useState(false);
-  const { isOpen: isTerminalOpen, closeTerminal } = useDeveloperMode();
+/* ─────────────────────────────────────────
+   NotFoundPage
+───────────────────────────────────────── */
+function NotFoundPage({ onGoHome }) {
+  return (
+    <div style={{
+      minHeight: '80vh', display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      textAlign: 'center', padding: '40px 24px',
+    }}>
+      <div style={{
+        fontFamily: "'Orbitron',monospace",
+        fontSize: 'clamp(5rem,18vw,10rem)',
+        fontWeight: 900,
+        background: 'linear-gradient(135deg,#CC1111 0%,#EE2222 50%,#FF4444 100%)',
+        WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+        backgroundClip: 'text', lineHeight: 1, marginBottom: '16px',
+      }}>404</div>
+      <h2 style={{
+        fontFamily: "'Orbitron',monospace",
+        fontSize: 'clamp(1rem,3vw,1.5rem)',
+        fontWeight: 700, color: 'var(--t1)', marginBottom: '12px',
+      }}>Page Not Found</h2>
+      <p style={{
+        color: 'var(--t2)', fontSize: '1rem',
+        maxWidth: '380px', lineHeight: 1.7, marginBottom: '32px',
+      }}>
+        The page you&apos;re looking for doesn&apos;t exist or may have moved.
+      </p>
+      <button className="btn btn-primary" onClick={onGoHome} style={{ cursor: 'pointer' }}>
+        ← Go Home
+      </button>
+    </div>
+  );
+}
 
-  useEffect(()=>{
+/* ─────────────────────────────────────────
+   App — root component
+───────────────────────────────────────── */
+export default function App() {
+  const [cinDone,      setCinDone]      = useState(false);
+  const [activeTab,    setActiveTab]    = useState('Home');
+  const [mobile,       setMobile]       = useState(window.innerWidth <= 768);
+  const [wipeOn,       setWipeOn]       = useState(false);
+  const [wipePh,       setWipePh]       = useState('out');
+  const [page,         setPage]         = useState(null);
+  const [eventsData,   setEventsData]   = useState(fallbackEvents);
+  const [searchOpen,   setSearchOpen]   = useState(false);
+  const [bookmarksOpen,setBookmarksOpen]= useState(false);
+
+  /* ── Theme: persisted to localStorage ── */
+  const [theme, setTheme] = useState(
+    () => localStorage.getItem('ns-theme') || 'dark'
+  );
+  useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('ns-theme', theme);
   }, [theme]);
-
-  useEffect(() => {
-    const path = window.location.pathname;
-    const match = path.match(/^\/p\/([a-zA-Z0-9_-]+)/);
-    if (match) {
-      const name = match[1];
-      setPage({ type: 'portfolio', username: name });
-    }
-  }, []);
 
   const toggleTheme = useCallback(() => {
     setTheme(t => t === 'dark' ? 'light' : 'dark');
   }, []);
 
+  /* ── Developer mode ── */
+  const { isOpen: isTerminalOpen, closeTerminal } = useDeveloperMode();
+
+  /* ── Portfolio deep-link ── */
+  useEffect(() => {
+    const match = window.location.pathname.match(/^\/p\/([a-zA-Z0-9_-]+)/);
+    if (match) setPage({ type: 'portfolio', username: match[1] });
+  }, []);
+
+  /* ── Fetch events ── */
   useEffect(() => {
     let alive = true;
     const base = (import.meta?.env?.VITE_API_BASE || '').replace(/\/+$/, '');
     const url  = base ? `${base}/api/content/events` : '/api/content/events';
     fetch(url)
-      .then(r => r.ok ? r.json() : Promise.reject(new Error('Failed')))
+      .then(r => r.ok ? r.json() : Promise.reject())
       .then(data => {
-        if (!alive) return;
-        if (Array.isArray(data?.events) && data.events.length > 0) setEventsData(data.events);
+        if (alive && Array.isArray(data?.events) && data.events.length > 0)
+          setEventsData(data.events);
       })
       .catch(() => {});
     return () => { alive = false; };
   }, []);
 
-  useEffect(()=>{
+  /* ── Back-to-top button ── */
+  useEffect(() => {
     const btn = document.getElementById('back-to-top');
     if (!btn) return;
-    const fn = () => btn.classList.toggle('visible', window.scrollY > 400);
-    window.addEventListener('scroll', fn, { passive:true });
-    btn.addEventListener('click', () => window.scrollTo({ top:0, behavior:'smooth' }));
-    return () => window.removeEventListener('scroll', fn);
+    const onScroll = () => btn.classList.toggle('visible', window.scrollY > 400);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    btn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  useEffect(()=>{
+  /* ── Active tab by scroll ── */
+  useEffect(() => {
     if (page) return;
     const nh = mobile ? MNH : DNH;
-    const fn = () => {
+    const onScroll = () => {
       const sy = window.scrollY + nh + 30;
       for (let i = TABS.length - 1; i >= 0; i--) {
         const el = document.getElementById(`section-${TABS[i].toLowerCase()}`);
         if (el && el.offsetTop <= sy) { setActiveTab(TABS[i]); break; }
       }
     };
-    window.addEventListener('scroll', fn, { passive:true });
-    return () => window.removeEventListener('scroll', fn);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
   }, [mobile, page]);
 
-  useEffect(()=>{
+  /* ── Responsive ── */
+  useEffect(() => {
     const fn = () => setMobile(window.innerWidth <= 768);
-    window.addEventListener('resize', fn, { passive:true });
+    window.addEventListener('resize', fn, { passive: true });
     return () => window.removeEventListener('resize', fn);
   }, []);
 
-  /* ── Ctrl+K / Cmd+K opens search ── */
-  useEffect(()=>{
+  /* ── Ctrl+K search shortcut ── */
+  useEffect(() => {
     const fn = e => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
@@ -313,50 +386,54 @@ export default function App() {
     return () => window.removeEventListener('keydown', fn);
   }, []);
 
-  useEffect(()=>{
+  /* ── Scroll/intersection animations ── */
+  useEffect(() => {
     if (!cinDone) return;
+
     const obs = new IntersectionObserver(entries => {
       entries.forEach(e => {
-        if (e.isIntersecting && !e.target.classList.contains('fired')) {
-          e.target.classList.add('fired');
-          e.target.addEventListener('animationend', () => {
-            e.target.style.opacity   = '1';
-            e.target.style.transform = 'none';
-          }, { once:true });
-          obs.unobserve(e.target);
-        }
+        if (!e.isIntersecting || e.target.classList.contains('fired')) return;
+        e.target.classList.add('fired');
+        e.target.addEventListener('animationend', () => {
+          e.target.style.opacity   = '1';
+          e.target.style.transform = 'none';
+        }, { once: true });
+        obs.unobserve(e.target);
       });
-    }, { threshold:.09, rootMargin:'0px 0px -36px 0px' });
-    document.querySelectorAll('.pop-in,.pop-left,.pop-right,.pop-scale,.pop-flip,.pop-word,.pop-num').forEach(el => obs.observe(el));
+    }, { threshold: 0.09, rootMargin: '0px 0px -36px 0px' });
 
-    const btns   = document.querySelectorAll('.mag-btn');
+    document.querySelectorAll(
+      '.pop-in,.pop-left,.pop-right,.pop-scale,.pop-flip,.pop-word,.pop-num'
+    ).forEach(el => obs.observe(el));
+
     const onMove = e => {
-      btns.forEach(btn => {
+      /* magnetic buttons */
+      document.querySelectorAll('.mag-btn').forEach(btn => {
         const rect = btn.getBoundingClientRect();
         const dx   = e.clientX - (rect.left + rect.width  / 2);
         const dy   = e.clientY - (rect.top  + rect.height / 2);
-        const d    = Math.sqrt(dx*dx + dy*dy);
-        btn.style.transform = d < 88 ? `translate(${dx*(88-d)/88*.32}px,${dy*(88-d)/88*.32}px)` : '';
+        const d    = Math.sqrt(dx * dx + dy * dy);
+        btn.style.transform = d < 88
+          ? `translate(${dx * (88 - d) / 88 * 0.32}px,${dy * (88 - d) / 88 * 0.32}px)`
+          : '';
       });
+
+      /* tilt cards */
       document.querySelectorAll('.activity-card').forEach(card => {
         const rect    = card.getBoundingClientRect();
         const cx      = rect.left + rect.width  / 2;
         const cy      = rect.top  + rect.height / 2;
         const dx      = e.clientX - cx;
         const dy      = e.clientY - cy;
-        const dist    = Math.sqrt(dx*dx + dy*dy);
+        const dist    = Math.sqrt(dx * dx + dy * dy);
         const maxDist = Math.max(rect.width, rect.height) * 0.9;
-        if (dist < maxDist) {
-          const intensity = (1 - dist / maxDist) * 6;
-          card.style.setProperty('--rx',  (dx / rect.width  * intensity).toFixed(2));
-          card.style.setProperty('--ry', (-dy / rect.height * intensity).toFixed(2));
-        } else {
-          card.style.setProperty('--rx', '0');
-          card.style.setProperty('--ry', '0');
-        }
+        const intensity = dist < maxDist ? (1 - dist / maxDist) * 6 : 0;
+        card.style.setProperty('--rx',  intensity ? (dx / rect.width  * intensity).toFixed(2) : '0');
+        card.style.setProperty('--ry', intensity ? (-dy / rect.height * intensity).toFixed(2) : '0');
       });
     };
-    window.addEventListener('mousemove', onMove, { passive:true });
+
+    window.addEventListener('mousemove', onMove, { passive: true });
     return () => { obs.disconnect(); window.removeEventListener('mousemove', onMove); };
   }, [cinDone, page]);
 
@@ -366,10 +443,13 @@ export default function App() {
   useGlobalMouseParallax();
   useMagneticCards();
 
-  const nav = useCallback((fn) => {
-    setWipeOn(true); setWipePh('out');
+  /* ── Navigation helper ── */
+  const nav = useCallback(fn => {
+    setWipeOn(true);
+    setWipePh('out');
     setTimeout(() => {
-      fn(); window.scrollTo({ top:0 });
+      fn();
+      window.scrollTo({ top: 0 });
       requestAnimationFrame(() => {
         setWipePh('in');
         setTimeout(() => setWipeOn(false), 340);
@@ -377,35 +457,38 @@ export default function App() {
     }, 275);
   }, []);
 
+  /* ── Tab handler ── */
   const onTab = useCallback(tab => {
-    if (['Activities','Events','Projects','Roadmaps','Portfolio','About','Team','Contact'].includes(tab)) {
-      nav(() => { setPage({ type:'section', section:tab }); setActiveTab(tab); });
+    if (SECTION_TABS.includes(tab)) {
+      nav(() => { setPage({ type: 'section', section: tab }); setActiveTab(tab); });
       return;
     }
     nav(() => {
-      setPage(null); setActiveTab(tab);
+      setPage(null);
+      setActiveTab(tab);
       setTimeout(() => {
         const el = document.getElementById(`section-${tab.toLowerCase()}`);
         if (!el) return;
-        window.scrollTo({ top: el.offsetTop - (mobile ? MNH : DNH), behavior:'smooth' });
+        window.scrollTo({ top: el.offsetTop - (mobile ? MNH : DNH), behavior: 'smooth' });
       }, 50);
     });
   }, [nav, mobile]);
 
+  /* ── Navigation callbacks ── */
   const onNavigate = useCallback((type, title) => {
-    if (type === 'activity') nav(() => setPage({ type:'activity', activityKey:title }));
+    if (type === 'activity') nav(() => setPage({ type: 'activity', activityKey: title }));
   }, [nav]);
 
   const onEvent = useCallback(ev => {
-    nav(() => setPage(p => ({ ...p, type:'event', event:ev })));
+    nav(() => setPage(p => ({ ...p, type: 'event', event: ev })));
   }, [nav]);
 
   const onKSSClick = useCallback(ev => {
-    nav(() => setPage({ type:'event', activityKey:'Insight Session', event:ev }));
+    nav(() => setPage({ type: 'event', activityKey: 'Insight Session', event: ev }));
   }, [nav]);
 
   const onBackAct = useCallback(() => {
-    nav(() => setPage(p => ({ type:'activity', activityKey:p.activityKey })));
+    nav(() => setPage(p => ({ type: 'activity', activityKey: p.activityKey })));
   }, [nav]);
 
   const onBackMain = useCallback(() => {
@@ -414,47 +497,39 @@ export default function App() {
       setTimeout(() => {
         const el = document.getElementById('section-activities');
         if (!el) return;
-        window.scrollTo({ top: el.offsetTop - (mobile ? MNH : DNH), behavior:'smooth' });
+        window.scrollTo({ top: el.offsetTop - (mobile ? MNH : DNH), behavior: 'smooth' });
       }, 50);
     });
   }, [nav, mobile]);
 
-  const onBackToSection = useCallback((section) => {
-    nav(() => setPage({ type:'section', section }));
-  }, [nav]);
-
-  const openApply = useCallback(() => {
-    nav(() => setPage({ type:'apply' }));
-  }, [nav]);
-
-  const openJoin = useCallback(() => {
-    nav(() => setPage({ type:'join' }));
-  }, [nav]);
-
   const onBackHome = useCallback(() => {
     window.history.pushState({}, '', '/');
-    nav(() => { setPage(null); setActiveTab('Home'); window.scrollTo({ top:0 }); });
+    nav(() => { setPage(null); setActiveTab('Home'); window.scrollTo({ top: 0 }); });
   }, [nav]);
 
+  const openApply = useCallback(() => nav(() => setPage({ type: 'apply' })), [nav]);
+  const openJoin  = useCallback(() => nav(() => setPage({ type: 'join'  })), [nav]);
+
+  /* ── Derived ── */
   const nh  = mobile ? MNH : DNH;
   const cur = page?.activityKey ? activityPages[page.activityKey] : null;
 
   return (
     <BookmarkProvider>
-      {/* Chatbot – kept at very top */}
-      <Chatbot />
+      <Chatbot/>
 
       {!cinDone && (
         <CinematicOpening theme={theme} onDone={() => setCinDone(true)}/>
       )}
 
-      {cinDone && <ScrollProgress />}
+      {cinDone && <ScrollProgress/>}
       <Cursor/>
       <Wipe on={wipeOn} ph={wipePh}/>
 
       {cinDone && <AmbientOrbs theme={theme}/>}
       {cinDone && <GeometricGridBackground theme={theme}/>}
       {cinDone && <ParticleBackground theme={theme}/>}
+
       {cinDone && (
         <Navbar
           activeTab={activeTab}
@@ -467,28 +542,42 @@ export default function App() {
         />
       )}
 
-      <main style={{ paddingTop:nh, position:'relative', zIndex:1 }}>
+      <main style={{ paddingTop: nh, position: 'relative', zIndex: 1 }}>
         {page ? (
-          <PageIn k={page.type + (page.section || page.activityKey)}>
+          <PageIn k={page.type + (page.section || page.activityKey || '')}>
+
+            {/* ── Section pages ── */}
             {page.section === 'Activities' && <ActivitiesPage onNavigate={onNavigate} onBack={onBackHome}/>}
             {page.section === 'Events'     && <EventsPage onBack={onBackHome} onEventClick={onKSSClick} events={eventsData}/>}
             {page.section === 'Projects'   && <ProjectsPage onBack={onBackHome}/>}
             {page.section === 'Roadmaps'   && <RoadmapsPage onBack={onBackHome}/>}
-            {page.section === 'Portfolio'  && <PortfolioBuilder />}
+            {page.section === 'Portfolio'  && <PortfolioBuilder/>}
             {page.section === 'About'      && <AboutPage onBack={onBackHome}/>}
             {page.section === 'Team'       && <TeamPage onBack={onBackHome} onApply={openApply}/>}
             {page.section === 'Contact'    && <ContactPage onBack={onBackHome}/>}
-            {page.type === 'activity' && cur && <ActivityDetailPage activity={cur} onBack={onBackMain} onSelectEvent={onEvent}/>}
-            {page.type === 'apply'    && <RecruitmentPage onBack={onBackHome}/>}
-            {page.type === 'join'     && <MembershipPage  onBack={onBackHome}/>}
-            {page.type === 'admin'    && <AdminPage        onBack={onBackHome}/>}
-            {page.type === 'event' && page.event && (
-              <EventDetailPage event={page.event} onBack={page.activityKey ? onBackAct : onBackMain}/>
+
+            {/* ── Detail / action pages ── */}
+            {page.type === 'activity' && cur && (
+              <ActivityDetailPage activity={cur} onBack={onBackMain} onSelectEvent={onEvent}/>
             )}
-            {page.type === 'portfolio' && <PublicPortfolio username={page.username} onBack={onBackHome} />}
-            {page.type && !['section','activity','event','apply','join','portfolio'].includes(page.type) && (
+            {page.type === 'apply' && <RecruitmentPage onBack={onBackHome}/>}
+            {page.type === 'join'  && <MembershipPage  onBack={onBackHome}/>}
+            {page.type === 'admin' && <AdminPage        onBack={onBackHome}/>}
+            {page.type === 'event' && page.event && (
+              <EventDetailPage
+                event={page.event}
+                onBack={page.activityKey ? onBackAct : onBackMain}
+              />
+            )}
+            {page.type === 'portfolio' && (
+              <PublicPortfolio username={page.username} onBack={onBackHome}/>
+            )}
+
+            {/* ── 404 fallback ── */}
+            {page.type && !VALID_PAGE_TYPES.includes(page.type) && (
               <NotFoundPage onGoHome={onBackHome}/>
             )}
+
           </PageIn>
         ) : (
           cinDone && (
@@ -502,16 +591,19 @@ export default function App() {
               <AboutSection/>
               <SectionDivider/>
               <TeamSection onApply={openApply}/>
-              <Footer onAdmin={() => nav(() => setPage({ type:'admin' }))} onProjects={() => onTab('Projects')} onRoadmaps={() => onTab('Roadmaps')} />
+              <Footer
+                onAdmin={() => nav(() => setPage({ type: 'admin' }))}
+                onProjects={() => onTab('Projects')}
+                onRoadmaps={() => onTab('Roadmaps')}
+              />
             </PageIn>
           )
         )}
       </main>
 
-      {/* Back to top button */}
       {cinDone && <button id="back-to-top" aria-label="Back to top">↑</button>}
 
-      {/* ── Floating Search Button (bottom-left) ── */}
+      {/* ── Floating search button ── */}
       {cinDone && (
         <button
           onClick={() => setSearchOpen(true)}
@@ -543,7 +635,7 @@ export default function App() {
         </button>
       )}
 
-      {/* ── Search Overlay ── */}
+      {/* ── Search overlay ── */}
       <SearchBar
         open={searchOpen}
         onClose={() => setSearchOpen(false)}
@@ -553,36 +645,25 @@ export default function App() {
         onEventClick={onKSSClick}
       />
 
-      {/* ── Developer Terminal ── */}
-      <Terminal 
-        isOpen={isTerminalOpen} 
-        onClose={closeTerminal} 
-        theme={theme} 
-        setTheme={setTheme} 
-        onNavigate={onTab} 
+      {/* ── Developer terminal ── */}
+      <Terminal
+        isOpen={isTerminalOpen}
+        onClose={closeTerminal}
+        theme={theme}
+        setTheme={setTheme}
+        onNavigate={onTab}
       />
 
-      {/* ── Bookmarks Drawer ── */}
+      {/* ── Bookmarks drawer ── */}
       <BookmarksDrawer
         isOpen={bookmarksOpen}
         onClose={() => setBookmarksOpen(false)}
-        onNavigate={(type) => {
-          if (type === 'Event') onTab('Events');
+        onNavigate={type => {
+          if (type === 'Event')    onTab('Events');
           else if (type === 'Activity') onTab('Activities');
-          else if (type === 'Roadmap') onTab('Roadmaps');
+          else if (type === 'Roadmap')  onTab('Roadmaps');
         }}
       />
     </BookmarkProvider>
-  );
-}
-
-function NotFoundPage({ onGoHome }) {
-  return (
-    <div style={{minHeight:'80vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',textAlign:'center',padding:'40px 24px'}}>
-      <div style={{fontFamily:"'Orbitron',monospace",fontSize:'clamp(5rem,18vw,10rem)',fontWeight:900,background:'linear-gradient(135deg,#CC1111 0%,#EE2222 50%,#FF4444 100%)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',backgroundClip:'text',lineHeight:1,marginBottom:'16px'}}>404</div>
-      <h2 style={{fontFamily:"'Orbitron',monospace",fontSize:'clamp(1rem,3vw,1.5rem)',fontWeight:700,color:'var(--t1)',marginBottom:'12px'}}>Page Not Found</h2>
-      <p style={{color:'var(--t2)',fontSize:'1rem',maxWidth:'380px',lineHeight:1.7,marginBottom:'32px'}}>The page you&apos;re looking for doesn&apos;t exist or may have moved.</p>
-      <button className="btn btn-primary" onClick={onGoHome} style={{cursor:'pointer'}}>← Go Home</button>
-    </div>
   );
 }
