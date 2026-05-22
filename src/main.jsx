@@ -1,18 +1,17 @@
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
-import App from './App.jsx';
-import { registerSW } from 'virtual:pwa-register';
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App";
+import "./index.css";
 
-// Apply saved theme before React renders — prevents flash of wrong theme
-const savedTheme = localStorage.getItem('ns-theme') || 'dark';
-document.documentElement.setAttribute('data-theme', savedTheme);
+import { BrowserRouter } from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext";
 
-// Register service worker
-registerSW({ immediate: true });
-
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <App />
-  </StrictMode>
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <React.StrictMode>
+    <BrowserRouter>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </BrowserRouter>
+  </React.StrictMode>
 );
-
