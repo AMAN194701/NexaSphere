@@ -81,67 +81,158 @@ export const roadmapData = {
     nodes: [
       {
         id: "python-basics",
-        label: "Python Programming",
-        description: "The primary programming language of data science. Learn functional programming and data manipulation paradigms.",
-        concepts: ["Data Structures (Lists, Dicts)", "OOP in Python", "File I/O", "Virtual Environments"],
+        label: "Python Programming & Setup",
+        description: "Learn the foundational programming language for AI/ML development. Set up virtual environments, master OOP concepts, file operations, and code organization.",
+        concepts: ["Virtual Environments (venv/conda)", "Data Structures (Lists, Dicts, Sets)", "Object-Oriented Programming (OOP)", "File Input/Output", "Packages & Modules"],
         docs: "https://docs.python.org/3/",
         tutorials: [
-          { title: "Python for Everybody - Coursera/FreeCodeCamp", url: "https://www.youtube.com/watch?v=8DvywoWv6fI" }
+          { title: "Python for Everybody - freeCodeCamp", url: "https://www.youtube.com/watch?v=8DvywoWv6fI" },
+          { title: "Modern Python Playlist - Corey Schafer", url: "https://www.youtube.com/playlist?list=PL-osiE80TeTskrapRyY7q5RYAsge0rygB" }
         ],
         practice: [
-          { title: "Python Tracks - Hackerrank", url: "https://www.hackerrank.com/domains/python" }
+          { title: "HackerRank Python Track", url: "https://www.hackerrank.com/domains/python" },
+          { title: "Exercism Python Track", url: "https://exercism.org/tracks/python" }
         ]
       },
       {
-        id: "math-foundation",
-        label: "Mathematics & Statistics",
-        description: "Understand the statistical modeling and algorithmic linear algebra that power complex ML predictions.",
-        concepts: ["Linear Algebra (Matrices & Vectors)", "Calculus (Gradients & Derivatives)", "Probability Distributions", "Hypothesis Testing"],
+        id: "math-foundations",
+        label: "Mathematics & Theory Foundations",
+        description: "Master the fundamental mathematics backing advanced learning models: Linear Algebra, Multivariate Calculus, Probability, and Statistics.",
+        concepts: ["Linear Algebra (Matrices, Vectors, Eigenvalues)", "Calculus (Derivatives, Gradients, Chain Rule)", "Probability Distributions (Normal, Binomial)", "Hypothesis Testing & Descriptive Statistics"],
         docs: "https://khanacademy.org/math",
         tutorials: [
-          { title: "Mathematics for Machine Learning - Imperial College London", url: "https://www.coursera.org/specializations/mathematics-machine-learning" }
+          { title: "Mathematics for Machine Learning - Coursera", url: "https://www.coursera.org/specializations/mathematics-machine-learning" },
+          { title: "Essence of Linear Algebra - 3Blue1Brown", url: "https://www.youtube.com/playlist?list=PLZHQObOWTQDPD3MizzM2xVFitgF8hE_ab" }
         ],
         practice: [
-          { title: "Desmos Matrix Calculator Playground", url: "https://www.desmos.com/matrix" }
+          { title: "Desmos Matrix Playground", url: "https://www.desmos.com/matrix" },
+          { title: "Khan Academy Math Sandbox", url: "https://www.khanacademy.org/math/statistics-probability" }
         ]
       },
       {
         id: "data-manipulation",
-        label: "Data Science Libraries",
-        description: "Clean, explore, and analyze heavy datasets with industry-standard libraries.",
-        concepts: ["NumPy Array Operations", "Pandas DataFrames", "Data Visualization (Matplotlib & Seaborn)", "Handling Missing Values"],
+        label: "Data Science Tools: NumPy & Pandas",
+        description: "Load, parse, manipulate, and organize massive real-world datasets utilizing industry-standard high-performance computing structures.",
+        concepts: ["NumPy N-Dimensional Arrays", "Vectorization & Matrix Operations", "Pandas DataFrames & Series", "Indexing, Merging, & Grouping", "Jupyter Notebooks Environments"],
         docs: "https://pandas.pydata.org/docs/",
         tutorials: [
-          { title: "Pandas Full Tutorial - Keith Galli", url: "https://www.youtube.com/watch?v=vmEHCJof1kU" }
+          { title: "Jupyter Notebook Tutorial - Corey Schafer", url: "https://www.youtube.com/watch?v=HW29067qVWk" },
+          { title: "Pandas and NumPy for Beginners - Keith Galli", url: "https://www.youtube.com/watch?v=vmEHCJof1kU" }
         ],
         practice: [
-          { title: "Kaggle Micro-Courses", url: "https://www.kaggle.com/learn" }
+          { title: "Kaggle Pandas Micro-Course", url: "https://www.kaggle.com/learn/pandas" },
+          { title: "NumPy Exercises on GitHub", url: "https://github.com/rougier/numpy-100" }
         ]
       },
       {
-        id: "machine-learning",
-        label: "Classical Machine Learning",
-        description: "Master regression, clustering, classification algorithms, and evaluate models for predictive analytics.",
-        concepts: ["Supervised vs Unsupervised", "Regression & Decision Trees", "Scikit-Learn Integration", "Overfitting vs Underfitting"],
+        id: "data-visualization",
+        label: "Data Visualization: Matplotlib & Seaborn",
+        description: "Build graphical insights, plots, and charts to convey complex data patterns and distribution characteristics visually.",
+        concepts: ["Matplotlib Figure & Axes", "Line, Bar, Scatter & Histogram Plots", "Seaborn Distribution Plots", "Heatmaps & Correlation Matrices", "Customizing Styles & Palettes"],
+        docs: "https://seaborn.pydata.org",
+        tutorials: [
+          { title: "Data Visualization Masterclass - Simplilearn", url: "https://www.youtube.com/watch?v=3g8qP5rE-uQ" }
+        ],
+        practice: [
+          { title: "Kaggle Data Visualization Course", url: "https://www.kaggle.com/learn/data-visualization" }
+        ]
+      },
+      {
+        id: "data-handling",
+        label: "Data Cleaning, EDA & SQL Basics",
+        description: "Establish data cleanliness by imputing null variables, querying databases, exploring features, and formulating feature schemas.",
+        concepts: ["Data Imputation (Mean, Median, Mode)", "Outlier Detection & Filtering", "Exploratory Data Analysis (EDA)", "Feature Engineering (One-Hot Encoding, Scaling)", "SQL Database Queries (SELECT, JOIN, GROUP BY)"],
+        docs: "https://www.postgresql.org/docs/",
+        tutorials: [
+          { title: "SQL for Data Science - freeCodeCamp", url: "https://www.youtube.com/watch?v=HXTtLSGgEgc" },
+          { title: "Feature Engineering Techniques Guide", url: "https://www.kaggle.com/learn/feature-engineering" }
+        ],
+        practice: [
+          { title: "SQL Practice Exercises - SQLZoo", url: "https://sqlzoo.net" },
+          { title: "Kaggle EDA Playgrounds", url: "https://www.kaggle.com/code" }
+        ]
+      },
+      {
+        id: "ml-fundamentals",
+        label: "Classical Machine Learning Foundations",
+        description: "Master Scikit-Learn to train classical models, map supervised/unsupervised tasks, and address classification/regression issues.",
+        concepts: ["Supervised vs Unsupervised Learning", "Scikit-Learn API & Workflow", "Linear & Logistic Regression", "Decision Trees & Random Forests", "Bias-Variance Trade-off & Overfitting"],
         docs: "https://scikit-learn.org/stable/",
         tutorials: [
-          { title: "Machine Learning Zoomcamp - DataTalksClub", url: "https://github.com/DataTalksClub/machine-learning-zoomcamp" }
+          { title: "Machine Learning Zoomcamp", url: "https://github.com/DataTalksClub/machine-learning-zoomcamp" },
+          { title: "ML for Beginners - StatQuest", url: "https://www.youtube.com/playlist?list=PLblh5JKOoLUICTaGLRoHQDuF_7q2GfuJF" }
         ],
         practice: [
-          { title: "Kaggle Playground Competitions", url: "https://www.kaggle.com/competitions" }
+          { title: "Kaggle Spaceship Titanic Competition", url: "https://www.kaggle.com/competitions/spaceship-titanic" }
         ]
       },
       {
-        id: "deep-learning",
-        label: "Deep Learning & Neural Networks",
-        description: "Model complex cognitive abstractions using Deep Learning, CNNs, and modern transformers.",
-        concepts: ["Artificial Neural Networks", "Activation Functions", "TensorFlow & PyTorch Basics", "Natural Language Processing (NLP)"],
+        id: "model-evaluation",
+        label: "Model Validation & Hyperparameters",
+        description: "Evaluate machine learning performance accurately, cross-validate datasets, analyze metrics, and optimize hyperparameter parameters.",
+        concepts: ["Cross-Validation (K-Fold)", "Evaluation Metrics (Accuracy, F1-Score, ROC-AUC)", "Confusion Matrix & Classification Report", "Hyperparameter Tuning (GridSearch, RandomizedSearch)", "Precision-Recall Trade-off"],
+        docs: "https://scikit-learn.org/stable/modules/model_evaluation.html",
+        tutorials: [
+          { title: "Model Evaluation Tutorial - freeCodeCamp", url: "https://www.youtube.com/watch?v=85dtiMz9tSo" }
+        ],
+        practice: [
+          { title: "Kaggle Model Evaluation Exercises", url: "https://www.kaggle.com/code/dansbecker/underfitting-and-overfitting" }
+        ]
+      },
+      {
+        id: "unsupervised-learning",
+        label: "Unsupervised Learning & Clustering",
+        description: "Discover hidden structures within unlabeled datasets using clustering and dimensionality reduction algorithms.",
+        concepts: ["K-Means Clustering & Elbow Method", "Hierarchical & DBSCAN Clustering", "Principal Component Analysis (PCA)", "t-SNE Dimensionality Reduction", "Anomaly Detection Basics"],
+        docs: "https://scikit-learn.org/stable/unsupervised_learning.html",
+        tutorials: [
+          { title: "Unsupervised Learning - Stanford Online / Andrew Ng", url: "https://www.youtube.com/watch?v=5zMhMsswK6E" }
+        ],
+        practice: [
+          { title: "Clustering Algorithms Practice - Kaggle", url: "https://www.kaggle.com/code/shrutimechlearn/step-by-step-kmeans-explained-in-detail" }
+        ]
+      },
+      {
+        id: "dl-neurons",
+        label: "Deep Learning & Neural Network Basics",
+        description: "Embark on Deep Learning: code artificial perceptrons, compute forward/backward propagation, and learn activation math.",
+        concepts: ["Biological vs Artificial Neurons", "Single & Multi-Layer Perceptrons", "Activation Functions (Sigmoid, Tanh, ReLU, Softmax)", "Forward & Backward Propagation", "Loss Functions & Optimization (Gradient Descent, Adam)"],
         docs: "https://pytorch.org/docs/stable/index.html",
         tutorials: [
+          { title: "Neural Networks 3Blue1Brown Series", url: "https://www.youtube.com/playlist?list=PLZHQObOWTQDNU6R1_67000Dx_ZCJB-3pi" },
           { title: "Deep Learning Specialization - Andrew Ng", url: "https://www.deeplearning.ai/courses/deep-learning-specialization/" }
         ],
         practice: [
-          { title: "TensorFlow Playground (Interactive NN visualization)", url: "https://playground.tensorflow.org" }
+          { title: "TensorFlow Playground Interactive NN", url: "https://playground.tensorflow.org" }
+        ]
+      },
+      {
+        id: "dl-frameworks",
+        label: "DL Frameworks: TensorFlow & PyTorch",
+        description: "Construct, compile, and train deep artificial networks using high-level DL frameworks: TensorFlow and PyTorch.",
+        concepts: ["Tensors, Dimensions & Graph Computations", "PyTorch Autograd & Computational Graph", "Building Custom Layers & Modules", "Model Compiling, Callbacks & Optimizers", "Training Loop & Validation Execution"],
+        docs: "https://pytorch.org/tutorials/",
+        tutorials: [
+          { title: "PyTorch for Deep Learning Course - freeCodeCamp", url: "https://www.youtube.com/watch?v=V_xro1bcAuA" },
+          { title: "TensorFlow 2.0 Complete Course", url: "https://www.youtube.com/watch?v=tPYj3fFJGjk" }
+        ],
+        practice: [
+          { title: "PyTorch Basics Exercises - PyTorch.org", url: "https://pytorch.org/tutorials/beginner/basics/intro.html" }
+        ]
+      },
+      {
+        id: "dl-architectures",
+        label: "Deep Learning Architectures: CNNs, RNNs & Transformers",
+        description: "Implement advanced deep models: CNNs for visual recognition, RNNs for sequential processing, and Transformers for textual understanding.",
+        concepts: ["Convolutional Neural Networks (CNNs) & Pooling", "Image Classification & Feature Extraction", "Recurrent Neural Networks (RNNs) & LSTMs", "Self-Attention Mechanism & Transformers", "BERT & GPT Foundations"],
+        docs: "https://huggingface.co/docs/transformers/index",
+        tutorials: [
+          { title: "CNNs for Visual Recognition - Stanford CS231n", url: "http://cs231n.stanford.edu" },
+          { title: "Hugging Face NLP Course", url: "https://huggingface.co/learn/nlp-course" }
+        ],
+        practice: [
+          { title: "MNIST Image Classification on Kaggle", url: "https://www.kaggle.com/competitions/digit-recognizer" },
+          { title: "Hugging Face Transformers Playground", url: "https://huggingface.co/spaces" }
         ]
       }
     ]
