@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+
 import './styles/themes.css';
 import './styles/globals.css';
 import './styles/animations.css';
@@ -9,7 +10,7 @@ import './styles/portfolio.css';
 import './styles/aurora.css';
 import './styles/motion.css';
 import SearchBar from './components/SearchBar';
-
+import FloatingDock from "./components/common/FloatingDock";
 import ParticleBackground  from './shared/ParticleBackground';
 import GeometricGridBackground from './shared/GeometricGridBackground';
 import ScrollProgress      from './shared/ScrollProgress';
@@ -192,6 +193,7 @@ function Cursor() {
         background:'radial-gradient(circle, rgba(204,17,17,.055) 0%, rgba(136,0,0,.03) 40%, transparent 70%)',
         transform:'translate(-50%,-50%)',
         transition:'opacity .3s',
+        willChange: 'transform, opacity',
       }}/>
       <div ref={trailRef} style={{
         position:'fixed', pointerEvents:'none', zIndex:10002,
@@ -200,6 +202,7 @@ function Cursor() {
         transform:'translate(-50%,-50%)',
         filter:'blur(6px)',
         transition:'opacity .25s',
+        willChange: 'transform, opacity',
       }}/>
       <div ref={orbRef} style={{
         position:'fixed', pointerEvents:'none', zIndex:100000,
@@ -207,6 +210,7 @@ function Cursor() {
         background:'radial-gradient(circle at 35% 35%, #fff 0%, #CC1111 40%, #880000 100%)',
         boxShadow:'0 0 10px rgba(204,17,17,.9), 0 0 24px rgba(204,17,17,.5), 0 0 50px rgba(136,0,0,.3)',
         transition:'transform .08s cubic-bezier(.34,1.56,.64,1), opacity .2s',
+        willChange: 'transform, opacity',
       }}>
         <div style={{
           position:'absolute', top:'20%', left:'22%',
@@ -582,7 +586,9 @@ export default function App() {
           else if (type === 'Roadmap') onTab('Roadmaps');
         }}
       />
+      {cinDone && <FloatingDock />}
     </BookmarkProvider>
+
     
   );
 }
