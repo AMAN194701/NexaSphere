@@ -19,6 +19,11 @@ const DOMAIN_ICONS = {
 
 export default function RoadmapsPage({ onBack }) {
   const innerScrollRef = useRef(null);
+  const [isBuilderActive, setIsBuilderActive] = useState(false);
+  const [activeDomain, setActiveDomain] = useState('webdev');
+  const [selectedNode, setSelectedNode] = useState(null);
+  const panelRef = useRef(null);
+  const nodeRefs = useRef({});
 
   // Ensure panel scroll resets to top when a new node is selected
   useEffect(() => {
