@@ -26,7 +26,7 @@ const errorHandler = (err, req, res, next) => {
     url: req.originalUrl,
     method: req.method,
     ip: req.ip,
-    userId: req.user?.id,
+    userId: req.adminSession?.username || req.user?.id,
     timestamp: new Date().toISOString(),
     stack: err.stack,
   };
@@ -35,7 +35,7 @@ const errorHandler = (err, req, res, next) => {
 
   // Capture to Sentry
   captureException(err, {
-    userId: req.user?.id,
+    userId: req.adminSession?.username || req.user?.id,
     requestPath: req.originalUrl,
     method: req.method,
     tags: { errorType: err.name, status },
@@ -43,13 +43,13 @@ const errorHandler = (err, req, res, next) => {
   });
 
   // Send Slack alert for critical errors
-  if (status >= 500 || (status === 401 && !req.user)) {
+  if (status >= 500 || (status === 401 && !req.user && !req.adminSession)) {
     sendSlackAlert({
-      title: `🚨 ${status} Error Detected`,
+      title: `${status} Error Detected`,
       message,
       url: req.originalUrl,
       method: req.method,
-      userId: req.user?.id,
+      userId: req.adminSession?.username || req.user?.id,
       timestamp: errorLog.timestamp,
       stack: err.stack?.substring(0, 500),
     });

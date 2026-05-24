@@ -16,6 +16,8 @@ import { initializeSocketIO, emitToRoom, getRoom } from './config/socket.js';
 import adminStreamRouter from './routes/adminStream.js';
 import { broadcastSSEEvent } from './services/sseService.js';
 import rateLimit from 'express-rate-limit';
+import { performanceMonitor } from './middleware/performanceMonitor.js';
+import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
 import { portfolioRepository } from './repositories/portfolioRepository.js';
 
@@ -53,6 +55,7 @@ function requestLogger(req, res, next) {
 }
 
 app.use(requestLogger);
+app.use(performanceMonitor);
 
 const adminAuth = adminAuthMiddleware.requireAdmin;
 const adminEvents = new EventEmitter();
@@ -894,6 +897,8 @@ app.put('/api/portfolio', async (req, res) => {
   }
 });
 
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 const port = Number(process.env.PORT || 8787);
 if (!process.env.VERCEL) {
