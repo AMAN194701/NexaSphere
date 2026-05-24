@@ -479,7 +479,7 @@ async function deleteCoreTeamStore(id) {
 }
 
 async function appendToSupabaseForms(formType, payload) {
-  if (!HAS_SUPABASE) return false;
+  if (!HAS_SUPABASE) return null;
   try {
     await supabaseRequest('form_submissions', {
       method: 'POST',
@@ -492,8 +492,9 @@ async function appendToSupabaseForms(formType, payload) {
       }],
     });
     return true;
-  } catch {
-    return false;
+  } catch (e) {
+    console.error('[Supabase] Failed to store form submission:', e.message);
+    throw e;
   }
 }
 
@@ -765,27 +766,44 @@ app.get('/api/admin/membership', adminAuth, async (req, res) => {
   }
 });
 
+async function withRetry(fn, retries = 2, delay = 500) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      if (i < retries - 1) {
+        await new Promise(r => setTimeout(r, delay * (i + 1)));
+      } else {
+        throw e;
+      }
+    }
+  }
+}
+
 async function handleForm(formType, req, res) {
   try {
     const payload = normalizeFormSubmission(formType, req.body || {});
 
-    const savedToSupabase = await appendToSupabaseForms(formType, payload);
+    // Write to Sheets first (external API, more likely to fail).
+    // If this fails, no data is persisted anywhere — consistency guaranteed.
+    await withRetry(() => appendFormToSheet(formType, payload));
+
+    // Write to Supabase after Sheets succeeds (non-fatal, data is already safe)
     try {
-      await appendFormToSheet(formType, payload);
-    } catch (sheetErr) {
-      if (!savedToSupabase) throw sheetErr;
+      await appendToSupabaseForms(formType, payload);
+    } catch (supabaseErr) {
+      console.error('[Form Handler] Supabase write failed:', supabaseErr.message);
     }
 
-    // NEW: Send a welcome email to the user
+    // Send welcome email with retries (non-fatal)
     try {
       const verifyUrl = `${process.env.CORS_ORIGIN || 'http://localhost:5173'}/verify?email=${encodeURIComponent(req.body.collegeEmail)}`;
-      await sendWelcomeVerificationEmail(req.body.collegeEmail, req.body.fullName, verifyUrl);
+      await withRetry(() => sendWelcomeVerificationEmail(req.body.collegeEmail, req.body.fullName, verifyUrl));
     } catch (emailErr) {
-      console.error('[Form Handler] Failed to send welcome email:', emailErr);
-      // We don't fail the whole request if email fails, but we log it.
+      console.error('[Form Handler] Failed to send welcome email after retries:', emailErr);
     }
 
-    // NEW: Real-time notification and metrics updates
+    // Real-time notification and metrics updates (non-fatal)
     try {
       broadcastSSEEvent('registration', { formType, fullName: payload.fullName, timestamp: new Date().toISOString() });
       emitToRoom(getRoom('admin'), 'admin:new-registration', { formType, userName: payload.fullName, timestamp: new Date() });
