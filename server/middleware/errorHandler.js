@@ -1,82 +1,60 @@
-/**
- * Global Error Handler Middleware
- * Handles all errors in a centralized location
- */
+import logger from '../utils/logger.js';
+import { captureException } from '../utils/sentry.js';
+import { sendSlackAlert } from '../utils/slack.js';
 
-const logger = require("./logger");
-const { captureException } = require("./sentry");
-const { sendSlackAlert } = require("./slack");
-
-/**
- * Main error handler middleware
- * @param {Error} err - Error object
- * @param {Object} req - Express request
- * @param {Object} res - Express response
- * @param {Function} next - Express next
- */
 const errorHandler = (err, req, res, next) => {
-  // Determine error status code
   const status = err.statusCode || err.status || 500;
-  const message = err.message || "Internal Server Error";
+  const message = err.message || 'Internal Server Error';
 
-  // Log error details
   const errorLog = {
     status,
     message,
     url: req.originalUrl,
     method: req.method,
     ip: req.ip,
-    userId: req.user?.id,
+    userId: req.adminSession?.username || req.user?.id,
     timestamp: new Date().toISOString(),
     stack: err.stack,
   };
 
-  logger.error("Global Error Handler", errorLog);
+  logger.error('Global Error Handler', errorLog);
 
-  // Capture to Sentry
   captureException(err, {
-    userId: req.user?.id,
+    userId: req.adminSession?.username || req.user?.id,
     requestPath: req.originalUrl,
     method: req.method,
     tags: { errorType: err.name, status },
     extra: { errorLog },
   });
 
-  // Send Slack alert for critical errors
-  if (status >= 500 || (status === 401 && !req.user)) {
+  if (status >= 500 || (status === 401 && !req.user && !req.adminSession)) {
     sendSlackAlert({
-      title: `🚨 ${status} Error Detected`,
+      title: `${status} Error Detected`,
       message,
       url: req.originalUrl,
       method: req.method,
-      userId: req.user?.id,
+      userId: req.adminSession?.username || req.user?.id,
       timestamp: errorLog.timestamp,
       stack: err.stack?.substring(0, 500),
     });
   }
 
-  // Send response
   res.status(status).json({
     success: false,
     error: {
       status,
-      message: process.env.NODE_ENV === "production" ? "Something went wrong" : message,
-      ...(process.env.NODE_ENV !== "production" && { stack: err.stack }),
+      message: process.env.NODE_ENV === 'production' ? 'Something went wrong' : message,
+      ...(process.env.NODE_ENV !== 'production' && { stack: err.stack }),
     },
     timestamp: new Date().toISOString(),
   });
 };
 
-/**
- * 404 Not Found handler
- * @param {Object} req - Express request
- * @param {Object} res - Express response
- */
 const notFoundHandler = (req, res) => {
   const status = 404;
   const message = `Route ${req.originalUrl} not found`;
 
-  logger.warn("404 Not Found", {
+  logger.warn('404 Not Found', {
     url: req.originalUrl,
     method: req.method,
     ip: req.ip,
@@ -91,10 +69,6 @@ const notFoundHandler = (req, res) => {
   });
 };
 
-/**
- * Validation error handler
- * @param {Array} errors - Array of validation errors
- */
 const validationErrorHandler = (errors) => {
   const formattedErrors = errors.map((err) => ({
     field: err.param,
@@ -102,28 +76,23 @@ const validationErrorHandler = (errors) => {
     value: err.value,
   }));
 
-  logger.warn("Validation Error", { errors: formattedErrors });
+  logger.warn('Validation Error', { errors: formattedErrors });
 
   return {
     status: 400,
-    message: "Validation failed",
+    message: 'Validation failed',
     errors: formattedErrors,
   };
 };
 
-/**
- * Async error wrapper
- * Wraps async route handlers to catch errors
- * @param {Function} fn - Async function
- */
 const asyncHandler = (fn) => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch((err) => {
-    logger.error("Async handler error", { error: err.message, stack: err.stack });
+    logger.error('Async handler error', { error: err.message, stack: err.stack });
     next(err);
   });
 };
 
-module.exports = {
+export {
   errorHandler,
   notFoundHandler,
   validationErrorHandler,

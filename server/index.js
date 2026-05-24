@@ -13,6 +13,8 @@ import { normalizeFormSubmission } from './validators/formSchemas.js';
 import { adminAuthMiddleware } from './middleware/adminAuthMiddleware.js';
 import analyticsRouter from './routes/analytics.js';
 import { portfolioRepository } from './repositories/portfolioRepository.js';
+import { performanceMonitor } from './middleware/performanceMonitor.js';
+import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -49,6 +51,7 @@ function requestLogger(req, res, next) {
 }
 
 app.use(requestLogger);
+app.use(performanceMonitor);
 
 const adminAuth = adminAuthMiddleware.requireAdmin;
 const adminEvents = new EventEmitter();
@@ -768,6 +771,8 @@ app.put('/api/portfolio', async (req, res) => {
   }
 });
 
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 const port = Number(process.env.PORT || 8787);
 if (!process.env.VERCEL) {
