@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
+import http from 'http';
 import { EventEmitter } from 'events';
 import cors from 'cors';
 import { google } from 'googleapis';
@@ -12,7 +13,9 @@ import { ZodError } from 'zod';
 import { normalizeFormSubmission } from './validators/formSchemas.js';
 import { adminAuthMiddleware } from './middleware/adminAuthMiddleware.js';
 import analyticsRouter from './routes/analytics.js';
+import adminStreamRouter from './routes/adminStream.js';
 import { portfolioRepository } from './repositories/portfolioRepository.js';
+import { initializeSocketIO } from './config/socket.js';
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -573,6 +576,7 @@ app.delete('/api/content/activity-events/:activityKey/:eventId', async (req, res
 app.post('/api/admin/login', adminAuthMiddleware.login);
 app.post('/api/admin/logout', adminAuthMiddleware.logout);
 app.use('/api/admin/analytics', adminAuth, analyticsRouter);
+app.use('/api/admin', adminAuth, adminStreamRouter);
 
 app.get('/api/admin/events', adminAuth, async (req, res) => {
   return res.json({ events: await listEventsStore() });
@@ -769,18 +773,21 @@ app.put('/api/portfolio', async (req, res) => {
 });
 
 
+const server = http.createServer(app);
+initializeSocketIO(server);
+
 const port = Number(process.env.PORT || 8787);
 if (!process.env.VERCEL) {
   const boot = HAS_SUPABASE ? Promise.resolve() : ensureContentFile();
   boot.then(() => {
-    app.listen(port, () => {
+    server.listen(port, () => {
       // eslint-disable-next-line no-console
       console.log(`NexaSphere server listening on http://localhost:${port}`);
     });
   });
 } else {
   // Vercel/Render style deployments rely on the platform to start the server.
-  app.listen(port, () => {
+  server.listen(port, () => {
     // eslint-disable-next-line no-console
     console.log(`NexaSphere server listening on http://localhost:${port}`);
   });
