@@ -12,11 +12,11 @@ registerSW({ immediate: true });
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <HelmetProvider>
-      <ThemeProvider>
-        <GlobalErrorBoundary>
+      <GlobalErrorBoundary>
+        <ThemeProvider>
           <App />
-        </GlobalErrorBoundary>
-      </ThemeProvider>
+        </ThemeProvider>
+      </GlobalErrorBoundary>
     </HelmetProvider>
   </StrictMode>
 );
