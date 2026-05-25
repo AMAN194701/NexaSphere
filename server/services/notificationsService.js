@@ -50,7 +50,9 @@ export function clearAll(userId = 'global') {
 export function removeNotification(userId = 'global', id) {
   const list = _ensureList(userId);
   const idx = list.findIndex(n => n.id === id);
-  if (idx >= 0) list.splice(idx, 1);
+  if (idx < 0) return false;
+  list.splice(idx, 1);
+  return true;
 }
 
 export default {
