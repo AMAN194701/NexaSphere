@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+
 import './styles/themes.css';
 import './styles/globals.css';
 import './styles/animations.css';
@@ -8,6 +9,7 @@ import './styles/portfolio.css';
 import './styles/aurora.css';
 import './styles/motion.css';
 
+
 import SearchBar             from './components/SearchBar';
 import InterviewDashboard    from './pages/Interview/InterviewDashboard';
 import QuizInterface         from './pages/Interview/QuizInterface';
@@ -15,6 +17,11 @@ import CodingEditor          from './pages/Interview/CodingEditor';
 import AnalyticsDashboard    from './pages/Interview/AnalyticsDashboard';
 
 import ParticleBackground      from './shared/ParticleBackground';
+
+import SearchBar from './components/SearchBar';
+import FloatingDock from "./components/common/FloatingDock";
+import ParticleBackground  from './shared/ParticleBackground';
+
 import GeometricGridBackground from './shared/GeometricGridBackground';
 import ScrollProgress          from './shared/ScrollProgress';
 import Navbar                  from './shared/Navbar';
@@ -34,6 +41,7 @@ import {
   useNavScrollTint, useGlobalMouseParallax, useMagneticCards,
 } from './shared/MotionLayer';
 
+
 import ActivitiesPage   from './pages/activities/ActivitiesPage';
 import EventsPage       from './pages/events/EventsPage';
 import AboutPage        from './pages/about/AboutPage';
@@ -50,6 +58,26 @@ import PortfolioBuilder from './components/portfolio/PortfolioBuilder';
 import PublicPortfolio  from './pages/portfolio/PublicPortfolio';
 
 import { activityPages }            from './data/activities/index';
+
+import ActivitiesPage      from './pages/activities/ActivitiesPage';
+import EventsPage          from './pages/events/EventsPage';
+import AboutPage           from './pages/about/AboutPage';
+import TeamPage            from './pages/team/TeamPage';
+import ContactPage         from './pages/contact/ContactPage';
+import dynamic from 'next/dynamic';
+
+const RecruitmentPage = dynamic(() => import('./pages/recruitment/RecruitmentPage'), { ssr: false });
+const MembershipPage = dynamic(() => import('./pages/membership/MembershipPage'), { ssr: false });
+const AdminPage = dynamic(() => import('./pages/admin/AdminPage'), { ssr: false });
+import RoadmapsPage        from './pages/roadmaps/RoadmapsPage';
+import ProjectsPage        from './pages/projects/ProjectsPage';
+import CollabPage          from './pages/collab/CollabPage';
+import PortfolioBuilder    from './components/portfolio/PortfolioBuilder';
+import PublicPortfolio     from './pages/portfolio/PublicPortfolio';
+import DashboardPage       from './pages/dashboard/DashboardPage';
+
+import { activityPages }   from './data/activities/index';
+
 import { events as fallbackEvents } from './data/eventsData';
 import nexasphereLogo               from './assets/images/logos/nexasphere-logo.png';
 
@@ -58,9 +86,14 @@ import { useDeveloperMode } from './hooks/useDeveloperMode';
 import { BookmarkProvider } from './context/BookmarkContext';
 import BookmarksDrawer     from './components/bookmarks/BookmarksDrawer';
 
+
 const MNH  = 88, DNH = 64;
 const TABS = ['Home','Activities','Events','Projects','Roadmaps','Resume','Portfolio','Collab','About','Team','Contact'];
 const INTERVIEW_SUBPAGES = ['dashboard', 'quiz', 'code', 'analytics'];
+
+const MNH = 88, DNH = 64;
+const TABS = ['Home','Dashboard','Activities','Events','Projects','Roadmaps','Portfolio','Collab','About','Team','Contact'];
+
 
 /* ── Page wipe transition ── */
 function Wipe({ on, ph }) {
@@ -180,10 +213,43 @@ function Cursor() {
 
   return (
     <>
+
       <div ref={glowRef}  style={{position:'fixed',pointerEvents:'none',zIndex:10000,width:'320px',height:'320px',borderRadius:'50%',background:'radial-gradient(circle, rgba(204,17,17,.055) 0%, rgba(136,0,0,.03) 40%, transparent 70%)',transform:'translate(-50%,-50%)',transition:'opacity .3s'}}/>
       <div ref={trailRef} style={{position:'fixed',pointerEvents:'none',zIndex:10002,width:'28px',height:'28px',borderRadius:'50%',background:'radial-gradient(circle, rgba(204,17,17,0.7) 0%, transparent 70%)',transform:'translate(-50%,-50%)',filter:'blur(6px)',transition:'opacity .25s'}}/>
       <div ref={orbRef}   style={{position:'fixed',pointerEvents:'none',zIndex:100000,width:'18px',height:'18px',borderRadius:'50%',background:'radial-gradient(circle at 35% 35%, #fff 0%, #CC1111 40%, #880000 100%)',boxShadow:'0 0 10px rgba(204,17,17,.9), 0 0 24px rgba(204,17,17,.5), 0 0 50px rgba(136,0,0,.3)',transition:'transform .08s cubic-bezier(.34,1.56,.64,1), opacity .2s'}}>
-        <div style={{position:'absolute',top:'20%',left:'22%',width:'5px',height:'5px',borderRadius:'50%',background:'rgba(255,255,255,.9)',filter:'blur(1px)'}}/>
+
+      <div ref={glowRef} style={{
+        position:'fixed', pointerEvents:'none', zIndex:10000,
+        width:'320px', height:'320px', borderRadius:'50%',
+        background:'radial-gradient(circle, rgba(204,17,17,.055) 0%, rgba(136,0,0,.03) 40%, transparent 70%)',
+        transform:'translate(-50%,-50%)',
+        transition:'opacity .3s',
+        willChange: 'transform, opacity',
+      }}/>
+      <div ref={trailRef} style={{
+        position:'fixed', pointerEvents:'none', zIndex:10002,
+        width:'28px', height:'28px', borderRadius:'50%',
+        background:'radial-gradient(circle, rgba(204,17,17,0.7) 0%, transparent 70%)',
+        transform:'translate(-50%,-50%)',
+        filter:'blur(6px)',
+        transition:'opacity .25s',
+        willChange: 'transform, opacity',
+      }}/>
+      <div ref={orbRef} style={{
+        position:'fixed', pointerEvents:'none', zIndex:100000,
+        width:'18px', height:'18px', borderRadius:'50%',
+        background:'radial-gradient(circle at 35% 35%, #fff 0%, #CC1111 40%, #880000 100%)',
+        boxShadow:'0 0 10px rgba(204,17,17,.9), 0 0 24px rgba(204,17,17,.5), 0 0 50px rgba(136,0,0,.3)',
+        transition:'transform .08s cubic-bezier(.34,1.56,.64,1), opacity .2s',
+        willChange: 'transform, opacity',
+      }}>
+        <div style={{
+          position:'absolute', top:'20%', left:'22%',
+          width:'5px', height:'5px', borderRadius:'50%',
+          background:'rgba(255,255,255,.9)',
+          filter:'blur(1px)',
+        }}/>
+
       </div>
     </>
   );
@@ -249,11 +315,23 @@ export default function App() {
   useEffect(() => {
     const btn = document.getElementById('back-to-top');
     if (!btn) return;
-    const fn = () => btn.classList.toggle('visible', window.scrollY > 400);
-    window.addEventListener('scroll', fn, { passive:true });
-    btn.addEventListener('click', () => window.scrollTo({ top:0, behavior:'smooth' }));
-    return () => window.removeEventListener('scroll', fn);
-  }, []);
+
+    const handleScroll = () => {
+      btn.classList.toggle('visible', window.scrollY > 400);
+    };
+
+    const handleBackToTop = () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    btn.addEventListener('click', handleBackToTop);
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      btn.removeEventListener('click', handleBackToTop);
+    };
+  }, [cinDone]);
 
   useEffect(() => {
     if (page) return;
@@ -359,7 +437,11 @@ export default function App() {
   }, [nav]);
 
   const onTab = useCallback(tab => {
+
     if (['Activities','Events','Projects','Roadmaps','Resume','Portfolio','Collab','About','Team','Contact'].includes(tab)) {
+
+    if (['Dashboard','Activities','Events','Projects','Roadmaps','Portfolio','Collab','About','Team','Contact'].includes(tab)) {
+
       nav(() => { setPage({ type:'section', section:tab }); setActiveTab(tab); });
       return;
     }
@@ -441,9 +523,14 @@ export default function App() {
 
       <main style={{ paddingTop:nh, position:'relative', zIndex:1 }}>
         {page ? (
+
           <PageIn k={page.type + (page.section || page.activityKey || page.subpage || '')}>
 
             {/* ── Section pages ── */}
+
+          <PageIn k={page.type + (page.section || page.activityKey)}>
+            {page.section === 'Dashboard'  && <DashboardPage onBack={onBackHome}/>}
+
             {page.section === 'Activities' && <ActivitiesPage onNavigate={onNavigate} onBack={onBackHome}/>}
             {page.section === 'Events'     && <EventsPage onBack={onBackHome} onEventClick={onKSSClick} events={eventsData}/>}
             {page.section === 'Projects'   && <ProjectsPage onBack={onBackHome}/>}
@@ -564,7 +651,10 @@ export default function App() {
           else if (type === 'Roadmap')  onTab('Roadmaps');
         }}
       />
+      {cinDone && <FloatingDock />}
     </BookmarkProvider>
+
+    
   );
 }
 
