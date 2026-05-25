@@ -185,29 +185,31 @@
 .ns-navbar.scrolled { background:rgba(5,5,8,.96); box-shadow:0 4px 32px rgba(204,17,17,.08); }
 [data-theme="light"] .ns-navbar.scrolled { background:rgba(255,255,255,0.99); box-shadow:0 2px 20px rgba(0,0,0,.08); }
 .ns-navbar .container {
-  position:relative;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-  height:100%;
-  /* max-width:1400px !important; */
-  padding:0 40px 10px;
-  gap:8px;
-}
-.ns-nav-top {
-  display:grid;
-  grid-template-columns:1fr auto;
-  align-items:center;
-  width:100%;
-  min-height:56px;
-  gap:20px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+  padding: 0 40px 10px;
+  gap: 8px;
+  width: 100%;
 }
 
-@media(max-width : 1104px){
+.ns-nav-top {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  width: 100%;
+  min-height: 56px;
+  gap: 20px;
+}
+
+@media(max-width: 1104px){
   .ns-nav-top{
     padding:12px 10px 8px 0;
   }
 }
+
 .ns-nav-logos {
   display:flex;
   align-items:center;
@@ -258,6 +260,7 @@
   padding:0 0 8px;
   align-self:stretch;
 }
+
 .ns-nav-tabs {
   display:flex;
   align-items:center;
@@ -267,15 +270,31 @@
   width:100%;
   flex-wrap:nowrap;
 }
+
 .ns-nav-tabs li {
   flex:1;
   display:flex;
   justify-content:center;
 }
+
 .ns-nav-tab {
-  position:relative; padding:014px 0px;
-  font-family:'Rajdhani',sans-serif; font-size:.90rem; font-weight:700;
-  letter-spacing:.06em; text-transform:uppercase;
+  position:relative;
+  padding:14px 0px;
+  font-family:'Rajdhani',sans-serif;
+  font-size:.90rem;
+  font-weight:700;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:var(--t2);
+  background:none;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  width:100%;
+  text-align:center;
+  transition:color .2s !important;
+  white-space:nowrap;
+}
   color:var(--t2); background:none; border:none; border-radius:8px; cursor:pointer;
   width:100%;
   text-align:center;
@@ -1159,5 +1178,19 @@
 @media (max-width: 768px) {
   body {
     overflow-x: hidden !important;
+  }
+}
+@media (max-width: 1200px) {
+  .ns-nav-tab {
+    padding: 8px 10px;
+    font-size: 0.8rem;
+  }
+
+  .ns-nav-tabs {
+    gap: 2px;
+  }
+
+  .ns-nav-brand {
+    font-size: 0.95rem;
   }
 }
