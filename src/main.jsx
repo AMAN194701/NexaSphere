@@ -6,19 +6,17 @@ import { ThemeProvider } from './context/theme/ThemeProvider.tsx';
 import { registerSW } from 'virtual:pwa-register';
 import { HelmetProvider } from 'react-helmet-async';
 
-
-
-
 // Register service worker
 registerSW({ immediate: true });
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <HelmetProvider>
-      <GlobalErrorBoundary>
-        <App />
-      </GlobalErrorBoundary>
+      <ThemeProvider>
+        <GlobalErrorBoundary>
+          <App />
+        </GlobalErrorBoundary>
+      </ThemeProvider>
     </HelmetProvider>
   </StrictMode>
 );
-
