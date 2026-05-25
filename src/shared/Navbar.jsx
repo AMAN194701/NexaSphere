@@ -11,6 +11,7 @@ function ThemeToggle({ theme, onToggle }) {
       onClick={onToggle}
       aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
       title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+      style={{ marginLeft: '8px' }}
     >
       {theme === 'dark' ? (
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -138,7 +139,7 @@ export default function Navbar({ activeTab, onTabChange, onToggleTheme, theme, o
           ))}
         </ul>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifySelf: 'end' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <NotificationBell />
           <BookmarkToggle onToggle={onToggleBookmarks} />
           <div className="ns-nav-ctas">
