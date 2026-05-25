@@ -26,7 +26,9 @@ registerSW({ immediate: true });
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <GlobalErrorBoundary>
-      <App />
+      <SocketProvider>
+        <App />
+      </SocketProvider>
     </GlobalErrorBoundary>
   </StrictMode>
 );

@@ -9,6 +9,7 @@ import './styles/portfolio.css';
 
 import './styles/aurora.css';
 import './styles/motion.css';
+import WorkspacePage from './pages/workspace/WorkspacePage';
 import SearchBar from './components/SearchBar';
 import FloatingDock from "./components/common/FloatingDock";
 import ParticleBackground  from './shared/ParticleBackground';
@@ -43,6 +44,7 @@ const MembershipPage = dynamic(() => import('./pages/membership/MembershipPage')
 const AdminPage = dynamic(() => import('./pages/admin/AdminPage'), { ssr: false });
 import RoadmapsPage        from './pages/roadmaps/RoadmapsPage';
 import ProjectsPage        from './pages/projects/ProjectsPage';
+import CertificateVerifyPage from './pages/certificates/CertificateVerifyPage';
 import CollabPage          from './pages/collab/CollabPage';
 import PortfolioBuilder    from './components/portfolio/PortfolioBuilder';
 import PublicPortfolio     from './pages/portfolio/PublicPortfolio';
@@ -225,6 +227,22 @@ function Cursor() {
 }
 
 export default function App() {
+  /* ── Certificate verify route detection ── */
+  const verifyCertId = (() => {
+    const path = window.location.pathname;
+    const m = path.match(/^\/verify\/([A-Za-z0-9_%-]+)/);
+    return m ? decodeURIComponent(m[1]) : null;
+  })();
+
+  if (verifyCertId) {
+    return (
+      <CertificateVerifyPage
+        certificateId={verifyCertId}
+        onGoHome={() => { window.history.pushState({}, '', '/'); window.location.reload(); }}
+      />
+    );
+  }
+
   const [cinDone,    setCinDone]    = useState(false);
   const [activeTab,  setActiveTab]  = useState('Home');
   const [mobile,     setMobile]     = useState(window.innerWidth <= 768);
@@ -384,6 +402,21 @@ export default function App() {
     return () => { obs.disconnect(); window.removeEventListener('mousemove', onMove); };
   }, [cinDone, page]);
 
+  useInteractionEffects(cinDone, page);
+  useBackToTop();
+  useActiveTabObserver(page, mobile, NAV_TABS, NAV_HEIGHTS, setActiveTab);
+  
+  // Add direct URL parsing for workspace route
+  useEffect(() => {
+    if (window.location.pathname.startsWith('/workspace/')) {
+      const roomId = window.location.pathname.split('/workspace/')[1];
+      if (roomId) {
+        setCinDone(true);
+        setPage({ type: 'workspace', roomId });
+      }
+    }
+  }, []);
+
   useNsReveal([cinDone, page]);
   useHeroParallax();
   useNavScrollTint();
@@ -512,7 +545,8 @@ export default function App() {
               <EventDetailPage event={page.event} onBack={page.activityKey ? onBackAct : onBackMain}/>
             )}
             {page.type === 'portfolio' && <PublicPortfolio username={page.username} onBack={onBackHome} />}
-            {page.type && !['section','activity','event','apply','join','portfolio'].includes(page.type) && (
+            {page.type === 'workspace' && <WorkspacePage roomId={page.roomId} onBack={onBackHome} />}
+            {page.type && !['section','activity','event','apply','join','portfolio','workspace'].includes(page.type) && (
               <NotFoundPage onGoHome={onBackHome}/>
             )}
           </PageIn>
