@@ -8,7 +8,6 @@ import { captureHandledException } from './errorTracking';
 import { getSocketPath, getSocketServerUrl } from './runtimeConfig';
 
 let socket = null;
-let eventHandlers = {};
 let currentSocketUrl = '';
 let warnedMissingSocketConfig = false;
 
@@ -37,7 +36,6 @@ export function initializeSocket(serverUrl = getSocketServerUrl()) {
   socket = io(resolvedUrl, {
     path: getSocketPath(),
     reconnection: true,
-    reconnectionAttempts: 10,
     reconnectionDelay: 1000,
     reconnectionDelayMax: 5000,
     reconnectionAttempts: 8,
@@ -82,11 +80,11 @@ export function initializeSocket(serverUrl = getSocketServerUrl()) {
   });
 
   socket.on('reconnect_failed', () => {
-    captureHandledException(new Error('Socket.IO reconnect attempts exhausted'), 'Socket.IO reconnect failed:');
+    captureHandledException(
+      new Error('Socket.IO reconnect attempts exhausted'),
+      'Socket.IO reconnect failed:'
+    );
   });
-
-  // Setup custom event listeners
-  setupEventListeners();
 
   return socket;
 }
@@ -113,7 +111,7 @@ export function identifyUser(userId, email) {
         const user = JSON.parse(storedUser);
         userId = user.id || user.userId;
         email = user.email;
-      } catch (e) {
+      } catch {
         // ignore
       }
     }
