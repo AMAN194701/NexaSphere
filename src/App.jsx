@@ -1,12 +1,10 @@
 import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
-
 import './styles/themes.css';
 import './styles/globals.css';
 import './styles/animations.css';
 import './styles/chatbot.css';
 import './styles/components.css';
 import './styles/portfolio.css';
-
 import './styles/aurora.css';
 import './styles/motion.css';
 import WorkspacePage from './pages/workspace/WorkspacePage';
@@ -42,10 +40,6 @@ import EventsPage from './pages/events/EventsPage';
 import AboutPage from './pages/about/AboutPage';
 import TeamPage from './pages/team/TeamPage';
 import ContactPage from './pages/contact/ContactPage';
-
-const RecruitmentPage = lazy(() => import('./pages/recruitment/RecruitmentPage'));
-const MembershipPage = lazy(() => import('./pages/membership/MembershipPage'));
-const AdminPage = lazy(() => import('./pages/admin/AdminPage'));
 import RoadmapsPage from './pages/roadmaps/RoadmapsPage';
 import ProjectsPage from './pages/projects/ProjectsPage';
 import CertificateVerifyPage from './pages/certificates/CertificateVerifyPage';
@@ -53,21 +47,19 @@ import CollabPage from './pages/collab/CollabPage';
 import PortfolioBuilder from './components/portfolio/PortfolioBuilder';
 import PublicPortfolio from './pages/portfolio/PublicPortfolio';
 import DashboardPage from './pages/dashboard/DashboardPage';
-
 import { activityPages } from './data/activities/index';
 import { events as fallbackEvents } from './data/eventsData';
 import nexasphereLogo from './assets/images/logos/nexasphere-logo.png';
-
 import Terminal from './components/developer/Terminal';
 import { useDeveloperMode } from './hooks/useDeveloperMode';
-
 import { BookmarkProvider } from './context/BookmarkContext';
 import BookmarksDrawer from './components/bookmarks/BookmarksDrawer';
 import { useTheme } from './hooks/useTheme';
 import { useInteractionEffects } from './hooks/useInteractionEffects';
-
 import MoveToTop from './shared/MoveToTop';
-
+const RecruitmentPage = lazy(() => import('./pages/recruitment/RecruitmentPage'));
+const MembershipPage = lazy(() => import('./pages/membership/MembershipPage'));
+const AdminPage = lazy(() => import('./pages/admin/AdminPage'));
 const MNH = 88,
   DNH = 64;
 const TABS = [
