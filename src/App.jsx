@@ -55,6 +55,7 @@ import { useDeveloperMode } from './hooks/useDeveloperMode';
 import { BookmarkProvider } from './context/BookmarkContext';
 import BookmarksDrawer from './components/bookmarks/BookmarksDrawer';
 import { useTheme } from './hooks/useTheme';
+import MoveToTop from "./shared/MoveToTop";
 import { useInteractionEffects } from './hooks/useInteractionEffects';
 import MoveToTop from './shared/MoveToTop';
 const RecruitmentPage = lazy(() => import('./pages/recruitment/RecruitmentPage'));
@@ -75,6 +76,10 @@ const TABS = [
   'Team',
   'Contact',
 ];
+
+const MNH = 88, DNH = 86;
+const TABS = ['Home','Dashboard','Activities','Events','Projects','Roadmaps','Portfolio','Collab','About','Team','Contact'];
+
 
 /* ── Page wipe transition ── */
 function Wipe({ on, ph }) {
