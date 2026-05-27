@@ -1,22 +1,28 @@
 function normalizeUrl(value) {
-  return String(value || '').trim().replace(/\/+$/, '');
+  return String(value || "")
+    .trim()
+    .replace(/\/+$/, "");
 }
 
 function isLocalHostname(hostname) {
-  return hostname === 'localhost' || hostname === '127.0.0.1';
+  return hostname === "localhost" || hostname === "127.0.0.1";
 }
 
 function getBrowserHostname() {
-  if (typeof window === 'undefined') return '';
+  if (typeof window === "undefined") return "";
   return window.location.hostname;
 }
 
 function getLocalDefaultUrl(port) {
-  return isLocalHostname(getBrowserHostname()) ? `http://localhost:${port}` : '';
+  return isLocalHostname(getBrowserHostname())
+    ? `http://localhost:${port}`
+    : "";
 }
 
 export function getApiBase() {
-  return normalizeUrl(import.meta.env.VITE_API_BASE) || getLocalDefaultUrl(8787);
+  return (
+    normalizeUrl(import.meta.env.VITE_API_BASE) || getLocalDefaultUrl(8787)
+  );
 }
 
 export function getAiApiBase() {
@@ -36,7 +42,7 @@ export function getSocketServerUrl() {
 }
 
 export function getSocketPath() {
-  return import.meta.env.VITE_SOCKET_PATH || '/socket.io';
+  return import.meta.env.VITE_SOCKET_PATH || "/socket.io";
 }
 
 export function hasSocketServer() {
@@ -45,7 +51,7 @@ export function hasSocketServer() {
 
 export function buildUrl(base, path) {
   const normalizedBase = normalizeUrl(base);
-  if (!normalizedBase) return '';
+  if (!normalizedBase) return path || "";
   if (!path) return normalizedBase;
-  return `${normalizedBase}${path.startsWith('/') ? path : `/${path}`}`;
+  return `${normalizedBase}${path.startsWith("/") ? path : `/${path}`}`;
 }
