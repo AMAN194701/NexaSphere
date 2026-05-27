@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { DynamicIcon } from '../../shared/Icons';
 import BookmarkButton from '../../components/common/BookmarkButton';
-import ErrorBoundary from '../../components/common/ErrorBoundary';
+import ErrorBoundary from '../../components/ErrorBoundary';
 
 function EventsSectionContent({ onEventClick, events = fallbackEvents }) {
   const safeEvents = Array.isArray(events) ? events : [];

@@ -4,7 +4,7 @@ import { BannerOrbs } from '../../shared/MotionLayer';
 import Footer from '../../shared/Footer';
 import { DynamicIcon } from '../../shared/Icons';
 import BookmarkButton from '../../components/common/BookmarkButton';
-import ErrorBoundary from '../../components/common/ErrorBoundary';
+import ErrorBoundary from '../../components/ErrorBoundary';
 
 function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
   const safeEvents = Array.isArray(events) ? events : [];
