@@ -9,6 +9,7 @@
     "test": "jest --coverage",
     "test:watch": "jest --watch",
     "test:cleanup": "node --test test/adminSessionCleanup.test.js",
+    "test:membership": "node --test test/membershipProxy.test.js",
     "migrate": "node-pg-migrate",
     "migrate:latest": "node-pg-migrate up",
     "migrate:rollback": "node-pg-migrate down",
