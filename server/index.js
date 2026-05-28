@@ -12,7 +12,7 @@ import { sendWelcomeVerificationEmail } from "./services/emailService.js";
 import { ZodError } from "zod";
 import { normalizeFormSubmission } from "./validators/formSchemas.js";
 import { adminAuthMiddleware } from "./middleware/adminAuthMiddleware.js";
-import analyticsRouter from "./routes/analytics.js";
+import analyticsRouter, { invalidateAnalyticsCache } from "./routes/analytics.js";
 import { initializeSocketIO, emitToRoom, getRoom } from "./config/socket.js";
 import adminStreamRouter from "./routes/adminStream.js";
 import { broadcastSSEEvent } from "./services/sseService.js";
@@ -802,6 +802,7 @@ app.post("/api/content/activity-events/:activityKey", async (req, res) => {
     }
 
     await createActivityEventStore(activityKey, event);
+    invalidateAnalyticsCache();
     return res.status(201).json({ ok: true, event });
   } catch (e) {
     return res
@@ -836,6 +837,7 @@ app.delete(
         return res
           .status(404)
           .json({ error: "Event not found in manual activity events." });
+      invalidateAnalyticsCache();
       return res.json({ ok: true });
     } catch (e) {
       return res
@@ -863,6 +865,7 @@ app.post("/api/admin/events", adminAuth, async (req, res) => {
         .json({ error: "name, date and description are required" });
     }
     const saved = await createEventStore(event);
+    invalidateAnalyticsCache();
     return res.status(201).json({ ok: true, event: saved });
   } catch (e) {
     return res
@@ -877,6 +880,7 @@ app.put("/api/admin/events/:id", adminAuth, async (req, res) => {
     const patch = sanitizeEvent({ ...req.body, id });
     const updated = await updateEventStore(id, patch);
     if (!updated) return res.status(404).json({ error: "Event not found" });
+    invalidateAnalyticsCache();
     return res.json({ ok: true, event: updated });
   } catch (e) {
     return res
@@ -890,6 +894,7 @@ app.delete("/api/admin/events/:id", adminAuth, async (req, res) => {
     const id = String(req.params.id || "").trim();
     const deleted = await deleteEventStore(id);
     if (!deleted) return res.status(404).json({ error: "Event not found" });
+    invalidateAnalyticsCache();
     return res.json({ ok: true });
   } catch (e) {
     return res
@@ -956,6 +961,7 @@ app.post("/api/admin/core-team", adminAuth, async (req, res) => {
     }
 
     const saved = await createCoreTeamStore(member);
+    invalidateAnalyticsCache();
     adminEvents.emit("CORE_TEAM_MEMBER_ADDED", {
       adminEmail,
       member: saved,
@@ -976,6 +982,7 @@ app.delete("/api/admin/core-team/:id", adminAuth, async (req, res) => {
     const deleted = await deleteCoreTeamStore(id);
     if (!deleted) return res.status(404).json({ error: "Member not found" });
 
+    invalidateAnalyticsCache();
     adminEvents.emit("CORE_TEAM_MEMBER_REMOVED", {
       adminEmail,
       memberId: id,
