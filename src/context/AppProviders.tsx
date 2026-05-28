@@ -86,6 +86,28 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
 
   useEffect(() => {
     setIsMounted(true);
+
+    // Viewport height synchronization to resolve 100vh height jumps on mobile browsers
+    const updateViewportHeight = () => {
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty("--vh", `${vh}px`);
+    };
+
+    updateViewportHeight();
+    window.addEventListener("resize", updateViewportHeight);
+    window.addEventListener("orientationchange", updateViewportHeight);
+
+    // Dynamic runtime diagnostics
+    if (import.meta.env.DEV) {
+      console.info(
+        "[NexaSphere Providers] central architecture layer initialized successfully."
+      );
+    }
+
+    return () => {
+      window.removeEventListener("resize", updateViewportHeight);
+      window.removeEventListener("orientationchange", updateViewportHeight);
+    };
   }, []);
 
   if (!isMounted) {
