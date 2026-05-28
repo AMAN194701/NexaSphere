@@ -34,13 +34,41 @@ const CONTENT_FILE = path.join(__dirname, "data", "content.json");
 const app = express();
 app.use(helmet());
 
+// Build the CORS origin allowlist from the environment. In production the
+// variable is required — the server refuses to start without it. In
+// development a safe localhost-only fallback is used so contributors can run
+// the server without any extra configuration.
+function buildCorsOrigins() {
+  const raw = process.env.CORS_ORIGIN;
+  if (raw) {
+    return raw
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "CORS_ORIGIN must be set in production. " +
+        "Set it to a comma-separated list of allowed frontend origins " +
+        "(e.g. https://nexasphere-glbajaj.vercel.app). " +
+        "Refusing to start with an open wildcard in production.",
+    );
+  }
+  // Development fallback: allow common local dev servers only.
+  return [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://localhost:8787",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
+  ];
+}
+
+const CORS_ORIGINS = buildCorsOrigins();
+
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN
-      ? process.env.CORS_ORIGIN.split(",")
-          .map((s) => s.trim())
-          .filter(Boolean)
-      : true,
+    origin: CORS_ORIGINS,
     credentials: false,
   }),
 );
