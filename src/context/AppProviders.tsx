@@ -83,6 +83,7 @@ const FuturisticLoader = () => (
 
 export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
   const [isMounted, setIsMounted] = useState(false);
+  const [isLayoutStable, setIsLayoutStable] = useState(true);
 
   useEffect(() => {
     setIsMounted(true);
@@ -93,9 +94,21 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
       document.documentElement.style.setProperty("--vh", `${vh}px`);
     };
 
-    updateViewportHeight();
-    window.addEventListener("resize", updateViewportHeight);
-    window.addEventListener("orientationchange", updateViewportHeight);
+    // Mobile layout stability checks (prevents crashes from sudden orientation/resizing transitions)
+    const checkStability = () => {
+      updateViewportHeight();
+      if (window.innerWidth === 0 || window.innerHeight === 0) {
+        setIsLayoutStable(false);
+        // Wait and check again when dimensions are populated by browser engine
+        setTimeout(checkStability, 50);
+      } else {
+        setIsLayoutStable(true);
+      }
+    };
+
+    checkStability();
+    window.addEventListener("resize", checkStability);
+    window.addEventListener("orientationchange", checkStability);
 
     // Dynamic runtime diagnostics
     if (import.meta.env.DEV) {
@@ -105,12 +118,12 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
     }
 
     return () => {
-      window.removeEventListener("resize", updateViewportHeight);
-      window.removeEventListener("orientationchange", updateViewportHeight);
+      window.removeEventListener("resize", checkStability);
+      window.removeEventListener("orientationchange", checkStability);
     };
   }, []);
 
-  if (!isMounted) {
+  if (!isMounted || !isLayoutStable) {
     return <FuturisticLoader />;
   }
 
