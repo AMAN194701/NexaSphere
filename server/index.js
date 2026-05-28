@@ -12,6 +12,7 @@ import { ZodError } from 'zod';
 import { EventEmitter } from 'events';
 import { normalizeFormSubmission } from './validators/formSchemas.js';
 import { adminAuthMiddleware } from './middleware/adminAuthMiddleware.js';
+import { initRedis } from './config/redis.js';
 import analyticsRouter from './routes/analytics.js';
 import { initializeSocketIO, emitToRoom, getRoom } from './config/socket.js';
 import adminStreamRouter from './routes/adminStream.js';
@@ -476,7 +477,8 @@ let server;
 
 if (!process.env.VERCEL) {
   const boot = HAS_SUPABASE ? Promise.resolve() : ensureContentFile();
-  boot.then(() => {
+  boot.then(async () => {
+    await initRedis();
     server = app.listen(port, () => {
       console.log(`NexaSphere server listening on http://localhost:${port}`);
     });

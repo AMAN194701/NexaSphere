@@ -1,4 +1,5 @@
 import { withDb } from './db.js';
+import { getCache, setCache, invalidateCache } from '../config/redis.js';
 
 function normalizePhone(value) {
   return String(value || '').replace(/[^\d]/g, '');
@@ -6,8 +7,13 @@ function normalizePhone(value) {
 
 export const coreTeamRepository = {
   async listMembers() {
+    const cacheKey = 'core_team_members';
+    const cached = await getCache(cacheKey);
+    if (cached) return cached;
+
     return withDb(async (client) => {
       const { rows } = await client.query('select id, name, email, phone, created_at from core_team_members order by created_at desc');
+      await setCache(cacheKey, rows);
       return rows;
     });
   },
@@ -20,6 +26,7 @@ export const coreTeamRepository = {
          returning id, name, email, phone, created_at`,
         [member.name, member.email, normalizePhone(member.phone)]
       );
+      await invalidateCache('core_team_members');
       return rows[0];
     });
   },
@@ -27,6 +34,9 @@ export const coreTeamRepository = {
   async deleteMember(id) {
     return withDb(async (client) => {
       const { rowCount } = await client.query('delete from core_team_members where id=$1', [id]);
+      if (rowCount > 0) {
+        await invalidateCache('core_team_members');
+      }
       return rowCount > 0;
     });
   },

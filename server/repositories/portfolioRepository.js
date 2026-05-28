@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { withDb } from './db.js';
 import { Mutex } from 'async-mutex';
+import { getCache, setCache, invalidateCache } from '../config/redis.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -163,6 +164,10 @@ export const portfolioRepository = {
     const isDbAvailable = await ensureReady();
     const sanitizedUsername = canonicalizeUsername(username);
 
+    const cacheKey = `portfolio:${sanitizedUsername}`;
+    const cached = await getCache(cacheKey);
+    if (cached) return cached;
+
     if (isDbAvailable) {
       try {
         return await withDb(async (client) => {
@@ -171,7 +176,9 @@ export const portfolioRepository = {
             [sanitizedUsername]
           );
           if (!rows.length) return null;
-          return mapRow(rows[0]);
+          const result = mapRow(rows[0]);
+          await setCache(cacheKey, result);
+          return result;
         });
       } catch (err) {
         console.error('Database query failed. Falling back to local file.', err);
@@ -182,7 +189,7 @@ export const portfolioRepository = {
     const portfolios = await readLocalPortfolios();
     const portfolio = portfolios[sanitizedUsername];
     if (!portfolio) return null;
-    return {
+    const result = {
       username: portfolio.username,
       theme: portfolio.theme,
       visibleSections: portfolio.visibleSections || {},
@@ -198,6 +205,9 @@ export const portfolioRepository = {
       createdAt: portfolio.createdAt,
       updatedAt: portfolio.updatedAt,
     };
+    
+    await setCache(cacheKey, result);
+    return result;
   },
 
   async verifyPasskey(username, passkey) {
@@ -272,6 +282,7 @@ export const portfolioRepository = {
               JSON.stringify(projects), JSON.stringify(roadmaps), bio, title
             ]
           );
+          await invalidateCache(`portfolio:${sanitizedUsername}`);
           return mapRow(rows[0]);
         });
       } catch (err) {
@@ -306,7 +317,7 @@ export const portfolioRepository = {
       portfolios[sanitizedUsername] = updatedPortfolio;
       await writeLocalPortfolios(portfolios);
 
-      return {
+      const result = {
         username: updatedPortfolio.username,
         theme: updatedPortfolio.theme,
         visibleSections: updatedPortfolio.visibleSections,
@@ -323,6 +334,8 @@ export const portfolioRepository = {
         updatedAt: updatedPortfolio.updatedAt,
       };
 
+      await invalidateCache(`portfolio:${sanitizedUsername}`);
+      return result;
     });
   }
 };
