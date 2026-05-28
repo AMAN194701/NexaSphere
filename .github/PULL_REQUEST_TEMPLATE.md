@@ -1,29 +1,26 @@
-## What does this PR do?
-<!-- Please provide a clear and concise description of what this PR accomplishes. -->
+## Description
+<!-- Please include a summary of the changes and the related issue. Please also include relevant motivation and context. -->
 
-## Why is this change needed?
-<!-- Describe the motivation and context for this change. -->
-<!-- If it fixes an open issue, please link to the issue here (e.g., "Closes #123"). -->
+Fixes # (issue)
 
-## What changes were made?
-<!-- List the key changes introduced by this PR. -->
-* 
-* 
+## Type of Change
+<!-- Please check the options that apply to your PR. -->
+- [ ] Bug fix (non-breaking change which fixes an issue)
+- [ ] New feature (non-breaking change which adds functionality)
+- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
+- [ ] Documentation update
+- [ ] Code refactoring / optimization
 
-## How has this been tested?
-<!-- Please describe the tests that you ran to verify your changes. -->
-<!-- Provide instructions so we can reproduce. -->
-1. 
-2. 
+## How Has This Been Tested?
+<!-- Please describe the tests that you ran to verify your changes. Provide instructions so we can reproduce. -->
 
-## Checklist:
-<!-- Put an `x` in the boxes that apply. You can also fill these out after creating the PR. -->
-- [ ] My code follows the project's style guidelines.
-- [ ] I have performed a self-review of my own code.
-- [ ] I have made corresponding changes to the documentation (if applicable).
-- [ ] I have added/updated tests to verify my changes.
-- [ ] My changes generate no new warnings or errors.
-- [ ] This PR does not contain any breaking changes. (If it does, please explain below.)
+- [ ] Tested locally
+- [ ] Verified UI/UX responsiveness
+- [ ] Checked for console warnings and errors
 
-## Additional Context
-<!-- Add any other context or screenshots about the pull request here. -->
+## Checklist
+- [ ] My code follows the style guidelines of this project
+- [ ] I have performed a self-review of my own code
+- [ ] I have commented my code, particularly in hard-to-understand areas
+- [ ] My changes generate no new warnings
+- [ ] I have checked my code and corrected any misspellings
