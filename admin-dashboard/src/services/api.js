@@ -245,18 +245,21 @@ export const api = {
   },
 
   coreTeam: {
-    getAll: async () => {
-      const result = await fetchWithAuth('/api/admin/core-team');
-      const members = result?.members ?? result ?? [];
+    getAll: async ({ page = 1, limit = 50 } = {}) => {
+      const result = await fetchWithAuth(
+        `/api/admin/core-team?page=${page}&limit=${limit}`,
+      );
+      // Support both the paginated envelope { members, pagination } and the
+      // legacy bare-array shape so the dashboard stays compatible during any
+      // rolling deployment.
+      const members = result?.members ?? (Array.isArray(result) ? result : []);
+      const pagination = result?.pagination ?? null;
 
-      // If Java DB is empty, seed it with the official team data
-      // (photos are bundled assets and can't live in Java, so we always merge)
-      if (members.length === 0) {
-        // Return the local seeded team so admin always sees the real team
+      if (members.length === 0 && page === 1) {
         const seeded = getDb('core_team', []);
-        return { members: seeded };
+        return { members: seeded, pagination };
       }
-      return { members };
+      return { members, pagination };
     },
     add: async (member) => {
       if (auth.isOfflineMode()) {

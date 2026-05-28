@@ -249,6 +249,14 @@ function toSafeString(value, max = 4000) {
     .slice(0, max);
 }
 
+// Parses ?page and ?limit from a request query object, clamps to safe bounds,
+// and returns normalised integers. Defaults: page=1, limit=20, cap=100.
+function parsePagination(query = {}) {
+  const page = Math.max(1, parseInt(query.page, 10) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(query.limit, 10) || 20));
+  return { page, limit };
+}
+
 function validateWhatsApp(str) {
   const v = String(str || "").trim();
   if (!/^\d{10}$/.test(v))
@@ -309,7 +317,8 @@ async function canManageActivityEvent({ name, email, phone, password }) {
     .toLowerCase();
   const p = normalizePhone(phone);
 
-  const members = await listCoreTeamStore();
+  // Fetch all members (no pagination cap) so the identity check is exhaustive.
+  const { members } = await listCoreTeamStore({ page: 1, limit: 1000 });
   return members.some(
     (m) =>
       m.name.toLowerCase() === n &&
@@ -551,32 +560,40 @@ async function deleteActivityEventStore(activityKey, eventId) {
   });
 }
 
-async function listCoreTeamStore() {
+async function listCoreTeamStore({ page = 1, limit = 20 } = {}) {
   if (HAS_SUPABASE) {
-    const rows = await supabaseRequest(
+    const { rows, total } = await supabasePaginatedRequest(
       "core_team_members?select=*&order=created_at.asc",
+      page,
+      limit,
     );
-    return rows.map((r) =>
-      sanitizeCoreTeamMemberRecord({
-        id: r.id,
-        name: r.name,
-        role: r.role,
-        year: r.year,
-        branch: r.branch,
-        section: r.section,
-        email: r.email,
-        whatsapp: r.whatsapp,
-        linkedin: r.linkedin,
-        instagram: r.instagram,
-        photoUrl: r.photo_url,
-        createdAt: r.created_at,
-      }),
-    );
+    return {
+      members: rows.map((r) =>
+        sanitizeCoreTeamMemberRecord({
+          id: r.id,
+          name: r.name,
+          role: r.role,
+          year: r.year,
+          branch: r.branch,
+          section: r.section,
+          email: r.email,
+          whatsapp: r.whatsapp,
+          linkedin: r.linkedin,
+          instagram: r.instagram,
+          photoUrl: r.photo_url,
+          createdAt: r.created_at,
+        }),
+      ),
+      total,
+    };
   }
   const content = await readContent();
-  return (content.coreTeam || []).map((member) =>
+  const all = (content.coreTeam || []).map((member) =>
     sanitizeCoreTeamMemberRecord(member),
   );
+  const total = all.length;
+  const start = (page - 1) * limit;
+  return { members: all.slice(start, start + limit), total };
 }
 
 function sanitizeCoreTeamMemberRecord(member) {
@@ -900,13 +917,19 @@ app.delete("/api/admin/events/:id", adminAuth, async (req, res) => {
 
 app.get("/api/content/core-team", async (req, res) => {
   try {
-    const fullTeam = await listCoreTeamStore();
-    // Strip out PII (email, whatsapp) for the unauthenticated public endpoint
-    const publicTeam = fullTeam.map((member) => {
-      const { email, whatsapp, ...safeData } = member;
-      return safeData;
+    const { page, limit } = parsePagination(req.query);
+    const { members, total } = await listCoreTeamStore({ page, limit });
+    // Strip PII (email, whatsapp) for the unauthenticated public endpoint.
+    const publicMembers = members.map(({ email, whatsapp, ...safeData }) => safeData);
+    return res.json({
+      members: publicMembers,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
     });
-    return res.json(publicTeam);
   } catch (e) {
     return res
       .status(500)
@@ -916,7 +939,17 @@ app.get("/api/content/core-team", async (req, res) => {
 
 app.get("/api/admin/core-team", adminAuth, async (req, res) => {
   try {
-    return res.json(await listCoreTeamStore());
+    const { page, limit } = parsePagination(req.query);
+    const { members, total } = await listCoreTeamStore({ page, limit });
+    return res.json({
+      members,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
+    });
   } catch (e) {
     return res
       .status(500)
