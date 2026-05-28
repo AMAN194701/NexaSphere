@@ -17,11 +17,12 @@ import { initializeSocketIO, emitToRoom, getRoom } from "./config/socket.js";
 import adminStreamRouter from "./routes/adminStream.js";
 import { broadcastSSEEvent } from "./services/sseService.js";
 import rateLimit from "express-rate-limit";
-import { formRateLimiter } from "./middleware/rateLimiter.js";
 import {
   apiRateLimiter,
   authRateLimiter,
   notificationRateLimiter,
+  formRateLimiter,
+  subscriptionRateLimiter,
 } from "./middleware/rateLimiter.js";
 
 import { portfolioRepository } from "./repositories/portfolioRepository.js";
@@ -1125,28 +1126,69 @@ app.post("/api/forms/recruitment", formRateLimiter, (req, res) =>
 app.post("/api/core-team/apply", formRateLimiter, (req, res) =>
   handleForm("core_team", req, res),
 );
-// Real-time notification subscriber channels
+// Real-time notification subscriber channels.
+// The Set stores JSON-serialised Web Push subscription objects keyed by their
+// unique endpoint URL. Entries are evicted when the cap is reached; a warning
+// is logged so operators know the store is full.
 const pushSubscriptions = new Set();
-app.post("/api/notifications/subscribe", (req, res) => {
+const PUSH_SUBSCRIPTION_CAP = 10000;
+
+// Validates that a value looks like a Web Push subscription object before it
+// is accepted into the store. Guards against malformed payloads that would
+// cause errors when a notification is later sent.
+function isValidPushSubscription(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const endpoint = value.endpoint;
+  if (typeof endpoint !== "string" || !endpoint.startsWith("https://")) {
+    return false;
+  }
+  // A real Web Push subscription always has a keys object with at least p256dh.
+  const keys = value.keys;
+  if (!keys || typeof keys !== "object") return false;
+  if (typeof keys.p256dh !== "string" || !keys.p256dh) return false;
+  return true;
+}
+
+app.post("/api/notifications/subscribe", subscriptionRateLimiter, (req, res) => {
   try {
-    const { subscription } = req.body;
-    if (subscription) {
-      pushSubscriptions.add(JSON.stringify(subscription));
-      // Prevent memory leak by capping maximum subscriptions to 10,000
-      if (pushSubscriptions.size > 10000) {
+    const { subscription } = req.body || {};
+    if (!subscription) {
+      return res.status(400).json({ error: "subscription is required" });
+    }
+    if (!isValidPushSubscription(subscription)) {
+      return res.status(400).json({
+        error:
+          "Invalid subscription object. Expected a Web Push subscription with endpoint and keys.p256dh.",
+      });
+    }
+    const serialised = JSON.stringify(subscription);
+    if (!pushSubscriptions.has(serialised)) {
+      if (pushSubscriptions.size >= PUSH_SUBSCRIPTION_CAP) {
+        // Evict the oldest entry and warn so operators can act.
         const oldest = pushSubscriptions.values().next().value;
         pushSubscriptions.delete(oldest);
+        console.warn(
+          `[PushSubscriptions] Cap of ${PUSH_SUBSCRIPTION_CAP} reached — oldest subscription evicted.`,
+        );
       }
+      pushSubscriptions.add(serialised);
     }
     return res.json({ success: true });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
 });
-app.post("/api/notifications/unsubscribe", (req, res) => {
+
+app.post("/api/notifications/unsubscribe", subscriptionRateLimiter, (req, res) => {
   try {
-    const { subscription } = req.body;
-    if (subscription) pushSubscriptions.delete(JSON.stringify(subscription));
+    const { subscription } = req.body || {};
+    if (!subscription) {
+      return res.status(400).json({ error: "subscription is required" });
+    }
+    if (!isValidPushSubscription(subscription)) {
+      return res.status(400).json({ error: "Invalid subscription object." });
+    }
+    pushSubscriptions.delete(JSON.stringify(subscription));
     return res.json({ success: true });
   } catch (err) {
     return res.status(500).json({ error: err.message });
