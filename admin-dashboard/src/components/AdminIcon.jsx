@@ -1,13 +1,13 @@
 const ICON_ALIASES = {
-  Home: 'Dashboard',
-  '\u{1F3E0}': 'Dashboard',
-  '\u{1F4C5}': 'Calendar',
-  '\u{1F51C}': 'Clock',
-  '\u{1F465}': 'Users',
-  '\u{1F3AF}': 'Target',
-  '\u{1F9E0}': 'Brain',
-  '\u{1F527}': 'Wrench',
-  '\u{1F4CC}': 'Pin',
+  Home: "Dashboard",
+  "\u{1F3E0}": "Dashboard",
+  "\u{1F4C5}": "Calendar",
+  "\u{1F51C}": "Clock",
+  "\u{1F465}": "Users",
+  "\u{1F3AF}": "Target",
+  "\u{1F9E0}": "Brain",
+  "\u{1F527}": "Wrench",
+  "\u{1F4CC}": "Pin",
 };
 
 const ICONS = {
@@ -97,10 +97,43 @@ const ICONS = {
       <line x1="10" y1="9" x2="8" y2="9" />
     </>
   ),
+  Menu: (
+    <>
+      <line x1="4" y1="6" x2="20" y2="6" />
+      <line x1="4" y1="12" x2="20" y2="12" />
+      <line x1="4" y1="18" x2="20" y2="18" />
+    </>
+  ),
+  AlertTriangle: (
+    <>
+      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+      <line x1="12" y1="9" x2="12" y2="13" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
+    </>
+  ),
+  AlertCircle: (
+    <>
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="8" x2="12" y2="12" />
+      <line x1="12" y1="16" x2="12.01" y2="16" />
+    </>
+  ),
+  Inbox: (
+    <>
+      <polyline points="22 12 16 12 14 15 10 15 8 12 2 12" />
+      <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
+    </>
+  ),
+  Award: (
+    <>
+      <circle cx="12" cy="8" r="6" />
+      <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
+    </>
+  ),
 };
 
-export function AdminIcon({ name, size = 18, className = '', ...props }) {
-  const iconName = ICON_ALIASES[name] || name || 'Calendar';
+export function AdminIcon({ name, size = 18, className = "", ...props }) {
+  const iconName = ICON_ALIASES[name] || name || "Calendar";
   const paths = ICONS[iconName] || ICONS.Calendar;
 
   return (

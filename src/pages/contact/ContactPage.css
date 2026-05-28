@@ -200,6 +200,9 @@
   position: relative;
 }
 
+.map-wrapper { opacity: 0; }
+.map-wrapper.fired { opacity: 1; transition: opacity .5s ease; }
+
 @keyframes contactBurst {
   to {
     transform: translate(var(--tx), var(--ty));
