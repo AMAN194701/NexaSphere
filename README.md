@@ -2,7 +2,14 @@
 
 # 🌌 NexaSphere
 
-### Connecting students with opportunities across Tech and Non-Tech domains through an integrated digital ecosystem.
+**Connecting students with opportunities across Tech and Non-Tech domains through an integrated digital ecosystem.**
+
+[![GSSoC'26](https://img.shields.io/badge/GSSoC'26-Open%20Source-0e8a16?style=for-the-badge&logo=github)](https://gssoc.girlscript.tech)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](./LICENSE)
+[![Live Demo](https://img.shields.io/badge/Live-nexasphere--glbajaj.vercel.app-purple?style=for-the-badge&logo=vercel)](https://nexasphere-glbajaj.vercel.app/)
+[![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-brightgreen?style=for-the-badge)](./CONTRIBUTING.md)
+
+</div>
 
 > *Community-first platform · Event management · Real-time collaboration — built for GL Bajaj Group of Institutions*
 
