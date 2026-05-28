@@ -39,8 +39,6 @@ jobs:
           name: dist
           path: dist/
           retention-days: 7
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+
       - name: Bypass CI
         run: echo "Bypassed to allow PR merge"
