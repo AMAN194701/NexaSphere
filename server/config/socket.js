@@ -6,6 +6,7 @@
 import { Server } from 'socket.io';
 import logger from '../utils/logger.js';
 import { getAdminSession } from '../repositories/adminSessionsRepository.js';
+import { getWorkspaceDocument, saveWorkspaceDocument } from '../repositories/workspaceRepository.js';
 
 let io = null;
 const connectedUsers = new Map();
@@ -19,10 +20,16 @@ const PROTECTED_ROOMS = ['admin-room'];
 // Tracks which socket IDs have joined which workspace rooms via join_room
 const workspaceRoomMembers = new Map();
 
+// Tracks the current document version per workspace room for conflict detection
+const workspaceVersions = new Map();
+
 // Per-socket rate limiter for join_room events to prevent room enumeration
 const joinRoomAttempts = new Map();
 const MAX_JOIN_ROOM_ATTEMPTS = 20;
 const JOIN_ROOM_WINDOW_MS = 60000;
+
+const MAX_CURSOR_X = 5000;
+const MAX_CURSOR_Y = 5000;
 
 /**
  * Parse Bearer token from auth header
@@ -198,7 +205,12 @@ export function _onConnection(socket) {
       return;
     }
 
-    // 4. Track room membership for event relay authorization
+    // 4. Idempotency — skip if already a member to prevent phantom user entries
+    if (workspaceRoomMembers.get(roomId)?.has(socket.id)) {
+      return;
+    }
+
+    // 5. Track room membership for event relay authorization
     if (!workspaceRoomMembers.has(roomId)) {
       workspaceRoomMembers.set(roomId, new Set());
     }
@@ -206,6 +218,14 @@ export function _onConnection(socket) {
 
     socket.join(roomId);
     logger.info('User joined workspace room', { socketId: socket.id, roomId });
+
+    // 6. Load current document from DB and send to the joining socket
+    getWorkspaceDocument(roomId).then((doc) => {
+      if (doc) {
+        workspaceVersions.set(roomId, doc.version);
+        socket.emit('document_state', { content: doc.content, version: doc.version });
+      }
+    }).catch(() => {});
 
     // Sanitize user details to prevent reference leaks / massive nested objects
     const sanitizedUser = user && typeof user === 'object' ? {
@@ -233,18 +253,46 @@ export function _onConnection(socket) {
     }
   });
 
-  socket.on('document_change', (data) => {
-    const { roomId, ...payload } = data;
-    if (roomId && _isWorkspaceMember(roomId, socket.id)) {
-      socket.to(roomId).emit('document_change', payload);
+  socket.on('document_change', async (data) => {
+    const { roomId, content, version } = data;
+    if (!roomId || !_isWorkspaceMember(roomId, socket.id)) return;
+
+    if (typeof content !== 'string') return;
+    if (content.length > 1048576) return;
+
+    // Reject stale versions to prevent silent overwrites
+    const currentVersion = workspaceVersions.get(roomId) ?? 0;
+    if (version !== currentVersion) {
+      const doc = await getWorkspaceDocument(roomId).catch(() => null);
+      socket.emit('document_state', {
+        content: doc?.content || '',
+        version: currentVersion,
+      });
+      return;
     }
+
+    const newVersion = currentVersion + 1;
+    workspaceVersions.set(roomId, newVersion);
+
+    // Persist best-effort — DB may be unavailable during local dev
+    saveWorkspaceDocument(roomId, content, newVersion).catch(() => {});
+
+    socket.to(roomId).emit('document_change', { content, version: newVersion });
   });
 
   socket.on('cursor_moved', (data) => {
-    const { roomId, ...payload } = data;
-    if (roomId && _isWorkspaceMember(roomId, socket.id)) {
-      socket.to(roomId).emit('cursor_moved', { socketId: socket.id, ...payload });
-    }
+    const { roomId, cursor } = data;
+    if (!roomId || !_isWorkspaceMember(roomId, socket.id)) return;
+
+    // Validate cursor coordinates before broadcasting
+    if (!cursor || typeof cursor.x !== 'number' || typeof cursor.y !== 'number') return;
+    if (!Number.isFinite(cursor.x) || !Number.isFinite(cursor.y)) return;
+    if (cursor.x < 0 || cursor.x > MAX_CURSOR_X || cursor.y < 0 || cursor.y > MAX_CURSOR_Y) return;
+
+    socket.to(roomId).emit('cursor_moved', {
+      socketId: socket.id,
+      cursor: { x: Math.round(cursor.x), y: Math.round(cursor.y) },
+    });
   });
 
   socket.on('typing_start', (data) => {

@@ -140,20 +140,20 @@ test('Security Audit & Validation: Socket Room Hardening', async (t) => {
     assert.equal(eveUpdates.length, 0);
 
     // Same for document_change
-    alice.emit('document_change', { roomId: room, doc: 'doc1' });
+    alice.emit('document_change', { roomId: room, content: 'doc1', version: 0 });
     const aliceDocs = alice.emittedTo.filter(e => e.event === 'document_change');
     assert.equal(aliceDocs.length, 1);
 
-    eve.emit('document_change', { roomId: room, doc: 'doc1' });
+    eve.emit('document_change', { roomId: room, content: 'doc1', version: 0 });
     const eveDocs = eve.emittedTo.filter(e => e.event === 'document_change');
     assert.equal(eveDocs.length, 0);
 
     // cursor_moved
-    alice.emit('cursor_moved', { roomId: room, pos: 5 });
+    alice.emit('cursor_moved', { roomId: room, cursor: { x: 100, y: 200 } });
     const aliceCursors = alice.emittedTo.filter(e => e.event === 'cursor_moved');
     assert.equal(aliceCursors.length, 1);
 
-    eve.emit('cursor_moved', { roomId: room, pos: 99 });
+    eve.emit('cursor_moved', { roomId: room, cursor: { x: 999, y: 999 } });
     const eveCursors = eve.emittedTo.filter(e => e.event === 'cursor_moved');
     assert.equal(eveCursors.length, 0);
 
@@ -206,7 +206,7 @@ test('Security Audit & Validation: Socket Room Hardening', async (t) => {
     const updates = socket.emittedTo.filter(e => e.event === 'workspace_update');
     assert.equal(updates.length, 0);
 
-    socket.emit('document_change', { roomId: room, doc: 'doc2' });
+    socket.emit('document_change', { roomId: room, content: 'doc2', version: 0 });
     const docs = socket.emittedTo.filter(e => e.event === 'document_change');
     assert.equal(docs.length, 0);
   });

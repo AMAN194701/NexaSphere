@@ -6,6 +6,7 @@ import { useWorkspaceStore } from '../store/workspaceStore';
 export function useSocketSync(roomId: string, user: any) {
   const { socket, isConnected } = useSocketContext();
   const setDocumentContent = useWorkspaceStore((state) => state.setDocumentContent);
+  const setDocumentVersion = useWorkspaceStore((state) => state.setDocumentVersion);
   const setStatus = useWorkspaceStore((state) => state.setStatus);
   const addUser = useWorkspaceStore((state) => state.addUser);
   const removeUser = useWorkspaceStore((state) => state.removeUser);
@@ -33,8 +34,18 @@ export function useSocketSync(roomId: string, user: any) {
   });
 
   // Sync events
+  useSocket('document_state', (payload) => {
+    setDocumentContent(payload.content);
+    if (payload.version !== undefined) {
+      setDocumentVersion(payload.version);
+    }
+  });
+
   useSocket('document_change', (payload) => {
     setDocumentContent(payload.content);
+    if (payload.version !== undefined) {
+      setDocumentVersion(payload.version);
+    }
   });
 
   useSocket('user_joined', (payload) => {
@@ -63,8 +74,9 @@ export function useSocketSync(roomId: string, user: any) {
 
   const emitDocumentChange = (content: string) => {
     if (!socket) return;
+    const currentVersion = useWorkspaceStore.getState().version;
     setStatus('Syncing changes...');
-    socket.emit('document_change', { roomId, content });
+    socket.emit('document_change', { roomId, content, version: currentVersion });
     setTimeout(() => {
       if (useWorkspaceStore.getState().status === 'Syncing changes...') {
         setStatus('Connected');
