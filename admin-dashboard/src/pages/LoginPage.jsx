@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { auth } from '../services/auth';
 
 export function LoginPage() {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -15,7 +15,7 @@ export function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      await auth.login(email, password);
+      await auth.login(username, password);
       navigate('/dashboard');
     } catch (err) {
       setError(err.message);
@@ -34,11 +34,11 @@ export function LoginPage() {
         <p className="login-sub">GL Bajaj Group of Institutions</p>
         <form onSubmit={handleSubmit} className="form">
           <div className="form-row">
-            <label>Email</label>
+            <label>Username / Email</label>
             <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
+              type="text"
+              value={username}
+              onChange={e => setUsername(e.target.value)}
               placeholder="admin@nexasphere.in"
               required
               autoFocus

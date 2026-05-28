@@ -174,6 +174,12 @@ app.delete('/api/content/activity-events/:activityKey/:eventId', activityEventsC
 // Admin Auth Endpoints
 app.post('/api/admin/login', authRateLimiter, adminAuthMiddleware.login);
 app.post('/api/admin/logout', adminAuthMiddleware.logout);
+app.get('/api/admin/me', adminAuth, (req, res) => {
+  res.json({
+    username: req.adminSession.username,
+    expiresAt: req.adminSession.expiresAt,
+  });
+});
 app.use('/api/admin/analytics', adminAuth, analyticsRouter);
 app.use('/api/admin/metrics', adminAuth, adminStreamRouter);
 
