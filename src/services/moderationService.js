@@ -2,35 +2,35 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Initialize Gemini AI
-const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || '');
+const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || "");
 
 // Content categories for moderation
 export const MODERATION_CATEGORIES = {
-  SPAM: 'spam',
-  HATE_SPEECH: 'hate_speech',
-  HARASSMENT: 'harassment',
-  TOXIC: 'toxic',
-  VIOLENCE: 'violence',
-  SELF_HARM: 'self_harm',
-  SEXUAL: 'sexual',
-  MISINFORMATION: 'misinformation'
+  SPAM: "spam",
+  HATE_SPEECH: "hate_speech",
+  HARASSMENT: "harassment",
+  TOXIC: "toxic",
+  VIOLENCE: "violence",
+  SELF_HARM: "self_harm",
+  SEXUAL: "sexual",
+  MISINFORMATION: "misinformation",
 };
 
 // Severity levels
 export const SEVERITY = {
-  LOW: 'low',
-  MEDIUM: 'medium',
-  HIGH: 'high',
-  CRITICAL: 'critical'
+  LOW: "low",
+  MEDIUM: "medium",
+  HIGH: "high",
+  CRITICAL: "critical",
 };
 
 // User reputation levels
 export const REPUTATION = {
-  TRUSTED: 'trusted',
-  NORMAL: 'normal',
-  WATCHED: 'watched',
-  RESTRICTED: 'restricted',
-  BANNED: 'banned'
+  TRUSTED: "trusted",
+  NORMAL: "normal",
+  WATCHED: "watched",
+  RESTRICTED: "restricted",
+  BANNED: "banned",
 };
 
 class ModerationService {
@@ -41,25 +41,28 @@ class ModerationService {
       /(http|https):\/\/[^\s]+/g, // URLs
       /[^\w\s]{3,}/g, // Excessive special characters
       /(.)\1{4,}/g, // Repeated characters
-      /\b(?:free|win|prize|lottery|click|subscribe|follow)\b/gi // Spam keywords
+      /\b(?:free|win|prize|lottery|click|subscribe|follow)\b/gi, // Spam keywords
     ];
   }
 
   // Main moderation function
-  async moderateContent(content, userId, contentType = 'comment') {
+  async moderateContent(content, userId, contentType = "comment") {
     const result = {
       isAppropriate: true,
       flags: [],
       severity: null,
-      action: 'allow',
-      confidence: 0
+      action: "allow",
+      confidence: 0,
     };
 
     // Run spam detection
     const spamResult = this.detectSpam(content);
     if (spamResult.isSpam) {
       result.isAppropriate = false;
-      result.flags.push({ type: MODERATION_CATEGORIES.SPAM, confidence: spamResult.confidence });
+      result.flags.push({
+        type: MODERATION_CATEGORIES.SPAM,
+        confidence: spamResult.confidence,
+      });
       result.severity = SEVERITY.MEDIUM;
     }
 
@@ -73,7 +76,9 @@ class ModerationService {
       }
       result.confidence = aiResult.confidence;
     } else {
-      console.warn('Gemini API key not configured. Using basic detection only.');
+      console.warn(
+        "Gemini API key not configured. Using basic detection only."
+      );
     }
 
     // Determine action based on user reputation
@@ -81,7 +86,10 @@ class ModerationService {
     result.action = this.determineAction(result, userRep);
 
     // Log for admin review if high severity
-    if (result.severity === SEVERITY.HIGH || result.severity === SEVERITY.CRITICAL) {
+    if (
+      result.severity === SEVERITY.HIGH ||
+      result.severity === SEVERITY.CRITICAL
+    ) {
       this.flagForReview(content, userId, result);
     }
 
@@ -94,7 +102,7 @@ class ModerationService {
   // Spam detection using regex patterns
   detectSpam(content) {
     let spamScore = 0;
-    let matchedPatterns = [];
+    const matchedPatterns = [];
 
     for (const pattern of this.spamPatterns) {
       if (pattern.test(content)) {
@@ -106,11 +114,13 @@ class ModerationService {
     // Check for repeated words
     const words = content.toLowerCase().split(/\s+/);
     const wordFrequency = {};
-    words.forEach(word => {
+    words.forEach((word) => {
       wordFrequency[word] = (wordFrequency[word] || 0) + 1;
     });
-    
-    const repeatedWords = Object.values(wordFrequency).filter(count => count > 3).length;
+
+    const repeatedWords = Object.values(wordFrequency).filter(
+      (count) => count > 3
+    ).length;
     if (repeatedWords > 0) {
       spamScore += repeatedWords * 0.1;
     }
@@ -123,7 +133,7 @@ class ModerationService {
 
     return {
       isSpam: spamScore > 0.4,
-      confidence: Math.min(spamScore, 1)
+      confidence: Math.min(spamScore, 1),
     };
   }
 
@@ -131,7 +141,7 @@ class ModerationService {
   async detectWithAI(content) {
     try {
       const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-      
+
       const prompt = `
         Analyze the following content for toxicity, hate speech, harassment, and inappropriate material.
         Content: "${content}"
@@ -149,17 +159,21 @@ class ModerationService {
       const result = await model.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
-      
+
       // Parse JSON response
       const parsed = JSON.parse(text);
-      
+
       return {
-        flags: parsed.categories?.map(cat => ({ type: cat, confidence: parsed.confidence })) || [],
+        flags:
+          parsed.categories?.map((cat) => ({
+            type: cat,
+            confidence: parsed.confidence,
+          })) || [],
         confidence: parsed.confidence || 0.7,
-        explanation: parsed.explanation
+        explanation: parsed.explanation,
       };
     } catch (error) {
-      console.error('AI moderation failed:', error);
+      console.error("AI moderation failed:", error);
       return { flags: [], confidence: 0 };
     }
   }
@@ -185,7 +199,7 @@ class ModerationService {
         [SEVERITY.LOW]: -5,
         [SEVERITY.MEDIUM]: -15,
         [SEVERITY.HIGH]: -30,
-        [SEVERITY.CRITICAL]: -50
+        [SEVERITY.CRITICAL]: -50,
       };
       newScore += penalties[moderationResult.severity] || -10;
       violations++;
@@ -195,7 +209,7 @@ class ModerationService {
     }
 
     // Determine reputation level
-    let level = REPUTATION.NORMAL;
+    let level;
     if (newScore >= 80) level = REPUTATION.TRUSTED;
     else if (newScore >= 60) level = REPUTATION.NORMAL;
     else if (newScore >= 40) level = REPUTATION.WATCHED;
@@ -205,23 +219,23 @@ class ModerationService {
     this.userReputations.set(userId, {
       level,
       score: newScore,
-      violations
+      violations,
     });
   }
 
   // Determine action based on moderation result and user reputation
   determineAction(result, userRep) {
-    if (userRep.level === REPUTATION.BANNED) return 'block';
-    if (userRep.level === REPUTATION.RESTRICTED) return 'shadow_ban';
-    
+    if (userRep.level === REPUTATION.BANNED) return "block";
+    if (userRep.level === REPUTATION.RESTRICTED) return "shadow_ban";
+
     if (!result.isAppropriate) {
-      if (result.severity === SEVERITY.CRITICAL) return 'block';
-      if (result.severity === SEVERITY.HIGH) return 'flag_review';
-      if (userRep.level === REPUTATION.WATCHED) return 'shadow_ban';
-      return 'flag_user';
+      if (result.severity === SEVERITY.CRITICAL) return "block";
+      if (result.severity === SEVERITY.HIGH) return "flag_review";
+      if (userRep.level === REPUTATION.WATCHED) return "shadow_ban";
+      return "flag_user";
     }
-    
-    return 'allow';
+
+    return "allow";
   }
 
   // Flag content for admin review
@@ -233,31 +247,39 @@ class ModerationService {
       timestamp: new Date().toISOString(),
       flags: result.flags,
       severity: result.severity,
-      status: 'pending'
+      status: "pending",
     };
     this.flaggedContent.unshift(flag);
-    
+
     // Store in localStorage for persistence
-    localStorage.setItem('moderation_flagged', JSON.stringify(this.flaggedContent));
+    localStorage.setItem(
+      "moderation_flagged",
+      JSON.stringify(this.flaggedContent)
+    );
   }
 
   // Get flagged content for admin
-  getFlaggedContent(status = 'pending') {
-    const stored = localStorage.getItem('moderation_flagged');
+  getFlaggedContent(status = "pending") {
+    const stored = localStorage.getItem("moderation_flagged");
     if (stored) {
       this.flaggedContent = JSON.parse(stored);
     }
-    return status ? this.flaggedContent.filter(f => f.status === status) : this.flaggedContent;
+    return status
+      ? this.flaggedContent.filter((f) => f.status === status)
+      : this.flaggedContent;
   }
 
   // Resolve a flagged item
   resolveFlag(flagId, action) {
-    const flag = this.flaggedContent.find(f => f.id === flagId);
+    const flag = this.flaggedContent.find((f) => f.id === flagId);
     if (flag) {
-      flag.status = 'reviewed';
+      flag.status = "reviewed";
       flag.resolvedAt = new Date().toISOString();
       flag.resolution = action;
-      localStorage.setItem('moderation_flagged', JSON.stringify(this.flaggedContent));
+      localStorage.setItem(
+        "moderation_flagged",
+        JSON.stringify(this.flaggedContent)
+      );
     }
   }
 
@@ -272,7 +294,12 @@ class ModerationService {
 
   // Get highest severity from flags
   getHighestSeverity(flags) {
-    const severityOrder = [SEVERITY.LOW, SEVERITY.MEDIUM, SEVERITY.HIGH, SEVERITY.CRITICAL];
+    const severityOrder = [
+      SEVERITY.LOW,
+      SEVERITY.MEDIUM,
+      SEVERITY.HIGH,
+      SEVERITY.CRITICAL,
+    ];
     let highest = SEVERITY.LOW;
     for (const flag of flags) {
       const currentIndex = severityOrder.indexOf(highest);
