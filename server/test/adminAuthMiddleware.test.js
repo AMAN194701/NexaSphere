@@ -3,7 +3,7 @@ import test from 'node:test';
 
 // 1. Configure environment variables for the middleware specifically for testing
 process.env.ADMIN_USERNAME = 'admin';
-process.env.ADMIN_PASSWORD = 'AdminStrongPass123!';
+process.env.ADMIN_PASSWORD = 'dummy-test-password-do-not-use';
 process.env.ADMIN_LOGIN_WINDOW_MS = '100'; // Short window for testing: 100ms
 process.env.ADMIN_LOGIN_MAX_ATTEMPTS = '2'; // Trigger rate limit after attempts > 2
 process.env.ADMIN_LOGIN_MAX_TRACKED_IPS = '5'; // Keep tracked limit low to test eviction instantly
@@ -84,7 +84,7 @@ test('Security Audit & Validation: Admin Authentication Rate Limiter', async (t)
     assert.equal(adminAuthMiddleware._getLoginAttemptsMapSize(), 1);
 
     // Successful attempt
-    const { req: reqSuccess, res: resSuccess } = createMockReqRes(ip, 'admin', 'AdminStrongPass123!');
+    const { req: reqSuccess, res: resSuccess } = createMockReqRes(ip, 'admin', 'dummy-test-password-do-not-use');
     await adminAuthMiddleware.login(reqSuccess, resSuccess);
     
     // The credentials match and success returns 200 (or calls createAdminSession which fails because DB isn't connected, returning 500 but it should have cleared the attempts first!)

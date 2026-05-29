@@ -215,7 +215,7 @@ GOOGLE_SHEET_ID=1a2b3c4d5e6f7g8h9i0j
 
 ```bash
 SUPABASE_URL=https://projectid.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_jwt_token_here
 ```
 
 <br/>
