@@ -384,7 +384,16 @@ app.get('/api/portfolio/:username', async (req, res) => {
   }
 });
 
+const PASSKEY_MAX_TRACKED_KEYS = parseInt(process.env.PASSKEY_MAX_TRACKED_KEYS || '10000', 10);
 const failedPasskeyAttempts = new Map();
+
+const cleanupPasskeyTimer = setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of failedPasskeyAttempts.entries()) {
+    if (entry.lockoutUntil <= now) failedPasskeyAttempts.delete(key);
+  }
+}, 15 * 60 * 1000);
+cleanupPasskeyTimer.unref();
 
 function checkPasskeyLockout(username, ip) {
   const key = `${String(username || '').toLowerCase()}:${ip}`;
@@ -399,6 +408,10 @@ function checkPasskeyLockout(username, ip) {
 
 function recordFailedPasskeyAttempt(username, ip) {
   const key = `${String(username || '').toLowerCase()}:${ip}`;
+  if (failedPasskeyAttempts.size >= PASSKEY_MAX_TRACKED_KEYS && !failedPasskeyAttempts.has(key)) {
+    // evict oldest entry
+    failedPasskeyAttempts.delete(failedPasskeyAttempts.keys().next().value);
+  }
   const entry = failedPasskeyAttempts.get(key) || { count: 0, lockoutUntil: 0 };
   entry.count += 1;
   if (entry.count >= 5) {
