@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import apiClient from "../../utils/apiClient.js";
 import InterestSelector from "../../components/dashboard/InterestSelector";
 import QuestTracker from "../../components/dashboard/QuestTracker";
 import Leaderboard from "../../components/dashboard/Leaderboard";
@@ -94,9 +95,8 @@ export default function DashboardPage({ onBack }) {
         throw new Error("Recommendations service is not configured");
       }
 
-      const res = await fetch(recommendationsUrl);
-      if (res.ok) {
-        const data = await res.json();
+      const data = await apiClient(recommendationsUrl);
+      if (data) {
         setRecommendations(data.recommended_events || []);
       }
     } catch (e) {

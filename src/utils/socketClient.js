@@ -33,13 +33,12 @@ export function initializeSocket(serverUrl = getSocketServerUrl()) {
 
   if (socket) {
     socket.disconnect();
-  }
+  } 
 
   currentSocketUrl = resolvedUrl;
   socket = io(resolvedUrl, {
     path: getSocketPath(),
     reconnection: true,
-    reconnectionAttempts: 10,
     reconnectionDelay: 1000,
     reconnectionDelayMax: 5000,
     transports: ["websocket", "polling"],
