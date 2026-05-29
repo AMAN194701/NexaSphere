@@ -494,6 +494,17 @@ app.post("/api/notifications/subscribe", subscriptionRateLimiter, (req, res) => 
         );
       }
       pushSubscriptions.add(serialised);
+// Real-time notification subscriber channels
+const pushSubscriptions = new Set();
+app.post("/api/notifications/subscribe", notificationRateLimiter, (req, res) => {
+  try {
+    const { subscription } = req.body;
+    if (subscription) {
+      pushSubscriptions.add(JSON.stringify(subscription));
+      if (pushSubscriptions.size > 10000) {
+        const oldest = pushSubscriptions.values().next().value;
+        pushSubscriptions.delete(oldest);
+      }
     }
     return res.json({ success: true });
   } catch (err) {
@@ -511,6 +522,10 @@ app.post("/api/notifications/unsubscribe", subscriptionRateLimiter, (req, res) =
       return res.status(400).json({ error: "Invalid subscription object." });
     }
     pushSubscriptions.delete(JSON.stringify(subscription));
+app.post("/api/notifications/unsubscribe", notificationRateLimiter, (req, res) => {
+  try {
+    const { subscription } = req.body;
+    if (subscription) pushSubscriptions.delete(JSON.stringify(subscription));
     return res.json({ success: true });
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -524,6 +539,9 @@ app.get("/api/notifications", (req, res) => {
   try {
     // If user id provided via query or auth, use that; otherwise global
     const userId = req.query.userId || "global";
+app.get("/api/notifications", adminAuth, notificationRateLimiter, (req, res) => {
+  try {
+    const userId = req.adminSession?.username || "global";
     const list = notificationsService.getNotifications(userId);
     return res.json({ notifications: list });
   } catch (err) {
@@ -540,6 +558,9 @@ app.post(
       const { id, userId } = req.body || {};
       if (!id) return res.status(400).json({ error: "id required" });
       const uid = userId || "global";
+      const { id } = req.body || {};
+      if (!id) return res.status(400).json({ error: "id required" });
+      const uid = req.adminSession?.username || "global";
       const ok = notificationsService.markAsRead(uid, id);
       return res.json({ success: ok });
     } catch (err) {
@@ -556,6 +577,8 @@ app.post(
     try {
       const { userId } = req.body || {};
       notificationsService.markAllAsRead(userId || "global");
+      const uid = req.adminSession?.username || "global";
+      notificationsService.markAllAsRead(uid);
       return res.json({ success: true });
     } catch (err) {
       return res.status(500).json({ error: err.message });
@@ -572,6 +595,8 @@ app.delete(
       const id = req.params.id;
       const userId = req.query.userId || "global";
       const removed = notificationsService.removeNotification(userId, id);
+      const uid = req.adminSession?.username || "global";
+      const removed = notificationsService.removeNotification(uid, id);
       if (!removed)
         return res.status(404).json({ error: "Notification not found" });
       return res.json({ success: true });
@@ -590,6 +615,8 @@ app.delete(
     try {
       const userId = req.query.userId || "global";
       notificationsService.clearAll(userId);
+      const uid = req.adminSession?.username || "global";
+      notificationsService.clearAll(uid);
       return res.json({ success: true });
     } catch (err) {
       return res.status(500).json({ error: err.message });
@@ -605,11 +632,13 @@ app.post(
   (req, res) => {
     try {
       const { userId, title, message, type, link } = req.body || {};
+      const { title, message, type, link } = req.body || {};
       if (!title || !message)
         return res
           .status(400)
           .json({ error: "title and message are required" });
       const note = notificationsService.addNotification(userId || "global", {
+      const note = notificationsService.addNotification(req.adminSession?.username || "global", {
         title,
         message,
         type,
