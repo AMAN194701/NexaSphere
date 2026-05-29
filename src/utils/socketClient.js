@@ -41,6 +41,7 @@ export function initializeSocket(serverUrl = getSocketServerUrl()) {
     reconnection: true,
     reconnectionDelay: 1000,
     reconnectionDelayMax: 5000,
+    reconnectionAttempts: 8,
     transports: ["websocket", "polling"],
     timeout: 5000,
   });
