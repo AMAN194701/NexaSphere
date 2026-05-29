@@ -4,8 +4,44 @@ import InterestSelector from "../../components/dashboard/InterestSelector";
 import QuestTracker from "../../components/dashboard/QuestTracker";
 import Leaderboard from "../../components/dashboard/Leaderboard";
 import AiMentor from "../../components/dashboard/AiMentor";
-import { DashboardCardSkeleton } from "../../components/ui/skeleton/DashboardCardSkeleton";
 import { buildUrl, getAiApiBase } from "../../utils/runtimeConfig";
+
+function DashboardCardSkeleton({ count = 3 }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+      {Array.from({ length: count }).map((_, i) => (
+        <div
+          key={i}
+          style={{
+            padding: "12px",
+            background: "rgba(255,255,255,0.02)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: "8px",
+            animation: "pulse 1.5s infinite ease-in-out",
+          }}
+        >
+          <div
+            style={{
+              height: "16px",
+              width: "60%",
+              background: "rgba(255,255,255,0.1)",
+              borderRadius: "4px",
+              marginBottom: "8px",
+            }}
+          />
+          <div
+            style={{
+              height: "12px",
+              width: "40%",
+              background: "rgba(255,255,255,0.1)",
+              borderRadius: "4px",
+            }}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function DashboardPage({ onBack }) {
   // Mock current user for demonstration
