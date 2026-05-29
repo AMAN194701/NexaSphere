@@ -82,6 +82,7 @@ import { BookmarkProvider } from "./context/BookmarkContext";
 import BookmarksDrawer from "./components/bookmarks/BookmarksDrawer";
 import { useTheme } from "./hooks/useTheme";
 import { useInteractionEffects } from "./hooks/useInteractionEffects";
+import { useBackToTop } from "./hooks/useScrollLogic";
 import NotFoundPage from "./pages/NotFoundPage";
 
 import MoveToTop from "./shared/MoveToTop";
