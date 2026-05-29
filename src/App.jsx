@@ -27,6 +27,7 @@ import EventDetailPage from "./pages/events/EventDetailPage";
 import CinematicOpening from "./shared/CinematicOpening";
 import Chatbot from "./shared/Chatbot";
 import {
+
   AmbientOrbs,
   SectionDivider,
   PageFlash,
@@ -76,6 +77,43 @@ import BookmarksDrawer from "./components/bookmarks/BookmarksDrawer";
 import { useTheme } from "./hooks/useTheme";
 import { useInteractionEffects } from "./hooks/useInteractionEffects";
 import { useBackToTop } from "./hooks/useScrollLogic";
+
+  AmbientOrbs, SectionDivider, PageFlash, BannerOrbs,
+  useNsReveal, useHeroParallax,
+  useNavScrollTint, useGlobalMouseParallax, useMagneticCards,
+} from './shared/MotionLayer';
+import ActivitiesPage from './pages/activities/ActivitiesPage';
+import EventsPage from './pages/events/EventsPage';
+import AboutPage from './pages/about/AboutPage';
+import TeamPage from './pages/team/TeamPage';
+import ContactPage from './pages/contact/ContactPage';
+import dynamic from 'next/dynamic';
+import apiClient from './utils/apiClient.js';
+
+const RecruitmentPage = dynamic(() => import('./pages/recruitment/RecruitmentPage'), { ssr: false });
+const MembershipPage = dynamic(() => import('./pages/membership/MembershipPage'), { ssr: false });
+const AdminPage = dynamic(() => import('./pages/admin/AdminPage'), { ssr: false });
+import RoadmapsPage from './pages/roadmaps/RoadmapsPage';
+import ProjectsPage from './pages/projects/ProjectsPage';
+import CertificateVerifyPage from './pages/certificates/CertificateVerifyPage';
+import CollabPage          from './pages/collab/CollabPage';
+import PortfolioBuilder    from './components/portfolio/PortfolioBuilder';
+import PublicPortfolio     from './pages/portfolio/PublicPortfolio';
+import DashboardPage       from './pages/dashboard/DashboardPage';
+import AnalyticsPage       from './pages/analytics/AnalyticsPage';
+
+import { activityPages } from './data/activities/index';
+import { events as fallbackEvents } from './data/eventsData';
+import nexasphereLogo from './assets/images/logos/nexasphere-logo.png';
+
+const Terminal = dynamic(() => import('./components/developer/Terminal'), { ssr: false });
+import { useDeveloperMode } from './hooks/useDeveloperMode';
+
+import { BookmarkProvider } from './context/BookmarkContext';
+import BookmarksDrawer from './components/bookmarks/BookmarksDrawer';
+import { useTheme } from './hooks/useTheme';
+import { useInteractionEffects } from './hooks/useInteractionEffects';
+import { useBackToTop } from './hooks/useScrollLogic';
 
 import MoveToTop from "./shared/MoveToTop";
 
@@ -349,8 +387,8 @@ function Cursor() {
   );
 }
 
+/* ── Thin router shell — no hooks here, so early return is safe ── */
 export default function App() {
-  /* ── Certificate verify route detection ── */
   const verifyCertId = (() => {
     const path = window.location.pathname;
     const m = path.match(/^\/verify\/([A-Za-z0-9_%-]+)/);
@@ -368,6 +406,12 @@ export default function App() {
       />
     );
   }
+
+  return <MainApp />;
+}
+
+/* ── Main app — all hooks live here, always called unconditionally ── */
+function MainApp() {
 
   const [cinDone, setCinDone] = useState(false);
   const [activeTab, setActiveTab] = useState("Home");
