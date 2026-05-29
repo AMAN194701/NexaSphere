@@ -2,6 +2,7 @@ import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { AdminIcon } from "./AdminIcon";
+import { adminPath } from "../utils/adminBasePath";
 
 const links = [
   { to: "/dashboard", label: "Dashboard", icon: "Dashboard" },
@@ -41,7 +42,7 @@ export function Sidebar() {
           {links.map(({ to, label, icon }) => (
             <NavLink
               key={to}
-              to={to}
+              to={adminPath(to)}
               end={to === "/dashboard"}
               className={({ isActive }) =>
                 `nav-link${isActive ? " active" : ""}`
@@ -60,5 +61,6 @@ export function Sidebar() {
         </div>
       </aside>
     </>
+  );
   );
 }
