@@ -16,18 +16,20 @@ export default function DashboardPage({ onBack }) {
   const [loadingRecs, setLoadingRecs] = useState(false);
 
   useEffect(() => {
-    // In a real implementation, we would fetch this from Java Backend
-    // Example: fetch(`/api/dashboard/quests/${currentUser.id}`)
-    setQuests([
-      { id: 'q1', title: 'Complete AI Review', description: 'Submit code to the AI Mentor.', xpReward: 100, completed: false },
-      { id: 'q2', title: 'Select Interests', description: 'Choose at least 3 tech interests.', xpReward: 50, completed: false }
-    ]);
-
-    setLeaderboard([
-      { id: 'u1', userId: 'user_123', username: 'Explorer', xp: 450, level: 3 },
-      { id: 'u2', userId: 'user_456', username: 'TechNinja', xp: 850, level: 5 },
-      { id: 'u3', userId: 'user_789', username: 'CodeMaster', xp: 320, level: 2 }
-    ].sort((a,b) => b.xp - a.xp));
+    const fetchDashboardData = async () => {
+      try {
+        const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+        const [questsData, leaderboardData] = await Promise.all([
+          apiClient(`${baseUrl}/api/dashboard/quests/${currentUser.id}`),
+          apiClient(`${baseUrl}/api/dashboard/leaderboard`)
+        ]);
+        setQuests(questsData);
+        setLeaderboard(leaderboardData);
+      } catch (error) {
+        console.error('Failed to fetch dashboard data:', error);
+      }
+    };
+    fetchDashboardData();
   }, [currentUser]);
 
   const toggleInterest = (domain) => {
@@ -42,8 +44,14 @@ export default function DashboardPage({ onBack }) {
     });
   };
 
-  const completeQuest = (questId) => {
-    setQuests(prev => prev.map(q => q.id === questId ? { ...q, completed: true } : q));
+  const completeQuest = async (questId) => {
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+      await apiClient(`${baseUrl}/api/dashboard/quests/${questId}/complete`, { method: 'POST' });
+      setQuests(prev => prev.map(q => q.id === questId ? { ...q, completed: true } : q));
+    } catch (error) {
+      console.error('Failed to complete quest on backend:', error);
+    }
   };
 
   const fetchRecommendations = async () => {

@@ -28,15 +28,38 @@ const EMPTY_DATA = {
   profileCompletion: 0
 };
 
+import apiClient from '../utils/apiClient';
+
 export const dashboardRepository = {
   // Get all dashboard data
   async getAll() {
     try {
-      // TODO: Replace with real API call when backend is ready
-      // const response = await fetch('/api/user/dashboard');
-      // return await response.json();
+      const userId = 'test-user-123'; // Using mock user ID as per implementation plan
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+      
+      const [profileData, questsData] = await Promise.all([
+        apiClient(`${baseUrl}/api/dashboard/profile/${userId}`),
+        apiClient(`${baseUrl}/api/dashboard/quests/${userId}`)
+      ]);
 
-      // Read from localStorage (user-generated data only, no defaults)
+      const activeQuests = questsData.filter(q => !q.completed);
+      
+      // Merge backend data with local storage structure
+      return {
+        metrics: {
+          totalPoints: profileData.xp || 0,
+          eventsAttended: this.getMetrics().eventsAttended,
+          currentStreak: this.getMetrics().currentStreak,
+          contributions: this.getMetrics().contributions,
+          longestStreak: this.getMetrics().longestStreak
+        },
+        activities: this.getActivities(),
+        achievements: profileData.badges ? profileData.badges.map((b, i) => ({ id: `b${i}`, title: b, date: new Date().toISOString() })) : this.getAchievements(),
+        weeklyActivity: this.getWeeklyActivity(),
+        profileCompletion: profileData.interests?.length ? 100 : this.getProfileCompletion()
+      };
+    } catch (error) {
+      console.error('Failed to load dashboard data from API, falling back to local storage:', error);
       return {
         metrics: this.getMetrics(),
         activities: this.getActivities(),
@@ -44,9 +67,6 @@ export const dashboardRepository = {
         weeklyActivity: this.getWeeklyActivity(),
         profileCompletion: this.getProfileCompletion()
       };
-    } catch (error) {
-      console.error('Failed to load dashboard data:', error);
-      return EMPTY_DATA;
     }
   },
 
