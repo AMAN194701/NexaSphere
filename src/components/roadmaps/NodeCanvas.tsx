@@ -1,26 +1,20 @@
-import React, { useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { useRoadmapBuilder } from "../../hooks/useRoadmapBuilder";
-import { RoadmapNode } from "../../context/RoadmapBuilderContext";
-import { Edit2, Trash2, Plus, Sparkles, AlertCircle } from "lucide-react";
+import React, { useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useRoadmapBuilder } from '../../hooks/useRoadmapBuilder';
+import { RoadmapNode } from '../../context/RoadmapBuilderContext';
+import { Edit2, Trash2, Plus, Sparkles, AlertCircle } from 'lucide-react';
 
 interface NodeCanvasProps {
-  theme: "dark" | "light";
+  theme: 'dark' | 'light';
 }
 
 export const NodeCanvas: React.FC<NodeCanvasProps> = ({ theme }) => {
-  const {
-    nodes,
-    updateNode,
-    deleteNode,
-    setSelectedNodeId,
-    activeNodeId,
-    setActiveNodeId,
-  } = useRoadmapBuilder();
+  const { nodes, updateNode, deleteNode, setSelectedNodeId, activeNodeId, setActiveNodeId } =
+    useRoadmapBuilder();
 
   const canvasRef = useRef<HTMLDivElement>(null);
   const [draggedNodeId, setDraggedNodeId] = useState<string | null>(null);
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<RoadmapNode | null>(null);
 
   // Connection mode (visual clicking to connect nodes)
@@ -33,14 +27,10 @@ export const NodeCanvas: React.FC<NodeCanvasProps> = ({ theme }) => {
   const CANVAS_HEIGHT = 1200;
 
   // Pointer drag handler (fully responsive across touchscreen and mouse)
-  const handlePointerDown = (
-    e: React.PointerEvent<HTMLDivElement>,
-    node: RoadmapNode
-  ) => {
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>, node: RoadmapNode) => {
     // Avoid dragging when clicking action buttons
     const target = e.target as HTMLElement;
-    if (target.closest(".action-btn") || target.closest(".connect-indicator"))
-      return;
+    if (target.closest('.action-btn') || target.closest('.connect-indicator')) return;
 
     e.preventDefault();
     setDraggedNodeId(node.id);
@@ -59,51 +49,45 @@ export const NodeCanvas: React.FC<NodeCanvasProps> = ({ theme }) => {
       const newY = moveEvent.clientY - rect.top - startY;
 
       // Restrict node within canvas boundaries
-      const boundedX = Math.max(
-        10,
-        Math.min(newX, CANVAS_WIDTH - NODE_WIDTH - 10)
-      );
-      const boundedY = Math.max(
-        10,
-        Math.min(newY, CANVAS_HEIGHT - NODE_HEIGHT - 10)
-      );
+      const boundedX = Math.max(10, Math.min(newX, CANVAS_WIDTH - NODE_WIDTH - 10));
+      const boundedY = Math.max(10, Math.min(newY, CANVAS_HEIGHT - NODE_HEIGHT - 10));
 
       updateNode(node.id, { x: boundedX, y: boundedY });
     };
 
     const handlePointerUp = () => {
       setDraggedNodeId(null);
-      window.removeEventListener("pointermove", handlePointerMove);
-      window.removeEventListener("pointerup", handlePointerUp);
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
     };
 
-    window.addEventListener("pointermove", handlePointerMove);
-    window.addEventListener("pointerup", handlePointerUp);
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "In Progress":
-        return "var(--warning, #FFC107)";
-      case "Completed":
-        return "var(--success, #4CAF50)";
-      case "Stuck":
-        return "var(--error, #E63946)";
+      case 'In Progress':
+        return 'var(--warning, #FFC107)';
+      case 'Completed':
+        return 'var(--success, #4CAF50)';
+      case 'Stuck':
+        return 'var(--error, #E63946)';
       default:
-        return theme === "dark" ? "#6B6B6B" : "#8A8A8A";
+        return theme === 'dark' ? '#6B6B6B' : '#8A8A8A';
     }
   };
 
   const getStatusShadow = (status: string) => {
     switch (status) {
-      case "In Progress":
-        return "0 0 15px rgba(255, 193, 7, 0.4)";
-      case "Completed":
-        return "0 0 15px rgba(76, 175, 80, 0.4)";
-      case "Stuck":
-        return "0 0 15px rgba(230, 57, 70, 0.4)";
+      case 'In Progress':
+        return '0 0 15px rgba(255, 193, 7, 0.4)';
+      case 'Completed':
+        return '0 0 15px rgba(76, 175, 80, 0.4)';
+      case 'Stuck':
+        return '0 0 15px rgba(230, 57, 70, 0.4)';
       default:
-        return "0 4px 12px rgba(0, 0, 0, 0.2)";
+        return '0 4px 12px rgba(0, 0, 0, 0.2)';
     }
   };
 
@@ -117,7 +101,7 @@ export const NodeCanvas: React.FC<NodeCanvasProps> = ({ theme }) => {
 
       // Avoid self-references or circular connections
       if (node.prerequisites.includes(connectSourceId)) {
-        setMessage("Prerequisite connection already exists.");
+        setMessage('Prerequisite connection already exists.');
         setConnectSourceId(null);
         return;
       }
@@ -135,7 +119,7 @@ export const NodeCanvas: React.FC<NodeCanvasProps> = ({ theme }) => {
 
       if (hasCycle(node.id, connectSourceId)) {
         setMessage(
-          "Invalid connection: adding this prerequisite will create a circular dependency loop."
+          'Invalid connection: adding this prerequisite will create a circular dependency loop.'
         );
         setConnectSourceId(null);
         return;
@@ -157,9 +141,9 @@ export const NodeCanvas: React.FC<NodeCanvasProps> = ({ theme }) => {
           className="glassmorphic-panel"
           role="alert"
           style={{
-            padding: "10px 14px",
-            marginBottom: "12px",
-            color: "var(--c1)",
+            padding: '10px 14px',
+            marginBottom: '12px',
+            color: 'var(--c1)',
           }}
         >
           {message}
@@ -171,24 +155,26 @@ export const NodeCanvas: React.FC<NodeCanvasProps> = ({ theme }) => {
           role="dialog"
           aria-modal="true"
           style={{
-            padding: "12px 14px",
-            marginBottom: "12px",
-            display: "flex",
-            gap: "10px",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
+            padding: '12px 14px',
+            marginBottom: '12px',
+            display: 'flex',
+            gap: '10px',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
           }}
         >
           <span>Delete node "{deleteTarget.title}"?</span>
-          <span style={{ display: "flex", gap: "8px" }}>
+          <span style={{ display: 'flex', gap: '8px' }}>
             <button
+              aria-label="Interactive element"
               className="btn btn-sm btn-outline"
               onClick={() => setDeleteTarget(null)}
             >
               Cancel
             </button>
             <button
+              aria-label="Interactive element"
               className="btn btn-sm btn-danger"
               onClick={() => {
                 deleteNode(deleteTarget.id);
@@ -206,11 +192,11 @@ export const NodeCanvas: React.FC<NodeCanvasProps> = ({ theme }) => {
         <span className="instruction-text text-sm">
           {connectSourceId ? (
             <span className="text-warning font-semibold">
-              Connecting Mode Active: Click target node to establish connection,
-              or click source again to cancel.
+              Connecting Mode Active: Click target node to establish connection, or click source
+              again to cancel.
             </span>
           ) : (
-            "Drag nodes to organize. Double click or click edit (✎) to customize resources & notes. Check (🔗) to draw prerequisite paths."
+            'Drag nodes to organize. Double click or click edit (✎) to customize resources & notes. Check (🔗) to draw prerequisite paths.'
           )}
         </span>
       </div>
@@ -221,9 +207,9 @@ export const NodeCanvas: React.FC<NodeCanvasProps> = ({ theme }) => {
         style={{
           width: CANVAS_WIDTH,
           height: CANVAS_HEIGHT,
-          position: "relative",
-          background: theme === "dark" ? "#090909" : "#FAFAFA",
-          overflow: "hidden",
+          position: 'relative',
+          background: theme === 'dark' ? '#090909' : '#FAFAFA',
+          overflow: 'hidden',
         }}
       >
         {/* Dynamic Grid Overlay */}
@@ -232,11 +218,11 @@ export const NodeCanvas: React.FC<NodeCanvasProps> = ({ theme }) => {
         {/* Connections SVG Overlay */}
         <svg
           style={{
-            position: "absolute",
+            position: 'absolute',
             inset: 0,
-            width: "100%",
-            height: "100%",
-            pointerEvents: "none",
+            width: '100%',
+            height: '100%',
+            pointerEvents: 'none',
             zIndex: 1,
           }}
         >
@@ -263,14 +249,10 @@ export const NodeCanvas: React.FC<NodeCanvasProps> = ({ theme }) => {
               const pathData = `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`;
 
               const strokeColor = getStatusColor(fromNode.status);
-              const isDragging =
-                draggedNodeId === fromNode.id || draggedNodeId === node.id;
+              const isDragging = draggedNodeId === fromNode.id || draggedNodeId === node.id;
 
               return (
-                <g
-                  key={`${fromNode.id}-${node.id}`}
-                  style={{ transition: "opacity 0.2s" }}
-                >
+                <g key={`${fromNode.id}-${node.id}`} style={{ transition: 'opacity 0.2s' }}>
                   {/* Glowing backup highlight */}
                   <path
                     d={pathData}
@@ -278,7 +260,7 @@ export const NodeCanvas: React.FC<NodeCanvasProps> = ({ theme }) => {
                     stroke={strokeColor}
                     strokeWidth={isDragging ? 10 : 8}
                     opacity={0.12}
-                    style={{ filter: "blur(3px)" }}
+                    style={{ filter: 'blur(3px)' }}
                   />
                   {/* Base Connection line */}
                   <path
@@ -296,7 +278,7 @@ export const NodeCanvas: React.FC<NodeCanvasProps> = ({ theme }) => {
                     strokeWidth={isDragging ? 4 : 3}
                     strokeDasharray="10 8"
                     className="flowing-energy-line"
-                    opacity={fromNode.status === "Completed" ? 0.9 : 0.4}
+                    opacity={fromNode.status === 'Completed' ? 0.9 : 0.4}
                   />
                 </g>
               );
@@ -307,10 +289,10 @@ export const NodeCanvas: React.FC<NodeCanvasProps> = ({ theme }) => {
         {/* Nodes Layer */}
         <div
           style={{
-            position: "absolute",
+            position: 'absolute',
             inset: 0,
             zIndex: 10,
-            pointerEvents: "none",
+            pointerEvents: 'none',
           }}
         >
           <AnimatePresence>
@@ -325,31 +307,31 @@ export const NodeCanvas: React.FC<NodeCanvasProps> = ({ theme }) => {
                   layoutId={node.id}
                   onPointerDown={(e) => handlePointerDown(e, node)}
                   onClick={() => handleNodeClick(node)}
-                  className={`canvas-node-card glassmorphic-panel ${isSelected ? "focused-node" : ""} ${
-                    isConnectingSource ? "connecting-source-node" : ""
+                  className={`canvas-node-card glassmorphic-panel ${isSelected ? 'focused-node' : ''} ${
+                    isConnectingSource ? 'connecting-source-node' : ''
                   }`}
                   style={{
-                    position: "absolute",
+                    position: 'absolute',
                     left: node.x,
                     top: node.y,
                     width: NODE_WIDTH,
                     height: NODE_HEIGHT,
-                    border: `1.5px solid ${isConnectingSource ? "var(--warning)" : isSelected ? "var(--c1)" : statusColor}`,
-                    borderRadius: "16px",
+                    border: `1.5px solid ${isConnectingSource ? 'var(--warning)' : isSelected ? 'var(--c1)' : statusColor}`,
+                    borderRadius: '16px',
                     boxShadow: getStatusShadow(node.status),
-                    cursor: draggedNodeId === node.id ? "grabbing" : "grab",
-                    pointerEvents: "auto",
-                    userSelect: "none",
+                    cursor: draggedNodeId === node.id ? 'grabbing' : 'grab',
+                    pointerEvents: 'auto',
+                    userSelect: 'none',
                   }}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   tabIndex={0}
                   aria-label={`Node: ${node.title}. Status: ${node.status}. Prerequisites: ${node.prerequisites.length} connected.`}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") {
+                    if (e.key === 'Enter') {
                       setSelectedNodeId(node.id);
                     }
-                    if (e.key === "Delete") {
+                    if (e.key === 'Delete') {
                       setDeleteTarget(node);
                     }
                   }}
@@ -357,10 +339,7 @@ export const NodeCanvas: React.FC<NodeCanvasProps> = ({ theme }) => {
                   <div className="node-card-inner">
                     {/* Status marker */}
                     <div className="node-status-badge">
-                      <span
-                        className="status-dot"
-                        style={{ backgroundColor: statusColor }}
-                      />
+                      <span className="status-dot" style={{ backgroundColor: statusColor }} />
                       <span
                         className="status-text text-xxs font-bold uppercase"
                         style={{ color: statusColor }}
@@ -375,7 +354,7 @@ export const NodeCanvas: React.FC<NodeCanvasProps> = ({ theme }) => {
                     </h3>
                     <p className="node-card-desc text-xxs text-t2 leading-normal">
                       {node.description.substring(0, 50)}
-                      {node.description.length > 50 ? "..." : ""}
+                      {node.description.length > 50 ? '...' : ''}
                     </p>
 
                     {/* Action Panel overlaying on hover */}

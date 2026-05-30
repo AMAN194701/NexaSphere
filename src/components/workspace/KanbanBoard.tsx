@@ -382,6 +382,7 @@ export default function KanbanBoard({
         <div className="flex items-center gap-4">
           {onBack && (
             <button
+              aria-label="Interactive element"
               onClick={onBack}
               className="text-white/50 hover:text-white transition-colors text-sm"
             >
@@ -551,12 +552,14 @@ export default function KanbanBoard({
                   />
                   <div className="flex gap-2 mt-2">
                     <button
+                      aria-label="Interactive element"
                       onClick={() => handleAddTask(col.id)}
                       className="flex-1 bg-white/10 hover:bg-white/20 text-xs font-medium text-white rounded-lg py-1.5 transition-colors"
                     >
                       Add
                     </button>
                     <button
+                      aria-label="Interactive element"
                       onClick={() => {
                         setEditingColumn(null);
                         setNewTaskTitle('');

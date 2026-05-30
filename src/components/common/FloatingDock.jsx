@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ChevronUp, Moon, Plus } from "lucide-react";
+import { useState } from 'react';
+import { ChevronUp, Moon, Plus } from 'lucide-react';
 
 export default function FloatingDock() {
   const [open, setOpen] = useState(false);
@@ -7,7 +7,7 @@ export default function FloatingDock() {
   const scrollToTop = () => {
     window.scrollTo({
       top: 0,
-      behavior: "smooth",
+      behavior: 'smooth',
     });
   };
 
@@ -15,8 +15,8 @@ export default function FloatingDock() {
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
       {open && (
         <div className="mb-4 flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          
           <button
+            aria-label="Interactive element"
             onClick={scrollToTop}
             className="rounded-full bg-black/80 backdrop-blur-md p-3 text-white shadow-lg transition hover:scale-110"
           >
@@ -24,6 +24,7 @@ export default function FloatingDock() {
           </button>
 
           <a
+            aria-label="Interactive element"
             href="https://github.com/Ayushh-Sharmaa/NexaSphere"
             target="_blank"
             rel="noreferrer"
@@ -45,6 +46,7 @@ export default function FloatingDock() {
           </a>
 
           <button
+            aria-label="Interactive element"
             className="rounded-full bg-black/80 backdrop-blur-md p-3 text-white shadow-lg transition hover:scale-110"
           >
             <Moon size={20} />
@@ -53,11 +55,10 @@ export default function FloatingDock() {
       )}
 
       <button
+        aria-label="Interactive element"
         onClick={() => setOpen(!open)}
         className={`rounded-full p-4 text-white shadow-2xl transition-all duration-300 ${
-          open
-            ? "rotate-45 bg-red-500"
-            : "bg-gradient-to-r from-red-500 to-pink-500"
+          open ? 'rotate-45 bg-red-500' : 'bg-gradient-to-r from-red-500 to-pink-500'
         }`}
       >
         <Plus size={24} />

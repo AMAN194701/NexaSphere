@@ -23,7 +23,7 @@ function CopyPopup({ value, onClose }) {
   return (
     <div className="copy-popup">
       <span className="copy-popup-value">{value}</span>
-      <button className="copy-popup-btn" onClick={handleCopy}>
+      <button aria-label="Interactive element" className="copy-popup-btn" onClick={handleCopy}>
         {copied ? '✅ Copied!' : '📋 Copy'}
       </button>
     </div>
@@ -45,7 +45,9 @@ function ModalContent({ member, onClose }) {
   const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
-    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    const handler = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
     window.addEventListener('keydown', handler);
     document.body.style.overflow = 'hidden';
     return () => {
@@ -60,17 +62,27 @@ function ModalContent({ member, onClose }) {
   return (
     <div
       className="modal-overlay"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
       <div className="modal-box">
         {/* Close */}
-        <button className="modal-close" onClick={onClose} aria-label="Close">✕</button>
+        <button className="modal-close" onClick={onClose} aria-label="Close">
+          ✕
+        </button>
 
         {/* Photo */}
-        <img 
-          src={(!member.photo || imgError) ? 'https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(member.name) + '&backgroundColor=7b6fff&textColor=ffffff' : member.photo} 
-          alt={member.name} 
-          className="modal-photo" 
+        <img
+          src={
+            !member.photo || imgError
+              ? 'https://api.dicebear.com/7.x/initials/svg?seed=' +
+                encodeURIComponent(member.name) +
+                '&backgroundColor=7b6fff&textColor=ffffff'
+              : member.photo
+          }
+          alt={member.name}
+          className="modal-photo"
           onError={() => setImgError(true)}
         />
 
@@ -99,6 +111,7 @@ function ModalContent({ member, onClose }) {
           <div className="modal-social">
             {member.linkedin && (
               <a
+                aria-label="Interactive element"
                 href={member.linkedin}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -112,17 +125,24 @@ function ModalContent({ member, onClose }) {
               <div style={{ position: 'relative' }}>
                 {whatsappValue.startsWith('http') ? (
                   <a
+                    aria-label="Interactive element"
                     href={whatsappValue}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="modal-social-btn btn-whatsapp"
-                    style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                    style={{
+                      textDecoration: 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
                   >
                     💬 WhatsApp
                   </a>
                 ) : (
                   <>
                     <button
+                      aria-label="Interactive element"
                       className="modal-social-btn btn-whatsapp"
                       onClick={(e) => {
                         e.stopPropagation();
@@ -141,6 +161,7 @@ function ModalContent({ member, onClose }) {
 
             {member.instagram && (
               <a
+                aria-label="Interactive element"
                 href={member.instagram}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -153,6 +174,7 @@ function ModalContent({ member, onClose }) {
             {member.email && (
               <div style={{ position: 'relative' }}>
                 <button
+                  aria-label="Interactive element"
                   className="modal-social-btn btn-contact"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -176,8 +198,5 @@ function ModalContent({ member, onClose }) {
 // ── Export: renders via Portal so it's never clipped by any parent ──
 export default function TeamMemberModal({ member, onClose }) {
   if (!member) return null;
-  return createPortal(
-    <ModalContent member={member} onClose={onClose} />,
-    document.body
-  );
+  return createPortal(<ModalContent member={member} onClose={onClose} />, document.body);
 }

@@ -10,16 +10,16 @@ import { buildUrl, getAiApiBase } from '../utils/runtimeConfig';
 
 const Chatbot = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [messages, setMessages] = useState([
     {
-      role: "bot",
-      text: "Nexa-Intelligence Online. How can I assist your journey?",
+      role: 'bot',
+      text: 'Nexa-Intelligence Online. How can I assist your journey?',
     },
   ]);
   const [showSidebar, setShowSidebar] = useState(false);
-  const [currentWorkspace, setCurrentWorkspace] = useState("default");
+  const [currentWorkspace, setCurrentWorkspace] = useState('default');
   const scrollRef = useRef(null);
 
   // Initialize workspaces on mount
@@ -37,10 +37,8 @@ const Chatbot = () => {
   // Auto-save last prompt-response pair when new bot message arrives
   useEffect(() => {
     if (messages.length >= 2) {
-      const lastBotMsg = [...messages].reverse().find((m) => m.role === "bot");
-      const lastUserMsg = [...messages]
-        .reverse()
-        .find((m) => m.role === "user");
+      const lastBotMsg = [...messages].reverse().find((m) => m.role === 'bot');
+      const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user');
 
       if (lastBotMsg && lastUserMsg) {
         const lastBotIndex = messages.indexOf(lastBotMsg);
@@ -48,11 +46,9 @@ const Chatbot = () => {
 
         // Only save if the bot message is more recent than the last saved one
         if (lastBotIndex > lastUserIndex) {
-          savePrompt(lastUserMsg.text, lastBotMsg.text, currentWorkspace).catch(
-            (err) => {
-              console.error("Error saving prompt:", err);
-            }
-          );
+          savePrompt(lastUserMsg.text, lastBotMsg.text, currentWorkspace).catch((err) => {
+            console.error('Error saving prompt:', err);
+          });
         }
       }
     }
@@ -60,20 +56,20 @@ const Chatbot = () => {
 
   const handleSend = async () => {
     if (!input.trim() || isSending) return;
-    const userMsg = { role: "user", text: input };
+    const userMsg = { role: 'user', text: input };
     setMessages((prev) => [...prev, userMsg]);
     const currentInput = input;
-    setInput("");
+    setInput('');
     setIsSending(true);
 
-    const aiChatUrl = buildUrl(getAiApiBase(), "/ai/chat");
+    const aiChatUrl = buildUrl(getAiApiBase(), '/ai/chat');
 
     if (!aiChatUrl) {
       setMessages((prev) => [
         ...prev,
         {
-          role: "bot",
-          text: "Nexa-AI is offline right now. The AI service URL is not configured for this deployment.",
+          role: 'bot',
+          text: 'Nexa-AI is offline right now. The AI service URL is not configured for this deployment.',
         },
       ]);
       setIsSending(false);
@@ -87,14 +83,14 @@ const Chatbot = () => {
         body: JSON.stringify({ message: currentInput }),
         signal: controller.signal,
       });
-      setMessages(prev => [...prev, { role: 'bot', text: data.reply }]);
+      setMessages((prev) => [...prev, { role: 'bot', text: data.reply }]);
     } catch (e) {
-      console.error("AI chat request failed", e);
+      console.error('AI chat request failed', e);
       setMessages((prev) => [
         ...prev,
         {
-          role: "bot",
-          text: "Nexa-AI: Core link unavailable right now. Please try again in a moment.",
+          role: 'bot',
+          text: 'Nexa-AI: Core link unavailable right now. Please try again in a moment.',
         },
       ]);
     } finally {
@@ -105,11 +101,11 @@ const Chatbot = () => {
   const handleSelectPrompt = (prompt) => {
     setMessages([
       {
-        role: "bot",
-        text: "Nexa-Intelligence Online. How can I assist your journey?",
+        role: 'bot',
+        text: 'Nexa-Intelligence Online. How can I assist your journey?',
       },
-      { role: "user", text: prompt.userPrompt },
-      { role: "bot", text: prompt.botResponse },
+      { role: 'user', text: prompt.userPrompt },
+      { role: 'bot', text: prompt.botResponse },
     ]);
     setShowSidebar(false);
   };
@@ -117,8 +113,9 @@ const Chatbot = () => {
   return (
     <div className="ns-chatbot-wrapper">
       {!isOpen ? (
-        <button 
-          className="chat-trigger-btn" 
+        <button
+          aria-label="Interactive element"
+          className="chat-trigger-btn"
           onClick={() => setIsOpen(true)}
           aria-expanded={isOpen}
           aria-controls="chatbot-window"
@@ -134,7 +131,7 @@ const Chatbot = () => {
             currentWorkspace={currentWorkspace}
           />
 
-          <div className={`chat-main ${showSidebar ? "sidebar-open" : ""}`}>
+          <div className={`chat-main ${showSidebar ? 'sidebar-open' : ''}`}>
             <div className="chat-header">
               <button
                 className="history-toggle-btn"
@@ -156,21 +153,19 @@ const Chatbot = () => {
                 <span className="status-dot"></span>
                 <span>NEXA-AI</span>
               </div>
-              <button className="close-btn" onClick={() => setIsOpen(false)}>
+              <button
+                aria-label="Interactive element"
+                className="close-btn"
+                onClick={() => setIsOpen(false)}
+              >
                 ×
               </button>
             </div>
 
             <div className="chat-content">
-              <PinnedChats
-                onSelectPrompt={handleSelectPrompt}
-                workspace={currentWorkspace}
-              />
+              <PinnedChats onSelectPrompt={handleSelectPrompt} workspace={currentWorkspace} />
 
-              <SearchBar
-                onSelectPrompt={handleSelectPrompt}
-                workspace={currentWorkspace}
-              />
+              <SearchBar onSelectPrompt={handleSelectPrompt} workspace={currentWorkspace} />
 
               <div className="chat-messages" ref={scrollRef}>
                 {messages.map((m, i) => (
@@ -194,16 +189,17 @@ const Chatbot = () => {
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                placeholder={isSending ? "Transmitting..." : "Query system..."}
+                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                placeholder={isSending ? 'Transmitting...' : 'Query system...'}
                 disabled={isSending}
               />
               <button
+                aria-label="Interactive element"
                 onClick={handleSend}
                 className="send-btn"
                 disabled={isSending}
               >
-                {isSending ? "..." : "🚀"}
+                {isSending ? '...' : '🚀'}
               </button>
             </div>
           </div>
