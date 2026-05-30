@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import apiClient from '../../utils/apiClient.js';
 import { createPortal } from 'react-dom';
 import TeamMemberModal from './TeamMemberModal';
-import { IconArrowRight, IconSpark } from '../../shared/Icons';
+import { IconSpark } from '../../shared/Icons';
 
 function MemberCard({ member, idx, onClick }) {
   const ref = useRef(null);
