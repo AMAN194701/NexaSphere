@@ -2,25 +2,43 @@ import rateLimit from "express-rate-limit";
 import logger from "../utils/logger.js";
 
 // ---------------------------------------------------------------------------
+// Safe integer parser for environment variable configuration.
+// parseInt returns NaN when the env var is set to a non-numeric string
+// (e.g. "ten_minutes", "0x", or a string with a leading space after trimming).
+// Passing windowMs: NaN or max: NaN to express-rate-limit silently disables
+// the limiter or causes a runtime throw depending on the library version.
+// This helper falls back to the supplied default for any non-positive or
+// non-finite parsed value.
+// ---------------------------------------------------------------------------
+function parsePositiveInt(value, fallback) {
+  const n = parseInt(value, 10);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
+// ---------------------------------------------------------------------------
 // Shared env-var config for the general API limiter
 // Override via API_RATE_LIMIT_WINDOW_MS and API_RATE_LIMIT_MAX in .env
 // ---------------------------------------------------------------------------
-const API_WINDOW_MS = process.env.API_RATE_LIMIT_WINDOW_MS
-  ? parseInt(process.env.API_RATE_LIMIT_WINDOW_MS, 10)
-  : 10 * 60 * 1000; // 10 minutes
+const API_WINDOW_MS = parsePositiveInt(
+  process.env.API_RATE_LIMIT_WINDOW_MS,
+  10 * 60 * 1000 // 10 minutes
+);
 
-const API_MAX_REQUESTS = process.env.API_RATE_LIMIT_MAX
-  ? parseInt(process.env.API_RATE_LIMIT_MAX, 10)
-  : 100;
+const API_MAX_REQUESTS = parsePositiveInt(
+  process.env.API_RATE_LIMIT_MAX,
+  100
+);
 
 // Shared env-var config for the form limiter
-const FORM_WINDOW_MS = process.env.RATE_LIMIT_WINDOW_MS
-  ? parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10)
-  : 10 * 60 * 1000; // 10 minutes
+const FORM_WINDOW_MS = parsePositiveInt(
+  process.env.RATE_LIMIT_WINDOW_MS,
+  10 * 60 * 1000 // 10 minutes
+);
 
-const FORM_MAX_REQUESTS = process.env.RATE_LIMIT_MAX_REQUESTS
-  ? parseInt(process.env.RATE_LIMIT_MAX_REQUESTS, 10)
-  : 5;
+const FORM_MAX_REQUESTS = parsePositiveInt(
+  process.env.RATE_LIMIT_MAX_REQUESTS,
+  5
+);
 
 // ---------------------------------------------------------------------------
 // Global API rate limiter — applied to every /api route
