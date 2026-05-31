@@ -52,11 +52,22 @@ const CONTENT_FILE = path.join(__dirname, 'data', 'content.json');
 const app = express();
 initializeSentry(app);
 
+// CORS_ORIGIN must be explicitly configured. Falling back to origin: true
+// (which reflects any Origin header back) is equivalent to a wildcard and
+// lets any website make credentialed cross-origin requests using the
+// visitor's stored cookies. Fail at startup rather than silently open the
+// API to every origin when the variable is missing.
+if (!process.env.CORS_ORIGIN) {
+  throw new Error(
+    'CORS_ORIGIN environment variable is not set. ' +
+    'Set it to a comma-separated list of allowed origins (e.g. https://nexasphere.org).'
+  );
+}
+
 const allowedOrigins = process.env.CORS_ORIGIN
-  ? process.env.CORS_ORIGIN.split(',')
-      .map((s) => s.trim())
-      .filter(Boolean)
-  : true;
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
 
 app.use(helmet());
 app.use(cors({ origin: allowedOrigins, credentials: true }));
