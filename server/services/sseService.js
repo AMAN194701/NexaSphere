@@ -97,6 +97,7 @@ const HEALTH_CHECK_INTERVAL_MS = 60000;
 
 setInterval(() => {
   const now = Date.now();
+  // Iterate the Set directly to avoid destructuring TypeError (adminClients is a Set)
   for (const client of adminClients) {
     const joined = client._joinedTime || now;
     if (now - joined > HEALTH_CHECK_INTERVAL_MS) {
