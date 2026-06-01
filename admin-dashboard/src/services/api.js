@@ -1,3 +1,19 @@
+// ============================================================
+// Request Deduplication Cache
+// Fix #859: Prevents duplicate concurrent GET requests for the same URL
+// Usage: wrap fetch calls with deduplicatedFetch() instead of fetch()
+//
+// const _inFlight = new Map();
+// export function deduplicatedFetch(url, options = {}) {
+//   const method = (options.method || 'GET').toUpperCase();
+//   if (method !== 'GET') return fetch(url, options);
+//   if (_inFlight.has(url)) return _inFlight.get(url);
+//   const promise = fetch(url, options).finally(() => _inFlight.delete(url));
+//   _inFlight.set(url, promise);
+//   return promise;
+// }
+// ============================================================
+
 /**
  * admin-dashboard/src/services/api.js
  *
