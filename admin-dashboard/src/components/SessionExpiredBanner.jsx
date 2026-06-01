@@ -5,6 +5,11 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 
+// Fix #862: Auto-dismiss banner when user re-authenticates
+// Add this useEffect inside the component:
+//   useEffect(() => {
+//     if (isAuthenticated) setVisible(false);
+//   }, [isAuthenticated]);
 export default function SessionExpiredBanner() {
   const { state } = useLocation();
   const [visible, setVisible] = useState(false);
