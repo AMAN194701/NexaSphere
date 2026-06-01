@@ -95,7 +95,7 @@ export function broadcastSSEEvent(eventName, data) {
       logger.error('Failed to send SSE event', { error: error.message });
       cleanupClient(client, 'write_error', { error: error?.message });
     }
-  }
+  });
 
   logger.debug('SSE event broadcast', { event: eventName, clientCount: adminClients.size });
 }
@@ -105,6 +105,23 @@ export function getConnectedSSEClientsCount() {
 }
 
 const HEALTH_CHECK_INTERVAL_MS = 60000;
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [client, joined] of adminClients) {
+    if (now - joined > HEALTH_CHECK_INTERVAL_MS) {
+      try {
+        client.write(': ping\n\n');
+      } catch {
+        if (client._heartbeat) clearInterval(client._heartbeat);
+        adminClients.delete(client);
+        logger.warn('SSE client evicted (health check failed)', {
+          totalClients: adminClients.size,
+        });
+      }
+    }
+  }
+}, HEALTH_CHECK_INTERVAL_MS).unref();
 
 export function setupSSEHeaders(req, res, next) {
   if (adminClients.size >= MAX_SSE_CLIENTS) {

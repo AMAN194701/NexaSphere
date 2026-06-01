@@ -55,9 +55,9 @@ test('activityEventsService.addActivityEvent accepts authorized requests', async
     description: 'A test event description',
     password: 'TestPassword123', // Matches process.env.ADMIN_EVENT_PASSWORD
     // Matching one of the core team fallback members defined in coreTeamService.js
-    coreTeamName: 'Ayush Sharma', 
-    coreTeamEmail: 'ayush@example.com',
-    coreTeamPhone: '9876543210',
+    coreTeamName: 'Ayush Sharma',
+    coreTeamEmail: 'ayush.sharmaa@hotmail.com',
+    coreTeamPhone: '8923995135',
   };
 
   const result = await activityEventsService.addActivityEvent('hackathons', authorizedInput);
@@ -85,10 +85,14 @@ test('activityEventsService.deleteActivityEvent accepts authorized requests', as
   const authorizedInput = {
     password: 'TestPassword123',
     coreTeamName: 'Ayush Sharma',
-    coreTeamEmail: 'ayush@example.com',
-    coreTeamPhone: '9876543210',
+    coreTeamEmail: 'ayush.sharmaa@hotmail.com',
+    coreTeamPhone: '8923995135',
   };
 
-  const result = await activityEventsService.deleteActivityEvent('hackathons', 'mock-id', authorizedInput);
+  const result = await activityEventsService.deleteActivityEvent(
+    'hackathons',
+    'mock-id',
+    authorizedInput
+  );
   assert.equal(result, true);
 });
