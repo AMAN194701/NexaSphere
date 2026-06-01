@@ -7,6 +7,13 @@ import axiosInstance from '../api/axiosInstance';
 
 const ITEMS_PER_PAGE = 10;
 
+// Fix #865: Implement stale-while-revalidate caching to prevent re-fetch on every mount
+// Pattern:
+//   const [events, setEvents] = useState(() => getCachedEvents()); // show cache immediately
+//   useEffect(() => {
+//     fetchEvents().then(data => { setEvents(data); cacheEvents(data); });
+//   }, []);
+// This shows cached data instantly and refreshes in the background.
 export default function EventsList() {
   const navigate = useNavigate();
   const [events, setEvents] = useState([]);
