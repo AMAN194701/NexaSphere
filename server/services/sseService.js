@@ -39,6 +39,7 @@ export function addSSEClient(res) {
     return;
   }
 
+  res._joinedTime = Date.now();
   adminClients.add(res);
   logger.info('SSE client connected', { totalClients: adminClients.size });
 
@@ -96,7 +97,8 @@ const HEALTH_CHECK_INTERVAL_MS = 60000;
 
 setInterval(() => {
   const now = Date.now();
-  for (const [client, joined] of adminClients) {
+  for (const client of adminClients) {
+    const joined = client._joinedTime || now;
     if (now - joined > HEALTH_CHECK_INTERVAL_MS) {
       try {
         client.write(': ping\n\n');
