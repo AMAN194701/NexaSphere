@@ -206,3 +206,28 @@ Fixes #123
 Thank you for contributing to NexaSphere and helping make it better for the community! 🚀
 
 
+
+
+## Security Contributions
+
+Security improvements are highly valued. Before contributing security-related changes:
+
+### Reporting Vulnerabilities
+- **Do NOT** open public issues for security vulnerabilities
+- Use GitHub's private vulnerability reporting (Security tab) or email the maintainers
+- See [SECURITY.md](./SECURITY.md) for full reporting guidelines
+
+### Security PR Guidelines
+When submitting a security fix:
+1. Reference the private advisory or issue number in your PR description
+2. Keep the scope minimal — fix only the specific vulnerability
+3. Add or update tests that cover the vulnerability
+4. Document what the vulnerability was and how the fix addresses it
+5. Do not include exploit code or PoCs in public PRs
+
+### What We Welcome
+- Input validation improvements
+- Authentication and authorization fixes
+- Dependency updates to patch known CVEs
+- Rate limiting and CSRF protection additions
+- XSS prevention improvements
