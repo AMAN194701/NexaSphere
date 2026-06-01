@@ -2,86 +2,68 @@
 
 ## Supported Versions
 
-| Version | Supported |
-|---|---|
-| Latest (`main` branch) | ✅ Yes |
-| Any previous release | ❌ No |
-
-Only the current `main` branch receives security patches. Please ensure you are running the latest version before reporting.
-
----
+| Version | Supported          |
+| ------- | ------------------ |
+| Latest  | :white_check_mark: |
+| < 1.0   | :x:                |
 
 ## Reporting a Vulnerability
 
 **Please do NOT open a public GitHub issue for security vulnerabilities.**
 
-Publicly disclosing a vulnerability before it is fixed puts the entire user community at risk.
+Instead, report them responsibly by emailing the maintainers or using GitHub's private vulnerability reporting:
 
-### How to Report
-
-Contact the maintainers privately through one of these channels:
-
-| Contact | Handle |
-|---|---|
-| Project Admin | [@S3DFX-CYBER](https://github.com/S3DFX-CYBER) |
-| Mentor | [@Ayushh-Sharmaa](https://github.com/Ayushh-Sharmaa) |
-
-Send a direct message on GitHub or reach out via the GSSoC Discord (project channel) with the subject line: **[SECURITY] NexaSphere — Vulnerability Report**.
+1. Go to the **Security** tab of this repository
+2. Click **"Report a vulnerability"**
+3. Fill in the structured form
 
 ### What to Include
 
-Please provide as much of the following as possible:
+Please provide as much detail as possible:
 
-- **Description** — A clear description of the vulnerability and its potential impact
-- **Affected component** — Frontend, backend API, database layer, authentication, etc.
-- **Steps to reproduce** — A minimal proof-of-concept or step-by-step instructions
-- **Environment** — Browser/OS/Node.js version if relevant
-- **Suggested fix** — Any potential mitigations or patches you are aware of
+- **Type of vulnerability** (e.g., XSS, CSRF, Auth bypass, Injection, Information disclosure)
+- **Severity** (Critical / High / Medium / Low — use CVSS if possible)
+- **Affected component** (file path, endpoint, or feature name)
+- **Steps to reproduce** (detailed, reproducible steps)
+- **Proof of concept** (code, screenshots, or video)
+- **Impact** (what an attacker could do if this is exploited)
+- **Suggested fix** (optional but appreciated)
 
----
+### Severity Definitions
+
+| Severity | Description |
+|----------|-------------|
+| **Critical** | Remote code execution, full auth bypass, mass data exfiltration |
+| **High** | Privilege escalation, significant data exposure, CSRF on critical actions |
+| **Medium** | Limited data exposure, stored XSS, missing rate limiting |
+| **Low** | Information disclosure, minor logic flaws |
 
 ## Response Timeline
 
-| Milestone | Target |
-|---|---|
-| Acknowledgement of report | Within **48 hours** |
-| Initial assessment and severity rating | Within **5 business days** |
-| Fix deployed to `main` | Depends on severity (Critical: 72h, High: 1 week, Medium/Low: next release) |
-| Public disclosure | After fix is confirmed deployed |
-
-We follow a **coordinated disclosure** policy. We will credit the reporter in the changelog unless they prefer to remain anonymous.
-
----
+- **Acknowledgment**: Within 48 hours
+- **Initial assessment**: Within 5 business days
+- **Fix timeline**: Depends on severity (Critical: 24–72h, High: 1 week, Medium/Low: next release)
 
 ## Scope
 
-The following are **in scope** for vulnerability reports:
+In scope:
+- NexaSphere website frontend
+- Admin dashboard
+- Backend API (Express.js)
+- Authentication and session management
+- File upload endpoints
+- Database query logic
 
-- Authentication bypass or privilege escalation
-- SQL injection or other database attacks
-- Cross-Site Scripting (XSS)
-- Cross-Site Request Forgery (CSRF)
-- Sensitive data exposure (API keys, user PII)
-- Server-Side Request Forgery (SSRF)
-- Remote Code Execution (RCE)
-- Insecure direct object references
-
-The following are **out of scope**:
-
-- Vulnerabilities in third-party dependencies (report to their maintainers directly)
-- Issues requiring physical access to a device
+Out of scope:
+- Third-party services (Supabase, Vercel, Render)
 - Social engineering attacks
-- Denial of Service without a demonstrated exploit
-- Missing security headers that don't have a concrete exploitable impact
+- DoS via overwhelming legitimate traffic
 
----
+## Bug Bounty
 
-## Security Best Practices for Contributors
+This is an open-source community project and does not currently offer monetary bug bounties.
+However, security contributors will be credited in the release notes and CONTRIBUTORS file.
 
-When contributing code, please keep these in mind:
+## Credits
 
-- **Never commit secrets** — no API keys, passwords, or tokens in code (use `.env` files)
-- **Validate all inputs** — use Zod schemas on the backend for every external input
-- **Keep dependencies updated** — run `npm audit` and address high/critical advisories
-- **Follow least-privilege** — request only the permissions your code needs
-- **Use parameterised queries** — never concatenate user input into SQL strings
+We thank the security researchers who responsibly disclose vulnerabilities to us.
