@@ -25,6 +25,9 @@ export const auth = {
     if (data.token) {
       localStorage.setItem(TOKEN_KEY, data.token);
     }
+    if (data.csrfToken) {
+      localStorage.setItem("ns_csrf_token", data.csrfToken);
+    }
     localStorage.setItem(EMAIL_KEY, cleanEmail);
     if (data.expiresAt) {
       localStorage.setItem(EXPIRY_KEY, data.expiresAt);
@@ -43,6 +46,7 @@ export const auth = {
       }).catch(() => {});
     }
     localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem("ns_csrf_token");
     localStorage.removeItem(EMAIL_KEY);
     localStorage.removeItem(EXPIRY_KEY);
   },

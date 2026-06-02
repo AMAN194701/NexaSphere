@@ -258,12 +258,14 @@ async function fetchWithAuth(url, options = {}) {
   if (!isOffline) {
     // --- ONLINE: real API call ---
     try {
+      const csrfToken = localStorage.getItem('ns_csrf_token');
       const res = await fetch(`${API_BASE}${url}`, {
         ...options,
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${auth.getToken()}`,
+          ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
           ...options.headers,
         },
       });
