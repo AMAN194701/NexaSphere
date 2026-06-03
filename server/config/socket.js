@@ -7,6 +7,8 @@ import { Server } from 'socket.io';
 import logger from '../utils/logger.js';
 import { getAdminSession } from '../repositories/adminSessionsRepository.js';
 import { validationMiddleware } from '../sockets/validationMiddleware.js';
+import { handleYjsUpdate, getOrCreateDoc } from '../utils/yjsSyncHandler.js';
+import * as Y from 'yjs';
 
 let io = null;
 const connectedUsers = new Map();
@@ -488,6 +490,86 @@ export function _onConnection(socket) {
       socket.emit('admin:authenticated', { success: false, error: 'Authentication failed' });
     }
   });
+  /**
+   * Yjs real-time CRDT synchronization handlers
+   * Manages binary document updates, syncing state, and user awareness protocols.
+   */
+
+  /**
+   * Receives binary CRDT state updates from clients, applies them to the in-memory
+   * server-side document, and relays them to all other sockets joined to that room.
+   */
+  socket.on('yjs_update', (roomId, update) => {
+    if (typeof roomId !== 'string' || !/^[a-zA-Z0-9\-_]{1,100}$/.test(roomId)) {
+      logger.warn('Malformed workspace roomId join attempt rejected', {
+        socketId: socket.id,
+        roomId,
+      });
+      return;
+    }
+
+    if (!socket.rooms.has(roomId)) {
+      logger.warn('Unauthorized yjs_update attempt: socket not in room', {
+        socketId: socket.id,
+        roomId,
+      });
+      return;
+    }
+
+    try {
+      const updateBuffer = Buffer.isBuffer(update) ? update : Buffer.from(update);
+      handleYjsUpdate(roomId, updateBuffer);
+      socket.to(roomId).emit('yjs_update', updateBuffer);
+    } catch (err) {
+      logger.error('Error handling yjs_update', {
+        error: err.message,
+        socketId: socket.id,
+      });
+    }
+  });
+
+  /**
+   * Generates and transmits the full in-memory document state to a newly joined client
+   * upon their synchronization request.
+   */
+  socket.on('yjs_sync_request', ({ roomId }) => {
+    if (typeof roomId !== 'string' || !/^[a-zA-Z0-9\-_]{1,100}$/.test(roomId)) {
+      return;
+    }
+
+    if (!socket.rooms.has(roomId)) {
+      return;
+    }
+
+    try {
+      const doc = getOrCreateDoc(roomId);
+      const stateVector = Y.encodeStateAsUpdate(doc);
+      socket.emit('yjs_update', Buffer.from(stateVector));
+    } catch (err) {
+      logger.error('Error handling yjs_sync_request', {
+        error: err.message,
+        socketId: socket.id,
+      });
+    }
+  });
+
+  /**
+   * Relays awareness/presence protocol updates (e.g. cursor positions, user colors)
+   * to all other connected clients in the corresponding workspace.
+   */
+  socket.on('yjs_awareness', (roomId, update) => {
+    if (typeof roomId !== 'string' || !/^[a-zA-Z0-9\-_]{1,100}$/.test(roomId)) {
+      return;
+    }
+
+    if (!socket.rooms.has(roomId)) {
+      return;
+    }
+
+    const updateBuffer = Buffer.isBuffer(update) ? update : Buffer.from(update);
+    socket.to(roomId).emit('yjs_awareness', updateBuffer);
+  });
+
   // Handles abrupt disconnects (crash, sleep, network drop)
   socket.on('disconnecting', (reason) => {
     logger.info('Socket disconnecting', { socketId: socket.id, reason });

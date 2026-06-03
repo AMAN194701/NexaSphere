@@ -256,4 +256,24 @@ test('Security Audit & Validation: Socket Room Hardening', async (t) => {
     // All 10 round 3 joins should be blocked by rate limit
     assert.equal(joinedCount, 0, `Expected 0 joined in round 3, got ${joinedCount}`);
   });
+
+  await t.test('Scenario 12: Only authorized room members can publish Yjs delta events', () => {
+    const socket = createMockSocket('socket-12');
+    const attackerSocket = createMockSocket('attacker-socket-12');
+
+    _onConnection(socket);
+    _onConnection(attackerSocket);
+
+    // Socket joins legitimate room
+    socket.emit('join_room', 'room-abc', { name: 'Alice' });
+
+    // Attacker tries to publish to room-abc without joining it
+    attackerSocket.emit('yjs_update', 'room-abc', Buffer.from([1, 2, 3]));
+    const attackerUpdates = attackerSocket.emittedTo.filter(e => e.event === 'yjs_update');
+    assert.equal(
+      attackerUpdates.length,
+      0,
+      'Attacker should not be able to publish Yjs updates to rooms they have not joined'
+    );
+  });
 });

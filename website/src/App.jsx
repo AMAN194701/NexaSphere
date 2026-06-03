@@ -372,7 +372,7 @@ function AppShell() {
   const location = useLocation();
   const [cinDone, setCinDone] = useState(false);
   const [eventsData, setEventsData] = useState(() => getLocalEvents(fallbackEvents));
-  const { resolvedTheme: theme } = useTheme();
+  const { resolvedTheme: theme, setTheme } = useTheme();
   const { isOpen: isTerminalOpen, closeTerminal } = useDeveloperMode();
 
   // Skip cinematic opening for deep links (anything except "/")
@@ -1014,7 +1014,7 @@ function MainRouter({
         isOpen={isTerminalOpen}
         onClose={closeTerminal}
         theme={theme}
-        setTheme={() => {}}
+        setTheme={setTheme}
         onNavigate={onTab}
       />
 

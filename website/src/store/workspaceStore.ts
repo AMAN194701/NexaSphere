@@ -20,10 +20,18 @@ export interface UserPresence {
   isTyping?: boolean;
 }
 
+/**
+ * Interface representing the real-time collaborative workspace Zustand state.
+ */
 interface WorkspaceState {
+  /** The current textual content of the collaborative document */
   documentContent: string;
+  /** Presence records of all other active users in the room */
   users: Record<string, UserPresence>;
+  /** Socket connection status */
   status: 'Connected' | 'Reconnecting...' | 'Disconnected' | 'Syncing changes...';
+  /** Flag showing if the local state has synced with the Y.Doc CRDT */
+  crdtSynced: boolean;
   setDocumentContent: (content: string) => void;
   setStatus: (
     status: 'Connected' | 'Reconnecting...' | 'Disconnected' | 'Syncing changes...'
@@ -38,8 +46,10 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
   documentContent: '',
   users: {},
   status: 'Disconnected',
+  crdtSynced: false,
 
-  setDocumentContent: (content) => set({ documentContent: content }),
+  /** Updates the document content and sets the CRDT synced flag to true */
+  setDocumentContent: (content) => set({ documentContent: content, crdtSynced: true }),
 
   setStatus: (status) => set({ status }),
 
