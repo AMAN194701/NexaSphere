@@ -28,6 +28,7 @@ import {
   passwordResetRateLimiter,
 } from './middleware/authRateLimiter.js';
 import { portfolioRepository } from './repositories/portfolioRepository.js';
+import { portfolioContentSchema, portfolioPutSchema } from './validators/portfolioSchemas.js';
 import { getPublicAppUrl } from './utils/publicAppUrl.js';
 import * as eventsController from './controllers/eventsController.js';
 import * as activityEventsController from './controllers/activityEventsController.js';
@@ -190,7 +191,11 @@ app.get('/healthz', async (req, res) => {
 // Event channels/content
 app.get('/api/content/events', eventsController.listEvents);
 app.get('/api/content/activity-events/:activityKey', activityEventsController.listActivityEvents);
-app.post('/api/content/activity-events/:activityKey', protectedActionRateLimiter, activityEventsController.addActivityEvent);
+app.post(
+  '/api/content/activity-events/:activityKey',
+  protectedActionRateLimiter,
+  activityEventsController.addActivityEvent
+);
 app.delete(
   '/api/content/activity-events/:activityKey/:eventId',
   protectedActionRateLimiter,
@@ -346,33 +351,38 @@ app.post('/api/notifications/unsubscribe', validatePushSubscription, (req, res) 
   }
 });
 
-app.post('/api/notifications/mark-read', adminAuth, notificationRateLimiter, (req, res) => {
+app.post('/api/notifications/mark-read', adminAuth, notificationRateLimiter, async (req, res) => {
   try {
     const { id, userId } = req.body || {};
     if (!id) return res.status(400).json({ error: 'id required' });
     const uid = userId || 'global';
-    const ok = notificationsService.markAsRead(uid, id);
+    const ok = await notificationsService.markAsRead(uid, id);
     return res.json({ success: ok });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
 });
 
-app.post('/api/notifications/mark-all-read', adminAuth, notificationRateLimiter, (req, res) => {
-  try {
-    const { userId } = req.body || {};
-    notificationsService.markAllAsRead(userId || 'global');
-    return res.json({ success: true });
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
+app.post(
+  '/api/notifications/mark-all-read',
+  adminAuth,
+  notificationRateLimiter,
+  async (req, res) => {
+    try {
+      const { userId } = req.body || {};
+      await notificationsService.markAllAsRead(userId || 'global');
+      return res.json({ success: true });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
   }
-});
+);
 
-app.delete('/api/notifications/:id', adminAuth, notificationRateLimiter, (req, res) => {
+app.delete('/api/notifications/:id', adminAuth, notificationRateLimiter, async (req, res) => {
   try {
     const id = req.params.id;
     const userId = req.query.userId || 'global';
-    const removed = notificationsService.removeNotification(userId, id);
+    const removed = await notificationsService.removeNotification(userId, id);
     if (!removed) return res.status(404).json({ error: 'Notification not found' });
     return res.json({ success: true });
   } catch (err) {
@@ -380,23 +390,23 @@ app.delete('/api/notifications/:id', adminAuth, notificationRateLimiter, (req, r
   }
 });
 
-app.delete('/api/notifications', adminAuth, notificationRateLimiter, (req, res) => {
+app.delete('/api/notifications', adminAuth, notificationRateLimiter, async (req, res) => {
   try {
     const userId = req.query.userId || 'global';
-    notificationsService.clearAll(userId);
+    await notificationsService.clearAll(userId);
     return res.json({ success: true });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
 });
 
-app.post('/api/notifications', adminAuth, notificationRateLimiter, (req, res) => {
+app.post('/api/notifications', adminAuth, notificationRateLimiter, async (req, res) => {
   try {
     const { userId, title, message, type, link } = req.body || {};
     if (!title || !message) {
       return res.status(400).json({ error: 'title and message are required' });
     }
-    const note = notificationsService.addNotification(userId || 'global', {
+    const note = await notificationsService.addNotification(userId || 'global', {
       title,
       message,
       type,
@@ -437,19 +447,22 @@ const failedPasskeyAttemptsByUsername = new Map();
 // Periodic sweep every 30 minutes: remove entries whose lockout period has
 // expired and whose attempt count has already been reset to 0, so they do
 // not accumulate for keys that are never visited again.
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of failedPasskeyAttemptsByIp) {
-    if (entry.count === 0 && now > entry.lockoutUntil) {
-      failedPasskeyAttemptsByIp.delete(key);
+setInterval(
+  () => {
+    const now = Date.now();
+    for (const [key, entry] of failedPasskeyAttemptsByIp) {
+      if (entry.count === 0 && now > entry.lockoutUntil) {
+        failedPasskeyAttemptsByIp.delete(key);
+      }
     }
-  }
-  for (const [key, entry] of failedPasskeyAttemptsByUsername) {
-    if (now > entry.lockoutUntil) {
-      failedPasskeyAttemptsByUsername.delete(key);
+    for (const [key, entry] of failedPasskeyAttemptsByUsername) {
+      if (now > entry.lockoutUntil) {
+        failedPasskeyAttemptsByUsername.delete(key);
+      }
     }
-  }
-}, 30 * 60 * 1000).unref();
+  },
+  30 * 60 * 1000
+).unref();
 
 function checkPasskeyLockout(username, ip) {
   const ipKey = String(ip || 'unknown');
@@ -484,7 +497,10 @@ function recordFailedPasskeyAttempt(username, ip) {
   const userKey = String(username || '').toLowerCase();
 
   // IP tracking
-  if (!failedPasskeyAttemptsByIp.has(ipKey) && failedPasskeyAttemptsByIp.size >= MAX_PASSKEY_TRACKED_KEYS) {
+  if (
+    !failedPasskeyAttemptsByIp.has(ipKey) &&
+    failedPasskeyAttemptsByIp.size >= MAX_PASSKEY_TRACKED_KEYS
+  ) {
     failedPasskeyAttemptsByIp.delete(failedPasskeyAttemptsByIp.keys().next().value);
   }
   const ipEntry = failedPasskeyAttemptsByIp.get(ipKey) || { count: 0, lockoutUntil: 0 };
@@ -496,7 +512,10 @@ function recordFailedPasskeyAttempt(username, ip) {
   failedPasskeyAttemptsByIp.set(ipKey, ipEntry);
 
   // Username tracking (Exponential backoff)
-  if (!failedPasskeyAttemptsByUsername.has(userKey) && failedPasskeyAttemptsByUsername.size >= MAX_PASSKEY_TRACKED_KEYS) {
+  if (
+    !failedPasskeyAttemptsByUsername.has(userKey) &&
+    failedPasskeyAttemptsByUsername.size >= MAX_PASSKEY_TRACKED_KEYS
+  ) {
     failedPasskeyAttemptsByUsername.delete(failedPasskeyAttemptsByUsername.keys().next().value);
   }
   const userEntry = failedPasskeyAttemptsByUsername.get(userKey) || { count: 0, lockoutUntil: 0 };
@@ -520,10 +539,10 @@ function clearPasskeyAttempts(username, ip) {
   failedPasskeyAttemptsByUsername.delete(userKey);
 }
 
-app.get('/api/notifications', (req, res) => {
+app.get('/api/notifications', async (req, res) => {
   try {
     const userId = req.query.userId || 'global';
-    const list = notificationsService.getNotifications(userId);
+    const list = await notificationsService.getNotifications(userId);
     return res.json({ notifications: list });
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -533,20 +552,31 @@ app.get('/api/notifications', (req, res) => {
 app.put('/api/portfolio', protectedActionRateLimiter, async (req, res) => {
   try {
     const body = req.body || {};
-    const username = String(body.username || '').trim();
-    const passkey = String(body.passkey || '').trim();
-    const ip = req.ip || 'unknown';
+    const ip = req.ip || req.headers['x-forwarded-for'] || 'unknown';
 
-    if (!username || username.length < 3) {
-      return res.status(400).json({ error: 'Username must be at least 3 characters long' });
+    // 1. Validate credentials up front.  Anything below this point
+    //    trusts the username + passkey pair.
+    const credentials = portfolioPutSchema.safeParse({
+      username: body.username,
+      passkey: body.passkey,
+    });
+    if (!credentials.success) {
+      const firstIssue = credentials.error.issues[0];
+      return res.status(400).json({ error: firstIssue?.message || 'Invalid request body' });
     }
-    if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+    const { username, passkey } = credentials.data;
+
+    // 2. Validate the content body.  This rejects XSS payloads such
+    //    as javascript: URLs and unknown protocol schemes before
+    //    the data ever reaches the repository.  The repository
+    //    re-sanitizes as defense-in-depth.
+    const content = portfolioContentSchema.safeParse(body);
+    if (!content.success) {
+      const firstIssue = content.error.issues[0];
       return res.status(400).json({
-        error: 'Username can only contain alphanumeric characters, underscores, and hyphens',
+        error:
+          `Invalid portfolio content: ${firstIssue?.path?.join('.') || ''} ${firstIssue?.message || ''}`.trim(),
       });
-    }
-    if (!passkey || passkey.length < 12) {
-      return res.status(400).json({ error: 'Passkey must be at least 12 characters long' });
     }
 
     const existingPortfolio = await portfolioRepository.getByUsername(username);
@@ -569,7 +599,11 @@ app.put('/api/portfolio', protectedActionRateLimiter, async (req, res) => {
 
     clearPasskeyAttempts(username, ip);
 
-    const saved = await portfolioRepository.createOrUpdate(body, isNewRegistration);
+    const saved = await portfolioRepository.createOrUpdate({
+      ...content.data,
+      username,
+      passkey,
+    });
     return res.json({ ok: true, portfolio: saved });
   } catch (err) {
     if (err.code === '23505') {
