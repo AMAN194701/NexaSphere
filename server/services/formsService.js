@@ -91,6 +91,7 @@ export const formsService = {
       try {
         await this.appendFormToSheet(formType, payload);
       } catch (sheetErr) {
+        console.error('[Forms Service] Failed to append to Google Sheet:', sheetErr);
         if (!savedToSupabase) throw sheetErr;
       }
 
