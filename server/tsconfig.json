@@ -6,12 +6,14 @@
     "outDir": "./dist",
     "rootDir": "./",
     "strict": false,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "allowJs": true,
+    "allowJs": false,
     "resolveJsonModule": true
   },
-  "include": ["**/*.ts", "**/*.js"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules", "dist", "test"]
 }
