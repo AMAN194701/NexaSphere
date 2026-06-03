@@ -18,13 +18,15 @@ import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { initializeSentry, addSentryErrorHandler } from './utils/sentry.js';
 import {
   apiRateLimiter,
-  authRateLimiter,
   formRateLimiter,
   notificationRateLimiter,
-  activityAuthRateLimiter,
-  portfolioRateLimiter,
   validateLimiters,
 } from './middleware/rateLimiter.js';
+import {
+  authRateLimiter,
+  protectedActionRateLimiter,
+  passwordResetRateLimiter,
+} from './middleware/authRateLimiter.js';
 import { portfolioRepository } from './repositories/portfolioRepository.js';
 import { getPublicAppUrl } from './utils/publicAppUrl.js';
 import * as eventsController from './controllers/eventsController.js';
@@ -188,9 +190,10 @@ app.get('/healthz', async (req, res) => {
 // Event channels/content
 app.get('/api/content/events', eventsController.listEvents);
 app.get('/api/content/activity-events/:activityKey', activityEventsController.listActivityEvents);
-app.post('/api/content/activity-events/:activityKey', activityEventsController.addActivityEvent);
+app.post('/api/content/activity-events/:activityKey', protectedActionRateLimiter, activityEventsController.addActivityEvent);
 app.delete(
   '/api/content/activity-events/:activityKey/:eventId',
+  protectedActionRateLimiter,
   activityEventsController.deleteActivityEvent
 );
 
@@ -484,7 +487,7 @@ app.get('/api/notifications', (req, res) => {
   }
 });
 
-app.put('/api/portfolio', portfolioRateLimiter, async (req, res) => {
+app.put('/api/portfolio', protectedActionRateLimiter, async (req, res) => {
   try {
     const body = req.body || {};
     const username = String(body.username || '').trim();
