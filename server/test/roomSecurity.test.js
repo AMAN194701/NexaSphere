@@ -28,6 +28,7 @@ const createMockSocket = (id = 'test-socket-123') => {
     socket.emit('disconnect');
   };
   socket.disconnected = false;
+  socket.use = (fn) => {};
   return socket;
 };
 
