@@ -76,43 +76,134 @@ const ErrorBoundaryFallback = ({ error, resetError }) => (
   </div>
 );
 
+import React from "react";
+import * as Sentry from "@sentry/react";
+import { captureHandledException } from "../utils/errorTracking";
+
+function ErrorBoundaryFallback({ error, resetError }) {
+  return (
+    <div
+      role="alert"
+      aria-live="assertive"
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+        minHeight: "100vh",
+        padding: "2rem",
+        textAlign: "center",
+        backgroundColor: "#f5f5f5",
+      }}
+    >
+      <h1>Oops! Something went wrong</h1>
+
+      <p>
+        We've been notified of the issue and are working to fix it.
+        Please try refreshing the page.
+      </p>
+
+      {error && (
+        <details
+          style={{
+            marginTop: "1rem",
+            maxWidth: "700px",
+            width: "100%",
+            textAlign: "left",
+          }}
+        >
+          <summary>Error Details</summary>
+
+          <pre
+            style={{
+              overflowX: "auto",
+              whiteSpace: "pre-wrap",
+            }}
+          >
+            {error.toString()}
+            {"\n"}
+            {error.stack}
+          </pre>
+        </details>
+      )}
+
+      <div
+        style={{
+          display: "flex",
+          gap: "1rem",
+          marginTop: "2rem",
+        }}
+      >
+        <button onClick={resetError}>
+          Try Again
+        </button>
+
+        <a href="/">
+          Go Home
+        </a>
+      </div>
+    </div>
+  );
+}
+
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, error: null };
+
+    this.state = {
+      hasError: false,
+      error: null,
+    };
   }
 
   static getDerivedStateFromError(error) {
-    return { hasError: true, error };
+    return {
+      hasError: true,
+      error,
+    };
   }
 
   componentDidCatch(error, errorInfo) {
-    // Log error to Sentry
-    captureHandledException(error, `React Error Boundary: ${errorInfo.componentStack}`);
+    captureHandledException(
+      error,
+      `React Error Boundary: ${errorInfo.componentStack}`
+    );
 
-    // Log to console in development
     if (import.meta.env.DEV) {
       console.error('Error caught by boundary:', error, errorInfo);
+      console.error(
+        "Error caught by boundary:",
+        error,
+        errorInfo
+      );
     }
   }
 
   resetError = () => {
-    this.setState({ hasError: false, error: null });
-    // Optional: reload the page
-    // window.location.reload();
+    this.setState({
+      hasError: false,
+      error: null,
+    });
   };
 
   render() {
     if (this.state.hasError) {
-      return <ErrorBoundaryFallback error={this.state.error} resetError={this.resetError} />;
+      return (
+        <ErrorBoundaryFallback
+          error={this.state.error}
+          resetError={this.resetError}
+        />
+      );
     }
 
     return this.props.children;
   }
 }
 
-// Sentry wrapper for better error tracking
-export default Sentry.withErrorBoundary(ErrorBoundary, {
-  fallback: <ErrorBoundaryFallback />,
-  showDialog: false,
-});
+export default Sentry.withErrorBoundary(
+  ErrorBoundary,
+  {
+    fallback: <ErrorBoundaryFallback />,
+    showDialog: false,
+  }
+);
