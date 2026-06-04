@@ -227,11 +227,16 @@ export async function initializeSocketIO(httpServer) {
     transports: ['websocket', 'polling'],
   });
 
-  const pubClient = getRedisClient();
-  const subClient = pubClient.duplicate();
-  // Ensure both pub/sub clients are connected before wiring the adapter
-  await Promise.all([pubClient.connect?.(), subClient.connect?.()].filter(Boolean));
-  io.adapter(createAdapter(pubClient, subClient));
+  if (process.env.REDIS_URL) {
+    const pubClient = getRedisClient();
+    const subClient = pubClient.duplicate();
+    subClient.on('error', (err) => {
+      logger.error('Redis subClient connection error:', err);
+    });
+    io.adapter(createAdapter(pubClient, subClient));
+  } else {
+    logger.info('REDIS_URL not configured. Socket.IO falling back to in-memory adapter.');
+  }
 
   // Connection auth middleware — checks handshake auth token
   io.use(async (socket, next) => {

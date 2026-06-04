@@ -44,8 +44,14 @@ class CappedMemoryStore {
   }
 }
 
+if (process.env.UPSTASH_REDIS_REST_URL) {
+  throw new Error(
+    'UPSTASH_REDIS_REST_URL is configured (which is an HTTPS REST endpoint), but rateLimitService.js uses ioredis which only supports TCP connections. Please configure a TCP Redis connection string (redis:// or rediss://) using the REDIS_URL environment variable instead.'
+  );
+}
+
 // Determine available Redis URL
-const redisUrl = process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL;
+const redisUrl = process.env.REDIS_URL;
 
 if (redisUrl) {
   try {
