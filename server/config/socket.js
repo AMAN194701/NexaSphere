@@ -4,9 +4,11 @@
  */
 
 import { Server } from 'socket.io';
+import { createAdapter } from '@socket.io/redis-adapter';
 import logger from '../utils/logger.js';
 import { getAdminSession } from '../repositories/adminSessionsRepository.js';
 import { validationMiddleware } from '../sockets/validationMiddleware.js';
+import { getRedisClient } from '../utils/redis.js';
 
 let io = null;
 const connectedUsers = new Map();
@@ -210,7 +212,7 @@ function parseBearer(authHeader) {
  * Initialize Socket.IO
  * @param {Object} httpServer - HTTP server instance
  */
-export function initializeSocketIO(httpServer) {
+export async function initializeSocketIO(httpServer) {
   io = new Server(httpServer, {
     cors: {
       origin: process.env.FRONTEND_URL || 'http://localhost:5173',
@@ -224,6 +226,12 @@ export function initializeSocketIO(httpServer) {
     pingInterval: 10000,
     transports: ['websocket', 'polling'],
   });
+
+  const pubClient = getRedisClient();
+  const subClient = pubClient.duplicate();
+  // Ensure both pub/sub clients are connected before wiring the adapter
+  await Promise.all([pubClient.connect?.(), subClient.connect?.()].filter(Boolean));
+  io.adapter(createAdapter(pubClient, subClient));
 
   // Connection auth middleware — checks handshake auth token
   io.use(async (socket, next) => {
@@ -305,7 +313,25 @@ export function _onConnection(socket) {
       return;
     }
 
-    // 4. Safe Deep Copy (Persist sanitized primitives)
+    // 4. Prevent Connection Leaks: Disconnect existing stale sockets for this user
+    const existingEntries = Array.from(connectedUsers.values()).filter(
+      (u) => u.id === String(userId) && u.socketId !== socket.id
+    );
+    for (const entry of existingEntries) {
+      if (io && io.sockets && io.sockets.sockets) {
+        const oldSocket = io.sockets.sockets.get(entry.socketId);
+        if (oldSocket) {
+          logger.info('Disconnecting stale socket for user', {
+            userId,
+            oldSocketId: entry.socketId,
+          });
+          oldSocket.disconnect(true);
+        }
+      }
+      connectedUsers.delete(entry.socketId);
+    }
+
+    // 5. Safe Deep Copy (Persist sanitized primitives)
     connectedUsers.set(socket.id, {
       id: String(userId),
       email: String(email),
