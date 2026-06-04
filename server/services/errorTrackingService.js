@@ -51,6 +51,23 @@ async function logError(error, context = {}) {
   // Update endpoint stats
   const endpoint = `${errorData.method} ${errorData.url}`;
   if (!errorStore.errorsByEndpoint[endpoint]) {
+    // Prevent unbounded memory growth by capping the tracked endpoints at 1000.
+    // If the cap is reached, prune the endpoint with the lowest error count.
+    const keys = Object.keys(errorStore.errorsByEndpoint);
+    if (keys.length >= 1000) {
+      let minKey = null;
+      let minVal = Infinity;
+      for (const key of keys) {
+        const val = errorStore.errorsByEndpoint[key];
+        if (val < minVal) {
+          minVal = val;
+          minKey = key;
+        }
+      }
+      if (minKey) {
+        delete errorStore.errorsByEndpoint[minKey];
+      }
+    }
     errorStore.errorsByEndpoint[endpoint] = 0;
   }
   errorStore.errorsByEndpoint[endpoint]++;
@@ -247,4 +264,8 @@ export {
   getEndpointErrors,
   getUserErrors,
   clearErrors,
+};
+
+export const __errorTrackingServiceInternals = {
+  errorStore,
 };
