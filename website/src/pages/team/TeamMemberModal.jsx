@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 // ── Copy Popup ──
@@ -12,12 +12,28 @@ function CopyPopup({ value, onClose }) {
     });
   };
 
+  const timerRef = useRef(null);
+
   useEffect(() => {
     const handler = (e) => {
       if (!e.target.closest('.copy-popup')) onClose();
     };
-    setTimeout(() => document.addEventListener('click', handler), 0);
-    return () => document.removeEventListener('click', handler);
+    // Defer addEventListener by one tick so the triggering click that
+    // opened the popup does not immediately close it. Store the timer
+    // in a ref so cleanup can cancel it if the component unmounts
+    // before the tick fires — prevents addEventListener running after
+    // removeEventListener and leaving a dangling handler on document.
+    timerRef.current = setTimeout(() => {
+      document.addEventListener('click', handler);
+      timerRef.current = null;
+    }, 0);
+    return () => {
+      if (timerRef.current !== null) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+      document.removeEventListener('click', handler);
+    };
   }, [onClose]);
 
   return (
@@ -45,7 +61,9 @@ function ModalContent({ member, onClose }) {
   const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
-    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    const handler = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
     window.addEventListener('keydown', handler);
     document.body.style.overflow = 'hidden';
     return () => {
@@ -60,19 +78,30 @@ function ModalContent({ member, onClose }) {
   return (
     <div
       className="modal-overlay"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
       <div className="modal-box">
         {/* Close */}
-        <button className="modal-close" onClick={onClose} aria-label="Close">✕</button>
+        <button className="modal-close" onClick={onClose} aria-label="Close">
+          ✕
+        </button>
 
         {/* Photo */}
-        <img 
-          src={(!member.photo || imgError) ? 'https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(member.name) + '&backgroundColor=7b6fff&textColor=ffffff' : member.photo} 
-          alt={member.name} 
-          className="modal-photo" 
+        <img
+          src={
+            !member.photo || imgError
+              ? 'https://api.dicebear.com/7.x/initials/svg?seed=' +
+                encodeURIComponent(member.name) +
+                '&backgroundColor=7b6fff&textColor=ffffff'
+              : member.photo
+          }
+          alt={member.name}
+          className="modal-photo"
           loading="lazy"
-          width="120" height="120"
+          width="120"
+          height="120"
           onError={() => setImgError(true)}
         />
 
@@ -118,7 +147,12 @@ function ModalContent({ member, onClose }) {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="modal-social-btn btn-whatsapp"
-                    style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                    style={{
+                      textDecoration: 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
                   >
                     💬 WhatsApp
                   </a>
@@ -178,8 +212,5 @@ function ModalContent({ member, onClose }) {
 // ── Export: renders via Portal so it's never clipped by any parent ──
 export default function TeamMemberModal({ member, onClose }) {
   if (!member) return null;
-  return createPortal(
-    <ModalContent member={member} onClose={onClose} />,
-    document.body
-  );
+  return createPortal(<ModalContent member={member} onClose={onClose} />, document.body);
 }
