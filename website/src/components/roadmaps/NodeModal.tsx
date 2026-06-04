@@ -195,6 +195,7 @@ export const NodeModal: React.FC<NodeModalProps> = ({ theme }) => {
         role="dialog"
         aria-modal="true"
         aria-labelledby="node-modal-title"
+        aria-describedby="node-modal-description"
       >
         {/* Close Button */}
         <button
@@ -216,9 +217,14 @@ export const NodeModal: React.FC<NodeModalProps> = ({ theme }) => {
           <span className="text-xxs uppercase tracking-widest text-brand-red font-black">
             Interactive Editor
           </span>
+
           <h2 id="node-modal-title" className="text-2xl font-black text-t1 mt-1 font-orbitron">
             Modify Learning Node
           </h2>
+
+          <p id="node-modal-description" className="text-sm text-t2 mt-2">
+            Edit node details, resources, prerequisites, notes, and learning progress.
+          </p>
         </div>
 
         {/* Form Grid */}
