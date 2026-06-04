@@ -196,7 +196,7 @@ class ModerationService {
     }
 
     // Determine reputation level
-    let level = REPUTATION.NORMAL;
+    let level;
     if (newScore >= 80) level = REPUTATION.TRUSTED;
     else if (newScore >= 60) level = REPUTATION.NORMAL;
     else if (newScore >= 40) level = REPUTATION.WATCHED;
