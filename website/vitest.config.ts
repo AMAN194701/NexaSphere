@@ -34,6 +34,8 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
       'next/image': path.resolve(__dirname, './src/shared/next-image.jsx'),
       'next/dynamic': path.resolve(__dirname, './src/shared/next-dynamic.jsx'),
+      react: path.resolve(__dirname, '../node_modules/react'),
+      'react-dom': path.resolve(__dirname, '../node_modules/react-dom'),
     },
   },
 });

@@ -229,11 +229,29 @@ export async function initializeSocketIO(httpServer) {
     transports: ['websocket', 'polling'],
   });
 
-  const pubClient = getRedisClient();
-  const subClient = pubClient.duplicate();
-  // Ensure both pub/sub clients are connected before wiring the adapter
-  await Promise.all([pubClient.connect?.(), subClient.connect?.()].filter(Boolean));
-  io.adapter(createAdapter(pubClient, subClient));
+  if (process.env.NODE_ENV !== 'test') {
+    const pubClient = getRedisClient();
+    const subClient = pubClient.duplicate();
+    subClient.on('error', (err) => {
+      logger.error('Redis subscription client connection error:', err);
+    });
+    // Ensure both pub/sub clients are connected before wiring the adapter
+    const connectIfNeeded = async (client) => {
+      if (client && client.status === 'wait') {
+        try {
+          await client.connect();
+        } catch (err) {
+          if (err.message !== 'Redis is already connecting/connected') {
+            throw err;
+          }
+        }
+      }
+    };
+    await Promise.all([connectIfNeeded(pubClient), connectIfNeeded(subClient)]);
+    io.adapter(createAdapter(pubClient, subClient));
+  } else {
+    logger.info('Skipping Redis adapter in test environment');
+  }
 
   // Connection auth middleware — checks handshake auth token
   io.use(async (socket, next) => {
