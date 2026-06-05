@@ -7,8 +7,8 @@
     "dev": "tsx index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "test": "node --test test/sanitize.test.js test/formSchemas.test.js test/adminSessions.test.js test/notificationSubscription.test.js",
-    "test:watch": "node --test --watch test/sanitize.test.js test/formSchemas.test.js test/adminSessions.test.js test/notificationSubscription.test.js",
+    "test": "node --test test/sanitize.test.js test/formSchemas.test.js test/adminSessions.test.js test/notificationSubscription.test.js test/notificationsService.test.js",
+    "test:watch": "node --test --watch test/sanitize.test.js test/formSchemas.test.js test/adminSessions.test.js test/notificationSubscription.test.js test/notificationsService.test.js",
     "migrate": "node-pg-migrate -f .postgres_migrations_config.json",
     "migrate:latest": "node-pg-migrate -f .postgres_migrations_config.json up",
     "migrate:rollback": "node-pg-migrate -f .postgres_migrations_config.json down",
@@ -18,6 +18,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1057.0",
     "@sendgrid/mail": "^8.1.3",
+    "@socket.io/redis-adapter": "^8.3.0",
     "@sentry/node": "^7.84.0",
     "@sentry/profiling-node": "^7.84.0",
     "async-mutex": "^0.5.0",

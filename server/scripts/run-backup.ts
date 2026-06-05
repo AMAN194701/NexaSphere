@@ -2,8 +2,8 @@
 import { exec } from 'child_process';
 import util from 'util';
 import path from 'path';
-import { BackupStorageService } from '../services/backupStorage';
-import { BackupVerifierService } from '../services/backupVerifier';
+import { BackupStorageService } from '../services/backupStorage.js';
+import { BackupVerifierService } from '../services/backupVerifier.js';
 
 const execAsync = util.promisify(exec);
 
