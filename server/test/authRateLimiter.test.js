@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import express from 'express';
+import { execSync } from 'child_process';
+import path from 'path';
+import { fileURLToPath, pathToFileURL } from 'url';
 import { _closeRedis, _getRedisClient } from '../services/rateLimitService.js';
 import { authRateLimiter, passwordResetRateLimiter } from '../middleware/authRateLimiter.js';
 
@@ -105,8 +108,27 @@ test('Scenario 5: Redis unavailable causes graceful fallback to memory', () => {
   // If Redis is not configured, the service falls back to memory safely.
   // The fact that tests run without throwing proves this fallback works.
   const client = _getRedisClient();
-  if (!process.env.REDIS_URL && !process.env.UPSTASH_REDIS_REST_URL) {
+  if (!process.env.REDIS_URL) {
     assert.equal(client, null);
+  }
+});
+
+test('Scenario 7: UPSTASH_REDIS_REST_URL throws a configuration error', () => {
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+  const serviceUrl = pathToFileURL(path.resolve(__dirname, '../services/rateLimitService.js')).href;
+
+  try {
+    execSync(
+      `node -e "process.env.UPSTASH_REDIS_REST_URL='https://some-instance.upstash.io'; import('${serviceUrl}').catch(err => { console.error(err.message); process.exit(1); })"`,
+      { stdio: 'pipe' }
+    );
+    assert.fail('Should have thrown an error when UPSTASH_REDIS_REST_URL is configured');
+  } catch (error) {
+    const stdout = error.stdout ? error.stdout.toString() : '';
+    const stderr = error.stderr ? error.stderr.toString() : '';
+    const output = stdout + '\n' + stderr + '\n' + error.message;
+    assert.match(output, /UPSTASH_REDIS_REST_URL is configured/);
   }
 });
 
