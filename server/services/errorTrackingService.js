@@ -3,8 +3,8 @@
  * Manages error logging, tracking, and analysis
  */
 
-import logger from "../utils/logger.js";
-import { captureException, captureMessage, addBreadcrumb } from "../utils/sentry.js";
+import logger from '../utils/logger.js';
+import { captureException, captureMessage, addBreadcrumb } from '../utils/sentry.js';
 
 // In-memory error store (consider using database in production)
 const errorStore = {
@@ -73,7 +73,7 @@ async function logError(error, context = {}) {
   errorStore.errorsByEndpoint[endpoint]++;
 
   // Log to Winston
-  logger.error("Error logged", errorData);
+  logger.error('Error logged', errorData);
 
   // Send to Sentry
   captureException(error, {
@@ -86,9 +86,9 @@ async function logError(error, context = {}) {
 
   // Add breadcrumb
   addBreadcrumb({
-    category: "error",
+    category: 'error',
     message: error.message,
-    level: "error",
+    level: 'error',
     data: { status: errorData.status, url: errorData.url },
   });
 
@@ -100,12 +100,8 @@ async function logError(error, context = {}) {
  */
 function getErrorStats() {
   const total = errorStore.errors.length;
-  const lastHour = errorStore.errors.filter(
-    (e) => new Date() - e.timestamp < 3600000
-  ).length;
-  const last24Hours = errorStore.errors.filter(
-    (e) => new Date() - e.timestamp < 86400000
-  ).length;
+  const lastHour = errorStore.errors.filter((e) => new Date() - e.timestamp < 3600000).length;
+  const last24Hours = errorStore.errors.filter((e) => new Date() - e.timestamp < 86400000).length;
 
   const errorsByStatus = Object.entries(errorStore.errorsByStatus).map(([status, count]) => ({
     status: parseInt(status),
@@ -197,7 +193,7 @@ function sanitizeData(data) {
   for (const key of Object.keys(sanitized)) {
     for (const pattern of sensitivePatterns) {
       if (pattern.test(key)) {
-        sanitized[key] = "***REDACTED***";
+        sanitized[key] = '***REDACTED***';
         break;
       }
     }
@@ -215,20 +211,20 @@ function sanitizeHeaders(headers) {
 
   const sanitized = { ...headers };
   const sensitiveHeaders = [
-    "authorization",
-    "cookie",
-    "x-api-key",
-    "x-csrf-token",
-    "x-session-id",
-    "x-auth-token",
-    "x-access-token",
-    "x-refresh-token",
-    "set-cookie",
+    'authorization',
+    'cookie',
+    'x-api-key',
+    'x-csrf-token',
+    'x-session-id',
+    'x-auth-token',
+    'x-access-token',
+    'x-refresh-token',
+    'set-cookie',
   ];
 
   sensitiveHeaders.forEach((header) => {
     if (sanitized[header.toLowerCase()]) {
-      sanitized[header.toLowerCase()] = "***REDACTED***";
+      sanitized[header.toLowerCase()] = '***REDACTED***';
     }
   });
 
