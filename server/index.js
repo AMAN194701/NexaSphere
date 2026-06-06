@@ -9,11 +9,13 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { adminAuthMiddleware } from './middleware/adminAuthMiddleware.js';
 import analyticsRouter from './routes/analytics.js';
+import apiRouter from './routes/api.js';
 import { initializeSocketIO } from './config/socket.js';
 import adminStreamRouter from './routes/adminStream.js';
 import documentationRouter from './routes/documentation.js';
 import monitoringRouter from './routes/monitoring.js';
 import { performanceMonitor } from './middleware/performanceMonitor.js';
+import { tracingMiddleware } from './middleware/tracingMiddleware.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { initializeSentry, addSentryErrorHandler } from './utils/sentry.js';
 import {
@@ -29,6 +31,7 @@ import {
 } from './middleware/authRateLimiter.js';
 import { portfolioRepository } from './repositories/portfolioRepository.js';
 import { portfolioContentSchema, portfolioPutSchema } from './validators/portfolioSchemas.js';
+import { searchController } from './controllers/searchController.js';
 import { getPublicAppUrl } from './utils/publicAppUrl.js';
 import * as eventsController from './controllers/eventsController.js';
 import * as activityEventsController from './controllers/activityEventsController.js';
@@ -71,10 +74,33 @@ const allowedOrigins = process.env.CORS_ORIGIN.split(',')
   .map((s) => s.trim())
   .filter(Boolean);
 
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+        fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+        imgSrc: ["'self'", 'data:', 'https:'],
+        connectSrc: [
+          "'self'",
+          process.env.FRONTEND_URL || 'http://localhost:5173',
+          `wss://${process.env.DOMAIN || 'localhost'}`,
+        ],
+        objectSrc: ["'none'"],
+        upgradeInsecureRequests: [],
+      },
+    },
+    crossOriginEmbedderPolicy: false,
+  })
+);
 app.use(cors({ origin: allowedOrigins, credentials: true }));
 
-app.use(express.json({ limit: '512kb' }));
+app.use(tracingMiddleware);
+
+app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(morgan('combined'));
 app.use(performanceMonitor);
 
@@ -83,12 +109,13 @@ app.use('/api', apiRateLimiter);
 
 function requestLogger(req, res, next) {
   const start = process.hrtime.bigint();
-  const { method, path } = req;
+  const { method, path, reqId } = req;
 
   res.on('finish', () => {
     const duration = Number(process.hrtime.bigint() - start) / 1e6;
     const status = res.statusCode;
-    const message = `[${method}] ${path} → ${status} (${Math.round(duration)}ms)`;
+    const prefix = reqId ? `[${reqId}] ` : '';
+    const message = `${prefix}[${method}] ${path} → ${status} (${Math.round(duration)}ms)`;
 
     if (status >= 500) {
       console.error(message);
@@ -115,6 +142,7 @@ app.get('/api/health', (_req, res) => {
 // Mount monitoring + API documentation routes
 app.use('/api/monitoring', monitoringRouter);
 app.use('/api', documentationRouter);
+app.use('/', apiRouter);
 
 const adminAuth = adminAuthMiddleware.requireAdmin;
 
@@ -256,8 +284,36 @@ app.post(
   formsController.makeHandleForm('recruitment')
 );
 
-// Admin membership responses
+// Admin membership responses — reads from Supabase as primary source,
+// falls back to Google Sheets for backwards compatibility
 app.get('/api/admin/membership', adminAuth, async (req, res) => {
+  if (HAS_SUPABASE) {
+    try {
+      const rows = await supabaseRequest(
+        'form_submissions?form_type=eq.membership&select=*&order=created_at.desc'
+      );
+      const responses = (rows || []).map((row) => {
+        const p = row.payload || {};
+        return {
+          id: row.id,
+          timestamp: row.created_at || p.submittedAt || '',
+          fullName: row.full_name || p.fullName || '',
+          collegeEmail: row.college_email || p.collegeEmail || '',
+          rollNumber: p.rollNumber || '',
+          course: p.course || '',
+          branch: p.branch || '',
+          section: p.section || '',
+          semester: p.semester || '',
+          groupsSelected: Array.isArray(p.groups) ? p.groups.join(', ') : p.groups || '',
+          submittedAt: p.submittedAt || row.created_at || '',
+        };
+      });
+      return res.json({ responses });
+    } catch (err) {
+      console.error('[Membership] Supabase query failed, falling back to Sheets:', err.message);
+    }
+  }
+
   const scriptUrl = process.env.MEMBERSHIP_SCRIPT_URL;
   const secret = process.env.MEMBERSHIP_SECRET;
 
@@ -616,6 +672,11 @@ app.put('/api/portfolio', protectedActionRateLimiter, async (req, res) => {
   }
 });
 
+// ── Search, Discovery & Recommendation Engine ──
+app.get('/api/search', searchController.search);
+app.get('/api/search/trending', searchController.trending);
+app.get('/api/recommendations', searchController.recommendations);
+
 // Must be registered after all routes.
 app.use(notFoundHandler);
 addSentryErrorHandler(app);
@@ -637,19 +698,21 @@ process.on('uncaughtException', (err) => {
 const port = Number(process.env.PORT || 8787);
 let server;
 
-if (!process.env.VERCEL) {
-  const boot = HAS_SUPABASE ? Promise.resolve() : ensureContentFile();
-  boot.then(() => {
+if (process.env.NODE_ENV !== 'test') {
+  if (!process.env.VERCEL) {
+    const boot = HAS_SUPABASE ? Promise.resolve() : ensureContentFile();
+    boot.then(() => {
+      server = app.listen(port, () => {
+        console.log(`NexaSphere server listening on http://localhost:${port}`);
+      });
+      initializeSocketIO(server);
+    });
+  } else {
     server = app.listen(port, () => {
       console.log(`NexaSphere server listening on http://localhost:${port}`);
     });
     initializeSocketIO(server);
-  });
-} else {
-  server = app.listen(port, () => {
-    console.log(`NexaSphere server listening on http://localhost:${port}`);
-  });
-  initializeSocketIO(server);
+  }
 }
 
 export default app;
