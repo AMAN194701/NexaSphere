@@ -122,6 +122,190 @@ function validateSection(str) {
   return v;
 }
 
+function stripHtml(value) {
+  return String(value ?? '')
+    .replace(SCRIPT_PATTERN, '')
+    .replace(STYLE_PATTERN, '')
+    .replace(HTML_COMMENT_PATTERN, '')
+    .replace(HTML_TAG_PATTERN, '')
+    .replace(CONTROL_CHAR_PATTERN, '')
+    .replace(NULL_BYTE_PATTERN, '')
+    .trim();
+}
+
+function stripHtmlTruncated(value, max = 4000) {
+  return stripHtml(value).slice(0, max);
+}
+
+function validateWhatsApp(value) {
+  const digits = String(value || '').replace(/\D/g, '');
+  if (digits.length < 7 || digits.length > 15) return null;
+  return digits;
+}
+
+function safeHref(value) {
+  const url = String(value ?? '')
+    .trim()
+    .slice(0, URL_MAX_LENGTH);
+  if (!url) return '';
+  if (SAFE_URL_PROTOCOLS.test(url)) return url;
+  return '';
+}
+
+function sanitizeSocialLinks(links) {
+  if (!links || typeof links !== 'object' || Array.isArray(links)) return {};
+  const clean = {};
+  for (const [key, val] of Object.entries(links)) {
+    const k = toSafeString(key, 40);
+    if (k) clean[k] = safeHref(val);
+  }
+  return clean;
+}
+
+function sanitizeSkills(skills) {
+  if (!Array.isArray(skills)) return [];
+  return skills
+    .slice(0, 100)
+    .map((s) => ({
+      name: stripHtmlTruncated(s?.name, 100),
+      ...(s?.level !== undefined ? { level: stripHtmlTruncated(s.level, 40) } : {}),
+      ...(s?.category !== undefined ? { category: stripHtmlTruncated(s.category, 60) } : {}),
+    }))
+    .filter((s) => s.name);
+}
+
+function sanitizeBadges(badges) {
+  if (!Array.isArray(badges)) return [];
+  return badges
+    .slice(0, 100)
+    .map((b) => ({
+      name: stripHtmlTruncated(b?.name, 120),
+      ...(b?.description !== undefined
+        ? { description: stripHtmlTruncated(b.description, 1000) }
+        : {}),
+      ...(b?.tier !== undefined ? { tier: stripHtmlTruncated(b.tier, 40) } : {}),
+      ...(b?.iconUrl !== undefined ? { iconUrl: safeHref(b.iconUrl) } : {}),
+    }))
+    .filter((b) => b.name);
+}
+
+function sanitizeProjects(projects) {
+  if (!Array.isArray(projects)) return [];
+  return projects
+    .slice(0, 50)
+    .map((p) => ({
+      name: stripHtmlTruncated(p?.name, 200),
+      ...(p?.description !== undefined
+        ? { description: stripHtmlTruncated(p.description, 5000) }
+        : {}),
+      ...(p?.shortDesc !== undefined ? { shortDesc: stripHtmlTruncated(p.shortDesc, 500) } : {}),
+      ...(p?.techStack !== undefined
+        ? {
+            techStack: Array.isArray(p.techStack)
+              ? p.techStack.slice(0, 30).map((t) => stripHtmlTruncated(t, 60))
+              : [],
+          }
+        : {}),
+      ...(p?.link !== undefined ? { link: safeHref(p.link) } : {}),
+      ...(p?.github !== undefined ? { github: safeHref(p.github) } : {}),
+      ...(p?.demo !== undefined ? { demo: safeHref(p.demo) } : {}),
+    }))
+    .filter((p) => p.name);
+}
+
+function sanitizeRoadmaps(roadmaps) {
+  if (!Array.isArray(roadmaps)) return [];
+  return roadmaps
+    .slice(0, 50)
+    .map((r) => ({
+      title: stripHtmlTruncated(r?.title, 200),
+      ...(r?.description !== undefined
+        ? { description: stripHtmlTruncated(r.description, 5000) }
+        : {}),
+      ...(r?.milestones !== undefined
+        ? {
+            milestones: Array.isArray(r.milestones)
+              ? r.milestones
+                  .slice(0, 100)
+                  .map((m) => ({
+                    title: stripHtmlTruncated(m?.title, 200),
+                    ...(m?.description !== undefined
+                      ? { description: stripHtmlTruncated(m.description, 2000) }
+                      : {}),
+                    ...(m?.completed !== undefined ? { completed: Boolean(m.completed) } : {}),
+                  }))
+                  .filter((m) => m.title)
+              : [],
+          }
+        : {}),
+    }))
+    .filter((r) => r.title);
+}
+
+function sanitizeSeoMetadata(meta) {
+  if (!meta || typeof meta !== 'object' || Array.isArray(meta)) return {};
+  return {
+    ...(meta.title !== undefined ? { title: stripHtmlTruncated(meta.title, 200) } : {}),
+    ...(meta.description !== undefined
+      ? { description: stripHtmlTruncated(meta.description, 1000) }
+      : {}),
+    ...(meta.keywords !== undefined
+      ? {
+          keywords: Array.isArray(meta.keywords)
+            ? meta.keywords.slice(0, 20).map((k) => stripHtmlTruncated(k, 60))
+            : [],
+        }
+      : {}),
+  };
+}
+
+function sanitizeVisibleSections(sections) {
+  if (!sections || typeof sections !== 'object' || Array.isArray(sections)) return {};
+  const clean = {};
+  for (const [key, val] of Object.entries(sections)) {
+    const k = toSafeString(key, 40);
+    if (k) clean[k] = Boolean(val);
+  }
+  return clean;
+}
+
+export function sanitizePortfolioRecord(data) {
+  return {
+    username: toSafeString(data?.username, 100).toLowerCase(),
+    passkey: toSafeString(data?.passkey, 256),
+    theme: toSafeString(data?.theme || 'glassmorphic', 50),
+    bio: stripHtmlTruncated(data?.bio, 5000),
+    title: stripHtmlTruncated(data?.title, 200),
+    customDomain: safeHref(data?.customDomain),
+    visibleSections: sanitizeVisibleSections(data?.visibleSections),
+    socialLinks: sanitizeSocialLinks(data?.socialLinks),
+    seoMetadata: sanitizeSeoMetadata(data?.seoMetadata),
+    skills: sanitizeSkills(data?.skills),
+    badges: sanitizeBadges(data?.badges),
+    projects: sanitizeProjects(data?.projects),
+    roadmaps: sanitizeRoadmaps(data?.roadmaps),
+  };
+}
+
+export function sanitizePortfolioOutput(record) {
+  return {
+    username: toSafeString(record?.username, 100),
+    theme: toSafeString(record?.theme || 'glassmorphic', 50),
+    bio: stripHtmlTruncated(record?.bio, 5000),
+    title: stripHtmlTruncated(record?.title, 200),
+    customDomain: safeHref(record?.customDomain),
+    visibleSections: sanitizeVisibleSections(record?.visibleSections),
+    socialLinks: sanitizeSocialLinks(record?.socialLinks),
+    seoMetadata: sanitizeSeoMetadata(record?.seoMetadata),
+    skills: sanitizeSkills(record?.skills),
+    badges: sanitizeBadges(record?.badges),
+    projects: sanitizeProjects(record?.projects),
+    roadmaps: sanitizeRoadmaps(record?.roadmaps),
+    createdAt: record?.createdAt,
+    updatedAt: record?.updatedAt,
+  };
+}
+
 export {
   escapeHtml,
   sanitizeNullableText,
