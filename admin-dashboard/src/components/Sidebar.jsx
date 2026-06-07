@@ -3,19 +3,44 @@ import { NavLink } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { AdminIcon } from './AdminIcon';
 import { useFocusTrap } from '../hooks/useFocusTrap';
+import { PermissionGuard } from './PermissionGuard';
 
 /* URL of the public website — configurable via .env */
 const WEBSITE_URL = import.meta.env.VITE_WEBSITE_URL || 'http://localhost:5175';
 
 const links = [
   { to: '/dashboard', label: 'Dashboard', icon: 'Dashboard' },
-  { to: '/dashboard/events', label: 'Events', icon: 'Calendar' },
+  { to: '/dashboard/events', label: 'Events', icon: 'Calendar', requiredScope: 'events:read' },
+  {
+    to: '/dashboard/event-registrations',
+    label: 'Registrations',
+    icon: 'FileText',
+    requiredScope: 'events:read',
+  },
+  {
+    to: '/dashboard/event-scanner',
+    label: 'Scanner',
+    icon: 'Camera',
+    requiredScope: 'events:write',
+  },
+  {
+    to: '/dashboard/event-analytics',
+    label: 'Analytics',
+    icon: 'BarChart',
+    requiredScope: 'events:read',
+  },
   {
     to: '/dashboard/activity-events',
     label: 'Activity Events',
     icon: 'Target',
+    requiredScope: 'events:read',
   },
-  { to: '/dashboard/core-team', label: 'Core Team', icon: 'Users' },
+  {
+    to: '/dashboard/core-team',
+    label: 'Core Team',
+    icon: 'Users',
+    requiredScope: 'settings:admin',
+  },
   { to: '/dashboard/membership', label: 'Membership', icon: 'FileText' },
   { to: '/dashboard/recruitment', label: 'Recruitment', icon: 'UserPlus' },
   { to: '/dashboard/certificates', label: 'Certificates', icon: 'Award' },
@@ -87,18 +112,29 @@ export function Sidebar() {
         </a>
 
         <nav className="sidebar-nav">
-          {links.map(({ to, label, icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === '/dashboard'}
-              className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
-              onClick={close}
-            >
-              <AdminIcon name={icon} size={16} aria-hidden="true" />
-              {label}
-            </NavLink>
-          ))}
+          {links.map(({ to, label, icon, requiredScope }) => {
+            const LinkElement = (
+              <NavLink
+                key={to}
+                to={to}
+                end={to === '/dashboard'}
+                className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+                onClick={close}
+              >
+                <AdminIcon name={icon} size={16} aria-hidden="true" />
+                {label}
+              </NavLink>
+            );
+
+            if (requiredScope) {
+              return (
+                <PermissionGuard key={to} requiredScope={requiredScope}>
+                  {LinkElement}
+                </PermissionGuard>
+              );
+            }
+            return LinkElement;
+          })}
         </nav>
 
         <div className="sidebar-footer">
