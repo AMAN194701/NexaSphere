@@ -101,7 +101,7 @@ const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage'));
 const AnalyticsPage = lazy(() => import('./pages/analytics/AnalyticsPage'));
 const WorkspacePage = lazy(() => import('./pages/workspace/WorkspacePage'));
 const GamificationDashboard = lazy(() => import('./components/gamification/GamificationDashboard'));
-const ExplorePage = lazy(() => import('./pages/explore/ExplorePage'));
+const NotificationHistoryPage = lazy(() => import('./pages/notifications/NotificationHistoryPage'));
 
 const MNH = 88,
   DNH = 64;
@@ -878,6 +878,10 @@ function MainRouter({
             />
             {/* ── Public Portfolio ── */}
             <Route path="/p/:username" element={<PublicPortfolioWrapper onBack={onBackHome} />} />
+            <Route
+              path="/profile/:username"
+              element={<PublicPortfolioWrapper onBack={onBackHome} />}
+            />
 
             {/* ── Collab ── */}
             <Route
@@ -951,6 +955,16 @@ function MainRouter({
               element={
                 <PageIn k="admin">
                   <AdminPage onBack={onBackHome} />
+                </PageIn>
+              }
+            />
+
+            {/* ── Notification History ── */}
+            <Route
+              path="/notifications"
+              element={
+                <PageIn k="notifications">
+                  <NotificationHistoryPage />
                 </PageIn>
               }
             />
