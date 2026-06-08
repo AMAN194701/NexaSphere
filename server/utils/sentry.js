@@ -6,26 +6,28 @@
 import * as Sentry from '@sentry/node';
 
 let nodeProfilingIntegration = null;
-try {
-  // Optional dependency: native bindings may be unavailable on some platforms.
-  // If profiling cannot be loaded, fall back to Sentry without profiling.
-  const profiling = await import('@sentry/profiling-node');
-  nodeProfilingIntegration = profiling.nodeProfilingIntegration;
-} catch (error) {
-  nodeProfilingIntegration = null;
-}
 
 /**
  * Initialize Sentry for backend monitoring
  * @param {Object} app - Express app instance
  */
-function initializeSentry(app) {
+async function initializeSentry(app) {
   const isDevelopment = process.env.NODE_ENV === 'development';
   const dsn = process.env.SENTRY_DSN;
 
   if (!dsn && !isDevelopment) {
     console.warn('Sentry DSN not configured. Error tracking disabled.');
     return;
+  }
+
+  // Safely lazy-load profiling runtime inside async scope to prevent startup syntax failure
+  if (!nodeProfilingIntegration) {
+    try {
+      const profiling = await import('@sentry/profiling-node');
+      nodeProfilingIntegration = profiling.nodeProfilingIntegration;
+    } catch (error) {
+      nodeProfilingIntegration = null;
+    }
   }
 
   Sentry.init({
