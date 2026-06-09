@@ -97,26 +97,30 @@ export const notificationRateLimiter = rateLimit({
 // when the server restarts the IP-level window survives in the rate-limit
 // store.
 export const activityAuthRateLimiter = rateLimit({
-// Portfolio update rate limiter — 10 requests per IP per 15 minutes
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error:
+      "Too many activity auth attempts from this IP, please try again after 15 minutes.",
+  },
+});
+
 export const portfolioRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res, next, options) => {
-    logger.warn("Activity-event auth rate limit exceeded", {
+    logger.warn("Portfolio update rate limit exceeded", {
       ip: req.ip,
       path: req.originalUrl || req.path,
       method: req.method,
     });
     res.status(options.statusCode).json({
-      error: "Too many attempts from this IP, please try again later.",
+      error: "Too many portfolio update attempts from this IP, please try again after 15 minutes.",
     });
-  },
-});
-  message: {
-    error:
-      "Too many portfolio update attempts from this IP, please try again after 15 minutes.",
   },
 });
 
