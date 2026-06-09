@@ -319,59 +319,6 @@ export function Sidebar() {
 
         {/* Navigation */}
 
-        <nav
-          className="sidebar-nav"
-          aria-label="Dashboard Navigation"
-        >
-
-          {links.map(
-            (
-              { to, label, icon },
-              index
-            ) => {
-
-              const isActive =
-                location.pathname === to;
-
-              return (
-                <NavLink
-                  key={to}
-                  to={to}
-                  end={
-                    to === '/dashboard'
-                  }
-                  ref={
-                    index === 0
-                      ? firstNavLinkRef
-                      : null
-                  }
-                  className={({
-                    isActive,
-                  }) =>
-                    `nav-link${
-                      isActive
-                        ? ' active'
-                        : ''
-                    }`
-                  }
-                  aria-current={
-                    isActive
-                      ? 'page'
-                      : undefined
-                  }
-                  onClick={close}
-                >
-                  <AdminIcon
-                    name={icon}
-                    size={16}
-                    aria-hidden="true"
-                  />
-
-                  {label}
-                </NavLink>
-              );
-            }
-          )}
         <nav className="sidebar-nav">
           {links.map(({ to, label, icon, requiredScope }) => {
             const LinkElement = (
