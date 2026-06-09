@@ -252,6 +252,12 @@ export function _onConnection(socket) {
     socket.join('admin-room');
   }
 
+  // Auto-join workspace room from handshake auth/query (consolidated from workspaceSocket.js)
+  const handshakeRoomId = socket.handshake.auth?.roomId || socket.handshake.query?.roomId || null;
+  if (handshakeRoomId && /^[a-zA-Z0-9\-_]{1,100}$/.test(handshakeRoomId)) {
+    socket.join(handshakeRoomId);
+  }
+
   // Keep track of identify operations to rate limit floods per-socket (Max 3 events per lifetime)
   let identifyCount = 0;
 
@@ -426,6 +432,107 @@ export function _onConnection(socket) {
     const { roomId, ...payload } = data;
     if (roomId && _isWorkspaceMember(roomId, socket.id)) {
       socket.to(roomId).emit('typing_stop', { socketId: socket.id, ...payload });
+    }
+  });
+
+  // --- Task management events (consolidated from workspaceSocket.js / roomHandler.js) ---
+
+  socket.on('task_create', async (data, ack) => {
+    try {
+      const { roomId, task } = data || {};
+
+      if (typeof roomId !== 'string' || !/^[a-zA-Z0-9\-_]{1,100}$/.test(roomId)) {
+        if (typeof ack === 'function') ack({ success: false, error: 'Invalid roomId' });
+        return;
+      }
+
+      if (!task || !task.title) {
+        if (typeof ack === 'function') ack({ success: false, error: 'Task title is required' });
+        return;
+      }
+
+      const payload = {
+        ...task,
+        roomId,
+        _id: task._id || undefined,
+        createdAt: task.createdAt || new Date().toISOString(),
+      };
+
+      socket.to(roomId).emit('task_created', payload);
+
+      if (typeof ack === 'function') ack({ success: true, task: payload });
+    } catch (err) {
+      logger.error('task_create error', { error: err.message, socketId: socket.id });
+      if (typeof ack === 'function') ack({ success: false, error: err.message });
+    }
+  });
+
+  socket.on('task_update_status', async (data, ack) => {
+    try {
+      const { roomId, taskId, status, previousStatus, updatedBy } = data || {};
+
+      if (typeof roomId !== 'string' || !/^[a-zA-Z0-9\-_]{1,100}$/.test(roomId)) {
+        if (typeof ack === 'function') ack({ success: false, error: 'Invalid roomId' });
+        return;
+      }
+
+      if (!taskId || !['Todo', 'In_Progress', 'Review', 'Done'].includes(status)) {
+        if (typeof ack === 'function') ack({ success: false, error: 'taskId and valid status are required' });
+        return;
+      }
+
+      const payload = {
+        taskId,
+        roomId,
+        status,
+        previousStatus: previousStatus || null,
+        updatedBy: updatedBy || null,
+        timestamp: Date.now(),
+      };
+
+      socket.to(roomId).emit('task_updated', payload);
+
+      if (typeof ack === 'function') ack({ success: true, task: payload });
+    } catch (err) {
+      logger.error('task_update_status error', { error: err.message, socketId: socket.id });
+      if (typeof ack === 'function') ack({ success: false, error: err.message });
+    }
+  });
+
+  socket.on('task_status_update', async (data, ack) => {
+    try {
+      const { teamRoomId, taskId, newStatus, previousStatus, updatedBy } = data || {};
+
+      if (typeof teamRoomId !== 'string' || !/^[a-zA-Z0-9\-_]{1,100}$/.test(teamRoomId)) {
+        if (typeof ack === 'function') ack({ success: false, error: 'Invalid teamRoomId' });
+        return;
+      }
+
+      if (!taskId || !newStatus) {
+        if (typeof ack === 'function') ack({ success: false, error: 'taskId and newStatus required' });
+        return;
+      }
+
+      if (!['Todo', 'In_Progress', 'Review', 'Done'].includes(newStatus)) {
+        if (typeof ack === 'function') ack({ success: false, error: `Invalid status: ${newStatus}` });
+        return;
+      }
+
+      const payload = {
+        taskId,
+        teamRoomId,
+        newStatus,
+        previousStatus: previousStatus || null,
+        updatedBy: updatedBy || null,
+        timestamp: Date.now(),
+      };
+
+      socket.to(teamRoomId).emit('task_updated', payload);
+
+      if (typeof ack === 'function') ack({ success: true, task: payload });
+    } catch (err) {
+      logger.error('task_status_update error', { error: err.message, socketId: socket.id });
+      if (typeof ack === 'function') ack({ success: false, error: err.message });
     }
   });
 
