@@ -1,4 +1,3 @@
-```js id="zoyvgr"
 /**
  * Socket.IO Client Wrapper
  * Ensures exactly one active socket connection exists
@@ -292,4 +291,3 @@ export default {
   isConnected,
   getSocketId,
 };
-```

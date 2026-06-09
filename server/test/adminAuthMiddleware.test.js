@@ -350,7 +350,6 @@ test(
     );
   }
 );
-```
     assert.equal(res.statusCode(), 401);
     assert.equal(res.responseData().error, 'No active session to revoke');
   });

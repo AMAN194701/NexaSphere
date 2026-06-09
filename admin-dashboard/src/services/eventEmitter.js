@@ -129,4 +129,3 @@ export const EVENTS = {
   ONLINE_RECONNECTED:
     "online:reconnected",
 };
-```

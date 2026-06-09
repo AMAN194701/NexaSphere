@@ -1,4 +1,3 @@
-```js id="lc9gvr"
 const API_BASE =
   import.meta.env.VITE_API_BASE || "http://localhost:8080";
 
@@ -234,4 +233,3 @@ export const auth = {
     return this.isOffline();
   },
 };
-```
