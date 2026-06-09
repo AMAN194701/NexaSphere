@@ -47,6 +47,19 @@ export const activityEventsRepository = {
     });
   },
 
+  async listAll() {
+    return withDb(async (client) => {
+      const { rows } = await client.query('select * from activity_events order by created_at desc');
+      const result = {};
+      for (const row of rows) {
+        const key = row.activity_key;
+        if (!result[key]) result[key] = [];
+        result[key].push(mapRow(row));
+      }
+      return result;
+    });
+  },
+
   async create(activityKey, event) {
     return withDb(async (client) => {
       const { rows } = await client.query(

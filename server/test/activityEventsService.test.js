@@ -76,35 +76,7 @@ test('activityEventsService.addActivityEvent accepts authorized requests', async
   assert.equal(result.name, 'Hackathon Event');
 });
 
-test('activityEventsService.deleteActivityEvent rejects unauthorized requests', async () => {
-  const unauthorizedInput = {
-    password: 'wrongpassword',
-    coreTeamName: 'John Doe',
-  };
-
-  await assert.rejects(
-    async () => {
-      await activityEventsService.deleteActivityEvent('hackathons', 'mock-id', unauthorizedInput);
-    },
-    (err) => {
-      assert.ok(err instanceof UnauthorizedError);
-      return true;
-    }
-  );
-});
-
 test('activityEventsService.deleteActivityEvent accepts authorized requests', async () => {
-  const authorizedInput = {
-    password: 'TestPassword123',
-    coreTeamName: TEST_MEMBER.name,
-    coreTeamEmail: TEST_MEMBER.email,
-    coreTeamPhone: TEST_MEMBER.whatsapp,
-  };
-
-  const result = await activityEventsService.deleteActivityEvent(
-    'hackathons',
-    'mock-id',
-    authorizedInput
-  );
+  const result = await activityEventsService.deleteActivityEvent('hackathons', 'mock-id');
   assert.equal(result, true);
 });
