@@ -84,7 +84,7 @@ export function _onConnection(socket) {
   if (socket.adminAuthenticated) {
     socket.join('admin-room');
     const role = socket.adminSession?.metadata?.role;
-    if (role) {
+    if (role && typeof role === 'string') {
       socket.join(`admin-room:${role}`);
     }
   }
@@ -298,7 +298,7 @@ export function _onConnection(socket) {
       socket.adminAuthenticated = true;
       socket.join('admin-room');
       const role = session.metadata?.role;
-      if (role) {
+      if (role && typeof role === 'string') {
         socket.join(`admin-room:${role}`);
       }
       logger.info('Admin authenticated via socket event', {
