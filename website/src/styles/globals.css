@@ -282,6 +282,17 @@ a {
   animation-delay: -3.8s;
 }
 
+/* Respect prefers-reduced-motion: disable activity card animations */
+@media (prefers-reduced-motion: reduce) {
+  .ag {
+    animation: none;
+    will-change: auto;
+  }
+  .ns-act-card {
+    animation: none !important;
+  }
+}
+
 @media (max-width: 768px) {
   .section {
     padding: 68px 0;

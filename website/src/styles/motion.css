@@ -321,6 +321,26 @@
   transition: transform 0.08s !important;
 }
 
+/* Respect prefers-reduced-motion: disable all activity card motion */
+@media (prefers-reduced-motion: reduce) {
+  .ns-act-card {
+    transition: none !important;
+  }
+  .ns-act-card:hover {
+    transform: none !important;
+    box-shadow: none !important;
+  }
+  .ns-act-card:hover .ns-act-icon {
+    transform: none !important;
+    transition: none !important;
+    filter: none;
+  }
+  .ns-act-card:active {
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
 .team-card:hover {
   transform: translateY(-8px) scale(1.025) !important;
   box-shadow:
