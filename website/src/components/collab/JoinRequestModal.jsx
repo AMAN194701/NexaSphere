@@ -15,6 +15,16 @@ export default function JoinRequestModal({ team, onClose, onSubmit }) {
   // returned to it when the modal closes.
   const triggerRef = useRef(document.activeElement);
 
+  // Reset form state whenever the modal opens (team changes)
+  // This ensures users start with a fresh form each time they open the modal
+  useEffect(() => {
+    setPitch('');
+    setSkills('');
+    setGithub('');
+    setSuccess(false);
+    setLoading(false);
+  }, [team?.id]);
+
   // Move focus into the modal on mount and return it on unmount.
   useEffect(() => {
     const modal = modalRef.current;
@@ -28,7 +38,7 @@ export default function JoinRequestModal({ team, onClose, onSubmit }) {
         triggerRef.current.focus();
       }
     };
-  }, []);
+  }, [team?.id]);
 
   // Focus trap + Escape key handler
   useEffect(() => {
@@ -66,15 +76,6 @@ export default function JoinRequestModal({ team, onClose, onSubmit }) {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
 
-  useEffect(() => {
-  if (modalRef.current) {
-    const firstFocusable = modalRef.current.querySelector(
-      'button, input, textarea, select, a[href]'
-    );
-
-    firstFocusable?.focus();
-  }
-}, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
