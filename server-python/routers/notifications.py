@@ -1,5 +1,6 @@
 import os
 import hmac
+import logging
 from typing import Optional
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
@@ -20,8 +21,12 @@ INTERNAL_SERVICE_SECRET = os.getenv("INTERNAL_SERVICE_SECRET", "")
 def _verify_service_auth(x_service_auth: Optional[str] = Header(default=None)) -> None:
     """Dependency that validates the internal service auth header string securely."""
     if not INTERNAL_SERVICE_SECRET:
-        return
-    
+        logger.critical("INTERNAL_SERVICE_SECRET is not configured — blocking all requests")
+        raise HTTPException(
+            status_code=500,
+            detail="Server misconfiguration: internal auth secret is not set",
+        )
+
     if not x_service_auth or not hmac.compare_digest(x_service_auth, INTERNAL_SERVICE_SECRET):
         raise HTTPException(
             status_code=401, 
