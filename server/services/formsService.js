@@ -6,9 +6,97 @@ import { getPublicAppUrl } from '../utils/publicAppUrl.js';
 import { sendWelcomeVerificationEmail } from './emailService.js';
 import { broadcastSSEEvent } from './sseService.js';
 import { emitToRoom, getRoom } from '../config/socket.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 function toSafeString(value, max = 4000) {
   return String(value ?? '').trim().slice(0, max);
+}
+
+// ── Offline retry queue ────────────────────────────────────────────────
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const QUEUE_FILE = path.join(__dirname, '..', 'data', 'pending-forms.json');
+
+const MAX_RETRIES = 5;
+const BASE_DELAY_MS = 5000; // 5 seconds, doubled each retry
+
+let pendingQueue = [];
+let processing = false;
+
+function loadQueue() {
+  try {
+    if (fs.existsSync(QUEUE_FILE)) {
+      pendingQueue = JSON.parse(fs.readFileSync(QUEUE_FILE, 'utf8'));
+    }
+  } catch {
+    pendingQueue = [];
+  }
+}
+
+function saveQueue() {
+  try {
+    const dir = path.dirname(QUEUE_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(QUEUE_FILE, JSON.stringify(pendingQueue, null, 2), 'utf8');
+  } catch (err) {
+    console.error('[Forms Queue] Failed to persist queue:', err);
+  }
+}
+
+function enqueue(formType, payload) {
+  pendingQueue.push({
+    formType,
+    payload,
+    retries: 0,
+    timestamp: Date.now(),
+  });
+  saveQueue();
+  if (!processing) processQueue();
+}
+
+function dequeue(index) {
+  pendingQueue.splice(index, 1);
+  saveQueue();
+}
+
+async function processQueue() {
+  if (processing || pendingQueue.length === 0) return;
+  processing = true;
+
+  const batch = [...pendingQueue];
+  pendingQueue = [];
+
+  for (let i = 0; i < batch.length; i++) {
+    const item = batch[i];
+    try {
+      await formsService.appendToSupabaseForms(item.formType, item.payload);
+      // success — drop from queue (do NOT re-add)
+    } catch {
+      item.retries++;
+      if (item.retries < MAX_RETRIES) {
+        batch.push(item);
+      } else {
+        console.error(`[Forms Queue] Max retries exceeded for ${item.formType}:`, item.payload);
+      }
+    }
+  }
+
+  pendingQueue = batch;
+  saveQueue();
+  processing = false;
+
+  if (pendingQueue.length > 0) {
+    const delay = BASE_DELAY_MS * Math.pow(2, pendingQueue[0].retries);
+    setTimeout(processQueue, Math.min(delay, 120000));
+  }
+}
+
+// Load persisted queue on startup
+loadQueue();
+if (pendingQueue.length > 0) {
+  setTimeout(processQueue, 3000);
 }
 
 export const formsService = {
@@ -75,10 +163,18 @@ export const formsService = {
     try {
       const payload = normalizeFormSubmission(formType, body || {});
       const savedToSupabase = await this.appendToSupabaseForms(formType, payload);
+      let savedToSheet = false;
       try {
         await this.appendFormToSheet(formType, payload);
+        savedToSheet = true;
       } catch (sheetErr) {
-        if (!savedToSupabase) throw sheetErr;
+        console.error('[Forms Service] Google Sheets append failed:', sheetErr);
+      }
+
+      // If both storage backends failed, queue for retry instead of losing data
+      if (!savedToSupabase && !savedToSheet) {
+        enqueue(formType, payload);
+        console.warn(`[Forms Service] Queued ${formType} submission for retry (both storage backends failed)`);
       }
 
       // Trigger standard welcome verification email

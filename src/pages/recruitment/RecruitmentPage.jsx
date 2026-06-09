@@ -935,23 +935,42 @@ export default function RecruitmentPage({ onBack }) {
     topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
+  const CACHE_KEY = 'ns_recruitment_draft';
+
+  // Restore cached draft on mount
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && typeof parsed === 'object') {
+          setForm(parsed);
+        }
+      }
+    } catch { /* ignore */ }
+  }, []);
+
   async function submit() {
     setErr('');
     setBusy(true);
-    try {
-      const payload = {
-        fullName:     form.fullName.trim(),
-        collegeEmail: form.collegeEmail.trim().toLowerCase(),
-        whatsapp:     form.whatsapp,
-        year:         form.year,
-        branch:       form.branch === 'Other' ? (form.branchOther || 'Other') : form.branch,
-        section:      form.section === 'Other' ? (form.sectionOther || 'Other') : form.section,
-        role:         form.role,
-        interests:    Array.isArray(form.interests) ? form.interests.join(', ') : '',
-        skills:       form.skills.trim(),
-        whyJoin:      form.whyJoin.trim(),
-      };
 
+    const payload = {
+      fullName:     form.fullName.trim(),
+      collegeEmail: form.collegeEmail.trim().toLowerCase(),
+      whatsapp:     form.whatsapp,
+      year:         form.year,
+      branch:       form.branch === 'Other' ? (form.branchOther || 'Other') : form.branch,
+      section:      form.section === 'Other' ? (form.sectionOther || 'Other') : form.section,
+      role:         form.role,
+      interests:    Array.isArray(form.interests) ? form.interests.join(', ') : '',
+      skills:       form.skills.trim(),
+      whyJoin:      form.whyJoin.trim(),
+    };
+
+    // Cache the payload before submitting so partial data is not lost on error
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify(form)); } catch { /* ignore */ }
+
+    try {
       const base = (import.meta?.env?.VITE_API_BASE || '').replace(/\/+$/, '');
       const url = base ? `${base}/api/submissions/recruitment` : '/api/submissions/recruitment';
 
@@ -963,6 +982,9 @@ export default function RecruitmentPage({ onBack }) {
       if (data && data.ok === false) {
         throw new Error(data?.error || 'Submission failed');
       }
+
+      // Clear cached draft on success
+      try { localStorage.removeItem(CACHE_KEY); } catch { /* ignore */ }
 
       setSubmittedEmail(payload.collegeEmail);
       setDone(true);
