@@ -33,16 +33,14 @@ async function initializeSentry(app) {
   Sentry.init({
     dsn: dsn,
     environment: process.env.NODE_ENV || 'development',
-    integrations: [
-      ...(nodeProfilingIntegration ? [nodeProfilingIntegration()] : []),
-    ],
+    integrations: [...(nodeProfilingIntegration ? [nodeProfilingIntegration()] : [])],
     tracesSampleRate: isDevelopment ? 1.0 : 0.1,
     profilesSampleRate: isDevelopment ? 1.0 : 0.1,
     attachStacktrace: true,
   });
 
   return Sentry;
-};
+}
 
 /**
  * Add Sentry error handler middleware
@@ -50,7 +48,11 @@ async function initializeSentry(app) {
  */
 function addSentryErrorHandler(app) {
   // The error handler must be the last middleware on the app
-  Sentry.setupExpressErrorHandler(app);
+  if (typeof Sentry.setupExpressErrorHandler === 'function') {
+    Sentry.setupExpressErrorHandler(app);
+  } else if (Sentry.Handlers && typeof Sentry.Handlers.errorHandler === 'function') {
+    app.use(Sentry.Handlers.errorHandler());
+  }
 }
 
 /**

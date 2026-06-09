@@ -85,38 +85,42 @@ const activeTransports = [
     level: consoleLevel,
     format: winston.format.combine(winston.format.colorize({ all: true }), baseFileFormat),
   }),
-
-  // Error logs
-  new winston.transports.File({
-    filename: path.join(logsDir, 'error.log'),
-    level: 'error',
-    format: winston.format.uncolorize(),
-  }),
-
-  new winston.transports.File({
-    filename: path.join(logsDir, 'combined.log'),
-    level: fileBaselineLevel, // <-- Add this line
-    format: winston.format.uncolorize(),
-  }),
-
-  // Daily rotate logs (requires winston-daily-rotate-file)
-  new DailyRotateFile({
-    filename: path.join(logsDir, 'application-%DATE%.log'),
-    datePattern: 'YYYY-MM-DD',
-    level: fileBaselineLevel, // <-- Add this line
-    maxSize: '20m',
-    maxFiles: '14d',
-    format: winston.format.uncolorize(),
-    utc: true,
-  }),
 ];
+
+if (isStorageWritable) {
+  activeTransports.push(
+    // Error logs
+    new winston.transports.File({
+      filename: path.join(logsDir, 'error.log'),
+      level: 'error',
+      format: winston.format.uncolorize(),
+    }),
+
+    new winston.transports.File({
+      filename: path.join(logsDir, 'combined.log'),
+      level: fileBaselineLevel,
+      format: winston.format.uncolorize(),
+    }),
+
+    // Daily rotate logs (requires winston-daily-rotate-file)
+    new DailyRotateFile({
+      filename: path.join(logsDir, 'application-%DATE%.log'),
+      datePattern: 'YYYY-MM-DD',
+      level: fileBaselineLevel,
+      maxSize: '20m',
+      maxFiles: '14d',
+      format: winston.format.uncolorize(),
+      utc: true,
+    })
+  );
+}
 
 // Create logger instance
 const logger = winston.createLogger({
   level: globalGatekeeperLevel, // <-- Change this line
   levels,
   format: baseFileFormat,
-  transports,
+  transports: activeTransports,
   exceptionHandlers: isStorageWritable
     ? [
         new DailyRotateFile({

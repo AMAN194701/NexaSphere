@@ -324,11 +324,13 @@ app.get('/api/content/events', eventsController.listEvents);
 app.get('/api/content/activity-events/:activityKey', activityEventsController.listActivityEvents);
 app.post(
   '/api/content/activity-events/:activityKey',
+  adminAuth,
   protectedActionRateLimiter,
   activityEventsController.addActivityEvent
 );
 app.delete(
   '/api/content/activity-events/:activityKey/:eventId',
+  adminAuth,
   protectedActionRateLimiter,
   activityEventsController.deleteActivityEvent
 );
@@ -871,11 +873,24 @@ let server;
 if (process.env.NODE_ENV !== 'test') {
   if (!process.env.VERCEL) {
     const boot = HAS_SUPABASE ? studentUsersRepository.ensureSchema() : ensureContentFile();
-    boot.then(() => {
-      server = app.listen(port, () => {
-        console.log(`NexaSphere server listening on http://localhost:${port}`);
+    boot
+      .then(() => {
+        server = app.listen(port, () => {
+          console.log(`NexaSphere server listening on http://localhost:${port}`);
+        });
+        initializeSocketIO(server);
+      })
+      .catch((err) => {
+        console.warn(
+          `[Server Startup] Database schema check failed: ${err.message}. Starting server anyway in offline fallback mode.`
+        );
+        server = app.listen(port, () => {
+          console.log(
+            `NexaSphere server listening on http://localhost:${port} (offline fallback mode)`
+          );
+        });
+        initializeSocketIO(server);
       });
-    });
   } else {
     loadPersistedPushSubscriptions();
     server = app.listen(port, () => {
