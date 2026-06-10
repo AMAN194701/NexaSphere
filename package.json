@@ -48,7 +48,8 @@
     "@rollup/rollup-linux-arm64-gnu": "4.60.0",
     "@rollup/rollup-linux-arm64-musl": "4.60.0",
     "@rollup/rollup-linux-x64-gnu": "4.60.0",
-    "@rollup/rollup-linux-x64-musl": "4.60.0"
+    "@rollup/rollup-linux-x64-musl": "4.60.0",
+    "@rolldown/binding-linux-x64-gnu": "1.0.3"
   },
   "dependencies": {
     "jwt-decode": "^4.0.0",
