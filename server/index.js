@@ -748,7 +748,7 @@ function clearPasskeyAttempts(username, ip) {
   failedPasskeyAttemptsByUsername.delete(userKey);
 }
 
-app.get('/api/notifications', async (req, res) => {
+app.get('/api/notifications', adminAuth, async (req, res) => {
   try {
     const userId = req.query.userId || 'global';
     const offset = parseInt(req.query.offset, 10) || 0;
@@ -761,7 +761,7 @@ app.get('/api/notifications', async (req, res) => {
 });
 
 // Notification Preferences
-app.get('/api/notifications/preferences', async (req, res) => {
+app.get('/api/notifications/preferences', adminAuth, async (req, res) => {
   try {
     const userId = req.query.userId || 'global';
     const prefs = await notificationPreferencesRepository.list(userId);
@@ -771,7 +771,7 @@ app.get('/api/notifications/preferences', async (req, res) => {
   }
 });
 
-app.put('/api/notifications/preferences', async (req, res) => {
+app.put('/api/notifications/preferences', adminAuth, async (req, res) => {
   try {
     const userId = req.body.userId || 'global';
     const { category, email, push, in_app } = req.body;
@@ -787,7 +787,7 @@ app.put('/api/notifications/preferences', async (req, res) => {
   }
 });
 
-app.put('/api/notifications/preferences/bulk', async (req, res) => {
+app.put('/api/notifications/preferences/bulk', adminAuth, async (req, res) => {
   try {
     const userId = req.body.userId || 'global';
     const { preferences } = req.body;
