@@ -85,3 +85,24 @@ When contributing code, please keep these in mind:
 - **Keep dependencies updated** — run `npm audit` and address high/critical advisories
 - **Follow least-privilege** — request only the permissions your code needs
 - **Use parameterised queries** — never concatenate user input into SQL strings
+
+
+## Security Patch Log
+
+| Date | Package | Severity | Fix Applied | PR |
+|------|---------|----------|-------------|-----|
+| 2026-06-09 | Automated scanning setup | - | Added dependency-scan.yml + dependabot.yml | #1697 |
+
+## Automated Scanning
+
+This project uses:
+- **npm audit** — runs on every push and weekly schedule
+- **Dependabot** — auto-creates PRs for patch updates
+- **GitHub Actions** — fails CI on critical vulnerabilities
+
+To manually run a scan:
+```bash
+npm audit                    # Check vulnerabilities
+npm audit fix                # Auto-fix safe patches
+npm audit fix --force        # Force fix (may break things, review carefully)
+```
