@@ -6,7 +6,7 @@
 
 export const up = (pgm) => {
   pgm.createTable('users', {
-    id: { type: 'uuid', primaryKey: true, notNull: true, default: pgm.func('gen_random_uuid()') },
+    id: { type: 'text', primaryKey: true, notNull: true },
     username: { type: 'text', notNull: true },
     display_name: { type: 'text' },
     avatar_url: { type: 'text' },
