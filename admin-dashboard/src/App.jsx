@@ -5,6 +5,7 @@ import { Toast } from './components/Toast';
 import { OfflineBanner } from './components/OfflineBanner';
 import { LoginPage } from './pages/LoginPage';
 import { UnauthorizedPage } from './pages/UnauthorizedPage';
+import { ForumManager } from './pages/ForumManager';
 import { DashboardHome } from './pages/DashboardHome';
 import { EventsManager } from './pages/EventsManager';
 import { ActivityEventsManager } from './pages/ActivityEventsManager';
@@ -13,9 +14,7 @@ import { MembershipResponsesManager } from './pages/MembershipResponsesManager';
 import { RecruitmentResponsesManager } from './pages/RecruitmentResponsesManager';
 import { CertificateManager } from './pages/CertificateManager';
 import { AnnouncementsManager } from './pages/AnnouncementsManager';
-import { EventRegistrations } from './pages/EventRegistrations';
-import { EventScanner } from './pages/EventScanner';
-import { EventAnalytics } from './pages/EventAnalytics';
+import { PortfolioManager } from './pages/PortfolioManager';
 import './styles/admin.css';
 
 function RequireAuth() {
@@ -64,9 +63,8 @@ export default function App() {
             <Route path="/dashboard/recruitment" element={<RecruitmentResponsesManager />} />
             <Route path="/dashboard/certificates" element={<CertificateManager />} />
             <Route path="/dashboard/announcements" element={<AnnouncementsManager />} />
-            <Route path="/dashboard/event-registrations" element={<EventRegistrations />} />
-            <Route path="/dashboard/event-scanner" element={<EventScanner />} />
-            <Route path="/dashboard/event-analytics" element={<EventAnalytics />} />
+            <Route path="/dashboard/portfolios" element={<PortfolioManager />} />
+            <Route path="/dashboard/forum" element={<ForumManager />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />

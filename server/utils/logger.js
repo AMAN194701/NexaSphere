@@ -77,12 +77,61 @@ const baseFileFormat = winston.format.combine(
       Object.keys(cleanArgs).length ? JSON.stringify(cleanArgs, null, 2) : ''
     }`;
   })
+// Define log format
+// Define base log layout template
+const logLayout = winston.format.printf((info) => {
+  const { timestamp, level, message, ...args } = info;
+
+  const ts = timestamp ? timestamp.slice(0, 19).replace("T", " ") : "";
+
+  return `${ts} [${level}]: ${message} ${
+    Object.keys(args).length ? JSON.stringify(args, null, 2) : ""
+  }`;
+});
+
+// Define clean log format for file transports
+const format = winston.format.combine(
+  winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss:ms" }),
+  winston.format.errors({ stack: true }),
+  logLayout
 );
 
-// Define transports safely based on storage permissions
-const activeTransports = [
+// Define transports
+const transports = [
+  // Console transport (Colorizes exclusively for terminal output)
   new winston.transports.Console({
     format: winston.format.combine(winston.format.colorize({ all: true }), baseFileFormat),
+    level: consoleLevel, // <-- Add this line
+    format: winston.format.combine(
+      winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss:ms" }),
+      winston.format.errors({ stack: true }),
+      winston.format.colorize({ all: true }),
+      logLayout
+    ),
+  }),
+
+  // Error logs
+  new winston.transports.File({
+    filename: path.join(logsDir, 'error.log'),
+    level: 'error',
+    format: winston.format.uncolorize(),
+  }),
+
+  new winston.transports.File({
+    filename: path.join(logsDir, 'combined.log'),
+    level: fileBaselineLevel, // <-- Add this line
+    format: winston.format.uncolorize(),
+  }),
+
+  // Daily rotate logs (requires winston-daily-rotate-file)
+  new DailyRotateFile({
+    filename: path.join(logsDir, 'application-%DATE%.log'),
+    datePattern: 'YYYY-MM-DD',
+    level: fileBaselineLevel, // <-- Add this line
+    maxSize: '20m',
+    maxFiles: '14d',
+    format: winston.format.uncolorize(),
+    utc: true,
   }),
 ];
 
@@ -109,7 +158,7 @@ if (isStorageWritable) {
 }
 // Create logger instance
 const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'info',
+  level: globalGatekeeperLevel, // <-- Change this line
   levels,
   format: baseFileFormat,
   transports: activeTransports,

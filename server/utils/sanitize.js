@@ -1,3 +1,5 @@
+import DOMPurify from 'isomorphic-dompurify';
+
 const HTML_ESCAPE_MAP = {
   '&': '&amp;',
   '<': '&lt;',
@@ -330,6 +332,12 @@ export function isSafePortfolioUrl(value) {
   return isSafeUrl(value);
 }
 
+function validateWhatsApp(value) {
+  return String(value ?? '')
+    .replace(/\D/g, '')
+    .slice(0, 30);
+}
+
 const SAFE_URL_PROTOCOLS = /^(https?:\/\/|\/[^\/])/i;
 const URL_MAX_LENGTH = 2048;
 
@@ -350,10 +358,8 @@ function validateSection(str) {
 function stripHtml(value) {
   if (value == null) return '';
   let text = String(value);
-  text = text.replace(SCRIPT_PATTERN, '');
-  text = text.replace(STYLE_PATTERN, '');
-  text = text.replace(HTML_COMMENT_PATTERN, '');
-  text = text.replace(HTML_TAG_PATTERN, '');
+  // Clean using DOMPurify with no tags/attributes allowed (plain text output)
+  text = DOMPurify.sanitize(text, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
   text = text.replace(CONTROL_CHAR_PATTERN, '');
   text = text.replace(NULL_BYTE_PATTERN, '');
   return text;
@@ -368,8 +374,6 @@ function isSafeUrl(value) {
   const trimmed = value.trim();
   if (trimmed.length === 0) return false;
   if (trimmed.length > URL_MAX_LENGTH) return false;
-  // Reject known dangerous protocols explicitly.  The regex below
-  // also catches javascript:, data:, vbscript:, file:, etc.
   if (/^\s*(javascript|data|vbscript|file|about|chrome|jar|mocha):/i.test(trimmed)) {
     return false;
   }
@@ -559,12 +563,6 @@ export function sanitizePortfolioOutput(record) {
 
 export function isSafePortfolioUrl(value) {
   return isSafeUrl(value);
-}
-
-function validateWhatsApp(str) {
-  const v = String(str || '').replace(/[^\d]/g, '');
-  if (v.length !== 10) throw new Error('WhatsApp must be exactly 10 digits');
-  return v;
 }
 
 export {

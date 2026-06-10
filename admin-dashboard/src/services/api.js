@@ -254,7 +254,7 @@ function notifyContentUpdated(key) {
   // Post to the sync-bridge iframe embedded by the website
   const bridge = document.querySelector('iframe[title="NexaSphere Sync Bridge"]');
   if (bridge?.contentWindow) {
-    bridge.contentWindow.postMessage({ type: 'ns-sync', key }, '*');
+    bridge.contentWindow.postMessage({ type: 'ns-sync', key }, window.location.origin);
   }
 }
 
@@ -271,7 +271,6 @@ async function fetchWithAuth(url, options = {}) {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${auth.getToken()}`,
           ...options.headers,
         },
       });
@@ -389,6 +388,32 @@ async function fetchWithAuth(url, options = {}) {
             },
           ],
         });
+      }
+
+      // /api/admin/portfolios
+      else if (url.startsWith('/api/admin/portfolios')) {
+        let portfolios = getDb('portfolios', []);
+        if (method === 'GET') {
+          const queryParams = new URLSearchParams(url.split('?')[1] || '');
+          const username = queryParams.get('username');
+          if (username) {
+            const found = portfolios.find((p) => p.username === username);
+            resolve({ portfolios: found ? [found] : [] });
+          } else {
+            resolve({ portfolios });
+          }
+        }
+        if (method === 'DELETE' && url.includes('/achievements/')) {
+          resolve({ ok: true });
+        }
+        if (method === 'POST' && url.includes('/achievements')) {
+          const newAch = {
+            ...body,
+            id: Date.now().toString(),
+            awarded_at: new Date().toISOString(),
+          };
+          resolve({ achievement: newAch });
+        }
       }
 
       // /api/admin/announcements
@@ -752,6 +777,24 @@ export const api = {
     },
   },
 
+  portfolios: {
+    getAll: (params = '') => fetchWithAuth(`/api/admin/portfolios${params}`),
+    getAchievements: (username) =>
+      fetchWithAuth(`/api/admin/portfolios/${encodeURIComponent(username)}/achievements`),
+    awardAchievement: (username, achievement) =>
+      fetchWithAuth(`/api/admin/portfolios/${encodeURIComponent(username)}/achievements`, {
+        method: 'POST',
+        body: JSON.stringify(achievement),
+      }),
+    removeAchievement: (username, name) =>
+      fetchWithAuth(
+        `/api/admin/portfolios/${encodeURIComponent(username)}/achievements/${encodeURIComponent(name)}`,
+        {
+          method: 'DELETE',
+        }
+      ),
+  },
+
   announcements: {
     getAll: () => fetchWithAuth('/api/admin/announcements'),
     create: async (announcement) => {
@@ -809,6 +852,51 @@ export const api = {
       });
       broadcastContentUpdate('announcements');
       notifyContentUpdated('ns_db_announcements');
+    },
+  },
+  forum: {
+    getAll: async (params = {}) => {
+      const query = new URLSearchParams(params).toString();
+      if (auth.isOfflineMode()) {
+        return { threads: [], total: 0 };
+      }
+      return fetchWithAuth(`/api/admin/forum/threads${query ? `?${query}` : ''}`);
+    },
+    moderate: async (id, status) => {
+      if (auth.isOfflineMode()) {
+        eventEmitter.emit(EVENTS.NOTIFY, { type: 'warning', message: 'Offline mode' });
+        return;
+      }
+      const result = await fetchWithAuth(`/api/admin/forum/threads/${id}/moderate`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      eventEmitter.emit(EVENTS.NOTIFY, { type: 'success', message: `Thread ${status}` });
+      broadcastContentUpdate('forum');
+      return result;
+    },
+    delete: async (id) => {
+      if (auth.isOfflineMode()) {
+        eventEmitter.emit(EVENTS.NOTIFY, { type: 'warning', message: 'Offline mode' });
+        return;
+      }
+      await fetchWithAuth(`/api/forum/threads/${id}`, { method: 'DELETE' });
+      eventEmitter.emit(EVENTS.NOTIFY, { type: 'success', message: 'Thread deleted' });
+      broadcastContentUpdate('forum');
+    },
+    moderateReply: async (id, status) => {
+      if (auth.isOfflineMode()) {
+        eventEmitter.emit(EVENTS.NOTIFY, { type: 'warning', message: 'Offline mode' });
+        return;
+      }
+      const result = await fetchWithAuth(`/api/admin/forum/replies/${id}/moderate`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      eventEmitter.emit(EVENTS.NOTIFY, { type: 'success', message: `Reply ${status}` });
+      return result;
     },
   },
 };

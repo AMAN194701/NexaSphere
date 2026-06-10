@@ -10,7 +10,16 @@ export default function JoinRequestModal({ team, onClose, onSubmit }) {
   const [github, setGithub] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-
+  const resetForm = () => {
+    setPitch('');
+    setSkills('');
+    setGithub('');
+    setSuccess(false);
+  };
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
   // Store the element that triggered the modal so focus can be
   // returned to it when the modal closes.
   const triggerRef = useRef(document.activeElement);
@@ -34,7 +43,7 @@ export default function JoinRequestModal({ team, onClose, onSubmit }) {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
-        onClose();
+        handleClose();
         return;
       }
 
@@ -75,12 +84,18 @@ export default function JoinRequestModal({ team, onClose, onSubmit }) {
       firstFocusable?.focus();
     }
   }, []);
+  useEffect(() => {
+    resetForm();
+  }, [team?.id]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
       await onSubmit({ pitch, skills, github, teamId: team.id });
+      setPitch('');
+      setSkills('');
+      setGithub('');
       setSuccess(true);
     } catch (err) {
       console.error(err);
@@ -126,7 +141,7 @@ export default function JoinRequestModal({ team, onClose, onSubmit }) {
               Join {team?.name}
             </h2>
             <button
-              onClick={onClose}
+              onClick={handleClose}
               style={{
                 background: 'transparent',
                 border: 'none',
@@ -170,7 +185,7 @@ export default function JoinRequestModal({ team, onClose, onSubmit }) {
                 The team leader will be notified.
               </p>
               <button
-                onClick={onClose}
+                onClick={handleClose}
                 autoFocus
                 style={{
                   marginTop: '20px',
@@ -286,7 +301,7 @@ export default function JoinRequestModal({ team, onClose, onSubmit }) {
               <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={handleClose}
                   style={{
                     flex: 1,
                     padding: '12px',

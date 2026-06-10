@@ -77,10 +77,8 @@ export function addSSEClient(res, adminSession = null) {
       maxClients: MAX_SSE_CLIENTS,
     });
     try {
-      res.end();
-    } catch (_) {
-      // ignore
-    }
+      res.status(503).end('Too many SSE connections');
+    } catch (_) {}
     return;
   }
 
