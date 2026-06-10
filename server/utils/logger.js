@@ -4,9 +4,9 @@
  */
 
 import winston from 'winston';
-import { appContext } from '../config/appContext.js';
 import path from 'path';
 import DailyRotateFile from 'winston-daily-rotate-file';
+import { getLogContext } from './logContext.js';
 
 // Create logs directory if it doesn't exist
 // Create logs directory if it doesn't exist (with permission handling)
@@ -55,21 +55,34 @@ const colors = {
 
 winston.addColors(colors);
 
-// Define transports
-// 1. Define the base format WITHOUT colorize
-const baseFileFormat = winston.format.combine(
+const LOG_FORMAT = (process.env.LOG_FORMAT || 'text').toLowerCase();
+
+const correlationFormat = winston.format((info) => {
+  const ctx = getLogContext();
+  Object.assign(info, ctx);
+  return info;
+});
+
+const jsonFormat = winston.format.combine(
+  winston.format.timestamp(),
+  winston.format.errors({ stack: true }),
+  correlationFormat(),
+  winston.format.json()
+);
+
+const textFormat = winston.format.combine(
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),
   winston.format.errors({ stack: true }),
   winston.format.splat(),
   winston.format.printf((info) => {
     const { timestamp, level, message, ...args } = info;
-    const ts = typeof timestamp === 'string' ? timestamp : new Date().toISOString();
-
     return `${timestamp} [${level}]: ${message} ${
       Object.keys(args).length ? JSON.stringify(args, null, 2) : ''
     }`;
   })
 );
+
+const baseFileFormat = LOG_FORMAT === 'json' ? jsonFormat : textFormat;
 
 // Determine runtime levels: Console is dynamic, historical files maintain info baseline
 const consoleLevel = process.env.LOG_LEVEL || 'info';
@@ -83,7 +96,10 @@ const activeTransports = [
   // Console transport
   new winston.transports.Console({
     level: consoleLevel,
-    format: winston.format.combine(winston.format.colorize({ all: true }), baseFileFormat),
+    format:
+      LOG_FORMAT === 'json'
+        ? baseFileFormat
+        : winston.format.combine(winston.format.colorize({ all: true }), baseFileFormat),
   }),
 
   // Error logs
@@ -105,7 +121,7 @@ const activeTransports = [
     datePattern: 'YYYY-MM-DD',
     level: fileBaselineLevel, // <-- Add this line
     maxSize: '20m',
-    maxFiles: '14d',
+    maxFiles: '30d',
     format: winston.format.uncolorize(),
     utc: true,
   }),
@@ -123,7 +139,7 @@ const logger = winston.createLogger({
           filename: path.join(logsDir, 'exceptions-%DATE%.log'),
           datePattern: 'YYYY-MM-DD',
           maxSize: '20m',
-          maxFiles: '14d',
+          maxFiles: '30d',
           format: baseFileFormat, //  FIX: Ensures clean exception dumps
           utc: true,
         }),
@@ -135,7 +151,7 @@ const logger = winston.createLogger({
           filename: path.join(logsDir, 'rejections-%DATE%.log'),
           datePattern: 'YYYY-MM-DD',
           maxSize: '20m',
-          maxFiles: '14d',
+          maxFiles: '30d',
           format: baseFileFormat, //  FIX: Ensures clean rejection dumps
           utc: true,
         }),
