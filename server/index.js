@@ -5,7 +5,6 @@ import { getActiveTraceId } from './observability/tracing.js';
 import helmet from 'helmet';
 import express from 'express';
 import cors from 'cors';
-import morgan from 'morgan';
 import { body, validationResult } from 'express-validator';
 import { EventEmitter } from 'events';
 import { google } from 'googleapis';
@@ -29,6 +28,7 @@ import adminRouter from './routes/admin.js';
 import { validateEnvironment } from './utils/envValidator.js';
 import { performanceMonitor } from './middleware/performanceMonitor.js';
 import { tracingMiddleware } from './middleware/tracingMiddleware.js';
+import { apiRequestLogger } from './middleware/apiRequestLogger.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { initializeSentry, addSentryErrorHandler } from './utils/sentry.js';
 import {
@@ -80,16 +80,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const CONTENT_FILE = path.join(__dirname, 'data', 'content.json');
 
-
-
 validateEnvironment();
 
 const app = express();
 
 setTraceIdResolver(getActiveTraceId);
 initObservability(app);
-
-const useStructuredHttpLog = (process.env.LOG_FORMAT || '').toLowerCase() === 'json';
 
 // Trust the first reverse proxy hop (e.g., Vercel, Render, Nginx, Cloudflare)
 // to correctly populate req.ip and securely discard spoofed X-Forwarded-For headers
@@ -248,7 +244,8 @@ app.use(
     },
   })
 );
-
+app.use(tracingMiddleware);
+app.use('/api', apiRequestLogger());
 app.use(
   cors({
     origin: (origin, callback) => {
@@ -269,15 +266,12 @@ app.use(
   })
 );
 app.options('*', cors());
-
 app.use(tracingMiddleware);
+app.use('/api', apiRequestLogger());
 
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(xssSanitizer);
-if (!useStructuredHttpLog) {
-  app.use(morgan('combined'));
-}
 app.use(performanceMonitor);
 app.use(cookieParser());
 
@@ -285,33 +279,7 @@ app.use(cookieParser());
 app.use('/api', apiRateLimiter);
 app.use('/api', tierRateLimiter());
 
-function requestLogger(req, res, next) {
-  const start = process.hrtime.bigint();
-  const { method, path, reqId } = req;
-
-  res.on('finish', () => {
-    const duration = Number(process.hrtime.bigint() - start) / 1e6;
-    const status = res.statusCode;
-    const prefix = reqId ? `[${reqId}] ` : '';
-    const message = `${prefix}[${method}] ${path} → ${status} (${Math.round(duration)}ms)`;
-
-    if (status >= 500) {
-      console.error(message);
-    } else if (status >= 400) {
-      console.warn(message);
-    } else {
-      console.log(message);
-    }
-  });
-
-  next();
-}
-
-if (!useStructuredHttpLog) {
-  app.use(requestLogger);
-}
-
-// Mount route modules
+// Mount monitoring + API documentation routes
 app.use('/api/monitoring', monitoringRouter);
 app.use('/api', documentationRouter);
 app.use('/', apiRouter);

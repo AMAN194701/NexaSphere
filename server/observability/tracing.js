@@ -5,8 +5,8 @@
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
-import { Resource } from '@opentelemetry/resources';
-import { SEMRESATTRS_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
+import { resourceFromAttributes } from '@opentelemetry/resources';
+import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
 import { trace, context, propagation } from '@opentelemetry/api';
 
 const SERVICE_NAME = process.env.OTEL_SERVICE_NAME || 'nexasphere-api';
@@ -22,8 +22,8 @@ export function initTracing() {
   const exporter = new OTLPTraceExporter({ url: OTLP_ENDPOINT });
 
   sdk = new NodeSDK({
-    resource: new Resource({
-      [SEMRESATTRS_SERVICE_NAME]: SERVICE_NAME,
+    resource: resourceFromAttributes({
+      [ATTR_SERVICE_NAME]: SERVICE_NAME,
     }),
     traceExporter: exporter,
     instrumentations: [
