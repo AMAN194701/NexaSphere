@@ -22,6 +22,10 @@ async function withServer(app, fn) {
   }
 }
 
+async function flushApiLogQueue() {
+  await new Promise((resolve) => setTimeout(resolve, 75));
+}
+
 test('apiRequestLogger emits structured API request metadata without sensitive request data', async () => {
   const entries = [];
   const app = express();
@@ -45,6 +49,8 @@ test('apiRequestLogger emits structured API request metadata without sensitive r
     assert.equal(response.status, 201);
     await response.text();
   });
+
+  await flushApiLogQueue();
 
   assert.equal(entries.length, 1);
   assert.equal(entries[0].message, 'API request');
@@ -81,6 +87,8 @@ test('apiRequestLogger prefers route templates over concrete path identifiers', 
     await response.text();
   });
 
+  await flushApiLogQueue();
+
   assert.equal(entries.length, 1);
   assert.equal(entries[0].metadata.path, '/api/portfolio/:username');
   assert.doesNotMatch(JSON.stringify(entries[0]), /alice-private/);
@@ -98,6 +106,8 @@ test('apiRequestLogger groups unmatched API paths without logging concrete ident
     assert.equal(response.status, 404);
     await response.text();
   });
+
+  await flushApiLogQueue();
 
   assert.equal(entries.length, 1);
   assert.equal(entries[0].metadata.path, '/api/*');

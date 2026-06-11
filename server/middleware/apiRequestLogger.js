@@ -1,5 +1,9 @@
 import logger from '../utils/logger.js';
 
+const API_REQUEST_LOG_FLUSH_INTERVAL_MS = 50;
+const pendingApiRequestLogs = [];
+let apiRequestLogFlushTimer = null;
+
 function normalizePath(path) {
   return path.length > 1 && path.endsWith('/') ? path.slice(0, -1) : path;
 }
@@ -64,6 +68,23 @@ function getRequestId(req) {
   return req.reqId || (Array.isArray(headerReqId) ? headerReqId[0] : headerReqId) || null;
 }
 
+function flushApiRequestLogs() {
+  apiRequestLogFlushTimer = null;
+  const logs = pendingApiRequestLogs.splice(0);
+
+  for (const { requestLogger, metadata } of logs) {
+    requestLogger.http('API request', metadata);
+  }
+}
+
+function emitApiRequestLog(requestLogger, metadata) {
+  pendingApiRequestLogs.push({ requestLogger, metadata });
+
+  if (!apiRequestLogFlushTimer) {
+    apiRequestLogFlushTimer = setTimeout(flushApiRequestLogs, API_REQUEST_LOG_FLUSH_INTERVAL_MS);
+  }
+}
+
 export function apiRequestLogger({ logger: requestLogger = logger } = {}) {
   return (req, res, next) => {
     const start = process.hrtime.bigint();
@@ -74,7 +95,7 @@ export function apiRequestLogger({ logger: requestLogger = logger } = {}) {
     res.on('finish', () => {
       const responseTimeMs = Number(process.hrtime.bigint() - start) / 1e6;
 
-      requestLogger.http('API request', {
+      emitApiRequestLog(requestLogger, {
         event: 'api_request',
         method,
         path: buildApiPath(req, mountPath),
