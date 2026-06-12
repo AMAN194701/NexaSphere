@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import * as eventsController from '../controllers/eventsController.js';
 import * as activityEventsController from '../controllers/activityEventsController.js';
-import * as adminAuthMiddleware from '../middleware/adminAuthMiddleware.js';
+import { adminAuthMiddleware } from '../middleware/adminAuthMiddleware.js';
 import * as coreTeamController from '../controllers/coreTeamController.js';
 import * as eventRegistrationController from '../controllers/eventRegistrationController.js';
 import * as usersController from '../controllers/usersController.js';
@@ -10,6 +10,7 @@ import * as eventAnalyticsController from '../controllers/eventAnalyticsControll
 import { adminAuditMiddleware, attachOldState } from '../middleware/adminAuditMiddleware.js';
 import { eventsRepository } from '../repositories/eventsRepository.js';
 import { coreTeamService } from '../services/coreTeamService.js';
+import { authRateLimiter, protectedActionRateLimiter } from '../middleware/authRateLimiter.js';
 import { portfolioRepository } from '../repositories/portfolioRepository.js';
 import { achievementsRepository } from '../repositories/achievementsRepository.js';
 import { portfolioService } from '../services/portfolioService.js';
@@ -27,18 +28,20 @@ router.get(
 );
 router.post(
   '/api/content/activity-events/:activityKey',
+  protectedActionRateLimiter,
   adminAuthMiddleware.requireScope('events:write'),
   activityEventsController.addActivityEvent
 );
 router.delete(
   '/api/content/activity-events/:activityKey/:eventId',
+  protectedActionRateLimiter,
   adminAuthMiddleware.requireScope('events:write'),
   activityEventsController.deleteActivityEvent
 );
 
 // Admin auth
 router.get('/api/admin/users', adminAuthMiddleware.requireAdmin, usersController.getAdminUsers);
-router.post('/api/admin/login', adminAuthMiddleware.login);
+router.post('/api/admin/login', authRateLimiter, adminAuthMiddleware.login);
 router.post('/api/admin/logout', adminAuthMiddleware.requireAdmin, adminAuthMiddleware.logout);
 
 router.get(
