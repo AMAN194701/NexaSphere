@@ -13,7 +13,7 @@ import { coreTeamService } from '../services/coreTeamService.js';
 import { portfolioRepository } from '../repositories/portfolioRepository.js';
 import { achievementsRepository } from '../repositories/achievementsRepository.js';
 import { portfolioService } from '../services/portfolioService.js';
-
+import * as learningPathsController from '../controllers/learningPathsController.js';
 const router = Router();
 
 // Public
@@ -183,5 +183,12 @@ router.delete(
     }
   }
 );
+router.get('/api/learning-paths', learningPathsController.listLearningPaths);
+
+router.get('/api/learning-paths/:id', learningPathsController.getLearningPath);
+
+router.post('/api/learning-paths/enroll', learningPathsController.enrollUser);
+
+router.get('/api/learning-paths/dashboard/:userId', learningPathsController.getDashboard);
 
 export default router;
