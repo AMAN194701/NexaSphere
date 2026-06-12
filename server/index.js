@@ -276,6 +276,10 @@ app.use(
         objectSrc: ["'none'"],
         upgradeInsecureRequests: [],
       },
+    },
+  })
+);
+app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) {
