@@ -370,6 +370,14 @@ Deep-dive references live in the [`/docs`](docs/) directory:
 
 ---
 
+## 👥 Contributors
+
+Thanks to all contributors ❤️
+
+[![Contributors](https://contrib.rocks/image?repo=Ayushh-Sharmaa/NexaSphere)](https://github.com/Ayushh-Sharmaa/NexaSphere/graphs/contributors)
+
+---
+
 ## 📄 License
 
 [MIT](LICENSE) © NexaSphere Core Team
