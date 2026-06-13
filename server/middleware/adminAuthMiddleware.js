@@ -234,7 +234,7 @@ function requireScope(requiredScope) {
 
 async function login(req, res) {
   try {
-    const u = String(req.body?.username || '').trim();
+    const u = String(req.body?.username || req.body?.email || '').trim();
     const p = String(req.body?.password || '');
     const ip = getClientIp(req);
 
