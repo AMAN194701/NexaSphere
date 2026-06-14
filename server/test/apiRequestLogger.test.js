@@ -113,3 +113,34 @@ test('apiRequestLogger groups unmatched API paths without logging concrete ident
   assert.equal(entries[0].metadata.path, '/api/*');
   assert.doesNotMatch(JSON.stringify(entries[0]), /alice-private-token/);
 });
+
+test('apiRequestLogger batches independently per middleware instance', async () => {
+  const firstEntries = [];
+  const secondEntries = [];
+  const firstApp = express();
+  const secondApp = express();
+
+  firstApp.use('/api', apiRequestLogger({ logger: createTestLogger(firstEntries) }));
+  secondApp.use('/api', apiRequestLogger({ logger: createTestLogger(secondEntries) }));
+  firstApp.get('/api/alpha', (_req, res) => res.status(200).json({ ok: true }));
+  secondApp.get('/api/beta', (_req, res) => res.status(202).json({ ok: true }));
+
+  await withServer(firstApp, async (firstBaseUrl) => {
+    const response = await fetch(`${firstBaseUrl}/api/alpha`);
+    assert.equal(response.status, 200);
+    await response.text();
+  });
+
+  await withServer(secondApp, async (secondBaseUrl) => {
+    const response = await fetch(`${secondBaseUrl}/api/beta`);
+    assert.equal(response.status, 202);
+    await response.text();
+  });
+
+  await flushApiLogQueue();
+
+  assert.equal(firstEntries.length, 1);
+  assert.equal(secondEntries.length, 1);
+  assert.equal(firstEntries[0].metadata.path, '/api/alpha');
+  assert.equal(secondEntries[0].metadata.path, '/api/beta');
+});
