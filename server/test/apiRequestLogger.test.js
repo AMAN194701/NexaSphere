@@ -74,6 +74,34 @@ test('apiRequestLogger emits structured API request metadata without sensitive r
   assert.doesNotMatch(serializedEntry, /secret-password/);
 });
 
+test('apiRequestLogger drops unsafe request IDs from API request logs', async () => {
+  const entries = [];
+  const app = express();
+
+  app.use('/api', apiRequestLogger({ logger: createTestLogger(entries) }));
+  app.get('/api/profile', (_req, res) => res.status(200).json({ ok: true }));
+
+  await withServer(app, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/api/profile`, {
+      headers: {
+        'X-Request-ID': 'user@example.com bearer-token',
+      },
+    });
+
+    assert.equal(response.status, 200);
+    await response.text();
+  });
+
+  await flushApiLogQueue();
+
+  assert.equal(entries.length, 1);
+  assert.equal(entries[0].metadata.reqId, null);
+
+  const serializedEntry = JSON.stringify(entries[0]);
+  assert.doesNotMatch(serializedEntry, /user@example\.com/);
+  assert.doesNotMatch(serializedEntry, /bearer-token/);
+});
+
 test('apiRequestLogger prefers route templates over concrete path identifiers', async () => {
   const entries = [];
   const app = express();

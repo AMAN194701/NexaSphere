@@ -62,9 +62,20 @@ function getMountPath(req) {
   return baseUrl || fullPath.split('/').slice(0, 2).join('/') || '/api';
 }
 
+function normalizeRequestId(value) {
+  const requestId = Array.isArray(value) ? value[0] : value;
+
+  if (typeof requestId !== 'string') {
+    return null;
+  }
+
+  const trimmedRequestId = requestId.trim();
+  return SAFE_REQUEST_ID_PATTERN.test(trimmedRequestId) ? trimmedRequestId : null;
+}
+
 function getRequestId(req) {
   const headerReqId = req.headers?.['x-request-id'];
-  return req.reqId || (Array.isArray(headerReqId) ? headerReqId[0] : headerReqId) || null;
+  return normalizeRequestId(req.reqId) || normalizeRequestId(headerReqId);
 }
 
 export function apiRequestLogger({ logger: requestLogger = logger } = {}) {
