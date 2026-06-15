@@ -1,120 +1,63 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useAnalyticsFilters } from '../../context/AnalyticsFilterContext';
-import {
-  generateTrendData,
-  generateDistributionData,
-  generateComparisonData,
-  TrendDataPoint,
-  DistributionDataPoint,
-  ComparisonDataPoint,
-} from '../../utils/chartDataFormatters';
+import { useState, useEffect } from 'react';
+import { getApiBase } from '../../../runtimeConfig';
 
-const getApiBase = () => (import.meta as any).env?.VITE_API_BASE?.replace(/\/+$/, '') || '';
+export interface AnalyticsData {
+  totalUsers: number;
+  activeUsers: number;
+  pageViews: number;
+  sessions: number;
+  bounceRate: number;
+  avgSessionDuration: number;
+}
 
-/**
- * Returns true when the API base URL is configured for this deployment.
- * Falls back to mock data when offline or unconfigured.
- */
-const isApiConfigured = () => Boolean(getApiBase());
+export interface AnalyticsDataState {
+  data: AnalyticsData | null;
+  loading: boolean;
+  error: string | null;
+}
 
-export const useAnalyticsData = () => {
-  const { filters } = useAnalyticsFilters();
-  const [loading, setLoading] = useState(false);
-  const [isOffline, setIsOffline] = useState(false);
-
-  const [trendData, setTrendData] = useState<TrendDataPoint[]>([]);
-  const [distributionData, setDistributionData] = useState<DistributionDataPoint[]>([]);
-  const [comparisonData, setComparisonData] = useState<ComparisonDataPoint[]>([]);
+export function useAnalyticsData(): AnalyticsDataState {
+  const [data, setData] = useState<AnalyticsData | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let isMounted = true;
-    setLoading(true);
+    let cancelled = false;
 
-    const months =
-      (filters.dateRange.end.getFullYear() - filters.dateRange.start.getFullYear()) * 12 +
-      (filters.dateRange.end.getMonth() - filters.dateRange.start.getMonth());
-    const effectiveMonths = Math.max(1, months);
+    async function fetchAnalytics() {
+      try {
+        setLoading(true);
+        setError(null);
 
-    const applyMockData = () => {
-      if (!isMounted) return;
-      setIsOffline(true);
-      setTrendData(generateTrendData(filters.timeGranularity, effectiveMonths));
-      setDistributionData(generateDistributionData(filters.categories));
-      setComparisonData(generateComparisonData(filters.categories));
-      setLoading(false);
-    };
+        const base = getApiBase();
+        const response = await fetch(`${base}/api/analytics`);
 
-    if (!isApiConfigured()) {
-      applyMockData();
-      return () => {
-        isMounted = false;
-      };
+        if (!response.ok) {
+          throw new Error(`Failed to fetch analytics: ${response.status} ${response.statusText}`);
+        }
+
+        const json: AnalyticsData = await response.json();
+
+        if (!cancelled) {
+          setData(json);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Unknown error');
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
     }
 
-    const base = getApiBase();
-
-    Promise.all([
-      fetch(`${base}/api/admin/analytics/stats`).then((r) => r.json()),
-      fetch(`${base}/api/admin/analytics/growth`).then((r) => r.json()),
-      fetch(`${base}/api/admin/analytics/events`).then((r) => r.json()),
-    ])
-      .then(([stats, growth, events]) => {
-        if (!isMounted) return;
-        setIsOffline(false);
-
-        // Map API responses to chart data shapes.
-        // growth is expected to be an array of { name, users, activity, projects }
-        if (Array.isArray(growth) && growth.length > 0) {
-          setTrendData(growth as TrendDataPoint[]);
-        } else {
-          setTrendData(generateTrendData(filters.timeGranularity, effectiveMonths));
-        }
-
-        // events is expected to be an array of { name, value } category distribution
-        if (Array.isArray(events) && events.length > 0) {
-          setDistributionData(events as DistributionDataPoint[]);
-          setComparisonData(generateComparisonData(filters.categories));
-        } else {
-          setDistributionData(generateDistributionData(filters.categories));
-          setComparisonData(generateComparisonData(filters.categories));
-        }
-
-        setLoading(false);
-      })
-      .catch(() => {
-        // API unreachable — fall back to mock data with a visible indicator
-        applyMockData();
-      });
+    fetchAnalytics();
 
     return () => {
-      isMounted = false;
+      cancelled = true;
     };
-  }, [filters]);
+  }, []);
 
-  const overviewMetrics = useMemo(() => {
-    if (trendData.length === 0)
-      return { totalUsers: 0, totalActivity: 0, totalProjects: 0, userGrowth: 0 };
-
-    const latest = trendData[trendData.length - 1];
-    const previous = trendData.length > 1 ? trendData[trendData.length - 2] : null;
-
-    const userGrowth =
-      previous && previous.users > 0 ? ((latest.users - previous.users) / previous.users) * 100 : 0;
-
-    return {
-      totalUsers: latest.users,
-      totalActivity: latest.activity,
-      totalProjects: latest.projects,
-      userGrowth: userGrowth.toFixed(1),
-    };
-  }, [trendData]);
-
-  return {
-    loading,
-    isOffline,
-    trendData,
-    distributionData,
-    comparisonData,
-    overviewMetrics,
-  };
-};
+  return { data, loading, error };
+}
