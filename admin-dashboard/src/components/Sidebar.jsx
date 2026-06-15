@@ -107,6 +107,12 @@ const links = [
     label: 'Circuit Breaker',
     icon: 'Activity',
   },
+  {
+    to: '/dashboard/advanced-analytics',
+    label: 'Adv. Analytics',
+    icon: 'BarChart',
+    requiredScope: 'events:read',
+  },
 ];
 
 export function Sidebar() {
