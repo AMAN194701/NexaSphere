@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Activity, ShieldAlert, CheckCircle, Clock, ArrowLeft } from 'lucide-react';
+import { Activity, ShieldAlert, CheckCircle, Clock, ArrowLeft, Bell } from 'lucide-react';
 
 export default function StatusPage() {
   const [statusData, setStatusData] = useState({
@@ -9,7 +9,8 @@ export default function StatusPage() {
     incidents: [],
   });
   const [loading, setLoading] = useState(true);
-
+  const [email, setEmail] = useState('');
+  const [subscribed, setSubscribed] = useState(false);
   useEffect(() => {
     fetch('/api/monitoring/status-history')
       .then((res) => res.json())
@@ -113,7 +114,24 @@ export default function StatusPage() {
             ))}
           </div>
         </motion.div>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.25 }}
+          className="bg-[#121212]/80 border border-gray-800 rounded-2xl p-6 mt-6 shadow-xl"
+        >
+          <h2 className="text-lg font-bold text-gray-200 mb-4">Scheduled Maintenance</h2>
 
+          <div className="border-l-2 border-yellow-500 pl-4">
+            <p className="font-medium text-yellow-400">Database Infrastructure Upgrade</p>
+
+            <p className="text-sm text-gray-400 mt-1">June 20, 2026 • 02:00 AM – 04:00 AM UTC</p>
+
+            <p className="text-sm text-gray-500 mt-2">
+              Brief service interruptions may occur while upgrades are being deployed.
+            </p>
+          </div>
+        </motion.div>
         {/* Incident Logs Section */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -153,7 +171,8 @@ export default function StatusPage() {
                   </div>
                   <div className="text-xs text-gray-500 mb-3">
                     Start: {new Date(incident.startedAt).toLocaleString()}
-                    {incident.resolvedAt && ` | End: ${new Date(incident.resolvedAt).toLocaleString()}`}
+                    {incident.resolvedAt &&
+                      ` | End: ${new Date(incident.resolvedAt).toLocaleString()}`}
                   </div>
                   <div className="space-y-2 mt-2">
                     {incident.updates.map((update, idx) => (
@@ -170,7 +189,44 @@ export default function StatusPage() {
             </div>
           )}
         </motion.div>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          className="bg-[#121212]/80 border border-gray-800 rounded-2xl p-6 mt-6 shadow-xl"
+        >
+          <h2 className="text-lg font-bold text-gray-200 mb-4 flex items-center gap-2">
+            <Bell className="w-5 h-5" />
+            Outage Notifications
+          </h2>
 
+          {subscribed ? (
+            <div className="text-green-400 text-sm">
+              ✅ You are subscribed to outage notifications.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email address"
+                className="w-full bg-black border border-gray-700 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-green-500"
+              />
+
+              <button
+                onClick={() => {
+                  if (email.trim()) {
+                    setSubscribed(true);
+                  }
+                }}
+                className="w-full bg-green-600 hover:bg-green-700 transition-colors rounded-lg py-3 font-medium"
+              >
+                Subscribe for Updates
+              </button>
+            </div>
+          )}
+        </motion.div>
         <div className="text-center text-xs text-gray-600 mt-12 flex justify-center gap-6">
           <span>Escalation Protocol: Twilio SMS (On-Call)</span>
           <span>•</span>
