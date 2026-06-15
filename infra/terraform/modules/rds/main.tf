@@ -32,10 +32,11 @@ resource "aws_db_instance" "primary" {
   skip_final_snapshot   = var.environment == "production" ? false : true
   final_snapshot_identifier = var.environment == "production" ? "${var.project_name}-${var.environment}-db-final-${formatdate("YYYY-MM-DD-hhmm", timestamp())}" : null
 
+  deletion_protection             = true
   enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]
 
-  performance_insights_enabled          = var.environment == "production"
-  performance_insights_retention_period = var.environment == "production" ? 7 : 0
+  performance_insights_enabled          = true
+  performance_insights_retention_period = 7
 
   auto_minor_version_upgrade = true
 
@@ -68,6 +69,9 @@ resource "aws_db_instance" "replica" {
 
   copy_tags_to_snapshot = true
   skip_final_snapshot   = true
+
+  deletion_protection             = true
+  enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]
 
   performance_insights_enabled          = true
   performance_insights_retention_period = 7

@@ -80,8 +80,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const CONTENT_FILE = path.join(__dirname, 'data', 'content.json');
 
-
-
 validateEnvironment();
 
 const app = express();
@@ -108,11 +106,15 @@ app.set(
 initializeSentry(app);
 app.use(compression());
 
-if (!process.env.CORS_ORIGIN) {
+const corsOrigin =
+  process.env.CORS_ORIGIN ||
+  (process.env.NODE_ENV === 'test' ? 'http://localhost,http://127.0.0.1' : '');
+if (!corsOrigin) {
   throw new Error('CORS_ORIGIN environment variable must be set.');
 }
 
-const allowedOrigins = process.env.CORS_ORIGIN.split(',')
+const allowedOrigins = corsOrigin
+  .split(',')
   .map((s) => s.trim())
   .filter(Boolean);
 
@@ -257,6 +259,19 @@ app.use(
       }
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
+      }
+      if (process.env.NODE_ENV === 'test') {
+        try {
+          const url = new URL(origin);
+          if (
+            url.hostname === 'localhost' ||
+            url.hostname === '127.0.0.1' ||
+            url.hostname === '[::1]' ||
+            url.hostname === '::1'
+          ) {
+            return callback(null, true);
+          }
+        } catch {}
       }
       return callback(new Error('CORS Policy: Origin not allowed.'));
     },

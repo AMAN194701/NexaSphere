@@ -107,3 +107,4 @@ jobs:
           ADMIN_PASSWORD: TestPass123!ABC
           ADMIN_EVENT_PASSWORD: EventPass123!XYZ
           PORT: 8787
+          CORS_ORIGIN: 'http://localhost,http://127.0.0.1'
