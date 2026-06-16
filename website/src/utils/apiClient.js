@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/react';
-import { cacheGet, CACHE_KEYS } from './indexedDB.js';
+import { cacheGet, cacheSet, CACHE_KEYS, TTL } from './indexedDB.js';
 import { enqueueRequest } from './offlineQueue.js';
 
 /**
@@ -145,7 +145,28 @@ export const apiClient = async (url, options = {}) => {
     const contentType = response.headers.get('content-type');
     if (contentType && contentType.includes('application/json')) {
       try {
-        return await response.json();
+        const json = await response.json();
+
+        // Cache successful GET responses for offline viewing
+        if (method === 'GET') {
+          const cacheKey = getIDBCacheKey(url);
+          if (cacheKey) {
+            const CACHE_TTL_MAP = {
+              [CACHE_KEYS.DASHBOARD]: TTL.DASHBOARD,
+              [CACHE_KEYS.ANALYTICS]: TTL.ANALYTICS,
+              [CACHE_KEYS.NOTIFICATIONS]: TTL.NOTIFICATIONS,
+              [CACHE_KEYS.USER_PROFILE]: TTL.USER_PROFILE,
+              [CACHE_KEYS.RECENTLY_VIEWED]: TTL.RECENTLY_VIEWED,
+              [CACHE_KEYS.EVENTS]: TTL.EVENTS,
+            };
+            const ttl = CACHE_TTL_MAP[cacheKey] || 0;
+            cacheSet(cacheKey, json, ttl).catch((err) => {
+              console.warn('[apiClient] Failed to cache response:', err);
+            });
+          }
+        }
+
+        return json;
       } catch (e) {
         throw new ApiError('Malformed JSON response', 500, 'MALFORMED_JSON', e);
       }
