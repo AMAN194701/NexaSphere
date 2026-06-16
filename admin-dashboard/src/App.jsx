@@ -19,6 +19,7 @@ import { PortfolioManager } from './pages/PortfolioManager';
 import { StreamManager } from './pages/StreamManager';
 import { CircuitBreakerManager } from './pages/CircuitBreakerManager';
 import { ResourcesManager } from './pages/ResourcesManager';
+import { ComplianceManager } from './pages/ComplianceManager';
 import './styles/admin.css';
 
 function RequireAuth() {
@@ -73,6 +74,7 @@ export default function App() {
             <Route path="/dashboard/streams" element={<StreamManager />} />
             <Route path="/dashboard/circuit-breaker" element={<CircuitBreakerManager />} />
             <Route path="/dashboard/resources" element={<ResourcesManager />} />
+            <Route path="/dashboard/compliance" element={<ComplianceManager />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />

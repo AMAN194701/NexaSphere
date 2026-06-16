@@ -60,6 +60,12 @@ const links = [
     icon: 'FileText',
     requiredScope: 'events:read',
   },
+  {
+    to: '/dashboard/compliance',
+    label: 'Compliance',
+    icon: 'Shield',
+    requiredScope: 'settings:admin',
+  },
 ];
 
 export function Sidebar() {
