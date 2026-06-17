@@ -635,8 +635,19 @@ async function listEventsStore({ page = 1, limit = 20 } = {}) {
   return { events: all.slice(start, start + limit), total };
 }
 
+const ALLOWED_EVENT_FIELDS = [
+  'id', 'name', 'description', 'date_text', 'time', 'location',
+  'type', 'mode', 'category', 'tags', 'image_url', 'registration_link',
+  'capacity', 'registered_count', 'price', 'created_at', 'updated_at',
+];
+
 function sanitizeEventRecord(event) {
-  return event;
+  if (!event || typeof event !== 'object') return event;
+  const sanitized = {};
+  for (const field of ALLOWED_EVENT_FIELDS) {
+    if (field in event) sanitized[field] = event[field];
+  }
+  return sanitized;
 }
 
 async function createEventStore(event) {
@@ -873,8 +884,18 @@ async function listCoreTeamStore() {
   return (content.coreTeam || []).map((member) => sanitizeCoreTeamMemberRecord(member));
 }
 
+const ALLOWED_TEAM_MEMBER_FIELDS = [
+  'id', 'name', 'role', 'position', 'bio', 'avatar_url',
+  'github_url', 'linkedin_url', 'email', 'joined_at', 'order',
+];
+
 function sanitizeCoreTeamMemberRecord(member) {
-  return member;
+  if (!member || typeof member !== 'object') return member;
+  const sanitized = {};
+  for (const field of ALLOWED_TEAM_MEMBER_FIELDS) {
+    if (field in member) sanitized[field] = member[field];
+  }
+  return sanitized;
 }
 
 async function createCoreTeamStore(member) {
