@@ -116,10 +116,16 @@ export const apiClient = async (url, options = {}) => {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
 
+  const callerSignal = fetchOptions.signal;
+  const signal =
+    callerSignal && typeof AbortSignal.any === 'function'
+      ? AbortSignal.any([controller.signal, callerSignal])
+      : controller.signal;
+
   try {
     const response = await fetch(url, {
       ...fetchOptions,
-      signal: controller.signal,
+      signal,
     });
 
     clearTimeout(id);
