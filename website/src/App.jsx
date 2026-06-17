@@ -112,6 +112,7 @@ const MentorshipDashboard = lazy(() => import('./pages/mentorship/MentorshipDash
 const StatusPage = lazy(() => import('./pages/StatusPage'));
 const LiveStreamPage = lazy(() => import('./pages/streaming/LiveStreamPage'));
 const ResourcesPage = lazy(() => import('./pages/resources/ResourcesPage'));
+const NotificationHistoryPage = lazy(() => import('./pages/notifications/NotificationHistoryPage'));
 
 const MNH = 88,
   DNH = 64;
@@ -1124,6 +1125,15 @@ function MainRouter({
               element={
                 <PageIn k="resources">
                   <ResourcesPage onBack={onBackHome} />
+                </PageIn>
+              }
+            />
+            {/* ── Notification History ── */}
+            <Route
+              path="/notifications"
+              element={
+                <PageIn k="notifications">
+                  <NotificationHistoryPage />
                 </PageIn>
               }
             />
