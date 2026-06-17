@@ -1122,9 +1122,11 @@ function MainRouter({
             <Route
               path="/resources"
               element={
-                <PageIn k="resources">
-                  <ResourcesPage onBack={onBackHome} />
-                </PageIn>
+                <ErrorBoundary>
+                  <PageIn k="resources">
+                    <ResourcesPage onBack={onBackHome} />
+                  </PageIn>
+                </ErrorBoundary>
               }
             />
 
