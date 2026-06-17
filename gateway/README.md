@@ -8,7 +8,7 @@ Nginx is configured to terminate SSL on port 443 using certificates at `gateway/
 
 ### Generating Self-Signed Certificates
 
-#### Using OpenSSL (macOS/Linux/Git Bash):
+#### Using OpenSSL (macOS/Linux/Git Bash)
 
 Run the following command in this directory to generate a self-signed certificate:
 
@@ -20,7 +20,7 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
   -subj "/C=US/ST=State/L=City/O=Organization/CN=localhost"
 ```
 
-#### Using PowerShell (Windows):
+#### Using PowerShell (Windows)
 
 If you have Git installed, OpenSSL is available in your Git installation. Run:
 

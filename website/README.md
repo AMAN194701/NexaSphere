@@ -4,7 +4,7 @@ The public-facing NexaSphere web application — a React + Vite PWA for the GL B
 
 ## Structure
 
-```text
+````text
 website/
 ├── src/           # All React source code
 │   ├── App.jsx
@@ -56,3 +56,4 @@ VITE_SUPABASE_URL=...
 VITE_SUPABASE_ANON_KEY=...
 SENTRY_AUTH_TOKEN=...  # Optional — only needed for sourcemap uploads
 ```text
+````

@@ -31,7 +31,7 @@ This implementation adds a **Prompt History & Workspace system** to NexaSphere's
 
 **Storage Schema:**
 
-```javascript
+````javascript
 {
   id: number,                    // Auto-incremented
   userPrompt: string,            // User's message
@@ -326,3 +326,4 @@ For issues or questions:
 1. Check the test files for usage examples
 2. Review component props documentation
 3. Open an issue on GitHub with reproduction steps
+````

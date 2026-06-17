@@ -4,7 +4,7 @@
 
 ### 1. Install & Start
 
-```bash
+````bash
 npm install
 npm run dev
 ```text
@@ -331,5 +331,6 @@ const workspaces = getWorkspaces();
 
 ---
 
-**Ready to test!** 🚀  
+**Ready to test!** 🚀
 Open `http://localhost:5173` and try the feature.
+````

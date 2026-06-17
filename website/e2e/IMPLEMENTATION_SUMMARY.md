@@ -167,7 +167,7 @@ This PR implements a complete prompt history and workspace management system tha
 
 ## Architecture
 
-```text
+````text
 ┌─────────────────────────────────────────┐
 │        React Components (UI)            │
 │  ├─ Chatbot.jsx (updated)              │
@@ -506,6 +506,7 @@ For issues or questions:
 
 ---
 
-**Implementation Date**: May 21, 2026  
-**Status**: ✅ Complete and Ready for Review  
+**Implementation Date**: May 21, 2026
+**Status**: ✅ Complete and Ready for Review
 **Quality**: Production-Ready
+````
