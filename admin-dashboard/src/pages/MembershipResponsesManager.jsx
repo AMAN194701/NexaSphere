@@ -1,3 +1,4 @@
+import { EmptyState } from '../components/EmptyState';
 import { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { Skeleton } from '../components/Skeleton';
@@ -179,42 +180,21 @@ export function MembershipResponsesManager() {
       )}
 
       {!loading && !error && total === 0 && (
-        <div
-          style={{
-            textAlign: 'center',
-            padding: '60px 24px',
-            color: 'var(--text-muted)',
-            border: '1px dashed var(--border)',
-            borderRadius: 12,
-            marginTop: 8,
-          }}
-        >
-          <AdminIcon name="Inbox" size={40} />
-          <p style={{ marginTop: 12, fontSize: 15 }}>No membership responses yet.</p>
-        </div>
+        <EmptyState
+          icon="Inbox"
+          title="No Membership Responses"
+          description="There are currently no membership responses available."
+        />
       )}
 
       {!loading && !error && total > 0 && filtered.length === 0 && (
-        <div
-          style={{
-            textAlign: 'center',
-            padding: '60px 24px',
-            color: 'var(--text-muted)',
-            border: '1px dashed var(--border)',
-            borderRadius: 12,
-            marginTop: 8,
-          }}
-        >
-          <AdminIcon name="Search" size={40} />
-          <p style={{ marginTop: 12, fontSize: 15 }}>No responses match your search.</p>
-          <button
-            className="btn btn-secondary"
-            style={{ marginTop: 8 }}
-            onClick={() => setSearch('')}
-          >
-            Clear search
-          </button>
-        </div>
+        <EmptyState
+          icon="Search"
+          title="No Matching Responses"
+          description="No responses match your current search query."
+          actionLabel="Clear Search"
+          onAction={() => setSearch('')}
+        />
       )}
 
       {!loading && !error && filtered.length > 0 && (
