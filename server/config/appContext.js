@@ -4,9 +4,8 @@ import { propagation, context as otelContext } from '@opentelemetry/api';
 
 export const appContext = new AsyncLocalStorage();
 
-// Idempotency guards — prevent double-patching if this module is re-imported
+// Idempotency guard — prevent double-patching if this module is re-imported
 const PG_PATCH_APPLIED = Symbol.for('appContext.pg.patched');
-const FETCH_PATCH_APPLIED = Symbol.for('appContext.fetch.patched');
 
 // Strip */ and newlines from reqId before embedding in a SQL comment
 // to prevent comment-injection attacks
@@ -16,56 +15,44 @@ function sanitizeReqId(reqId) {
     .replace(/[\r\n]/g, '');
 }
 
-function isInternalUrl(url)
-  { try { 
-    const { hostname } = new URL(url, 'http://localhost'); 
-  if (['localhost', '127.0.0.1', '::1'].includes(hostname)) return true; 
-    const dev_domain = process.env.DEV_DOMAIN; 
-    const prod = process.env.PROD_DOMAINS?.split(',').map((d) => d.trim()) ?? []; if (dev_domain && hostname.endsWith(dev_domain)) return true; 
-    if (prod.some((d) => hostname === d || hostname.endsWith('.' + d))) return  true; return false; } 
-  catch { return true; // treat unparseable / relative URLs as internal 
-        } 
-          
+function isInternalUrl(url) {
+  try {
+    const { hostname } = new URL(url, 'http://localhost');
+    if (['localhost', '127.0.0.1', '::1'].includes(hostname)) return true;
+    const dev_domain = process.env.DEV_DOMAIN;
+    const prod = process.env.PROD_DOMAINS?.split(',').map((d) => d.trim()) ?? [];
+    if (dev_domain && hostname.endsWith(dev_domain)) return true;
+    if (prod.some((d) => hostname === d || hostname.endsWith('.' + d))) return true;
+    return false;
+  } catch {
+    return true; // treat unparseable / relative URLs as internal
   }
+}
 
 function getUrlString(input) {
-  if (typeof input === 'string') {
-    return input;
-  }
-
-  if (input instanceof URL) {
-    return input.toString();
-  }
-
-  if (typeof Request !== 'undefined' && input instanceof Request) {
-    return input.url;
-  }
-
+  if (typeof input === 'string') return input;
+  if (input instanceof URL) return input.toString();
+  if (typeof Request !== 'undefined' && input instanceof Request) return input.url;
   return String(input);
 }
 
 // Patch pg.Client.prototype.query to prepend /* reqId */ to every SQL query.
 // Uses ...args so all pg call signatures work correctly (query(sql, callback),
 // query(sql, values), query(sql, values, callback), query(config), etc.)
-
-  if (!pg.Client.prototype.query[PG_PATCH_APPLIED]) {
+if (!pg.Client.prototype.query[PG_PATCH_APPLIED]) {
   const originalClientQuery = pg.Client.prototype.query;
 
-    // TODO:
-    // Replace pg.Client.prototype patching with a
-    // client wrapper/factory (e.g. instrumentClient())
-    // to avoid global prototype mutation.
-    // Prototype patching is retained for compatibility.
   pg.Client.prototype.query = function (...args) {
     const store = appContext.getStore();
 
     if (store?.reqId) {
       const safeId = sanitizeReqId(store.reqId);
       const firstArg = args[0];
+      const secondArgIsCallback = typeof args[1] === 'function';
 
       if (typeof firstArg === 'string') {
         args[0] = `/* reqId: ${safeId} */ ${firstArg}`;
-      } else if (firstArg?.text) {
+      } else if (firstArg?.text && !secondArgIsCallback) {
         args[0] = { ...firstArg, text: `/* reqId: ${safeId} */ ${firstArg.text}` };
       }
     }
@@ -76,37 +63,32 @@ function getUrlString(input) {
   pg.Client.prototype.query[PG_PATCH_APPLIED] = true;
 }
 
-// Patch global.fetch to forward X-Request-ID on all outgoing calls.
-// OTel trace headers are only injected for internal URLs — never for
-// external APIs (Stripe, GitHub, OpenAI, etc.)
-if (!global.fetch?.[FETCH_PATCH_APPLIED]) {
-  const originalFetch = global.fetch;
+// Export a wrapped fetch for call sites to use explicitly, instead of
+// patching global.fetch. This avoids import-order races with OTel/undici
+// patching the global fetch themselves.
+// Forwards X-Request-ID whenever called inside an appContext.run(...) scope
+// (e.g. during request handling, after tracingMiddleware has populated the
+// store).
+export async function tracedFetch(url, options = {}) {
+  const store = appContext.getStore();
+  const headers = new Headers();
 
-  // TODO:
-  // Replace global fetch monkey-patching with an explicit
-  // internalFetch() wrapper in a future refactor.
-  // Global patching is kept for backward compatibility
-  // with existing fetch() call sites.
-  global.fetch = function (url, options = {}) {
-    const store = appContext.getStore();
+  if (options.headers instanceof Headers) {
+    options.headers.forEach((v, k) => headers.set(k, v));
+  } else if (options.headers) {
+    Object.entries(options.headers).forEach(([k, v]) => headers.set(k, v));
+  }
 
-    const headers = {};
-    if (options.headers instanceof Headers) {
-      options.headers.forEach((v, k) => {
-        headers[k] = v;
-      });
-    } else if (options.headers) {
-      Object.assign(headers, options.headers);
-    }
+  if (store?.reqId) headers.set('X-Request-ID', store.reqId);
 
-    if (store?.reqId) headers['X-Request-ID'] = store.reqId;
+  const urlString = getUrlString(url);
+  if (isInternalUrl(urlString)) {
+    propagation.inject(otelContext.active(), headers, {
+      set(carrier, key, value) {
+        carrier.set(key, value);
+      },
+    });
+  }
 
-   const urlstring =getUrlString(url);
-    if (isInternalUrl(urlstring)) {
-      propagation.inject(otelContext.active(), headers);
-    }
-    return originalFetch.call(this, url, { ...options, headers });
-  };
-
-  global.fetch[FETCH_PATCH_APPLIED] = true;
+  return globalThis.fetch(url, { ...options, headers });
 }
