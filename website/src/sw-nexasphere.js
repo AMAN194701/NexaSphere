@@ -114,7 +114,26 @@ registerRoute(
   })
 );
 
-// 5. API GET requests — NetworkFirst
+// 5. Dashboard, analytics, notifications — longer cache TTL, registered before
+// the generic API catch-all so Workbox's first-match-wins does not shadow it.
+registerRoute(
+  ({ url, request }) =>
+    request.method === 'GET' &&
+    /\/api\/(dashboard|analytics|notifications|profile)/i.test(url.pathname),
+  new NetworkFirst({
+    cacheName: 'nexasphere-dashboard-cache',
+    networkTimeoutSeconds: 5,
+    plugins: [
+      new CacheableResponsePlugin({ statuses: [200] }),
+      new ExpirationPlugin({
+        maxEntries: 30,
+        maxAgeSeconds: 60 * 10, // 10 minutes
+      }),
+    ],
+  })
+);
+
+// 6. Generic API GET requests — NetworkFirst catch-all
 // Auth/token endpoints are explicitly EXCLUDED (never cached)
 registerRoute(
   ({ url, request }) =>
@@ -132,22 +151,6 @@ registerRoute(
       new ExpirationPlugin({
         maxEntries: 50,
         maxAgeSeconds: 60 * 5, // 5 minutes
-      }),
-    ],
-  })
-);
-
-// 6. Dashboard, analytics, notifications — slightly longer NetworkFirst window
-registerRoute(
-  ({ url }) => /\/api\/(dashboard|analytics|notifications|profile)/i.test(url.pathname),
-  new NetworkFirst({
-    cacheName: 'nexasphere-dashboard-cache',
-    networkTimeoutSeconds: 5,
-    plugins: [
-      new CacheableResponsePlugin({ statuses: [200] }),
-      new ExpirationPlugin({
-        maxEntries: 30,
-        maxAgeSeconds: 60 * 10, // 10 minutes
       }),
     ],
   })
