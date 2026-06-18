@@ -1,6 +1,7 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import { useSocketSync } from '../../hooks/useSocketSync';
 import { useWorkspaceStore } from '../../store/workspaceStore';
+import { useStudentAuth } from '../../context/StudentAuthContext';
 import { Users, Wifi, WifiOff, RefreshCw, CheckCircle2, ChevronLeft } from 'lucide-react';
 import './WorkspacePage.css';
 
@@ -36,19 +37,24 @@ function getOrCreateAnonUser() {
 }
 
 export default function WorkspacePage({ roomId, onBack }: WorkspacePageProps) {
-  // Stable anonymous identity — persisted for the session so hot reloads
-  // and re-mounts do not generate a new user name and color each time.
-  const [user] = useState(getOrCreateAnonUser);
+  const { user: authUser } = useStudentAuth();
+  const [anonUser] = useState(getOrCreateAnonUser);
+
+  const user = useMemo(() => {
+    if (authUser?.name) {
+      return {
+        name: authUser.name,
+        initials: authUser.name.substring(0, 2).toUpperCase(),
+        color: anonUser.color,
+      };
+    }
+    return anonUser;
+  }, [authUser, anonUser]);
 
   const { emitDocumentChange, emitCursorMove, emitTyping } = useSocketSync(roomId, user);
   const { documentContent, users, status } = useWorkspaceStore();
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    // Generate initials safely
-    user.initials = user.name.substring(0, 2).toUpperCase();
-  }, [user]);
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
