@@ -20,7 +20,9 @@ export const googleCallback = (req, res, next) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5175';
-    return res.redirect(`${frontendUrl}/dashboard?token=${data.token}`);
+    // Redirect to frontend without leaking the token in the URL. Frontend should
+    // call /api/auth/me with credentials included to establish the user session.
+    return res.redirect(`${frontendUrl}/dashboard`);
   })(req, res, next);
 };
 
@@ -44,7 +46,9 @@ export const githubCallback = (req, res, next) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5175';
-    return res.redirect(`${frontendUrl}/dashboard?token=${data.token}`);
+    // Avoid including the token in the redirect URL to prevent accidental
+    // exposure via referrers, browser history, or client-side storage.
+    return res.redirect(`${frontendUrl}/dashboard`);
   })(req, res, next);
 };
 
