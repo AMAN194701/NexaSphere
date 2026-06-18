@@ -464,7 +464,7 @@ function AppShell() {
 
     return () => {
       alive = false;
-      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       off('content:updated', onContentUpdated);
     };
   }, []);
