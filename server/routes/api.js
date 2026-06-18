@@ -15,6 +15,7 @@ import { portfolioRepository } from '../repositories/portfolioRepository.js';
 import { achievementsRepository } from '../repositories/achievementsRepository.js';
 import { portfolioService } from '../services/portfolioService.js';
 import * as sponsorshipsController from '../controllers/sponsorshipsController.js';
+import {z} from 'zod'
 
 const router = Router();
 
@@ -196,23 +197,38 @@ router.get(
     }
   }
 );
+  // creating the zod schema 
+const achievementSchema = z.object({
+  name: z.string().trim().min(1, 'Achievement name is required').max(120),
+  description: z.string().trim().max(1000).optional(),
+  tier: z.string().trim().max(40).optional(),
+  iconUrl: z.string().trim().max(500).optional(),
+  source: z.string().trim().max(60).optional(),
+});
+
 router.post(
   '/api/admin/portfolios/:username/achievements',
   adminAuthMiddleware.requireScope('events:write'),
   adminAuditMiddleware,
   async (req, res) => {
     try {
+      // validating the data arrived from req.body via zod validation
+      const parsed = achievementSchema.safeParse(req.body);
+      
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: parsed.error.flatten(),
+        });
+      }
       const username = String(req.params.username || '')
         .trim()
         .toLowerCase();
-      const { name, description, tier, iconUrl, source } = req.body;
-      if (!name) return res.status(400).json({ error: 'Achievement name is required' });
       const achievement = await portfolioService.awardAchievement(username, {
-        name: String(name).trim().slice(0, 120),
-        description: description ? String(description).trim().slice(0, 1000) : null,
-        tier: tier ? String(tier).trim().slice(0, 40) : 'bronze',
-        iconUrl: iconUrl ? String(iconUrl).trim().slice(0, 500) : null,
-        source: source ? String(source).trim().slice(0, 60) : 'admin',
+        name: parsed.data.name,
+        description: parsed.data.description ?? null,
+        tier: parsed.data.tier ?? 'bronze',
+        iconUrl: parsed.data.iconUrl ?? null,
+        source: parsed.data.source ?? 'admin',
       });
       return res.status(201).json({ achievement });
     } catch (err) {
