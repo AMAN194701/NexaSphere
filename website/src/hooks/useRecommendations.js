@@ -48,15 +48,11 @@ export function useRecommendations(events) {
     fetchRecommendationsFromBackend();
   }, [fetchRecommendationsFromBackend]);
 
-  const trackEvent = useCallback(
-    (eventId, action, metadata) => {
-      userInterestTracker.trackEventInteraction(eventId, action, metadata);
-      generateRecommendations();
-    },
-    [generateRecommendations]
+  const trackEvent = useCallback((eventId, action, metadata) => {
+    userInterestTracker.trackEventInteraction(eventId, action, metadata);
     // Ideally, this interaction should be sent to the backend for the ML model's feedback loop.
     // Example: axios.post(`${import.meta.env.VITE_API_BASE}/user-interactions`, { userId: '101', eventId, action, metadata });
-  );
+  }, []);
 
   const getSimilarEvents = useCallback(
     (event, limit = 3) => {
