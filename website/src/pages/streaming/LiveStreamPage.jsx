@@ -194,7 +194,7 @@ function PollPanel({ polls, onVote }) {
                 const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
                 return (
                   <button
-                    key={idx}
+                    key={`${poll.id}-opt-${opt}`}
                     onClick={() => handleVote(poll.id, idx)}
                     disabled={votedPolls.has(poll.id)}
                     className="w-full relative overflow-hidden rounded bg-gray-600 px-3 py-2 text-left text-sm hover:bg-gray-500 transition disabled:opacity-80 disabled:cursor-default"
