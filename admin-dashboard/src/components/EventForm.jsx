@@ -131,10 +131,10 @@ export function EventForm({ event, onClose }) {
         if (!existingStart) return false;
 
         const timeDiff = Math.abs(currentStart - existingStart);
-        const twoHoursInMs = 2 * 60 * 60 * 1000;
-        const nameSimilarity = e.name.toLowerCase() === form.name.toLowerCase();
+        const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+        const isSameName = e.name.trim().toLowerCase() === form.name.trim().toLowerCase();
 
-        return timeDiff < twoHoursInMs && nameSimilarity;
+        return timeDiff < TWO_HOURS_MS && isSameName;
       });
 
       return !!duplicate;
