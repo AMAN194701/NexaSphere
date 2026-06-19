@@ -26,6 +26,8 @@ import formsRouter from './routes/forms.js';
 import portfolioRouter from './routes/portfolio.js';
 import notificationsRouter from './routes/notifications.js';
 import adminRouter from './routes/admin.js';
+import webhookRouter from './routes/webhooks.js';
+import { startWebhookRetryProcessor } from './services/webhookRetryProcessor.js';
 import { validateEnvironment } from './utils/envValidator.js';
 import { performanceMonitor } from './middleware/performanceMonitor.js';
 import { tracingMiddleware } from './middleware/tracingMiddleware.js';
@@ -323,6 +325,7 @@ app.use('/api', formsRouter);
 app.use('/api', portfolioRouter);
 app.use('/api', notificationsRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/admin/webhooks', webhookRouter);
 app.use('/', syncRouter);
 
 const adminAuth = [apiRateLimiter, adminAuthMiddleware.requireAdmin];
@@ -1753,6 +1756,7 @@ if (process.env.NODE_ENV !== 'test') {
       server = app.listen(port, () => {
         console.log(`NexaSphere server listening on http://localhost:${port}`);
         schedulerService.init();
+        startWebhookRetryProcessor();
       });
     });
   } else {
@@ -1760,6 +1764,7 @@ if (process.env.NODE_ENV !== 'test') {
     server = app.listen(port, () => {
       console.log(`NexaSphere server listening on http://localhost:${port}`);
       schedulerService.init();
+      startWebhookRetryProcessor();
     });
     initializeSocketIO(server);
   }
