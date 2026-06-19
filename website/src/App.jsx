@@ -94,6 +94,7 @@ const EventDetailPage = lazy(() => import('./pages/events/EventDetailPage'));
 const AboutPage = lazy(() => import('./pages/about/AboutPage'));
 const TeamPage = lazy(() => import('./pages/team/TeamPage'));
 const ContactPage = lazy(() => import('./pages/contact/ContactPage'));
+const ResourcesPage = lazy(() => import('./pages/resources/ResourcesPage'));
 const RoadmapsPage = lazy(() => import('./pages/roadmaps/RoadmapsPage'));
 const ProjectsPage = lazy(() => import('./pages/projects/ProjectsPage'));
 const CertificateVerifyPage = lazy(() => import('./pages/certificates/CertificateVerifyPage'));
