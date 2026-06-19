@@ -43,6 +43,7 @@ import TeamSection from './pages/team/TeamSection';
 import Footer from './shared/Footer';
 import CinematicOpening from './shared/CinematicOpening';
 import Chatbot from './shared/Chatbot';
+import ResourcesPage from './pages/resources/ResourcesPage';
 import {
   AmbientOrbs,
   SectionDivider,
