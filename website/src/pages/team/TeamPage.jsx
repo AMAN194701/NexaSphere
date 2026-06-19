@@ -12,8 +12,9 @@ import TeamMemberModal from './TeamMemberModal';
 import { IconSpark } from '../../shared/Icons';
 import { BannerOrbs } from '../../shared/MotionLayer';
 import Footer from '../../shared/Footer';
+import { getApiBase } from '../../utils/runtimeConfig';
 
-function MemberCard({ member, idx, onClick }) {
+function MemberCard({ member, idx, onClick, triggerRef }) {
   const ref = useRef(null);
   const [imgError, setImgError] = useState(false);
   const agDelays = [-0.0, -2.1, -4.2, -1.0, -3.3, -5.5, -0.7, -6.1, -2.8, -4.9, -1.6, -3.8];
@@ -41,7 +42,10 @@ function MemberCard({ member, idx, onClick }) {
         c.style.transform = '';
       }, 140);
     }
-    setTimeout(() => onClick(member), 110);
+    setTimeout(() => {
+      triggerRef.current = ref.current;
+      onClick(member);
+    }, 110);
   };
 
   return (
@@ -96,18 +100,17 @@ function MemberCard({ member, idx, onClick }) {
 export default function TeamPage({ onBack, onApply }) {
   const [sel, setSel] = useState(null);
   const [members, setMembers] = useState(() => getLocalTeamMembers(teamMembers));
-
+  const triggerRef = useRef(null);
   useEffect(() => {
     window.scrollTo({ top: 0 });
   }, []);
 
   useEffect(() => {
     let alive = true;
-    const base = (import.meta?.env?.VITE_API_BASE || '').replace(/\/+$/, '');
+    const base = getApiBase();
     const applyLocalTeam = () => {
       if (alive) setMembers(getLocalTeamMembers(teamMembers));
     };
-
     if (!base) {
       applyLocalTeam();
       return subscribePublicContent(applyLocalTeam);
@@ -129,23 +132,31 @@ export default function TeamPage({ onBack, onApply }) {
     };
 
     fetchTeam();
-    const interval = setInterval(fetchTeam, 4000);
-
+    // Removed unconditional 4s polling — socket event handles live updates.
+    // Re-fetch once when the tab becomes visible again after being backgrounded.
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') fetchTeam();
+    };
     // Socket: refetch immediately when admin updates team
     const onContentUpdated = (data) => {
       if (data?.type === 'team') {
         fetchTeam();
       }
     };
+    document.addEventListener('visibilitychange', onVisibilityChange);
     on('content:updated', onContentUpdated);
 
     return () => {
       alive = false;
-      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       off('content:updated', onContentUpdated);
     };
   }, []);
-
+  useEffect(() => {
+    if (!sel && triggerRef.current?.focus) {
+      triggerRef.current.focus();
+    }
+  }, [sel]);
   const organiser = members.filter((m) => m.role === 'Organiser' || m.role === 'Co-organiser');
   const coreTeam = members.filter((m) => m.role === 'Core Team Member');
 
@@ -268,7 +279,7 @@ export default function TeamPage({ onBack, onApply }) {
             }}
           >
             {organiser.map((m, i) => (
-              <MemberCard key={m.id} member={m} idx={i} onClick={setSel} />
+              <MemberCard key={m.id} member={m} idx={i} onClick={setSel} triggerRef={triggerRef} />
             ))}
           </div>
         </div>
@@ -308,7 +319,13 @@ export default function TeamPage({ onBack, onApply }) {
           </div>
           <div className="team-grid">
             {coreTeam.map((m, i) => (
-              <MemberCard key={m.id} member={m} idx={i + 2} onClick={setSel} />
+              <MemberCard
+                key={m.id}
+                member={m}
+                idx={i + 2}
+                onClick={setSel}
+                triggerRef={triggerRef}
+              />
             ))}
           </div>
         </div>

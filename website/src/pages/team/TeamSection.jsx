@@ -4,6 +4,7 @@ import { on, off } from '../../utils/socketClient.js';
 import TeamMemberModal from './TeamMemberModal';
 import { IconSpark } from '../../shared/Icons';
 import { teamMembers as fallbackTeamMembers } from '../../data/teamData';
+import { getApiBase } from '../../utils/runtimeConfig';
 import {
   getLocalTeamMembers,
   mergeTeamMembers,
@@ -95,7 +96,7 @@ export default function TeamSection({ onApply }) {
 
   useEffect(() => {
     let alive = true;
-    const base = (import.meta?.env?.VITE_API_BASE || '').replace(/\/+$/, '');
+    const base = getApiBase();
     const applyLocalTeam = () => {
       if (alive) setMembers(getLocalTeamMembers(fallbackTeamMembers));
     };
@@ -127,7 +128,17 @@ export default function TeamSection({ onApply }) {
     };
 
     fetchTeam();
-    const interval = setInterval(fetchTeam, 4000);
+
+    // Replace unconditional 4s polling with a visibilitychange listener —
+    // refetch only when the user returns to the tab instead of hammering
+    // the API every 4 seconds regardless of tab visibility or user activity.
+    // The socket listener below already handles real-time admin updates.
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchTeam();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     // Socket: refetch immediately when admin updates team
     const onContentUpdated = (data) => {
@@ -139,7 +150,7 @@ export default function TeamSection({ onApply }) {
 
     return () => {
       alive = false;
-      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       off('content:updated', onContentUpdated);
     };
   }, []);

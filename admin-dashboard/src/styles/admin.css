@@ -11,7 +11,7 @@
   --surface: #111118;
   --surface2: #1a1a24;
   --border: #2a2a38;
-  --red: #CC1111;
+  --red: #cc1111;
   --red-hover: #ee2222;
   --text: #f0f0f0;
   --text2: #a0a0b0;
@@ -57,7 +57,7 @@ body {
   flex-direction: column;
   padding: 24px 0;
   z-index: 100;
-  transition: transform 0.25s cubic-bezier(.4, 0, .2, 1);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ── Hamburger button (hidden on desktop) ── */
@@ -86,7 +86,9 @@ body {
   height: 2px;
   background: var(--text);
   border-radius: 2px;
-  transition: transform 0.2s, opacity 0.2s;
+  transition:
+    transform 0.2s,
+    opacity 0.2s;
 }
 
 /* ── Backdrop (mobile only) ── */
@@ -122,17 +124,17 @@ body {
   }
 
   /* Hamburger → X animation */
-  .sidebar.sidebar-open~* .ham-line:nth-child(1),
+  .sidebar.sidebar-open ~ * .ham-line:nth-child(1),
   .ham-line.open:nth-child(1) {
     transform: translateY(7px) rotate(45deg);
   }
 
-  .sidebar.sidebar-open~* .ham-line:nth-child(2),
+  .sidebar.sidebar-open ~ * .ham-line:nth-child(2),
   .ham-line.open:nth-child(2) {
     opacity: 0;
   }
 
-  .sidebar.sidebar-open~* .ham-line:nth-child(3),
+  .sidebar.sidebar-open ~ * .ham-line:nth-child(3),
   .ham-line.open:nth-child(3) {
     transform: translateY(-7px) rotate(-45deg);
   }
@@ -375,6 +377,75 @@ body {
 .quick-card:hover {
   border-color: var(--red);
   color: var(--red);
+}
+/* ── Empty State ── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  text-align: center;
+
+  padding: 48px 24px;
+  border-radius: 16px;
+
+  background: var(--surface);
+  border: 1px dashed var(--border);
+
+  margin-top: 24px;
+}
+
+.empty-state-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 72px;
+  height: 72px;
+
+  border-radius: 50%;
+
+  background: var(--surface2);
+
+  margin-bottom: 18px;
+
+  color: var(--accent);
+}
+
+.empty-state-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+
+  margin-bottom: 10px;
+}
+
+.empty-state-description {
+  max-width: 420px;
+
+  color: var(--text-muted);
+
+  line-height: 1.5;
+
+  margin-bottom: 18px;
+}
+
+.empty-state-btn {
+  padding: 10px 16px;
+
+  border: none;
+  border-radius: 10px;
+
+  background: var(--accent);
+  color: white;
+
+  cursor: pointer;
+
+  transition: opacity 0.2s ease;
+}
+
+.empty-state-btn:hover {
+  opacity: 0.9;
 }
 
 /* ── List ── */
@@ -708,9 +779,29 @@ body {
 .skeleton {
   background: linear-gradient(90deg, var(--surface) 25%, var(--surface2) 50%, var(--surface) 75%);
   background-size: 200% 100%;
-  animation: shimmer 1.4s infinite;
   border-radius: var(--radius);
-  margin-bottom: 8px;
+}
+
+.skeleton-shimmer {
+  animation: skeleton-shimmer 1.4s infinite linear;
+}
+
+.skeleton-rounded {
+  border-radius: 50%;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+.skeleton-card {
+  overflow: hidden;
+  position: relative;
 }
 
 @keyframes shimmer {
@@ -720,6 +811,13 @@ body {
 
   100% {
     background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer {
+    animation: none;
+    opacity: 0.6;
   }
 }
 
@@ -966,6 +1064,26 @@ body {
   animation: spin 1s linear infinite;
 }
 
+/* ── Skip-to-content link ── */
+.skip-link {
+  position: fixed;
+  top: -100%;
+  left: 8px;
+  z-index: 9999;
+  background: var(--red);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 0 0 var(--radius) var(--radius);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: top 0.15s;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
 /* ── Offline Banner ── */
 .offline-banner {
   position: fixed;
@@ -989,7 +1107,6 @@ body {
 }
 
 @keyframes pulse {
-
   0%,
   100% {
     opacity: 1;

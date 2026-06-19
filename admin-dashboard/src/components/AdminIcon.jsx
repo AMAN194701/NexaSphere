@@ -124,6 +124,22 @@ const ICONS = {
       <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
     </>
   ),
+  Megaphone: (
+    <>
+      <path d="m3 11 18-5v12L3 13v-2Z" />
+      <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
+    </>
+  ),
+  Handshake: (
+    <>
+      <path d="M19 8c0 3-2 5.5-6 7" />
+      <path d="M5 8c0 3 2 5.5 6 7" />
+      <path d="M3 5c0 2 1.5 4 4 5" />
+      <path d="M21 5c0 2-1.5 4-4 5" />
+      <path d="M8.5 10 12 8l3.5 2" />
+      <path d="M7 13l2.5-1.5L12 13l2.5-1.5L17 13" />
+    </>
+  ),
 };
 
 export function AdminIcon({ name, size = 18, className = '', ...props }) {
