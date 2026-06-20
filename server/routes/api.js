@@ -14,7 +14,8 @@ import { authRateLimiter, protectedActionRateLimiter } from '../middleware/authR
 import { portfolioRepository } from '../repositories/portfolioRepository.js';
 import { achievementsRepository } from '../repositories/achievementsRepository.js';
 import { portfolioService } from '../services/portfolioService.js';
-import { studentAuthService } from '../services/studentAuthService.js';
+import * as sponsorshipsController from '../controllers/sponsorshipsController.js';
+import { achievementSchema } from '../validators/portfolioSchemas.js';
 
 const router = Router();
 
@@ -42,8 +43,7 @@ router.delete(
 router.post('/account-recovery/request', async (req, res) => {
   const { email } = req.body;
 
-  const recovery =
-    await studentAuthService.createRecoveryRequest(email);
+  const recovery = await studentAuthService.createRecoveryRequest(email);
 
   return res.json({
     success: true,
@@ -54,11 +54,7 @@ router.post('/account-recovery/request', async (req, res) => {
 router.post('/account-recovery/verify', async (req, res) => {
   const { savedCode, enteredCode } = req.body;
 
-  const valid =
-    studentAuthService.verifyRecoveryCode(
-      savedCode,
-      enteredCode
-    );
+  const valid = studentAuthService.verifyRecoveryCode(savedCode, enteredCode);
 
   return res.json({
     success: valid,
@@ -204,20 +200,18 @@ router.get(
 router.post(
   '/api/admin/portfolios/:username/achievements',
   adminAuthMiddleware.requireScope('events:write'),
+  adminAuditMiddleware,
   async (req, res) => {
     try {
       const username = String(req.params.username || '')
         .trim()
         .toLowerCase();
-      const { name, description, tier, iconUrl, source } = req.body;
-      if (!name) return res.status(400).json({ error: 'Achievement name is required' });
-      const achievement = await portfolioService.awardAchievement(username, {
-        name: String(name).trim().slice(0, 120),
-        description: description ? String(description).trim().slice(0, 1000) : null,
-        tier: tier ? String(tier).trim().slice(0, 40) : 'bronze',
-        iconUrl: iconUrl ? String(iconUrl).trim().slice(0, 500) : null,
-        source: source ? String(source).trim().slice(0, 60) : 'admin',
-      });
+      const validated = achievementSchema.safeParse(req.body);
+      if (!validated.success) {
+        return res.status(400).json({ error: validated.error.errors[0].message });
+      }
+
+      const achievement = await portfolioService.awardAchievement(username, validated.data);
       return res.status(201).json({ achievement });
     } catch (err) {
       return res.status(500).json({ error: err.message });
@@ -227,6 +221,15 @@ router.post(
 router.delete(
   '/api/admin/portfolios/:username/achievements/:name',
   adminAuthMiddleware.requireScope('events:write'),
+  attachOldState(async (req) => {
+    const username = String(req.params.username || '')
+      .trim()
+      .toLowerCase();
+    const achievements = await achievementsRepository.getByUsername(username);
+    const targetName = String(req.params.name || '').trim();
+    return achievements.find((a) => a.name === targetName);
+  }),
+  adminAuditMiddleware,
   async (req, res) => {
     try {
       const username = String(req.params.username || '')
@@ -239,6 +242,32 @@ router.delete(
       return res.status(500).json({ error: err.message });
     }
   }
+);
+
+// Sponsorship management APIs
+router.get('/api/content/sponsors', sponsorshipsController.listSponsors);
+router.get(
+  '/api/admin/sponsors',
+  adminAuthMiddleware.requireScope('events:read'),
+  sponsorshipsController.adminListSponsors
+);
+router.post(
+  '/api/admin/sponsors',
+  adminAuthMiddleware.requireScope('events:write'),
+  adminAuditMiddleware,
+  sponsorshipsController.adminCreateSponsor
+);
+router.put(
+  '/api/admin/sponsors/:id',
+  adminAuthMiddleware.requireScope('events:write'),
+  adminAuditMiddleware,
+  sponsorshipsController.adminUpdateSponsor
+);
+router.delete(
+  '/api/admin/sponsors/:id',
+  adminAuthMiddleware.requireScope('events:write'),
+  adminAuditMiddleware,
+  sponsorshipsController.adminDeleteSponsor
 );
 
 export default router;
