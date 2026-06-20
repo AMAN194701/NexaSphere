@@ -16,9 +16,17 @@ import { achievementsRepository } from '../repositories/achievementsRepository.j
 import { portfolioService } from '../services/portfolioService.js';
 import * as sponsorshipsController from '../controllers/sponsorshipsController.js';
 
+import * as recommendationsController from '../controllers/recommendationsController.js';
+import multer from 'multer';
+
+const upload = multer({
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+});
+
 const router = Router();
 
 // Public
+router.post('/api/assistant/recommend', upload.single('file'), recommendationsController.getProjectRecommendations);
 router.get('/api/users', usersController.getPublicUsers);
 router.get('/api/content/events', eventsController.listEvents);
 router.post('/api/content/events/:eventId/register', eventRegistrationController.registerForEvent);
