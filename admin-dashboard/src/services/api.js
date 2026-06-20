@@ -470,6 +470,58 @@ async function fetchWithAuth(url, options = {}) {
         return;
       }
 
+      // /api/admin/events/recommendations
+      if (url === '/api/admin/events/recommendations') {
+        const events = getDb('events', []);
+        const completedEvents = events.filter((event) => event.status === 'completed');
+        const eventCount = completedEvents.length || events.length;
+        const topEvent = events[0];
+
+        resolve({
+          generatedAt: new Date().toISOString(),
+          dataWindow: {
+            totalEvents: events.length,
+            historicalEvents: eventCount,
+            note: 'Offline recommendations use local admin event data only.',
+          },
+          recommendations: topEvent
+            ? [
+                {
+                  title: `${topEvent.category || 'general'} events need early planning`,
+                  priority: 'medium',
+                  action: `Use ${topEvent.name} as the reference event and plan capacity around ${
+                    topEvent.capacity || 30
+                  }.`,
+                  explanation:
+                    'Offline mode cannot access live registration history, so this uses saved event metadata.',
+                },
+              ]
+            : [],
+          historicalPatterns: {
+            sampleSize: eventCount,
+            eventTypes: [],
+            bestDay: null,
+            seasonal: [],
+            demographics: [],
+          },
+          planningRecommendations: [],
+          attendancePredictions: [],
+          schedulingRecommendations: {
+            conflicts: [],
+            recommendations: [
+              'Connect to the server to analyze registration timing and conflicts.',
+            ],
+          },
+          resourceRecommendations: [],
+          topicRecommendations: {
+            trending: [],
+            gaps: [],
+            partnerPreferences: [],
+          },
+        });
+        return;
+      }
+
       // /api/admin/events (base CRUD — must come after sub-path handlers)
       if (url.startsWith('/api/admin/events')) {
         let events = getDb('events', []);
@@ -762,6 +814,48 @@ async function fetchWithAuth(url, options = {}) {
           resolve({ success: true });
         }
       }
+
+      // /api/admin/reports/engagement
+      else if (url.startsWith('/api/admin/reports/engagement')) {
+        if (method === 'GET') {
+          // Generate mock engagement data
+          const seedUsers = Array.from({ length: 45 }, (_, i) => {
+            const eventsAttended = Math.floor(Math.random() * 15);
+            const portfolioCompletion = Math.floor(Math.random() * 101);
+            const activeDays30 = Math.floor(Math.random() * 31);
+            const activeDays90 = Math.floor(Math.random() * 91);
+
+            // Engagement scoring logic:
+            // 40% based on active days in last 30 days (max 30 points -> scaled to 40)
+            // 30% based on events attended (max 10 events -> scaled to 30)
+            // 30% based on portfolio completion (max 100 -> scaled to 30)
+            const score30 = Math.min((activeDays30 / 30) * 40, 40);
+            const scoreEvents = Math.min((eventsAttended / 10) * 30, 30);
+            const scorePortfolio = (portfolioCompletion / 100) * 30;
+            const engagementScore = Math.round(score30 + scoreEvents + scorePortfolio);
+
+            // Inactive user detection:
+            // Less than 2 active days in the last 30 days AND attended 0 events
+            const isInactive = activeDays30 < 2 && eventsAttended === 0;
+
+            return {
+              id: `user-${i + 1}`,
+              name: `Community Member ${i + 1}`,
+              eventsAttended,
+              portfolioCompletion,
+              activeDays30,
+              activeDays90,
+              engagementScore,
+              status: isInactive ? 'Inactive' : 'Active',
+            };
+          });
+
+          // Sort by engagement score descending
+          seedUsers.sort((a, b) => b.engagementScore - a.engagementScore);
+
+          resolve({ users: seedUsers });
+        }
+      }
     }, 300); // simulate slight network delay
   });
 }
@@ -831,6 +925,7 @@ export const api = {
   },
   events: {
     getAll: () => fetchWithAuth('/api/admin/events'),
+    recommendations: () => fetchWithAuth('/api/admin/events/recommendations'),
     create: async (event) => {
       if (auth.isOfflineMode()) {
         eventEmitter.emit(EVENTS.NOTIFY, {
@@ -1288,6 +1383,59 @@ export const api = {
       });
       eventEmitter.emit(EVENTS.NOTIFY, { type: 'success', message: `Reply ${status}` });
       return result;
+    },
+  },
+
+  rbac: {
+    getRoles: () => fetchWithAuth('/api/admin/rbac/roles'),
+    getPermissions: () => fetchWithAuth('/api/admin/rbac/permissions'),
+    getPermissionMatrix: () => fetchWithAuth('/api/admin/rbac/matrix'),
+    createRole: async (role) => {
+      const result = await fetchWithAuth('/api/admin/rbac/roles', {
+        method: 'POST',
+        body: JSON.stringify(role),
+      });
+      eventEmitter.emit(EVENTS.NOTIFY, { type: 'success', message: 'Role created' });
+      return result;
+    },
+    updateRole: async (name, role) => {
+      const result = await fetchWithAuth(`/api/admin/rbac/roles/${name}`, {
+        method: 'PUT',
+        body: JSON.stringify(role),
+      });
+      eventEmitter.emit(EVENTS.NOTIFY, { type: 'success', message: 'Role updated' });
+      return result;
+    },
+    deleteRole: async (name) => {
+      await fetchWithAuth(`/api/admin/rbac/roles/${name}`, { method: 'DELETE' });
+      eventEmitter.emit(EVENTS.NOTIFY, { type: 'success', message: 'Role deleted' });
+    },
+    getUsersWithRoles: () => fetchWithAuth('/api/admin/rbac/users'),
+    assignRole: async (assignment) => {
+      const result = await fetchWithAuth('/api/admin/rbac/assign', {
+        method: 'POST',
+        body: JSON.stringify(assignment),
+      });
+      eventEmitter.emit(EVENTS.NOTIFY, { type: 'success', message: 'Role assigned' });
+      return result;
+    },
+    revokeRole: async (userId, roleName) => {
+      await fetchWithAuth(`/api/admin/rbac/assign/${userId}/${roleName}`, {
+        method: 'DELETE',
+      });
+      eventEmitter.emit(EVENTS.NOTIFY, { type: 'success', message: 'Role revoked' });
+    },
+    bulkAssignRoles: async (assignments) => {
+      const result = await fetchWithAuth('/api/admin/rbac/bulk-assign', {
+        method: 'POST',
+        body: JSON.stringify({ assignments }),
+      });
+      eventEmitter.emit(EVENTS.NOTIFY, { type: 'success', message: 'Roles assigned in bulk' });
+      return result;
+    },
+    getAuditLogs: (params = {}) => {
+      const query = new URLSearchParams(params).toString();
+      return fetchWithAuth(`/api/admin/rbac/audit${query ? `?${query}` : ''}`);
     },
   },
 };

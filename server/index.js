@@ -1,10 +1,12 @@
 import 'dotenv/config';
+import { tracedFetch } from './config/appContext.js';
 import { initObservability } from './observability/index.js';
 import { setTraceIdResolver } from './utils/logContext.js';
 import { getActiveTraceId } from './observability/tracing.js';
 import helmet from 'helmet';
 import express from 'express';
 import cors from 'cors';
+import csrf from 'csurf';
 import morgan from 'morgan';
 import fs, { promises as fsp } from 'fs';
 import { body, validationResult } from 'express-validator';
@@ -17,6 +19,9 @@ import { adminAuthMiddleware } from './middleware/adminAuthMiddleware.js';
 import analyticsRouter from './routes/analytics.js';
 import apiRouter from './routes/api.js';
 import { initializeSocketIO, emitToRoom, getRoom } from './config/socket.js';
+import activityEventsRouter from './routes/activityEvents.js';
+import formSubmissionsRouter from './routes/formSubmissions.js';
+import { logEvent } from './controllers/analyticsController.js';
 import adminStreamRouter from './routes/adminStream.js';
 import documentationRouter from './routes/documentation.js';
 import monitoringRouter from './routes/monitoring.js';
@@ -24,12 +29,16 @@ import healthRouter from './routes/health.js';
 import coreTeamRouter from './routes/coreTeam.js';
 import formsRouter from './routes/forms.js';
 import portfolioRouter from './routes/portfolio.js';
+import portfolioExportRouter from './routes/portfolioExport.js';
 import notificationsRouter from './routes/notifications.js';
 import adminRouter from './routes/admin.js';
+import announcementsRouter from './routes/announcements.js';
+import bulkRouter from './routes/bulk.js';
 import { validateEnvironment } from './utils/envValidator.js';
 import { performanceMonitor } from './middleware/performanceMonitor.js';
-import { tracingMiddleware } from './middleware/tracingMiddleware.js';
+import { enhancedTracingMiddleware } from './middleware/enhancedTracingMiddleware.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+import { notificationAnalyticsRepository } from './repositories/notificationAnalyticsRepository.js';
 import { initializeSentry, addSentryErrorHandler } from './utils/sentry.js';
 import {
   apiRateLimiter,
@@ -38,6 +47,7 @@ import {
   activityAuthRateLimiter,
   portfolioRateLimiter,
   validateLimiters,
+  searchRateLimiter,
 } from './middleware/rateLimiter.js';
 import {
   authRateLimiter,
@@ -62,6 +72,9 @@ import notificationsService from './services/notificationsService.js';
 import { notificationPreferencesRepository } from './repositories/notificationPreferencesRepository.js';
 import { HAS_SUPABASE } from './storage/supabaseClient.js';
 import cookieParser from 'cookie-parser';
+import session from 'express-session';
+import RedisStore from 'connect-redis';
+import Redis from 'ioredis';
 import passport from './config/studentOAuth.js';
 import { studentUsersRepository } from './repositories/studentUsersRepository.js';
 import * as studentAuthController from './controllers/studentAuthController.js';
@@ -74,9 +87,13 @@ import { tierRateLimiter } from './middleware/tierRateLimiter.js';
 import compression from 'compression';
 import syncRouter from './routes/sync.js';
 import multer from 'multer';
+import learningPathRouter from './routes/learningPaths.js';
 import * as resourcesController from './controllers/resourcesController.js';
+import * as backupController from './controllers/backupController.js';
 import scheduledTasksRouter from './routes/scheduledTasks.js';
+import financialsRouter from './routes/financials.js';
 import { schedulerService } from './services/schedulerService.js';
+import recommendationsRouter from './routes/recommendations.js';
 
 validateLimiters();
 
@@ -109,6 +126,44 @@ app.set(
 
 initializeSentry(app);
 app.use(compression());
+
+// Redis Session Setup for Disaster Recovery / Horizontal Scaling
+export const redisClient = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
+  maxRetriesPerRequest: 3,
+  retryStrategy: (times) => Math.min(times * 50, 2000),
+});
+
+const redisStore = new RedisStore({
+  client: redisClient,
+  prefix: 'nexasphere:sess:',
+});
+
+app.use(
+  session({
+    store: redisStore,
+    secret: process.env.SESSION_SECRET || 'dr-fallback-secret',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+      sameSite: 'lax',
+      maxAge: 1000 * 60 * 60 * 24, // 24 hours
+    },
+  })
+);
+
+// CSRF Protection middleware - protects against Cross-Site Request Forgery
+app.use(csrf());
+
+// Expose CSRF token to the client via a non-httpOnly cookie
+app.use((req, res, next) => {
+  res.cookie('XSRF-TOKEN', req.csrfToken(), {
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+  });
+  next();
+});
 
 if (!process.env.CORS_ORIGIN) {
   throw new Error('CORS_ORIGIN environment variable must be set.');
@@ -272,7 +327,7 @@ app.use(
 );
 app.options('*', cors());
 
-app.use(tracingMiddleware);
+app.use(enhancedTracingMiddleware);
 
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
@@ -282,6 +337,15 @@ if (!useStructuredHttpLog) {
 }
 app.use(performanceMonitor);
 app.use(cookieParser());
+
+// Track app activity for smart notification frequency adjustment
+app.use((req, res, next) => {
+  if (req.studentUser || req.adminSession) {
+    const userId = req.studentUser?.id || req.adminSession?.userId;
+    if (userId) notificationAnalyticsRepository.trackAppActivity(userId);
+  }
+  next();
+});
 
 // Global API rate limiter — protects all /api routes from request flooding
 app.use('/api', apiRateLimiter);
@@ -314,18 +378,33 @@ if (!useStructuredHttpLog) {
 }
 
 // Mount route modules
+app.use('/api/form-submissions', formSubmissionsRouter);
+app.post('/api/analytics/track', logEvent);
 app.use('/api/monitoring', monitoringRouter);
+app.use('/api/health-dashboard', healthDashboardRouter);
 app.use('/api', documentationRouter);
 app.use('/', apiRouter);
 app.use('/', healthRouter);
 app.use('/', coreTeamRouter);
 app.use('/api', formsRouter);
 app.use('/api', portfolioRouter);
-app.use('/api', notificationsRouter);
+app.use('/', notificationsRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api', learningPathRouter);
 app.use('/', syncRouter);
+app.use('/api/recommendations', recommendationsRouter);
 
 const adminAuth = [apiRateLimiter, adminAuthMiddleware.requireAdmin];
+
+// Scheduled Tasks Management
+app.use('/api/admin/scheduled-tasks', adminAuth, scheduledTasksRouter);
+
+// Database Backup & Recovery Endpoints
+app.get('/api/admin/backups', adminAuth, backupController.getBackups);
+app.post('/api/admin/backups/manual', adminAuth, backupController.runManualBackup);
+app.post('/api/admin/backups/restore', adminAuth, backupController.runRestore);
+app.get('/api/admin/backups/restore-test-history', adminAuth, backupController.getRestoreHistory);
+app.delete('/api/admin/backups', adminAuth, backupController.deleteBackup);
 
 const defaultContent = {
   events: [
@@ -382,22 +461,39 @@ const storage = multer.diskStorage({
   },
 });
 
+const MAGIC_BYTES = {
+  'application/pdf': [[0x25, 0x50, 0x44, 0x46]],
+  'image/png': [[0x89, 0x50, 0x4e, 0x47]],
+  'image/jpeg': [[0xff, 0xd8, 0xff]],
+  'image/gif': [[0x47, 0x49, 0x46]],
+  'image/webp': [[0x52, 0x49, 0x46, 0x46]],
+  'application/zip': [[0x50, 0x4b, 0x03, 0x04], [0x50, 0x4b, 0x05, 0x06], [0x50, 0x4b, 0x07, 0x08]],
+  'application/x-zip-compressed': [[0x50, 0x4b, 0x03, 0x04]],
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': [[0x50, 0x4b, 0x03, 0x04]],
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': [[0x50, 0x4b, 0x03, 0x04]],
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': [[0x50, 0x4b, 0x03, 0x04]],
+  'text/plain': [],
+  'text/markdown': [],
+  'application/json': [],
+};
+
+function validateMagicBytes(filepath, mimeType) {
+  const signatures = MAGIC_BYTES[mimeType];
+  if (!signatures || signatures.length === 0) return true;
+  const fd = fs.openSync(filepath, 'r');
+  const buffer = Buffer.alloc(8);
+  fs.readSync(fd, buffer, 0, 8, 0);
+  fs.closeSync(fd);
+  return signatures.some((sig) => sig.every((byte, i) => buffer[i] === byte));
+}
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
 const fileFilter = (_req, file, cb) => {
-  const allowedMimes = [
-    'application/pdf',
-    'image/png',
-    'image/jpeg',
-    'image/gif',
-    'image/webp',
-    'application/zip',
-    'application/x-zip-compressed',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'text/plain',
-    'text/markdown',
-    'application/json',
-  ];
+  if (!file.originalname || file.originalname.includes('..') || file.originalname.includes('/')) {
+    return cb(new Error('Invalid file name'), false);
+  }
+  const allowedMimes = Object.keys(MAGIC_BYTES);
   if (allowedMimes.includes(file.mimetype)) {
     cb(null, true);
   } else {
@@ -408,8 +504,24 @@ const fileFilter = (_req, file, cb) => {
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
+  limits: { fileSize: MAX_FILE_SIZE },
 });
+
+const uploadWithMagicCheck = (req, res, next) => {
+  upload.single('file')(req, res, (err) => {
+    if (err) {
+      if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({ error: 'File too large. Maximum size is 10MB.' });
+      }
+      return res.status(400).json({ error: err.message });
+    }
+    if (req.file && !validateMagicBytes(req.file.path, req.file.mimetype)) {
+      fs.unlink(req.file.path, () => {});
+      return res.status(400).json({ error: 'File content does not match its declared type.' });
+    }
+    next();
+  });
+};
 
 // Serve uploaded files statically
 app.use('/uploads', express.static(UPLOADS_DIR));
@@ -459,7 +571,7 @@ const _rawSupabaseRequest = async function _rawSupabaseRequest(
   { method = 'GET', body } = {}
 ) {
   if (!HAS_SUPABASE) throw new Error('Supabase is not configured');
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${pathname}`, {
+  const res = await tracedFetch(`${SUPABASE_URL}/rest/v1/${pathname}`, {
     method,
     headers: {
       apikey: SUPABASE_SERVICE_KEY,
@@ -499,7 +611,7 @@ async function supabasePaginatedRequest(pathname, page, limit) {
   const offset = (page - 1) * limit;
   const separator = pathname.includes('?') ? '&' : '?';
   const url = `${SUPABASE_URL}/rest/v1/${pathname}${separator}limit=${limit}&offset=${offset}`;
-  const res = await fetch(url, {
+  const res = await tracedFetch(url, {
     method: 'GET',
     headers: {
       apikey: SUPABASE_SERVICE_KEY,
@@ -635,8 +747,19 @@ async function listEventsStore({ page = 1, limit = 20 } = {}) {
   return { events: all.slice(start, start + limit), total };
 }
 
+const ALLOWED_EVENT_FIELDS = [
+  'id', 'name', 'description', 'date_text', 'time', 'location',
+  'type', 'mode', 'category', 'tags', 'image_url', 'registration_link',
+  'capacity', 'registered_count', 'price', 'created_at', 'updated_at',
+];
+
 function sanitizeEventRecord(event) {
-  return event;
+  if (!event || typeof event !== 'object') return event;
+  const sanitized = {};
+  for (const field of ALLOWED_EVENT_FIELDS) {
+    if (field in event) sanitized[field] = event[field];
+  }
+  return sanitized;
 }
 
 async function createEventStore(event) {
@@ -873,8 +996,18 @@ async function listCoreTeamStore() {
   return (content.coreTeam || []).map((member) => sanitizeCoreTeamMemberRecord(member));
 }
 
+const ALLOWED_TEAM_MEMBER_FIELDS = [
+  'id', 'name', 'role', 'position', 'bio', 'avatar_url',
+  'github_url', 'linkedin_url', 'email', 'joined_at', 'order',
+];
+
 function sanitizeCoreTeamMemberRecord(member) {
-  return member;
+  if (!member || typeof member !== 'object') return member;
+  const sanitized = {};
+  for (const field of ALLOWED_TEAM_MEMBER_FIELDS) {
+    if (field in member) sanitized[field] = member[field];
+  }
+  return sanitized;
 }
 
 async function createCoreTeamStore(member) {
@@ -1025,6 +1158,9 @@ function clearActivityAuthAttempts(ip) {
   failedActivityAuthAttempts.delete(ip);
 }
 
+// Compliance & Legal Documents (handles both public and admin routes internally)
+app.use('/api/compliance', complianceRouter);
+
 // Admin Analytics & Metrics (mounted with admin auth)
 app.use('/api/admin/analytics', adminAuth, analyticsRouter);
 app.use('/api/admin/metrics', adminAuth, adminStreamRouter);
@@ -1036,7 +1172,17 @@ app.get('/api/auth/google/callback', studentAuthController.googleCallback);
 app.get('/api/auth/github', studentAuthController.githubAuth);
 app.get('/api/auth/github/callback', studentAuthController.githubCallback);
 app.get('/api/auth/me', requireStudentAuth, studentAuthController.getMe);
+app.post('/api/auth/theme', requireStudentAuth, studentAuthController.updateTheme);
 app.post('/api/auth/logout', studentAuthController.logout);
+
+// Slack Integration Endpoints
+app.post('/api/auth/slack-settings', requireStudentAuth, studentAuthController.updateSlackSettings);
+app.get('/api/slack/auth', slackController.startSlackAuth);
+app.get('/api/slack/auth/callback', slackController.slackAuthCallback);
+app.post('/api/slack/commands', express.urlencoded({ extended: true }), slackController.handleSlackCommand);
+app.get('/api/admin/slack/config', adminAuth, slackController.getSlackConfig);
+app.post('/api/admin/slack/config', adminAuth, slackController.updateSlackConfig);
+app.delete('/api/admin/slack/disconnect', adminAuth, slackController.disconnectSlack);
 
 // ── Event Admin Management ──
 app.get('/api/admin/events', adminAuth, eventsController.adminListEvents);
@@ -1052,14 +1198,25 @@ app.post('/api/streams', adminAuth, streamController.createStream);
 app.put('/api/streams/:id', adminAuth, streamController.updateStream);
 app.patch('/api/streams/:id/status', adminAuth, streamController.setStreamStatus);
 app.delete('/api/streams/:id', adminAuth, streamController.deleteStream);
-app.post('/api/streams/:id/chat', streamController.addChatMessage);
+app.post('/api/streams/:id/chat', apiRateLimiter, streamController.addChatMessage);
 app.get('/api/streams/:id/chat', streamController.listChatMessages);
+app.post('/api/streams/:id/ban', adminAuth, streamController.banUser);
 app.post('/api/streams/:id/polls', streamController.createPoll);
 app.get('/api/streams/:id/polls', streamController.listPolls);
 app.post('/api/streams/polls/:pollId/vote', streamController.votePoll);
 app.patch('/api/streams/polls/:pollId/close', adminAuth, streamController.closePoll);
 app.patch('/api/streams/chat/:messageId/moderate', adminAuth, streamController.moderateChatMessage);
 app.get('/api/admin/streams', adminAuth, streamController.adminListAll);
+app.post('/api/streams/:id/mod-chat', adminAuth, streamController.addModChatMessage);
+app.get('/api/streams/:id/mod-chat', adminAuth, streamController.listModChatMessages);
+app.get('/api/streams/:id/analytics', adminAuth, streamController.getStreamAnalytics);
+
+// Streaming Engagement: Q&A and Reactions
+app.post('/api/streams/:id/questions', streamController.addQuestion);
+app.get('/api/streams/:id/questions', streamController.listQuestions);
+app.patch('/api/streams/questions/:qId/answer', adminAuth, streamController.answerQuestion);
+app.post('/api/streams/:id/reactions', streamController.addReaction);
+app.get('/api/streams/:id/reactions', streamController.getReactions);
 
 // Public listings
 app.get('/api/content/team', async (req, res) => {
@@ -1122,7 +1279,7 @@ app.post(
 
 // Admin membership responses
 async function _rawMembershipFetch(scriptUrl, secret) {
-  const response = await fetch(scriptUrl, {
+  const response = await tracedFetch(scriptUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action: 'getResponses', token: secret }),
@@ -1314,6 +1471,25 @@ app.post(
     }
   }
 );
+
+/**
+ * Notification Analytics & Feedback Loop
+ */
+app.post('/api/notifications/track', notificationRateLimiter, async (req, res) => {
+  const { userId, notificationId, eventType, action } = req.body;
+  await notificationAnalyticsRepository.logEvent(
+    userId || 'anonymous',
+    notificationId,
+    eventType,
+    action
+  );
+  return res.json({ success: true });
+});
+
+app.get('/api/notifications/stats/:userId', adminAuth, async (req, res) => {
+  const stats = await notificationAnalyticsRepository.getUserStats(req.params.userId);
+  return res.json(stats);
+});
 
 function requireNotificationAuth(req, res, next) {
   adminAuthMiddleware.requireAdmin(req, res, (err) => {
@@ -1567,7 +1743,7 @@ app.get('/api/notifications', async (req, res) => {
   try {
     const userId = req.query.userId || 'global';
 
-    if (userId !== 'global') {
+    {
       let authenticated = false;
 
       // 1. Try Student Auth
@@ -1663,16 +1839,16 @@ app.put('/api/notifications/preferences/bulk', async (req, res) => {
 app.get('/api/forum/categories', forumController.listCategories);
 app.get('/api/forum/threads', forumController.listThreads);
 app.get('/api/forum/threads/:id', forumController.getThread);
-app.post('/api/forum/threads', forumController.createThread);
-app.put('/api/forum/threads/:id', forumController.updateThread);
-app.delete('/api/forum/threads/:id', forumController.deleteThread);
+app.post('/api/forum/threads', requireStudentAuth, forumController.createThread);
+app.put('/api/forum/threads/:id', requireStudentAuth, forumController.updateThread);
+app.delete('/api/forum/threads/:id', requireStudentAuth, forumController.deleteThread);
 app.get('/api/forum/threads/:id/replies', forumController.listReplies);
-app.post('/api/forum/threads/:id/replies', forumController.createReply);
-app.put('/api/forum/replies/:replyId', forumController.updateReply);
-app.delete('/api/forum/replies/:replyId', forumController.deleteReply);
-app.post('/api/forum/threads/:id/vote', forumController.voteThread);
-app.post('/api/forum/replies/:replyId/vote', forumController.voteReply);
-app.post('/api/forum/threads/:id/accept/:replyId', forumController.acceptReply);
+app.post('/api/forum/threads/:id/replies', requireStudentAuth, forumController.createReply);
+app.put('/api/forum/replies/:replyId', requireStudentAuth, forumController.updateReply);
+app.delete('/api/forum/replies/:replyId', requireStudentAuth, forumController.deleteReply);
+app.post('/api/forum/threads/:id/vote', requireStudentAuth, forumController.voteThread);
+app.post('/api/forum/replies/:replyId/vote', requireStudentAuth, forumController.voteReply);
+app.post('/api/forum/threads/:id/accept/:replyId', requireStudentAuth, forumController.acceptReply);
 app.patch('/api/admin/forum/threads/:id/moderate', adminAuth, forumController.moderateThread);
 app.patch('/api/admin/forum/replies/:replyId/moderate', adminAuth, forumController.moderateReply);
 app.get('/api/admin/forum/threads', adminAuth, forumController.adminListThreads);
@@ -1714,7 +1890,7 @@ app.post('/api/resources/:id/download-track', resourcesController.downloadResour
 app.post(
   '/api/resources/upload',
   requireStudentAuth,
-  upload.single('file'),
+  uploadWithMagicCheck,
   resourcesController.uploadFile
 );
 
@@ -1747,19 +1923,29 @@ let server;
 
 if (process.env.NODE_ENV !== 'test') {
   if (!process.env.VERCEL) {
-    const boot = HAS_SUPABASE ? studentUsersRepository.ensureSchema() : ensureContentFile();
+    const boot = HAS_SUPABASE
+      ? Promise.all([studentUsersRepository.ensureSchema(), slackRepository.ensureSchema()])
+      : ensureContentFile();
     boot.then(() => {
       loadPersistedPushSubscriptions();
+      slackIntegrationService.init();
       server = app.listen(port, () => {
         console.log(`NexaSphere server listening on http://localhost:${port}`);
         schedulerService.init();
+        
+        // Register Learning Path Nudges (Runs daily)
+        schedulerService.schedule('0 10 * * *', async () => {
+          await learningPathService.runNudgeJob();
+        });
       });
     });
   } else {
     loadPersistedPushSubscriptions();
+    slackIntegrationService.init();
     server = app.listen(port, () => {
       console.log(`NexaSphere server listening on http://localhost:${port}`);
       schedulerService.init();
+      startWebhookRetryProcessor();
     });
     initializeSocketIO(server);
   }

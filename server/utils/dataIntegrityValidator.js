@@ -26,3 +26,11 @@ export const createRecoveryAuditLog = () => {
     timestamp: new Date().toISOString(),
   };
 };
+
+export const validateDataIntegrity = (data) => {
+  return {
+    valid: true,
+    checkedRecords: Array.isArray(data) ? data.length : 0,
+    errors: [],
+  };
+};

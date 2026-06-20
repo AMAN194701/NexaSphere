@@ -56,7 +56,7 @@ function StatCard({ label, value, color }) {
       ([e]) => {
         if (e.isIntersecting && !started.current) {
           started.current = true;
-          const num = parseInt(value);
+          const num = parseInt(value, 10);
           if (isNaN(num)) {
             setCount(value);
             return;
@@ -538,7 +538,7 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
   const handleCalendarDownload = () => {
     const base = getApiBase();
     const url = `${base}/api/content/events/${event.id}/calendar`;
-    window.open(url, '_blank');
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   const color = activityColor || '#a855f7';

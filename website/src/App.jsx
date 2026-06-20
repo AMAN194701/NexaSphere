@@ -29,6 +29,7 @@ import './styles/aurora.css';
 import './styles/motion.css';
 
 import SearchBar from './components/SearchBar';
+import './i18n';
 import FloatingDock from './components/common/FloatingDock';
 import ParticleBackground from './shared/ParticleBackground';
 import GeometricGridBackground from './shared/GeometricGridBackground';
@@ -96,6 +97,8 @@ const TeamPage = lazy(() => import('./pages/team/TeamPage'));
 const ContactPage = lazy(() => import('./pages/contact/ContactPage'));
 const RoadmapsPage = lazy(() => import('./pages/roadmaps/RoadmapsPage'));
 const ProjectsPage = lazy(() => import('./pages/projects/ProjectsPage'));
+const ResourcesPage = lazy(() => import('./pages/resources/ResourcesPage'));
+
 const CertificateVerifyPage = lazy(() => import('./pages/certificates/CertificateVerifyPage'));
 const CollabPage = lazy(() => import('./pages/collab/CollabPage'));
 const PortfolioBuilder = lazy(() => import('./components/portfolio/PortfolioBuilder'));
@@ -111,14 +114,15 @@ const MentorsPage = lazy(() => import('./pages/mentorship/MentorsPage'));
 const MentorshipDashboard = lazy(() => import('./pages/mentorship/MentorshipDashboard'));
 const StatusPage = lazy(() => import('./pages/StatusPage'));
 const LiveStreamPage = lazy(() => import('./pages/streaming/LiveStreamPage'));
+const ResourcesPage = lazy(() => import('./pages/resources/ResourcesPage'));
+const NotificationHistoryPage = lazy(() => import('./pages/notifications/NotificationHistoryPage'));
 const SponsorsPage = lazy(() => import('./pages/sponsors/SponsorsPage'));
 const RecommendationsPage = lazy(() => import('./pages/resume/RecommendationsPage'));
-
 
 const MNH = 88,
   DNH = 64;
 
-/* ── Page wipe transition ── */
+/* â”€â”€ Page wipe transition â”€â”€ */
 const Wipe = memo(function Wipe({ on: wipeOn, ph }) {
   if (!wipeOn) return null;
   return (
@@ -175,7 +179,7 @@ const Wipe = memo(function Wipe({ on: wipeOn, ph }) {
   );
 });
 
-/* ── Page enter animation ── */
+/* â”€â”€ Page enter animation â”€â”€ */
 const PageIn = memo(function PageIn({ children, k }) {
   const [r, setR] = useState(false);
   useLayoutEffect(() => {
@@ -205,7 +209,7 @@ const PageIn = memo(function PageIn({ children, k }) {
   );
 });
 
-/* ── Anti-gravity orb cursor ── */
+/* â”€â”€ Anti-gravity orb cursor â”€â”€ */
 function Cursor() {
   const orbRef = useRef(null);
   const trailRef = useRef(null);
@@ -367,9 +371,9 @@ function Cursor() {
   );
 }
 
-/* ─────────────────────────────────────────────────────
-   Root App — wraps everything in BrowserRouter
-───────────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+   Root App â€” wraps everything in BrowserRouter
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 export default function App() {
   return (
     <BrowserRouter>
@@ -380,9 +384,9 @@ export default function App() {
   );
 }
 
-/* ─────────────────────────────────────────────────────
-   AppShell — initialises global systems, reads location
-───────────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+   AppShell â€” initialises global systems, reads location
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function AppShell() {
   const location = useLocation();
   const [cinDone, setCinDone] = useState(false);
@@ -395,7 +399,7 @@ function AppShell() {
     if (location.pathname !== '/') {
       setCinDone(true);
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
 
   // Socket + cross-origin localStorage sync
   useEffect(() => {
@@ -453,7 +457,7 @@ function AppShell() {
     };
 
     fetchEvents();
-    // Removed unconditional 4s polling — socket event handles live updates.
+    // Removed unconditional 4s polling â€” socket event handles live updates.
     // Re-fetch once when the tab becomes visible again after being backgrounded.
     const onVisibilityChange = () => {
       if (document.visibilityState === 'visible') fetchEvents();
@@ -466,8 +470,8 @@ function AppShell() {
 
     return () => {
       alive = false;
-      clearInterval(interval);
       off('content:updated', onContentUpdated);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, []);
 
@@ -487,7 +491,7 @@ function AppShell() {
     return () => clearTimeout(timer);
   }, [cinDone]);
 
-  /* ── SW update prompt ── */
+  /* â”€â”€ SW update prompt â”€â”€ */
   const [swUpdateFn, setSwUpdateFn] = useState(null);
   useEffect(() => {
     const handle = (e) => {
@@ -521,7 +525,7 @@ function AppShell() {
 
       <Chatbot />
 
-      {/* Loading screen — prevents white-flash during cinematic opening */}
+      {/* Loading screen â€” prevents white-flash during cinematic opening */}
       <div
         aria-hidden="true"
         style={{
@@ -557,9 +561,9 @@ function AppShell() {
   );
 }
 
-/* ─────────────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    RequireAuth Wrapper
-───────────────────────────────────────────────────── */
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function RequireAuth({ children }) {
   const { isAuthenticated, loading } = useStudentAuth();
   if (loading) return <PageLoadingSpinner />;
@@ -567,9 +571,9 @@ function RequireAuth({ children }) {
   return children;
 }
 
-/* ─────────────────────────────────────────────────────
-   MainRouter — renders the Navbar + Routes
-───────────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+   MainRouter â€” renders the Navbar + Routes
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function MainRouter({
   cinDone,
   setCinDone,
@@ -654,7 +658,7 @@ function MainRouter({
   useGlobalMouseParallax();
   useMagneticCards();
 
-  /* ── Wipe-transition navigate ── */
+  /* â”€â”€ Wipe-transition navigate â”€â”€ */
   const nav = useCallback(
     (path, fn) => {
       setWipeOn(true);
@@ -672,7 +676,7 @@ function MainRouter({
     [navigate]
   );
 
-  /* ── Tab click handler ── */
+  /* â”€â”€ Tab click handler â”€â”€ */
   const onTab = useCallback(
     (tab) => {
       const routeMap = {
@@ -777,7 +781,7 @@ function MainRouter({
       <main style={{ paddingTop: nh, position: 'relative', zIndex: 1 }}>
         <Suspense fallback={<PageLoadingSpinner />}>
           <Routes>
-            {/* ── Home (scrollable sections) ── */}
+            {/* â”€â”€ Home (scrollable sections) â”€â”€ */}
             <Route
               path="/"
               element={
@@ -809,7 +813,7 @@ function MainRouter({
               }
             />
 
-            {/* ── Activities ── */}
+            {/* â”€â”€ Activities â”€â”€ */}
             <Route
               path="/activities"
               element={
@@ -832,7 +836,7 @@ function MainRouter({
               }
             />
 
-            {/* ── Events ── */}
+            {/* â”€â”€ Events â”€â”€ */}
             <Route
               path="/events"
               element={
@@ -852,7 +856,7 @@ function MainRouter({
               }
             />
 
-            {/* ── Live Streaming ── */}
+            {/* â”€â”€ Live Streaming â”€â”€ */}
             <Route
               path="/stream/:eventId"
               element={
@@ -874,7 +878,7 @@ function MainRouter({
               }
             />
 
-            {/* ── Dashboard (requires auth) ── */}
+            {/* â”€â”€ Dashboard (requires auth) â”€â”€ */}
             <Route
               path="/dashboard"
               element={
@@ -888,7 +892,7 @@ function MainRouter({
               }
             />
 
-            {/* ── Gamification ── */}
+            {/* â”€â”€ Gamification â”€â”€ */}
             <Route
               path="/gamification"
               element={
@@ -900,7 +904,7 @@ function MainRouter({
               }
             />
 
-            {/* ── Analytics ── */}
+            {/* â”€â”€ Analytics â”€â”€ */}
             <Route
               path="/analytics"
               element={
@@ -912,7 +916,7 @@ function MainRouter({
               }
             />
 
-            {/* ── Projects ── */}
+            {/* â”€â”€ Projects â”€â”€ */}
             <Route
               path="/projects"
               element={
@@ -924,7 +928,7 @@ function MainRouter({
               }
             />
 
-            {/* ── Roadmaps ── */}
+            {/* â”€â”€ Roadmaps â”€â”€ */}
             <Route
               path="/roadmaps"
               element={
@@ -936,7 +940,7 @@ function MainRouter({
               }
             />
 
-            {/* ── Portfolio Builder ── */}
+            {/* â”€â”€ Portfolio Builder â”€â”€ */}
             <Route
               path="/portfolio"
               element={
@@ -947,7 +951,7 @@ function MainRouter({
                 </ErrorBoundary>
               }
             />
-            {/* ── Public Portfolio ── */}
+            {/* â”€â”€ Public Portfolio â”€â”€ */}
             <Route
               path="/p/:username"
               element={
@@ -965,7 +969,7 @@ function MainRouter({
               }
             />
 
-            {/* ── Collab ── */}
+            {/* â”€â”€ Collab â”€â”€ */}
             <Route
               path="/collab"
               element={
@@ -977,7 +981,7 @@ function MainRouter({
               }
             />
 
-            {/* ── About ── */}
+            {/* â”€â”€ About â”€â”€ */}
             <Route
               path="/about"
               element={
@@ -989,7 +993,7 @@ function MainRouter({
               }
             />
 
-            {/* ── Team ── */}
+            {/* â”€â”€ Team â”€â”€ */}
             <Route
               path="/team"
               element={
@@ -1001,7 +1005,7 @@ function MainRouter({
               }
             />
 
-            {/* ── Contact ── */}
+            {/* â”€â”€ Contact â”€â”€ */}
             <Route
               path="/contact"
               element={
@@ -1013,7 +1017,7 @@ function MainRouter({
               }
             />
 
-            {/* ── Recruitment / Apply ── */}
+            {/* â”€â”€ Recruitment / Apply â”€â”€ */}
             <Route
               path="/apply"
               element={
@@ -1025,7 +1029,7 @@ function MainRouter({
               }
             />
 
-            {/* ── Membership / Join ── */}
+            {/* â”€â”€ Membership / Join â”€â”€ */}
             <Route
               path="/join"
               element={
@@ -1037,7 +1041,7 @@ function MainRouter({
               }
             />
 
-            {/* ── Certificate Verify ── */}
+            {/* â”€â”€ Certificate Verify â”€â”€ */}
             <Route
               path="/verify/:certId"
               element={
@@ -1047,7 +1051,7 @@ function MainRouter({
               }
             />
 
-            {/* ── Workspace (collaborative room) ── */}
+            {/* â”€â”€ Workspace (collaborative room) â”€â”€ */}
             <Route
               path="/workspace/:roomId"
               element={
@@ -1057,7 +1061,7 @@ function MainRouter({
               }
             />
 
-            {/* ── Forum ── */}
+            {/* â”€â”€ Forum â”€â”€ */}
             <Route
               path="/forum"
               element={
@@ -1079,7 +1083,7 @@ function MainRouter({
               }
             />
 
-            {/* ── Sponsors ── */}
+            {/* â”€â”€ Sponsors â”€â”€ */}
             <Route
               path="/sponsors"
               element={
@@ -1089,7 +1093,7 @@ function MainRouter({
               }
             />
 
-            {/* ── Mentorship ── */}
+            {/* â”€â”€ Mentorship â”€â”€ */}
             <Route
               path="/mentorship"
               element={
@@ -1121,7 +1125,7 @@ function MainRouter({
               }
             />
 
-            {/* ── Admin (embedded, for quick access) ── */}
+            {/* â”€â”€ Admin (embedded, for quick access) â”€â”€ */}
             <Route
               path="/admin"
               element={
@@ -1133,13 +1137,15 @@ function MainRouter({
               }
             />
 
-            {/* ── Resources / Library ── */}
+            {/* â”€â”€ Resources / Library â”€â”€ */}
             <Route
               path="/resources"
               element={
-                <PageIn k="resources">
-                  <ResourcesPage onBack={onBackHome} />
-                </PageIn>
+                <ErrorBoundary>
+                  <PageIn k="resources">
+                    <ResourcesPage onBack={onBackHome} />
+                  </PageIn>
+                </ErrorBoundary>
               }
             />
 
@@ -1152,8 +1158,31 @@ function MainRouter({
                 </PageIn>
               }
             />
+            {/* ── Notification History ── */}
+            <Route
+              path="/notifications"
+              element={
+                <PageIn k="notifications">
+                  <NotificationHistoryPage />
+                </PageIn>
+              }
+            />
+
+<<<<<<< HEAD
+            {/* ── Recommendations ── */}
+            <Route
+              path="/recommendations"
+              element={
+                <PageIn k="recommendations">
+                  <RecommendationsPage onBack={onBackHome} />
+                </PageIn>
+              }
+            />
 
             {/* ── Login / SSO ── */}
+=======
+            {/* â”€â”€ Login / SSO â”€â”€ */}
+>>>>>>> upstream/main
             <Route
               path="/login"
               element={
@@ -1165,7 +1194,7 @@ function MainRouter({
               }
             />
 
-            {/* ── Status Page ── */}
+            {/* â”€â”€ Status Page â”€â”€ */}
             <Route
               path="/status"
               element={
@@ -1177,7 +1206,7 @@ function MainRouter({
               }
             />
 
-            {/* ── 404 ── */}
+            {/* â”€â”€ 404 â”€â”€ */}
             <Route path="*" element={<NotFoundPage onGoHome={onBackHome} />} />
           </Routes>
         </Suspense>
@@ -1269,9 +1298,9 @@ function MainRouter({
   );
 }
 
-/* ─────────────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    Route wrapper components (URL param readers)
-───────────────────────────────────────────────────── */
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 function ActivityDetailWrapper({ onBack, onSelectEvent }) {
   const { activityKey } = useParams();
@@ -1364,9 +1393,9 @@ function WorkspaceWrapper({ onBack }) {
   );
 }
 
-/* ─────────────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    Page loading spinner (Suspense fallback)
-───────────────────────────────────────────────────── */
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function PageLoadingSpinner() {
   return (
     <div
@@ -1390,7 +1419,7 @@ function PageLoadingSpinner() {
           animation: 'spin 0.8s linear infinite',
         }}
       />
-      <span style={{ fontSize: '0.85rem', opacity: 0.6 }}>Loading…</span>
+      <span style={{ fontSize: '0.85rem', opacity: 0.6 }}>Loadingâ€¦</span>
     </div>
   );
 }

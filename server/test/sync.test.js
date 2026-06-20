@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import http from 'node:http';
+import jwt from 'jsonwebtoken';
 import { setWithDbOverride } from '../repositories/db.js';
 
 process.env.NODE_ENV = 'test';
@@ -33,6 +34,13 @@ setWithDbOverride(async (fn) => {
 });
 
 test('Offline-First Sync and Compression Verification', async (t) => {
+  const { studentAuthService } = await import('../services/studentAuthService.js');
+  const token = studentAuthService.generateToken({
+    id: 'student-123',
+    role: 'student',
+    email: 'student@example.com',
+  });
+
   const { default: app } = await import('../index.js');
   const server = http.createServer(app);
   await new Promise((resolve) => server.listen(0, resolve));
@@ -125,7 +133,20 @@ test('Offline-First Sync and Compression Verification', async (t) => {
         ],
       };
 
-      const res = await sendRequest('POST', '/api/sync/batch', batchPayload);
+      const testToken = jwt.sign(
+        {
+          sub: 'student-test-id',
+          email: 'student@example.com',
+          name: 'Test Student',
+          role: 'student',
+          scopes: ['events:write', 'events:read'],
+        },
+        process.env.JWT_SECRET
+      );
+
+      const res = await sendRequest('POST', '/api/sync/batch', batchPayload, {
+        Authorization: `Bearer ${testToken}`,
+      });
       assert.equal(res.status, 409); // Conflict status
       assert.equal(res.body.results[0].status, 'conflict');
       assert.ok(res.body.results[0].serverVersion);
@@ -154,7 +175,20 @@ test('Offline-First Sync and Compression Verification', async (t) => {
         ],
       };
 
-      const res = await sendRequest('POST', '/api/sync/batch', batchPayload);
+      const testToken = jwt.sign(
+        {
+          sub: 'student-test-id',
+          email: 'student@example.com',
+          name: 'Test Student',
+          role: 'student',
+          scopes: ['events:write', 'events:read'],
+        },
+        process.env.JWT_SECRET
+      );
+
+      const res = await sendRequest('POST', '/api/sync/batch', batchPayload, {
+        Authorization: `Bearer ${testToken}`,
+      });
       assert.equal(res.status, 200);
       assert.equal(res.body.results[0].status, 'success');
     });

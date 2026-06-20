@@ -15,6 +15,8 @@ import { portfolioRepository } from '../repositories/portfolioRepository.js';
 import { achievementsRepository } from '../repositories/achievementsRepository.js';
 import { portfolioService } from '../services/portfolioService.js';
 import * as sponsorshipsController from '../controllers/sponsorshipsController.js';
+import { achievementSchema } from '../validators/portfolioSchemas.js';
+import { auditLogRepository } from '../repositories/auditLogRepository.js';
 
 import * as recommendationsController from '../controllers/recommendationsController.js';
 import * as gamificationController from '../controllers/gamificationController.js';
@@ -102,12 +104,53 @@ router.delete(
   usersController.adminDeactivateUser
 );
 router.post('/api/admin/login', authRateLimiter, adminAuthMiddleware.login);
+router.post('/api/admin/2fa/verify', authRateLimiter, adminAuthMiddleware.verifyTwoFactor);
+router.post(
+  '/api/admin/2fa/setup/verify',
+  authRateLimiter,
+  adminAuthMiddleware.verifyTwoFactorSetup
+);
 router.post('/api/admin/logout', adminAuthMiddleware.requireAdmin, adminAuthMiddleware.logout);
+router.get(
+  '/api/admin/security',
+  adminAuthMiddleware.requireAdmin,
+  adminAuthMiddleware.getSecurityOverview
+);
+router.delete(
+  '/api/admin/security/sessions/:sessionId',
+  adminAuthMiddleware.requireAdmin,
+  adminAuthMiddleware.revokeSession
+);
+router.post(
+  '/api/admin/security/sessions/logout-others',
+  adminAuthMiddleware.requireAdmin,
+  adminAuthMiddleware.logoutOtherSessions
+);
+router.get('/api/admin/audit-logs', adminAuthMiddleware.requireAdmin, async (req, res) => {
+  const logs = await auditLogRepository.searchAuditLogs(req.query);
+  return res.json({ logs });
+});
+router.get('/api/admin/audit-logs/export', adminAuthMiddleware.requireAdmin, async (req, res) => {
+  const csv = await auditLogRepository.exportAuditLogsCsv(req.query);
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="admin-audit-logs.csv"');
+  return res.send(csv);
+});
 
 router.get(
   '/api/admin/events',
   adminAuthMiddleware.requireScope('events:read'),
   eventsController.adminListEvents
+);
+router.get(
+  '/api/admin/events/recommendations',
+  adminAuthMiddleware.requireScope('events:read'),
+  eventAnalyticsController.getEventRecommendations
+);
+router.get(
+  '/api/admin/events/:eventId/analytics',
+  adminAuthMiddleware.requireScope('events:read'),
+  eventAnalyticsController.getEventStats
 );
 router.post(
   '/api/admin/events',
@@ -210,20 +253,18 @@ router.get(
 router.post(
   '/api/admin/portfolios/:username/achievements',
   adminAuthMiddleware.requireScope('events:write'),
+  adminAuditMiddleware,
   async (req, res) => {
     try {
       const username = String(req.params.username || '')
         .trim()
         .toLowerCase();
-      const { name, description, tier, iconUrl, source } = req.body;
-      if (!name) return res.status(400).json({ error: 'Achievement name is required' });
-      const achievement = await portfolioService.awardAchievement(username, {
-        name: String(name).trim().slice(0, 120),
-        description: description ? String(description).trim().slice(0, 1000) : null,
-        tier: tier ? String(tier).trim().slice(0, 40) : 'bronze',
-        iconUrl: iconUrl ? String(iconUrl).trim().slice(0, 500) : null,
-        source: source ? String(source).trim().slice(0, 60) : 'admin',
-      });
+      const validated = achievementSchema.safeParse(req.body);
+      if (!validated.success) {
+        return res.status(400).json({ error: validated.error.errors[0].message });
+      }
+
+      const achievement = await portfolioService.awardAchievement(username, validated.data);
       return res.status(201).json({ achievement });
     } catch (err) {
       return res.status(500).json({ error: err.message });
@@ -233,6 +274,15 @@ router.post(
 router.delete(
   '/api/admin/portfolios/:username/achievements/:name',
   adminAuthMiddleware.requireScope('events:write'),
+  attachOldState(async (req) => {
+    const username = String(req.params.username || '')
+      .trim()
+      .toLowerCase();
+    const achievements = await achievementsRepository.getByUsername(username);
+    const targetName = String(req.params.name || '').trim();
+    return achievements.find((a) => a.name === targetName);
+  }),
+  adminAuditMiddleware,
   async (req, res) => {
     try {
       const username = String(req.params.username || '')

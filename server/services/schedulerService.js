@@ -9,8 +9,10 @@
 
 import { EventEmitter } from 'events';
 import logger from '../utils/logger.js';
+import notificationsService from './notificationsService.js';
 import { withDb } from '../repositories/db.js';
 import { HAS_SUPABASE } from '../storage/supabaseClient.js';
+import { backupService } from './backupService.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -105,9 +107,42 @@ const TASK_DEFINITIONS = [
   },
   {
     id: 'database-backup',
-    name: 'Database Backup',
-    description: 'Creates and uploads a compressed database backup to S3',
+    name: 'Database Backup (Full)',
+    description: 'Creates and uploads a full compressed database backup to S3',
     cron: '0 2 * * *', // Daily at 02:00
+    category: 'system',
+    enabled: true,
+  },
+  {
+    id: 'database-backup-incremental',
+    name: 'Database Backup (Incremental)',
+    description:
+      'Creates and uploads an incremental database backup (changes since last backup) to S3',
+    cron: '0 */6 * * *', // Every 6 hours
+    category: 'system',
+    enabled: true,
+  },
+  {
+    id: 'database-backup-trlog',
+    name: 'Database Backup (Transaction Log)',
+    description: 'Creates and uploads a transaction log backup to S3',
+    cron: '*/15 * * * *', // Every 15 minutes
+    category: 'system',
+    enabled: true,
+  },
+  {
+    id: 'file-storage-backup',
+    name: 'File Storage Backup',
+    description: 'Syncs /uploads directory to S3 storage bucket',
+    cron: '0 3 * * *', // Daily at 3 AM UTC
+    category: 'system',
+    enabled: true,
+  },
+  {
+    id: 'automated-recovery-testing',
+    name: 'Automated Recovery Testing',
+    description: 'Performs monthly automated restore test to verify backup integrity',
+    cron: '0 4 1 * *', // Monthly on the 1st at 4 AM UTC
     category: 'system',
     enabled: true,
   },
@@ -149,6 +184,14 @@ const TASK_DEFINITIONS = [
     description: 'Scans Kanban boards for overdue tasks and notifies assignees',
     cron: '0 10 * * *', // Every day at 10:00 AM
     category: 'collaboration',
+    enabled: true,
+  },
+  {
+    id: 'announcement-publisher',
+    name: 'Scheduled Announcement Publisher',
+    description: 'Publishes scheduled announcements when their scheduled time has arrived',
+    cron: '*/1 * * * *', // Run every minute
+    category: 'system',
     enabled: true,
   },
 ];
@@ -255,6 +298,18 @@ class SchedulerService extends EventEmitter {
       case 'database-backup':
         await this._backupDatabase();
         break;
+      case 'database-backup-incremental':
+        await backupService.runIncrementalBackup();
+        break;
+      case 'database-backup-trlog':
+        await backupService.runTransactionLogBackup();
+        break;
+      case 'file-storage-backup':
+        await backupService.runFileStorageBackup();
+        break;
+      case 'automated-recovery-testing':
+        await backupService.runAutomatedRecoveryTest();
+        break;
       case 'report-generation':
         await this._generateReports();
         break;
@@ -270,6 +325,9 @@ class SchedulerService extends EventEmitter {
       case 'overdue-task-reminder':
         console.log('[SchedulerService] Processing overdue task notifications...');
         // logic to fetch tasks with dueDate < now and status != 'Done' and notify assignees
+        break;
+      case 'announcement-publisher':
+        await this._publishScheduledAnnouncements();
         break;
       default:
         throw new Error(`No implementation for task "${task.id}"`);
@@ -289,7 +347,9 @@ class SchedulerService extends EventEmitter {
       const { rows: users } = await client.query(
         `SELECT id, email, full_name FROM student_users WHERE last_login_at > NOW() - INTERVAL '7 days'`
       );
-      logger.info(`[Scheduler] Email digest: ${events.length} recent events, ${users.length} active users`);
+      logger.info(
+        `[Scheduler] Email digest: ${events.length} recent events, ${users.length} active users`
+      );
     });
   }
 
@@ -339,7 +399,13 @@ class SchedulerService extends EventEmitter {
       logger.info('[Scheduler] No database configured, skipping backup');
       return;
     }
-    const tables = ['events', 'student_users', 'core_team_members', 'resources', 'push_subscriptions'];
+    const tables = [
+      'events',
+      'student_users',
+      'core_team_members',
+      'resources',
+      'push_subscriptions',
+    ];
     let totalRows = 0;
     await withDb(async (client) => {
       for (const table of tables) {
@@ -415,13 +481,37 @@ class SchedulerService extends EventEmitter {
       const { rows: totalUsers } = await client.query(
         'SELECT COUNT(*) as count FROM student_users'
       );
-      const { rows: totalEvents } = await client.query(
-        'SELECT COUNT(*) as count FROM events'
-      );
+      const { rows: totalEvents } = await client.query('SELECT COUNT(*) as count FROM events');
       logger.info(
         `[Scheduler] Analytics snapshot: ${totalUsers[0]?.count || 0} users, ${totalEvents[0]?.count || 0} events`
       );
     });
+  }
+
+  async _publishScheduledAnnouncements() {
+    logger.info('[Scheduler] Checking for scheduled announcements to publish...');
+    if (!HAS_SUPABASE) {
+      logger.info('[Scheduler] No database configured, skipping scheduled announcement publishing');
+      return;
+    }
+    try {
+      const { announcementsRepository } =
+        await import('../repositories/announcementsRepository.js');
+      const { default: eventManager } = await import('./eventEmitterService.js');
+      const published = await announcementsRepository.publishScheduled();
+      if (published && published.length > 0) {
+        logger.info(`[Scheduler] Published ${published.length} scheduled announcements.`);
+        for (const ann of published) {
+          eventManager.emit('admin-announcement', {
+            title: ann.title,
+            message: ann.content,
+            link: ann.ctaUrl,
+          });
+        }
+      }
+    } catch (err) {
+      logger.error('[Scheduler] Error publishing scheduled announcements:', err.message);
+    }
   }
 
   // ── Public API ───────────────────────────────────────────────────────────────
