@@ -27,7 +27,7 @@ import portfolioRouter from './routes/portfolio.js';
 import portfolioExportRouter from './routes/portfolioExport.js';
 import notificationsRouter from './routes/notifications.js';
 import adminRouter from './routes/admin.js';
-import loggingRouter from './routes/logging.js';
+import financialRouter from './routes/financial.js';
 import { validateEnvironment } from './utils/envValidator.js';
 import { performanceMonitor } from './middleware/performanceMonitor.js';
 import { enhancedTracingMiddleware } from './middleware/enhancedTracingMiddleware.js';
@@ -339,7 +339,7 @@ app.use('/api', portfolioRouter);
 app.use('/api/portfolio-export', portfolioExportRouter);
 app.use('/api', notificationsRouter);
 app.use('/api/admin', adminRouter);
-app.use('/api/admin/logging', loggingRouter);
+app.use('/api/finance', financialRouter);
 app.use('/', syncRouter);
 app.use('/api/pricing', dynamicPricingRouter);
 
