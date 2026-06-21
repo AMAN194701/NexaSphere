@@ -1,4 +1,5 @@
-const logger = require('../utils/logger'); // Assuming unified logger path
+import { z } from 'zod';
+import { secretsManager } from '../services/secretsManager.js';
 
 /**
  * Validates critical infrastructure environment variables during boot sequence.
