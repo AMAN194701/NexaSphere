@@ -1,6 +1,7 @@
 import rateLimit from "express-rate-limit";
+import RedisStore from "rate-limit-redis";
+import redisClient from "../utils/redis.js"; // Adjust path if your redis utility is elsewhere
 import logger from "../utils/logger.js";
-
 // ---------------------------------------------------------------------------
 // Shared env-var config for the general API limiter
 // Override via API_RATE_LIMIT_WINDOW_MS and API_RATE_LIMIT_MAX in .env
@@ -101,6 +102,10 @@ export const activityAuthRateLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
+  store: new RedisStore({
+    sendCommand: (...args) => redisClient.call(args[0], ...args.slice(1)),
+    prefix: "rl:activity:",
+  }),
   handler: (req, res, next, options) => {
     logger.warn("Activity-event auth rate limit exceeded", {
       ip: req.ip,
