@@ -1,4 +1,3 @@
-// website/src/components/events/WaitlistBadge.jsx
 import { useState, useEffect, useCallback } from 'react';
 import apiClient from '../../utils/apiClient';
 import './WaitlistBadge.css';
