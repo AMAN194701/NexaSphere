@@ -1,54 +1,96 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import debounce from 'lodash/debounce';
 
 /**
- * Custom hook managing advanced search profiles and search history query trackers.
- * Wraps local storage token processing in a safe lazy initializer to avoid render crashes.
+ * Hook for managing advanced search state and API interaction
  */
 export const useAdvancedSearch = () => {
-  const [recentSearches, setRecentSearches] = useState(() => {
-    try {
-      const storedData = localStorage.getItem('recent_searches');
-      return storedData ? JSON.parse(storedData) : [];
-    } catch (err) {
-      console.error(
-        'Failed to parse malformed JSON payload from recent_searches storage stream:',
-        err
-      );
-      // Fallback cleanly to a structured baseline empty array if local parsing parameters fracture
-      return [];
-    }
-  });
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [facets, setFacets] = useState({});
+  const [activeFilters, setActiveFilters] = useState({});
+  const [suggestions, setSuggestions] = useState([]);
+  const [recentSearches, setRecentSearches] = useState(
+    JSON.parse(localStorage.getItem('recent_searches') || '[]')
+  );
 
-  const [searchFilters, setSearchFilters] = useState({
-    query: '',
-    category: 'all',
-    dateRange: 'anytime',
-  });
-
-  // Persist healthy historical frames back into sync targets
-  const saveSearchQuery = (newQuery) => {
-    if (!newQuery || newQuery.trim() === '') return;
-
-    setRecentSearches((prev) => {
-      const filtered = prev.filter((item) => item !== newQuery);
-      const updated = [newQuery, ...filtered].slice(0, 10); // Clamp tracking trace length to 10 entries
-
-      try {
-        localStorage.setItem('recent_searches', JSON.stringify(updated));
-      } catch (err) {
-        console.error('Failed to commit search telemetry update back to local disk storage:', err);
+  const fetchResults = useCallback(
+    debounce(async (searchQuery, filters) => {
+      if (searchQuery.length < 2) {
+        setResults([]);
+        setSuggestions([]);
+        return;
       }
 
-      return updated;
+      setLoading(true);
+      try {
+        // Build query string with facets
+        const filterParams = new URLSearchParams({
+          q: searchQuery,
+          ...filters,
+        }).toString();
+
+        const response = await fetch(`/api/search?${filterParams}`);
+        const data = await response.json();
+
+        setResults(data.results);
+        setFacets(data.facets);
+        if (data.suggestions) setSuggestions([data.suggestions]);
+
+        // Update recent searches if results found
+        if (data.results.length > 0) {
+          updateRecentSearches(searchQuery);
+        }
+      } catch (error) {
+        console.error('Search API Error:', error);
+      } finally {
+        setLoading(false);
+      }
+    }, 300),
+    []
+  );
+
+  useEffect(() => {
+    fetchResults(query, activeFilters);
+  }, [query, activeFilters, fetchResults]);
+
+  const updateRecentSearches = (q) => {
+    const updated = [q, ...recentSearches.filter((item) => item !== q)].slice(0, 5);
+    setRecentSearches(updated);
+    localStorage.setItem('recent_searches', JSON.stringify(updated));
+  };
+
+  const toggleFilter = (category, value) => {
+    setActiveFilters((prev) => {
+      const current = prev[category] || [];
+      const next = current.includes(value)
+        ? current.filter((v) => v !== value)
+        : [...current, value];
+
+      return { ...prev, [category]: next };
     });
   };
 
+  const clearFilters = () => setActiveFilters({});
+
+  const saveSearch = () => {
+    const saved = JSON.parse(localStorage.getItem('saved_searches') || '[]');
+    const newSave = { query, filters: activeFilters, timestamp: Date.now() };
+    localStorage.setItem('saved_searches', JSON.stringify([...saved, newSave]));
+  };
+
   return {
+    query,
+    setQuery,
+    results,
+    loading,
+    facets,
+    activeFilters,
+    toggleFilter,
+    clearFilters,
+    suggestions,
     recentSearches,
-    searchFilters,
-    setSearchFilters,
-    saveSearchQuery,
+    saveSearch,
   };
 };
-
-export default useAdvancedSearch;
