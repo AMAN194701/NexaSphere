@@ -12,7 +12,7 @@ export const useAdvancedSearch = () => {
   const [activeFilters, setActiveFilters] = useState({});
   const [suggestions, setSuggestions] = useState([]);
   
-  // Safe lazy initializer from current change protecting against malformed JSON crashes
+  // Safe lazy initializer protecting against malformed JSON crashes
   const [recentSearches, setRecentSearches] = useState(() => {
     try {
       const storedData = localStorage.getItem('recent_searches');
@@ -33,7 +33,6 @@ export const useAdvancedSearch = () => {
 
       setLoading(true);
       try {
-        // Build query string with facets
         const filterParams = new URLSearchParams({
           q: searchQuery,
           ...filters,
@@ -46,7 +45,6 @@ export const useAdvancedSearch = () => {
         setFacets(data.facets);
         if (data.suggestions) setSuggestions([data.suggestions]);
 
-        // Update recent searches if results found
         if (data.results.length > 0) {
           updateRecentSearches(searchQuery);
         }
@@ -63,13 +61,13 @@ export const useAdvancedSearch = () => {
     fetchResults(query, activeFilters);
   }, [query, activeFilters, fetchResults]);
 
-  // Combined tracking mechanism utilizing state arguments safely with storage protection
+  // Combined tracking tracking mechanism with functional updates and protection
   const updateRecentSearches = (q) => {
     if (!q || q.trim() === '') return;
 
     setRecentSearches((prev) => {
       const filtered = prev.filter((item) => item !== q);
-      const updated = [q, ...filtered].slice(0, 5); // Kept the incoming 5-item clamp limit
+      const updated = [q, ...filtered].slice(0, 5);
       
       try {
         localStorage.setItem('recent_searches', JSON.stringify(updated));
@@ -94,7 +92,7 @@ export const useAdvancedSearch = () => {
 
   const clearFilters = () => setActiveFilters({});
 
-  // Wrapped the saved_searches parser with error safety as well to fulfill the PR's core mission completely
+  // Error safety expanded to include saved_searches parser
   const saveSearch = () => {
     let saved = [];
     try {
