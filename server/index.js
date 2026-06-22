@@ -42,6 +42,9 @@ import { enhancedTracingMiddleware } from './middleware/enhancedTracingMiddlewar
 import { apiLogger } from './middleware/apiLogger.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { notificationAnalyticsRepository } from './repositories/notificationAnalyticsRepository.js';
+import { notificationPreferencesRepository } from './repositories/notificationPreferencesRepository.js';
+import notificationsService from './services/notificationsService.js';
+import { studentAuthService } from './services/studentAuthService.js';
 import { initializeSentry, addSentryErrorHandler } from './utils/sentry.js';
 import {
   apiRateLimiter,
@@ -69,7 +72,7 @@ import * as activityEventsController from './controllers/activityEventsControlle
 import * as streamController from './controllers/streamController.js';
 import * as coreTeamController from './controllers/coreTeamController.js';
 import { coreTeamService } from './services/coreTeamService.js';
-import { HAS_SUPABASE } from './storage/supabaseClient.js';
+import { HAS_SUPABASE, SUPABASE_URL, SUPABASE_SERVICE_KEY } from './storage/supabaseClient.js';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
 import { createRequire } from 'module';
@@ -78,6 +81,7 @@ const RedisStore = require('connect-redis').default || require('connect-redis');
 import Redis from 'ioredis';
 import passport from './config/studentOAuth.js';
 import { studentUsersRepository } from './repositories/studentUsersRepository.js';
+import { slackRepository } from './repositories/slackRepository.js';
 import * as studentAuthController from './controllers/studentAuthController.js';
 import * as forumController from './controllers/forumController.js';
 import { requireStudentAuth } from './middleware/studentAuthMiddleware.js';
@@ -86,6 +90,7 @@ import { loadPersistedPushSubscriptions } from './routes/notifications.js';
 import * as mentorshipController from './controllers/mentorshipController.js';
 import { xssSanitizer } from './middleware/xssSanitizer.js';
 import { tierRateLimiter } from './middleware/tierRateLimiter.js';
+import { startWebhookRetryProcessor } from './services/webhookRetryProcessor.js';
 import { csrfProtection } from './middleware/csrfMiddleware.js';
 import compression from 'compression';
 import syncRouter from './routes/sync.js';
@@ -98,6 +103,7 @@ import scheduledTasksRouter from './routes/scheduledTasks.js';
 import financialsRouter from './routes/financials.js';
 import { schedulerService } from './services/schedulerService.js';
 import feedbackRouter from './routes/feedbackRoutes.js';
+import * as slackController from './controllers/slackController.js';
 
 validateLimiters();
 
@@ -521,7 +527,7 @@ const _rawSupabaseRequest = async function _rawSupabaseRequest(
   return text ? JSON.parse(text) : [];
 };
 
-export const supabaseRequest = _rawSupabaseRequest;
+export { _rawSupabaseRequest as supabaseRequest };
 
 export const supabaseBreaker = circuitBreakerRegistry.register(
   'index-supabase',
