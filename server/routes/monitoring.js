@@ -334,36 +334,6 @@ router.get('/backup-status', requireMonitoringAuth, (req, res) => {
 });
 
 /**
- * GET /api/monitoring/failover-status
- * Monitor critical service health and failover readiness
- */
-router.get('/failover-status', requireMonitoringAuth, (req, res) => {
-  try {
-    res.status(200).json({
-      success: true,
-      data: {
-        primaryService: 'online',
-        failoverReady: true,
-        serviceHealth: 'healthy',
-        activeInstance: 'primary',
-        uptimeSeconds: Math.floor(process.uptime()),
-        recoveryStatus: 'ready',
-      },
-      timestamp: new Date(),
-    });
-  } catch (error) {
-    logger.error('Error fetching failover status', {
-      error: error.message,
-    });
-
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch failover status',
-    });
-  }
-});
-
-/**
  * GET /api/monitoring/traces
  * Get recent request traces for dependency visualization and bottleneck identification
  */
