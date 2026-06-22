@@ -109,24 +109,8 @@ validateEnvironment();
 
 const app = express();
 
-setTraceIdResolver(getActiveTraceId);
-initObservability(app);
-
-const useStructuredHttpLog = (process.env.LOG_FORMAT || '').toLowerCase() === 'json';
-
-// Trust the first reverse proxy hop (e.g., Vercel, Render, Nginx, Cloudflare)
-// to correctly populate req.ip and securely discard spoofed X-Forwarded-For headers
-const proxyTrust = process.env.TRUST_PROXY || 1;
-app.set(
-  'trust proxy',
-  proxyTrust === 'true'
-    ? true
-    : proxyTrust === 'false'
-      ? false
-      : !isNaN(proxyTrust)
-        ? parseInt(proxyTrust, 10)
-        : proxyTrust
-);
+// RECTIFIED: Enable 'trust proxy' to correctly extract client IPs from X-Forwarded-For headers when behind ALBs/Serverless layers
+app.set('trust proxy', 1);
 
 initializeSentry(app);
 app.use(compression());
