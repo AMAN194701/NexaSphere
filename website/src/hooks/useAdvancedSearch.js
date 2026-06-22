@@ -104,7 +104,7 @@ export const useAdvancedSearch = () => {
 
   // Error safety expanded to include saved_searches parser
   const saveSearch = () => {
-    let saved = [];
+    let saved;
     try {
       const storedSaved = localStorage.getItem('saved_searches');
       saved = storedSaved ? JSON.parse(storedSaved) : [];
