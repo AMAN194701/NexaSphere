@@ -111,9 +111,29 @@ class BulkOperationsService {
     const { preview, errors } = this.previewImportUsers(csvText);
     const job = this.createJob('import_users', preview.length);
 
-    // Run processing in background
-    setTimeout(async () => {
-      this.updateJobProgress(job.id, 0, [], 'processing');
+    if (bulkOperationsQueue) {
+      await bulkOperationsQueue.add('import_users', {
+        jobId: job.id,
+        csvText,
+        adminId
+      }, {
+        removeOnComplete: true,
+        removeOnFail: false
+      });
+      logger.info(`[bulkOperationsService] Queued import_users job ${job.id}`);
+    } else {
+      logger.warn('[bulkOperationsService] Redis not configured, falling back to setTimeout processing');
+      // Fallback if Redis is not available
+      setTimeout(() => this.processImportUsersJob(job.id, csvText, adminId), 0);
+    }
+
+    return job;
+  }
+
+  async processImportUsersJob(jobId, csvText, adminId) {
+    const { preview, errors } = this.previewImportUsers(csvText);
+    
+    this.updateJobProgress(jobId, 0, [], 'processing');
       const oldState = [];
       const newState = [];
       let processed = 0;
@@ -231,7 +251,7 @@ class BulkOperationsService {
       }
 
       this.updateJobProgress(
-        job.id,
+        jobId,
         processed,
         jobErrors.map((e) => ({ message: e })),
         'completed',
@@ -241,9 +261,8 @@ class BulkOperationsService {
           errorsCount: jobErrors.length,
         }
       );
-    }, 0);
-
-    return job;
+      
+      return { successful: processed, total: preview.length, errorsCount: jobErrors.length };
   }
 
   async exportUsers(fields = null, filters = {}) {
