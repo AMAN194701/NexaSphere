@@ -522,7 +522,6 @@ function withContentLock(fn) {
   return current.then(() => fn()).finally(() => release());
 }
 
-export async function supabaseRequest(pathname, { method = 'GET', body } = {}) {
 const _rawSupabaseRequest = async function _rawSupabaseRequest(
   pathname,
   { method = 'GET', body } = {}
@@ -1171,7 +1170,7 @@ app.delete('/api/streams/:id', adminAuth, streamController.deleteStream);
 app.post('/api/streams/:id/chat', apiRateLimiter, streamController.addChatMessage);
 app.get('/api/streams/:id/chat', streamController.listChatMessages);
 app.post('/api/streams/:id/ban', adminAuth, streamController.banUser);
-app.post('/api/streams/:id/polls', streamController.createPoll);
+app.post('/api/streams/:id/polls', adminAuth, streamController.createPoll);
 app.get('/api/streams/:id/polls', streamController.listPolls);
 app.post('/api/streams/polls/:pollId/vote', streamController.votePoll);
 app.patch('/api/streams/polls/:pollId/close', adminAuth, streamController.closePoll);
