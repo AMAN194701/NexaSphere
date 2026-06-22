@@ -6,6 +6,7 @@ import { IconArrowRight, IconSpark, DynamicIcon } from '../../shared/Icons';
 /* â”€â”€ Ripple Button â”€â”€ */
 function RippleBtn({ cls, children, href, onClick }) {
   const ref = useRef(null);
+  const timeoutsRef = useRef([]);
   const go = (e) => {
     const b = ref.current;
     if (!b) return;
@@ -19,6 +20,9 @@ function RippleBtn({ cls, children, href, onClick }) {
     timeoutsRef.current.push(t);
     onClick && onClick(e);
   };
+  useEffect(() => {
+    return () => timeoutsRef.current.forEach(clearTimeout);
+  }, []);
   if (href)
     return (
       <a
