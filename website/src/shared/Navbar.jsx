@@ -4,6 +4,7 @@ import { BRAND_LOGO_FULL, BRAND_LOGO_ICON } from './brandAssets';
 import NotificationBell from '../components/NotificationBell';
 import { ThemeToggle } from '../components/common/ThemeToggle';
 import { useStudentAuth } from '../context/StudentAuthContext';
+import LanguageSelector from '../components/common/LanguageSelector';
 
 const TABS = [
   'Home',
@@ -11,13 +12,14 @@ const TABS = [
   'Events',
   'Projects',
   'Roadmaps',
+  'Recommendations',
   'Portfolio',
   'Blog',
   'Resources',
   'Gamification',
   'Forum',
   'Mentorship',
-  'Sponsors',
+  'Q&A / Polling',
   'About',
   'Core Team',
   'Contact',
@@ -136,6 +138,7 @@ export default function Navbar({ activeTab, onTabChange, onApply, onJoin, onTogg
             </button>
             <BookmarkToggle onToggle={onToggleBookmarks} />
             <ThemeToggle />
+            <LanguageSelector />
             {isAuthenticated ? (
               <span
                 className="ns-nav-user-badge"
@@ -258,6 +261,7 @@ export default function Navbar({ activeTab, onTabChange, onApply, onJoin, onTogg
             </div>
 
             <ThemeToggle />
+            <LanguageSelector />
 
             {isAuthenticated ? (
               <span

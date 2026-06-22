@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import http from 'node:http';
+import jwt from 'jsonwebtoken';
 import { setWithDbOverride } from '../repositories/db.js';
 
 process.env.NODE_ENV = 'test';
@@ -38,6 +39,16 @@ test('Offline-First Sync and Compression Verification', async (t) => {
   await new Promise((resolve) => server.listen(0, resolve));
   const port = server.address().port;
 
+  const { studentAuthService } = await import('../services/studentAuthService.js');
+  const mockUser = {
+    id: 'student-test-uuid',
+    provider: 'github',
+    email: 'test@glbajajgroup.org',
+    full_name: 'Test Student',
+    role: 'student',
+  };
+  const token = studentAuthService.generateToken(mockUser);
+
   const sendRequest = (method, path, body = null, headers = {}) => {
     return new Promise((resolve) => {
       const options = {
@@ -47,6 +58,7 @@ test('Offline-First Sync and Compression Verification', async (t) => {
         method: method,
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
           ...headers,
         },
       };
@@ -125,7 +137,20 @@ test('Offline-First Sync and Compression Verification', async (t) => {
         ],
       };
 
-      const res = await sendRequest('POST', '/api/sync/batch', batchPayload);
+      const testToken = jwt.sign(
+        {
+          sub: 'student-test-id',
+          email: 'student@example.com',
+          name: 'Test Student',
+          role: 'student',
+          scopes: ['events:write', 'events:read'],
+        },
+        process.env.JWT_SECRET
+      );
+
+      const res = await sendRequest('POST', '/api/sync/batch', batchPayload, {
+        Authorization: `Bearer ${testToken}`,
+      });
       assert.equal(res.status, 409); // Conflict status
       assert.equal(res.body.results[0].status, 'conflict');
       assert.ok(res.body.results[0].serverVersion);
@@ -154,7 +179,20 @@ test('Offline-First Sync and Compression Verification', async (t) => {
         ],
       };
 
-      const res = await sendRequest('POST', '/api/sync/batch', batchPayload);
+      const testToken = jwt.sign(
+        {
+          sub: 'student-test-id',
+          email: 'student@example.com',
+          name: 'Test Student',
+          role: 'student',
+          scopes: ['events:write', 'events:read'],
+        },
+        process.env.JWT_SECRET
+      );
+
+      const res = await sendRequest('POST', '/api/sync/batch', batchPayload, {
+        Authorization: `Bearer ${testToken}`,
+      });
       assert.equal(res.status, 200);
       assert.equal(res.body.results[0].status, 'success');
     });

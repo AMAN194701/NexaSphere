@@ -120,7 +120,7 @@ function clearPasskeyAttempts(username, ip) {
  * GET /api/portfolio/:username — Public portfolio lookup.
  * Returns 404 if the username does not exist.
  */
-router.get('/api/portfolio/:username', async (req, res) => {
+router.get('/portfolio/:username', async (req, res) => {
   try {
     const username = String(req.params.username || '').trim();
     if (!username) {
@@ -142,10 +142,10 @@ router.get('/api/portfolio/:username', async (req, res) => {
  * Requires a valid passkey. Enforces rate limiting and
  * brute-force lockout on repeated failed passkey attempts.
  */
-router.put('/api/portfolio', protectedActionRateLimiter, async (req, res) => {
+router.put('/portfolio', protectedActionRateLimiter, async (req, res) => {
   try {
     const body = req.body || {};
-    const ip = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+    const ip = String(req.ip || 'unknown').trim();
 
     // 1. Validate credentials up front. Anything below this point
     //    trusts the username + passkey pair.
