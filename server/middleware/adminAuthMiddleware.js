@@ -185,10 +185,12 @@ async function login(req, res) {
       },
     });
 
+    // RECTIFIED: Hardcode secure attribute and explicitly scope path to root
     res.cookie('ns_admin_token', session.token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: true,
       sameSite: 'lax',
+      path: '/',
       expires: new Date(session.expiresAt),
     });
 
