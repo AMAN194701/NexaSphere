@@ -61,8 +61,8 @@ export function getQRUrl(text) {
 
 export async function copyToClipboard(text) {
   // Prevent pastejacking/clipboard attacks by removing dangerous control characters (including carriage returns \r)
-  // eslint-disable-next-line no-control-regex
   const sanitizedText = String(text || '').replace(
+    // eslint-disable-next-line no-control-regex
     /[\x00-\x08\x0B\x0C\x0D\x0E-\x1F\x7F-\x9F]/g,
     ''
   );
