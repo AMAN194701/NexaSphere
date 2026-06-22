@@ -32,7 +32,18 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-target_metadata = None
+# add your model's MetaData object here
+# for 'autogenerate' support
+
+# 1. Import the Base from your database.py file
+from database import Base 
+
+# Note: If your actual database tables (like users, posts, etc.) are defined 
+# in separate files, you also need to import them here so Alembic sees them.
+# For example: import models 
+
+# 2. Assign the metadata
+target_metadata = Base.metadata
 
 # Get the database URL from environment
 database_url = os.getenv('DATABASE_URL')
