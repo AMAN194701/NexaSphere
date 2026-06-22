@@ -88,6 +88,10 @@ import scheduledTasksRouter from './routes/scheduledTasks.js';
 import financialsRouter from './routes/financials.js';
 import { schedulerService } from './services/schedulerService.js';
 import feedbackRouter from './routes/feedbackRoutes.js';
+import complianceRouter from './routes/compliance.js';
+import healthDashboardRouter from './routes/healthDashboard.js';
+import { logEvent } from './controllers/analyticsController.js';
+import * as slackController from './controllers/slackController.js';
 
 validateLimiters();
 
@@ -354,7 +358,6 @@ if (!useStructuredHttpLog) {
 }
 
 // Mount route modules
-app.use('/api/form-submissions', formSubmissionsRouter);
 app.post('/api/analytics/track', logEvent);
 app.use('/api/monitoring', monitoringRouter);
 app.use('/api/health-dashboard', healthDashboardRouter);
@@ -542,7 +545,6 @@ function withContentLock(fn) {
   return current.then(() => fn()).finally(() => release());
 }
 
-export async function supabaseRequest(pathname, { method = 'GET', body } = {}) {
 const _rawSupabaseRequest = async function _rawSupabaseRequest(
   pathname,
   { method = 'GET', body } = {}
@@ -566,8 +568,7 @@ const _rawSupabaseRequest = async function _rawSupabaseRequest(
   const text = await res.text();
   return text ? JSON.parse(text) : [];
 };
-
-export const supabaseRequest = _rawSupabaseRequest;
+export { _rawSupabaseRequest as supabaseRequest };
 
 export const supabaseBreaker = circuitBreakerRegistry.register(
   'index-supabase',
