@@ -1,5 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import debounce from 'lodash/debounce';
+
+function debounce(fn, ms) {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), ms);
+  };
+}
 
 /**
  * Hook for managing advanced search state and API interaction
