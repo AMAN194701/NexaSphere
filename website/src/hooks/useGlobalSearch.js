@@ -11,14 +11,17 @@ export const useAdvancedSearch = () => {
   const [facets, setFacets] = useState({});
   const [activeFilters, setActiveFilters] = useState({});
   const [suggestions, setSuggestions] = useState([]);
-  
+
   // Safe lazy initializer protecting against malformed JSON crashes
   const [recentSearches, setRecentSearches] = useState(() => {
     try {
       const storedData = localStorage.getItem('recent_searches');
       return storedData ? JSON.parse(storedData) : [];
     } catch (err) {
-      console.error('Failed to parse malformed JSON payload from recent_searches storage stream:', err);
+      console.error(
+        'Failed to parse malformed JSON payload from recent_searches storage stream:',
+        err
+      );
       return [];
     }
   });
@@ -71,13 +74,13 @@ export const useAdvancedSearch = () => {
     setRecentSearches((prev) => {
       const filtered = prev.filter((item) => item !== q);
       const updated = [q, ...filtered].slice(0, 5); // Kept the incoming 5-item clamp limit
-      
+
       try {
         localStorage.setItem('recent_searches', JSON.stringify(updated));
       } catch (err) {
         console.error('Failed to commit search telemetry update back to local disk storage:', err);
       }
-      
+
       return updated;
     });
   };
