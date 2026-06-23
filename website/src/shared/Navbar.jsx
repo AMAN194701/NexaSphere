@@ -5,6 +5,7 @@ import NotificationBell from '../components/NotificationBell';
 import { ThemeToggle } from '../components/common/ThemeToggle';
 import { useStudentAuth } from '../context/StudentAuthContext';
 import LanguageSelector from '../components/common/LanguageSelector';
+import { useTranslation } from 'react-i18next';
 
 const TABS = [
   'Home',
@@ -60,6 +61,14 @@ function BookmarkToggle({ onToggle }) {
 export default function Navbar({ activeTab, onTabChange, onApply, onJoin, onToggleBookmarks }) {
   const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
+  const { t } = useTranslation();
+
+  const getTabLabel = (tab) => {
+    let key = tab.toLowerCase().replace(/\s+/g, '_');
+    if (key === 'core_team') key = 'team';
+    const translated = t(`nav.${key}`);
+    return translated && !translated.startsWith('nav.') ? translated : tab;
+  };
   const [compact, setCompact] = useState(window.innerWidth <= 1200);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -156,7 +165,7 @@ export default function Navbar({ activeTab, onTabChange, onApply, onJoin, onTogg
               onClick={() => handleTab(t)}
               aria-current={activeTab === t ? 'page' : undefined}
             >
-              {t}
+              {getTabLabel(t)}
             </button>
           ))}
 
@@ -165,7 +174,7 @@ export default function Navbar({ activeTab, onTabChange, onApply, onJoin, onTogg
             onClick={onJoin}
             aria-label="Join as Member"
           >
-            Join
+            {t('nav.join', 'Join')}
           </button>
 
           <button
@@ -173,7 +182,7 @@ export default function Navbar({ activeTab, onTabChange, onApply, onJoin, onTogg
             onClick={onApply}
             aria-label="Apply for Core Team"
           >
-            Apply
+            {t('nav.apply', 'Apply')}
           </button>
         </div>
       </nav>
@@ -225,7 +234,7 @@ export default function Navbar({ activeTab, onTabChange, onApply, onJoin, onTogg
                 onClick={onJoin}
                 aria-label="Join as Member"
               >
-                Join
+                {t('nav.join', 'Join')}
               </button>
 
               <button
@@ -233,7 +242,7 @@ export default function Navbar({ activeTab, onTabChange, onApply, onJoin, onTogg
                 onClick={onApply}
                 aria-label="Apply for Core Team"
               >
-                Apply
+                {t('nav.apply', 'Apply')}
               </button>
             </div>
 
@@ -275,7 +284,7 @@ export default function Navbar({ activeTab, onTabChange, onApply, onJoin, onTogg
                   onClick={() => handleTab(t)}
                   aria-current={activeTab === t ? 'page' : undefined}
                 >
-                  {t}
+                  {getTabLabel(t)}
                 </button>
               </li>
             ))}

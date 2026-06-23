@@ -17,7 +17,7 @@ const RoadmapsPage = lazy(() => import('../pages/roadmaps/RoadmapsPage'));
 const ProjectsPage = lazy(() => import('../pages/projects/ProjectsPage'));
 const ResourcesPage = lazy(() => import('../pages/resources/ResourcesPage'));
 const CertificateVerifyPage = lazy(() => import('../pages/certificates/CertificateVerifyPage'));
-const CollabPage = lazy(() => import('../pages/collab/CollabPage'));
+
 const PortfolioBuilder = lazy(() => import('../components/portfolio/PortfolioBuilder'));
 const PublicPortfolio = lazy(() => import('../pages/portfolio/PublicPortfolio'));
 const DashboardPage = lazy(() => import('../pages/dashboard/DashboardPage'));
@@ -429,16 +429,6 @@ export function AppRoutes({
         element={
           <PageIn k="roadmaps">
             <RoadmapsPage onBack={onBackHome} />
-          </PageIn>
-        }
-      />
-
-      {/* ── Collab ── */}
-      <Route
-        path="/collab"
-        element={
-          <PageIn k="collab">
-            <CollabPage onBack={onBackHome} />
           </PageIn>
         }
       />
