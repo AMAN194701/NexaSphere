@@ -42,6 +42,9 @@ import { enhancedTracingMiddleware } from './middleware/enhancedTracingMiddlewar
 import { apiLogger } from './middleware/apiLogger.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { notificationAnalyticsRepository } from './repositories/notificationAnalyticsRepository.js';
+import { notificationPreferencesRepository } from './repositories/notificationPreferencesRepository.js';
+import notificationsService from './services/notificationsService.js';
+import { studentAuthService } from './services/studentAuthService.js';
 import { initializeSentry, addSentryErrorHandler } from './utils/sentry.js';
 import {
   apiRateLimiter,
@@ -69,13 +72,16 @@ import * as activityEventsController from './controllers/activityEventsControlle
 import * as streamController from './controllers/streamController.js';
 import * as coreTeamController from './controllers/coreTeamController.js';
 import { coreTeamService } from './services/coreTeamService.js';
-import { HAS_SUPABASE } from './storage/supabaseClient.js';
+import { HAS_SUPABASE, SUPABASE_URL, SUPABASE_SERVICE_KEY } from './storage/supabaseClient.js';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
-import RedisStore from 'connect-redis';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const RedisStore = require('connect-redis').default || require('connect-redis');
 import Redis from 'ioredis';
 import passport from './config/studentOAuth.js';
 import { studentUsersRepository } from './repositories/studentUsersRepository.js';
+import { slackRepository } from './repositories/slackRepository.js';
 import * as studentAuthController from './controllers/studentAuthController.js';
 import * as forumController from './controllers/forumController.js';
 import { requireStudentAuth } from './middleware/studentAuthMiddleware.js';
@@ -84,6 +90,7 @@ import { loadPersistedPushSubscriptions } from './routes/notifications.js';
 import * as mentorshipController from './controllers/mentorshipController.js';
 import { xssSanitizer } from './middleware/xssSanitizer.js';
 import { tierRateLimiter } from './middleware/tierRateLimiter.js';
+import { startWebhookRetryProcessor } from './services/webhookRetryProcessor.js';
 import { csrfProtection } from './middleware/csrfMiddleware.js';
 import compression from 'compression';
 import syncRouter from './routes/sync.js';
@@ -96,6 +103,7 @@ import scheduledTasksRouter from './routes/scheduledTasks.js';
 import financialsRouter from './routes/financials.js';
 import { schedulerService } from './services/schedulerService.js';
 import feedbackRouter from './routes/feedbackRoutes.js';
+import * as slackController from './controllers/slackController.js';
 
 validateLimiters();
 
@@ -107,24 +115,8 @@ validateEnvironment();
 
 const app = express();
 
-setTraceIdResolver(getActiveTraceId);
-initObservability(app);
-
-const useStructuredHttpLog = (process.env.LOG_FORMAT || '').toLowerCase() === 'json';
-
-// Trust the first reverse proxy hop (e.g., Vercel, Render, Nginx, Cloudflare)
-// to correctly populate req.ip and securely discard spoofed X-Forwarded-For headers
-const proxyTrust = process.env.TRUST_PROXY || 1;
-app.set(
-  'trust proxy',
-  proxyTrust === 'true'
-    ? true
-    : proxyTrust === 'false'
-      ? false
-      : !isNaN(proxyTrust)
-        ? parseInt(proxyTrust, 10)
-        : proxyTrust
-);
+// RECTIFIED: Enable 'trust proxy' to correctly extract client IPs from X-Forwarded-For headers when behind ALBs/Serverless layers
+app.set('trust proxy', 1);
 
 initializeSentry(app);
 app.use(compression());
@@ -260,10 +252,7 @@ app.use(
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin) {
-        return callback(null, true);
-      }
-      if (allowedOrigins.includes(origin)) {
+      if (origin && allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
       if (process.env.NODE_ENV === 'test') {
@@ -407,10 +396,18 @@ const MAGIC_BYTES = {
   'image/jpeg': [[0xff, 0xd8, 0xff]],
   'image/gif': [[0x47, 0x49, 0x46]],
   'image/webp': [[0x52, 0x49, 0x46, 0x46]],
-  'application/zip': [[0x50, 0x4b, 0x03, 0x04], [0x50, 0x4b, 0x05, 0x06], [0x50, 0x4b, 0x07, 0x08]],
+  'application/zip': [
+    [0x50, 0x4b, 0x03, 0x04],
+    [0x50, 0x4b, 0x05, 0x06],
+    [0x50, 0x4b, 0x07, 0x08],
+  ],
   'application/x-zip-compressed': [[0x50, 0x4b, 0x03, 0x04]],
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': [[0x50, 0x4b, 0x03, 0x04]],
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation': [[0x50, 0x4b, 0x03, 0x04]],
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': [
+    [0x50, 0x4b, 0x03, 0x04],
+  ],
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': [
+    [0x50, 0x4b, 0x03, 0x04],
+  ],
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': [[0x50, 0x4b, 0x03, 0x04]],
   'text/plain': [],
   'text/markdown': [],
@@ -530,7 +527,7 @@ const _rawSupabaseRequest = async function _rawSupabaseRequest(
   return text ? JSON.parse(text) : [];
 };
 
-export const supabaseRequest = _rawSupabaseRequest;
+export { _rawSupabaseRequest as supabaseRequest };
 
 export const supabaseBreaker = circuitBreakerRegistry.register(
   'index-supabase',
@@ -688,9 +685,23 @@ async function listEventsStore({ page = 1, limit = 20 } = {}) {
 }
 
 const ALLOWED_EVENT_FIELDS = [
-  'id', 'name', 'description', 'date_text', 'time', 'location',
-  'type', 'mode', 'category', 'tags', 'image_url', 'registration_link',
-  'capacity', 'registered_count', 'price', 'created_at', 'updated_at',
+  'id',
+  'name',
+  'description',
+  'date_text',
+  'time',
+  'location',
+  'type',
+  'mode',
+  'category',
+  'tags',
+  'image_url',
+  'registration_link',
+  'capacity',
+  'registered_count',
+  'price',
+  'created_at',
+  'updated_at',
 ];
 
 function sanitizeEventRecord(event) {
@@ -937,8 +948,17 @@ async function listCoreTeamStore() {
 }
 
 const ALLOWED_TEAM_MEMBER_FIELDS = [
-  'id', 'name', 'role', 'position', 'bio', 'avatar_url',
-  'github_url', 'linkedin_url', 'email', 'joined_at', 'order',
+  'id',
+  'name',
+  'role',
+  'position',
+  'bio',
+  'avatar_url',
+  'github_url',
+  'linkedin_url',
+  'email',
+  'joined_at',
+  'order',
 ];
 
 function sanitizeCoreTeamMemberRecord(member) {
@@ -1655,12 +1675,13 @@ if (process.env.NODE_ENV !== 'test') {
       server = app.listen(port, () => {
         console.log(`NexaSphere server listening on http://localhost:${port}`);
         schedulerService.init();
-        
+
         // Register Learning Path Nudges (Runs daily)
         schedulerService.schedule('0 10 * * *', async () => {
           await learningPathService.runNudgeJob();
         });
       });
+      initializeSocketIO(server);
     });
   } else {
     loadPersistedPushSubscriptions();
