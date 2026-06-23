@@ -12,10 +12,8 @@ const FOOTER_LINKS = [
   { label: 'Events', path: '/events' },
   { label: 'Projects', path: '/projects' },
   { label: 'Roadmaps', path: '/roadmaps' },
-  { label: 'Collab', path: '/collab' },
   { label: 'About', path: '/about' },
   { label: 'Team', path: '/team' },
-  { label: 'Dashboard', path: '/dashboard' },
   { label: 'Analytics', path: '/analytics' },
 ];
 
