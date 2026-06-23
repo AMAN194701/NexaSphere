@@ -1,5 +1,14 @@
 import { useState, useEffect, useMemo } from 'react';
-import debounce from 'lodash/debounce';
+
+function debounce(fn, ms) {
+  let timer;
+  const debounced = (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), ms);
+  };
+  debounced.cancel = () => clearTimeout(timer);
+  return debounced;
+}
 
 /**
  * Hook for managing advanced search state and API interaction
@@ -62,6 +71,7 @@ export const useAdvancedSearch = () => {
 
   useEffect(() => {
     fetchResults(query, activeFilters);
+    return () => fetchResults.cancel();
   }, [query, activeFilters, fetchResults]);
 
   // Combined tracking tracking mechanism with functional updates and protection
