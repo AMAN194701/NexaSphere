@@ -2,13 +2,12 @@ import React, { useState, useEffect } from 'react';
 import DashboardStats from '../../components/admin/analytics/DashboardStats';
 import UserGrowthChart from '../../components/admin/analytics/UserGrowthChart';
 import EventAttendanceChart from '../../components/admin/analytics/EventAttendanceChart';
-import useLocalStorage from '../../hooks/useLocalStorage';
 import '../../components/admin/analytics/analytics.css';
 
 export default function AdminPage({ onBack }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [token, setToken] = useLocalStorage('ns_admin_token', null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loginData, setLoginData] = useState({ username: '', password: '' });
   const [data, setData] = useState({
     stats: null,
@@ -16,20 +15,19 @@ export default function AdminPage({ onBack }) {
     events: [],
   });
 
-  const fetchAnalytics = async (authToken) => {
+  const fetchAnalytics = async () => {
     try {
       setLoading(true);
       const base = (import.meta?.env?.VITE_API_BASE || '').replace(/\/+$/, '');
-      const headers = { Authorization: `Bearer ${authToken}` };
 
       const [statsRes, growthRes, eventsRes] = await Promise.all([
-        fetch(`${base}/api/admin/analytics/stats`, { headers }),
-        fetch(`${base}/api/admin/analytics/growth`, { headers }),
-        fetch(`${base}/api/admin/analytics/events`, { headers }),
+        fetch(`${base}/api/admin/analytics/stats`, { credentials: 'include' }),
+        fetch(`${base}/api/admin/analytics/growth`, { credentials: 'include' }),
+        fetch(`${base}/api/admin/analytics/events`, { credentials: 'include' }),
       ]);
 
       if (statsRes.status === 401) {
-        setToken(null);
+        setIsAuthenticated(false);
         throw new Error('Session expired. Please login again.');
       }
 
@@ -45,10 +43,10 @@ export default function AdminPage({ onBack }) {
 
       setData({ stats, growth, events });
       setError(null);
+      setIsAuthenticated(true);
     } catch (err) {
       setError(err.message);
-      // Fallback for dev environment if token is present but API fails
-      if (import.meta.env.DEV && authToken) {
+      if (import.meta.env.DEV) {
         console.warn('Using fallback mock data for analytics');
         setData({
           stats: {
@@ -58,7 +56,9 @@ export default function AdminPage({ onBack }) {
             conversionRate: '12.5%',
           },
           growth: Array.from({ length: 30 }, (_, i) => ({
-            date: new Date(Date.now() - (30 - i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            date: new Date(Date.now() - (30 - i) * 24 * 60 * 60 * 1000)
+              .toISOString()
+              .split('T')[0],
             registrations: Math.floor(Math.random() * 20) + i,
           })),
           events: [
@@ -73,10 +73,8 @@ export default function AdminPage({ onBack }) {
   };
 
   useEffect(() => {
-    if (token) {
-      fetchAnalytics(token);
-    }
-  }, [token]);
+    fetchAnalytics();
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -85,13 +83,16 @@ export default function AdminPage({ onBack }) {
       const base = (import.meta?.env?.VITE_API_BASE || '').replace(/\/+$/, '');
       const res = await fetch(`${base}/api/admin/login`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(loginData),
       });
 
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || 'Login failed');
-      setToken(result.token);
+      setError(null);
+      setIsAuthenticated(true);
+      await fetchAnalytics();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -99,12 +100,21 @@ export default function AdminPage({ onBack }) {
     }
   };
 
-  const handleLogout = () => {
-    setToken(null);
+  const handleLogout = async () => {
+    try {
+      const base = (import.meta?.env?.VITE_API_BASE || '').replace(/\/+$/, '');
+      await fetch(`${base}/api/admin/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch {
+      // ignore
+    }
+    setIsAuthenticated(false);
     setData({ stats: null, growth: [], events: [] });
   };
 
-  if (!token) {
+  if (!isAuthenticated) {
     return (
       <div className="analytics-dashboard" style={{ maxWidth: 400, marginTop: '10vh' }}>
         <button onClick={onBack} className="btn-back">

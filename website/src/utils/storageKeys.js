@@ -10,7 +10,11 @@
  * For now, using this central registry ensures consistent handling.
  */
 export const STORAGE_KEYS = {
-  /** JWT issued by /api/auth — used as Bearer token in API requests. */
+  /**
+   * JWT issued by /api/auth — deprecated for direct storage.
+   * Authentication should be handled via HttpOnly cookies instead
+   * of JS-readable localStorage/sessionStorage.
+   */
   AUTH_TOKEN: 'ns_student_token',
 
   /** Serialized user profile { id, email, name } */

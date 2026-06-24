@@ -5,19 +5,6 @@ import { StudentAuthContext } from '../context/StudentAuthContext';
 import prefsService from '../services/notifications/preferences';
 import analytics from './analytics/useNotificationAnalytics';
 
-function getAuthHeaders() {
-  // Wrapped in try-catch — localStorage.getItem throws SecurityError
-  // in Safari private browsing mode.
-  let token = null;
-  try {
-    token = localStorage.getItem('ns_student_token') || localStorage.getItem('ns_admin_token');
-  } catch {
-    // Storage unavailable — proceed without auth token.
-  }
-  return token
-    ? { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
-    : { 'Content-Type': 'application/json' };
-}
 export function useNotifications() {
   const [notifications, setNotifications] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -77,7 +64,7 @@ export function useNotifications() {
 
         const responses = await Promise.all(
           fetchUrls.map((url) =>
-            fetch(url, { headers: getAuthHeaders() }).then((res) =>
+            fetch(url, { credentials: 'include' }).then((res) =>
               res.ok ? res.json() : { notifications: [] }
             )
           )

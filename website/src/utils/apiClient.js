@@ -149,6 +149,7 @@ export const apiClient = async (url, options = {}) => {
   try {
     const response = await fetch(url, {
       ...fetchOptions,
+      credentials: fetchOptions.credentials ?? 'include',
       signal: controller.signal,
     });
 

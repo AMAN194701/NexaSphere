@@ -66,22 +66,12 @@ async function replayRequest(entry) {
 
   // Re-attach auth token from current session (localStorage only —
   // auth tokens must never be stored in sessionStorage due to tab isolation issues).
-  const authHeaders = {};
-  try {
-    const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
-    if (token) {
-      authHeaders['Authorization'] = `Bearer ${token}`;
-    }
-  } catch {
-    // storage unavailable
-  }
-
   const fetchOptions = {
     method,
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       ...headers,
-      ...authHeaders, // live token always wins
     },
   };
 

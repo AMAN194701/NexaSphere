@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { getApiBase } from '../../utils/runtimeConfig';
-import { STORAGE_KEYS } from '../../utils/storageKeys';
 
 /**
  * Slack Integration and Notifications Settings Component.
@@ -80,12 +79,11 @@ export default function SlackSettings({ currentUser, authUser }) {
     setSavingSlackSettings(true);
     try {
       const base = getApiBase();
-      const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
       const res = await fetch(`${base}/api/auth/slack-settings`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           slackUserId,

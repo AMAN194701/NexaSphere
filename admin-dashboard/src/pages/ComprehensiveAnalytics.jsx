@@ -20,11 +20,16 @@ export function ComprehensiveAnalytics() {
   useEffect(() => {
     async function fetchAnalytics() {
       try {
-        const headers = { Authorization: `Bearer ${localStorage.getItem('token')}` };
         const [summaryRes, userRes, funnelRes] = await Promise.all([
-          fetch(`${import.meta.env.VITE_API_BASE}/api/admin/analytics/summary`, { headers }),
-          fetch(`${import.meta.env.VITE_API_BASE}/api/admin/analytics/users`, { headers }),
-          fetch(`${import.meta.env.VITE_API_BASE}/api/admin/analytics/funnel`, { headers }),
+          fetch(`${import.meta.env.VITE_API_BASE}/api/admin/analytics/summary`, {
+            credentials: 'include',
+          }),
+          fetch(`${import.meta.env.VITE_API_BASE}/api/admin/analytics/users`, {
+            credentials: 'include',
+          }),
+          fetch(`${import.meta.env.VITE_API_BASE}/api/admin/analytics/funnel`, {
+            credentials: 'include',
+          }),
         ]);
 
         const summaryData = await summaryRes.json();

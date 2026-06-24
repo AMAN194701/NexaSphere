@@ -4,32 +4,18 @@ import { useTheme } from '../hooks/useTheme';
 
 export const StudentAuthContext = createContext(null);
 
-const TOKEN_KEY = 'ns_student_token';
-
 export function StudentAuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const fetchMe = useCallback(async (token) => {
     try {
-      const data = await apiClient('/api/auth/me', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const options = token
+        ? { headers: { Authorization: `Bearer ${token}` } }
+        : undefined;
+      const data = await apiClient('/api/auth/me', options);
       setUser(data.user);
-      localStorage.setItem(TOKEN_KEY, token);
-      if (data.user) {
-        localStorage.setItem(
-          'ns_user',
-          JSON.stringify({
-            id: data.user.sub || data.user.id,
-            email: data.user.email,
-            name: data.user.name,
-          })
-        );
-      }
     } catch {
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem('ns_user');
       setUser(null);
     }
   }, []);
@@ -48,12 +34,7 @@ export function StudentAuthProvider({ children }) {
       return;
     }
 
-    const storedToken = localStorage.getItem(TOKEN_KEY);
-    if (storedToken) {
-      fetchMe(storedToken).finally(() => setLoading(false));
-    } else {
-      setLoading(false);
-    }
+    fetchMe().finally(() => setLoading(false));
   }, [fetchMe]);
 
   const login = useCallback((provider) => {
@@ -66,8 +47,6 @@ export function StudentAuthProvider({ children }) {
     } catch {
       // ignore
     }
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem('ns_user');
     setUser(null);
   }, []);
 

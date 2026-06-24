@@ -1,12 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  saveTokenAndScheduleLogout,
-  clearAutoLogoutTimer,
-  rehydrateSession,
-  getToken,
-  removeToken,
-} from '../utils/authUtils';
+import { auth } from '../services/auth';
 
 const AuthContext = createContext(null);
 
@@ -14,13 +8,15 @@ const LOGOUT_EVENT_KEY = 'logout-event';
 
 export function AuthProvider({ children }) {
   const navigate = useNavigate();
-  const [isAuthenticated, setIsAuthenticated] = useState(!!getToken());
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const logout = useCallback(
-    (message = 'Your session has expired. Please log in again.') => {
-      clearAutoLogoutTimer();
-
-      removeToken();
+    async (message = 'Your session has expired. Please log in again.') => {
+      try {
+        await auth.logout();
+      } catch {
+        // ignore
+      }
 
       // Broadcast logout to other tabs
       localStorage.setItem(LOGOUT_EVENT_KEY, Date.now().toString());
@@ -35,28 +31,28 @@ export function AuthProvider({ children }) {
     [navigate]
   );
 
-  const login = useCallback(
-    (token) => {
-      saveTokenAndScheduleLogout(token, logout);
-      setIsAuthenticated(true);
+  const login = useCallback(() => {
+    setIsAuthenticated(true);
+    navigate('/dashboard', {
+      replace: true,
+    });
+  }, [navigate]);
 
-      navigate('/dashboard', {
-        replace: true,
-      });
-    },
-    [logout, navigate]
-  );
-
-  // On mount: re-hydrate any existing session.
   useEffect(() => {
-    rehydrateSession(logout);
-  }, [logout]);
+    let cancelled = false;
+    auth.verifySession().then((valid) => {
+      if (cancelled) return;
+      setIsAuthenticated(valid);
+    });
 
-  // Cross-tab logout sync
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   useEffect(() => {
     const handleStorageChange = (event) => {
-      if (event.key === LOGOUT_EVENT_KEY || (event.key === 'admin_token' && !event.newValue)) {
-        clearAutoLogoutTimer();
+      if (event.key === LOGOUT_EVENT_KEY) {
         setIsAuthenticated(false);
 
         navigate('/login', {
