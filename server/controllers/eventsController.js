@@ -3,14 +3,7 @@ import { paginationSchema } from '../validators/eventSchemas.js';
 import { emitToRole } from '../config/socket.js';
 
 function wrapAsync(fn) {
-  return (req, res) =>
-    Promise.resolve(fn(req, res)).catch((e) => {
-      console.error('[wrapAsync error]', e);
-
-      res.status(500).json({
-        error: 'Internal server error',
-      });
-    });
+  return (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 }
 
 // Parses and clamps ?page and ?limit from a request query object.
