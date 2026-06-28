@@ -10,7 +10,11 @@ function toSafeString(value, max = 4000) {
 
 function validateWhatsApp(str) {
   const v = String(str || '').trim();
-  if (!/^\d{10}$/.test(v)) throw new Error('WhatsApp must be exactly 10 digits');
+  if (!/^\d{10}$/.test(v)) {
+    const err = new Error('WhatsApp must be exactly 10 digits');
+    err.status = 400;
+    throw err;
+  }
   return v;
 }
 

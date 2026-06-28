@@ -5,6 +5,7 @@ import { adminAuthMiddleware } from '../middleware/adminAuthMiddleware.js';
 import * as coreTeamController from '../controllers/coreTeamController.js';
 import * as eventRegistrationController from '../controllers/eventRegistrationController.js';
 import * as usersController from '../controllers/usersController.js';
+import { usersRepository } from '../repositories/usersRepository.js';
 import * as attendanceController from '../controllers/attendanceController.js';
 import * as eventAnalyticsController from '../controllers/eventAnalyticsController.js';
 import { adminAuditMiddleware, attachOldState } from '../middleware/adminAuditMiddleware.js';
@@ -16,6 +17,7 @@ import { portfolioRepository } from '../repositories/portfolioRepository.js';
 import { achievementsRepository } from '../repositories/achievementsRepository.js';
 import { portfolioService } from '../services/portfolioService.js';
 import { waitingRoomService } from '../services/waitingRoomService.js';
+import { studentAuthService } from '../services/studentAuthService.js';
 import * as sponsorshipsController from '../controllers/sponsorshipsController.js';
 import * as subscriptionsController from '../controllers/subscriptionsController.js';
 import * as portfolioAnalyticsController from '../controllers/portfolioAnalyticsController.js';
@@ -128,6 +130,7 @@ router.post(
 router.put(
   '/api/admin/users/:id',
   adminAuthMiddleware.requireAdmin,
+  attachOldState((req) => usersRepository.getUserById(req.params.id)),
   adminAuditMiddleware,
   usersController.adminUpdateUser
 );
