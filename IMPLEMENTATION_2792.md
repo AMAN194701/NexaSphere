@@ -1,11 +1,13 @@
 # API Rate Limiting Middleware - Implementation
 
 ## Overview
+
 Implement rate limiting middleware to protect NexaSphere APIs from abuse and ensure fair resource distribution among users.
 
 ## Architecture
 
 ### Rate Limiting Strategy
+
 - Token bucket algorithm for smooth rate limiting
 - Per-user and per-IP rate limits
 - Tiered limits: free/basic/premium users
@@ -36,7 +38,7 @@ Implement rate limiting middleware to protect NexaSphere APIs from abuse and ens
 ✅ Per-IP rate limiting for unauthenticated requests
 ✅ Different limits for different user tiers
 ✅ Endpoint-specific rate limit configurations
-✅ Rate limit headers (X-RateLimit-*) in responses
+✅ Rate limit headers (X-RateLimit-\*) in responses
 ✅ Retry-After headers on 429 responses
 ✅ Admin bypass for internal requests
 ✅ Distributed rate limiting with Redis support
@@ -73,6 +75,6 @@ RATE_LIMITS = {
   complaint_create: { free: 10, basic: 50, premium: 200, period: 3600 },
   event_create: { free: 20, basic: 100, premium: 500, period: 3600 },
   file_upload: { free: 5, basic: 50, premium: 200, period: 86400 },
-  auth_attempt: { free: 5, basic: 10, premium: 20, period: 900 }
-}
+  auth_attempt: { free: 5, basic: 10, premium: 20, period: 900 },
+};
 ```

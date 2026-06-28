@@ -1,6 +1,7 @@
 # Progressive Web App Support with Offline Caching - Implementation
 
 ## Overview
+
 Convert NexaSphere into a Progressive Web App (PWA) with offline functionality using Service Workers and IndexedDB caching strategies.
 
 ## PWA Architecture
@@ -29,16 +30,19 @@ Convert NexaSphere into a Progressive Web App (PWA) with offline functionality u
 ### Caching Strategy
 
 **Cache-First**:
+
 - Static assets (CSS, JS, images)
 - Application shell
 - Font files and icons
 
 **Network-First**:
+
 - API requests for events/complaints
 - User profile data
 - Real-time information
 
 **Stale-While-Revalidate**:
+
 - Cached content served immediately
 - Background update for fresh data
 - Reduces perceived latency
