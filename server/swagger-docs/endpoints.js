@@ -686,4 +686,306 @@
  *       200:
  *         description: Analytics retrieved successfully.
  */
+
+/**
+ * @swagger
+ * /api/admin/event-scheduling/conflicts:
+ *   get:
+ *     summary: Detect event scheduling conflicts
+ *     description: Returns events that overlap in time or venue.
+ *     tags:
+ *       - Event Scheduling
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Conflict list returned successfully.
+ */
+
+/**
+ * @swagger
+ * /api/admin/event-scheduling/venue:
+ *   get:
+ *     summary: Check venue availability
+ *     description: Verify whether a venue is available for a selected date.
+ *     tags:
+ *       - Event Scheduling
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: venue
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: date
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: Venue availability returned.
+ */
+
+/**
+ * @swagger
+ * /api/admin/event-scheduling/attendance-impact:
+ *   get:
+ *     summary: Attendance impact analysis
+ *     description: Analyze attendance impact caused by conflicting events.
+ *     tags:
+ *       - Event Scheduling
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Attendance analysis generated.
+ */
+
+/**
+ * @swagger
+ * /api/admin/event-scheduling/recommendations:
+ *   get:
+ *     summary: Smart scheduling recommendations
+ *     description: Returns recommended schedules for events.
+ *     tags:
+ *       - Event Scheduling
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Scheduling recommendations returned.
+ */
+
+/**
+ * @swagger
+ * /api/admin/event-scheduling/calendar:
+ *   get:
+ *     summary: Calendar integration
+ *     description: Returns event data formatted for calendar integration.
+ *     tags:
+ *       - Event Scheduling
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Calendar events returned.
+ */
+
+/**
+ * @swagger
+ * /api/admin/event-scheduling/alerts:
+ *   get:
+ *     summary: Organizer alerts
+ *     description: Returns scheduling alerts for organizers.
+ *     tags:
+ *       - Event Scheduling
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Organizer alerts returned successfully.
+ */
+
+/**
+ * @swagger
+ * /api/admin/waitlist/join:
+ *   post:
+ *     summary: Join an event waitlist
+ *     description: Adds a user to the waitlist when an event is full.
+ *     tags:
+ *       - Waitlist Management
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successfully added to waitlist.
+ */
+
+/**
+ * @swagger
+ * /api/admin/waitlist/position:
+ *   get:
+ *     summary: Get waitlist position
+ *     description: Returns the user's current position in the event waitlist.
+ *     tags:
+ *       - Waitlist Management
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: eventId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Waitlist position returned.
+ */
+
+/**
+ * @swagger
+ * /api/admin/waitlist/auto-enroll:
+ *   post:
+ *     summary: Auto-enroll next waitlisted user
+ *     description: Automatically enrolls the first user from the waitlist when a seat becomes available.
+ *     tags:
+ *       - Waitlist Management
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User enrolled successfully.
+ */
+
+/**
+ * @swagger
+ * /api/admin/waitlist/notifications:
+ *   get:
+ *     summary: Get waitlist notifications
+ *     description: Returns notification history for waitlisted users.
+ *     tags:
+ *       - Waitlist Management
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Notifications retrieved successfully.
+ */
+
+/**
+ * @swagger
+ * /api/admin/waitlist/analytics:
+ *   get:
+ *     summary: Waitlist analytics
+ *     description: Returns statistics about waitlists and enrollments.
+ *     tags:
+ *       - Waitlist Management
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Analytics retrieved successfully.
+ */
+
+/**
+ * @swagger
+ * /api/admin/waitlist/deadline:
+ *   post:
+ *     summary: Set registration deadline
+ *     description: Configure the registration deadline for an event.
+ *     tags:
+ *       - Waitlist Management
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Registration deadline updated successfully.
+ */
+
+/**
+ * @swagger
+ * /api/search:
+ *   get:
+ *     summary: Global Search
+ *     description: Search across events, team members, portfolios, and resources.
+ *     tags:
+ *       - Global Search
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Search keyword
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum:
+ *             - all
+ *             - events
+ *             - members
+ *             - portfolios
+ *             - resources
+ *         description: Filter search by category
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: Maximum results
+ *     responses:
+ *       200:
+ *         description: Search results returned successfully.
+ */
+
+/**
+ * @swagger
+ * /api/search/trending:
+ *   get:
+ *     summary: Trending Searches
+ *     description: Returns the most popular search queries.
+ *     tags:
+ *       - Global Search
+ *     responses:
+ *       200:
+ *         description: Trending searches retrieved successfully.
+ */
+
+/**
+ * @swagger
+ * /api/search/recent:
+ *   get:
+ *     summary: Recent Searches
+ *     description: Returns the user's recent search history.
+ *     tags:
+ *       - Global Search
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Recent searches returned successfully.
+ */
+
+/**
+ * @swagger
+ * /api/search/suggestions:
+ *   get:
+ *     summary: Instant Search Suggestions
+ *     description: Returns autocomplete suggestions while typing.
+ *     tags:
+ *       - Global Search
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Suggestions returned successfully.
+ */
+
+/**
+ * @swagger
+ * /api/admin/search/analytics:
+ *   get:
+ *     summary: Search Analytics Dashboard
+ *     description: Returns analytics about search usage, popular keywords and categories.
+ *     tags:
+ *       - Global Search
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Analytics retrieved successfully.
+ */
 export default {};
