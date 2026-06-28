@@ -1,11 +1,13 @@
 # Pagination Implementation for Event and Complaint Listings - Implementation
 
 ## Overview
+
 Add pagination support to NexaSphere's event and complaint listing endpoints to improve performance and user experience with large datasets.
 
 ## Architecture
 
 ### Pagination Strategy
+
 - Offset-based pagination for simplicity
 - Optional cursor-based pagination for performance
 - Configurable page sizes (10, 25, 50 items)
@@ -88,7 +90,7 @@ Add pagination support to NexaSphere's event and complaint listing endpoints to 
 
 - Ensure proper indexes on sort columns
 - Use LIMIT and OFFSET in SQL queries
-- Optimize COUNT(*) queries with caching
+- Optimize COUNT(\*) queries with caching
 - Monitor query performance with large datasets
 
 ## Frontend Integration
