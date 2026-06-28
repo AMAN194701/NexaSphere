@@ -45,7 +45,14 @@ export default function ShareHub({ isOpen, onClose, data }) {
 
   function handleNativeShare() {
     if (navigator.share) {
-      navigator.share({ title: shareTitle, url: shareUrl }).catch(() => {});
+      navigator.share({ title: shareTitle, url: shareUrl }).catch((err) => {
+        // User cancelled (AbortError) — no feedback needed.
+        // Any other failure (e.g. share target unavailable) falls back to
+        // copying the URL to clipboard so the user can still share manually.
+        if (err?.name !== 'AbortError' && navigator.clipboard) {
+          navigator.clipboard.writeText(shareUrl).catch(() => {});
+        }
+      });
     }
   }
 
