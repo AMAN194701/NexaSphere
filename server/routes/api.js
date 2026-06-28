@@ -1,10 +1,11 @@
-import { Router } from 'express';
+import { auditLogController } from '../controllers/auditLogController.js';
 import * as eventsController from '../controllers/eventsController.js';
 import * as activityEventsController from '../controllers/activityEventsController.js';
 import { adminAuthMiddleware } from '../middleware/adminAuthMiddleware.js';
 import * as coreTeamController from '../controllers/coreTeamController.js';
 import * as eventRegistrationController from '../controllers/eventRegistrationController.js';
 import * as usersController from '../controllers/usersController.js';
+import { usersRepository } from '../repositories/usersRepository.js';
 import * as attendanceController from '../controllers/attendanceController.js';
 import * as eventAnalyticsController from '../controllers/eventAnalyticsController.js';
 import { adminAuditMiddleware, attachOldState } from '../middleware/adminAuditMiddleware.js';
@@ -16,6 +17,7 @@ import { portfolioRepository } from '../repositories/portfolioRepository.js';
 import { achievementsRepository } from '../repositories/achievementsRepository.js';
 import { portfolioService } from '../services/portfolioService.js';
 import { waitingRoomService } from '../services/waitingRoomService.js';
+import { studentAuthService } from '../services/studentAuthService.js';
 import * as sponsorshipsController from '../controllers/sponsorshipsController.js';
 import * as subscriptionsController from '../controllers/subscriptionsController.js';
 import * as portfolioAnalyticsController from '../controllers/portfolioAnalyticsController.js';
@@ -23,9 +25,11 @@ import { achievementSchema } from '../validators/portfolioSchemas.js';
 import { auditLogRepository } from '../repositories/auditLogRepository.js';
 import announcementPriorityRouter from "./announcementPriority.js";
 import eventConflictRouter from "./eventConflict.js";
+import waitlistRoutes from "./waitlist.js";
 
 import * as recommendationsController from '../controllers/recommendationsController.js';
 import * as gamificationController from '../controllers/gamificationController.js';
+import { studentAuthService } from '../services/studentAuthService.js';
 import multer from 'multer';
 
 const upload = multer({
@@ -36,7 +40,7 @@ const router = Router();
 
 // Public
 router.get('/api/dashboard/leaderboard', gamificationController.getLeaderboard);
-router.post('/api/dashboard/xp', gamificationController.awardXP);
+router.post('/api/dashboard/xp', protectedActionRateLimiter, adminAuthMiddleware.requireAdmin, gamificationController.awardXP);
 router.post(
   '/api/assistant/recommend',
   upload.single('file'),
@@ -127,6 +131,7 @@ router.post(
 router.put(
   '/api/admin/users/:id',
   adminAuthMiddleware.requireAdmin,
+  attachOldState((req) => usersRepository.getUserById(req.params.id)),
   adminAuditMiddleware,
   usersController.adminUpdateUser
 );
@@ -405,5 +410,19 @@ announcementPriorityRouter
 );
 
 router.use("/api/events", eventConflictRouter);
+
+router.use(
+  "/api/admin/waitlist",
+  waitlistRoutes
+);
+
+// Audit Log Viewer APIs
+router.get('/api/admin/audit-logs', adminAuthMiddleware.requireAdmin, auditLogController.listLogs);
+
+router.get(
+  '/api/admin/audit-logs/stats',
+  adminAuthMiddleware.requireAdmin,
+  auditLogController.getStats
+);
 
 export default router;
