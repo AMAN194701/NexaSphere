@@ -15,6 +15,7 @@ import { portfolioRepository } from '../repositories/portfolioRepository.js';
 import { achievementsRepository } from '../repositories/achievementsRepository.js';
 import { portfolioService } from '../services/portfolioService.js';
 import * as sponsorshipsController from '../controllers/sponsorshipsController.js';
+import { requireStudentAuth } from '../middleware/studentAuthMiddleware.js';
 
 const router = Router();
 
@@ -22,6 +23,11 @@ const router = Router();
 router.get('/api/users', usersController.getPublicUsers);
 router.get('/api/content/events', eventsController.listEvents);
 router.post('/api/content/events/:eventId/register', eventRegistrationController.registerForEvent);
+router.post(
+  '/api/content/events/:eventId/cancel',
+  requireStudentAuth,
+  eventRegistrationController.cancelRegistration
+);
 router.get('/api/content/events/:eventId/calendar', eventRegistrationController.getEventCalendar);
 router.get(
   '/api/content/activity-events/:activityKey',
