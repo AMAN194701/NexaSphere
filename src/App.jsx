@@ -1,3 +1,4 @@
+import NotFound from './pages/NotFound';
 import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { stateToUrl, urlToState } from './utils/routing';
 import './styles/themes.css';
