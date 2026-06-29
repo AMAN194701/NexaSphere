@@ -55,12 +55,18 @@ export default function RealTimeDashboard() {
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    socket.on('connect', () => {
+    const handleConnect = () => {
       setConnected(true);
       socket.emit('analytics:subscribe', 'all');
       socket.emit('analytics:request:metrics', 'all');
       socket.emit('analytics:request:trends', { eventId: 'all', timeWindow: '7 days' });
-    });
+    };
+
+    if (socket.connected) {
+      handleConnect();
+    }
+
+    socket.on('connect', handleConnect);
 
     socket.on('disconnect', () => setConnected(false));
 
