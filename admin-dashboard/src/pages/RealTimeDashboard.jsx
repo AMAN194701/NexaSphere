@@ -99,6 +99,13 @@ export default function RealTimeDashboard() {
   }, []);
 
   const exportCSV = useCallback(() => {
+    const escapeCSV = (val) => {
+      if (typeof val === 'string') {
+        return `"${val.replace(/"/g, '""')}"`;
+      }
+      return val;
+    };
+
     const rows = [
       ['Event', 'Registrations', 'Attendees', 'Check-ins'],
       ...Object.entries(eventData).map(([name, d]) => [
@@ -109,7 +116,7 @@ export default function RealTimeDashboard() {
       ]),
       ['LIVE TOTAL', stats.registrations, stats.attendees, stats.checkIns],
     ];
-    const csv = rows.map((r) => r.join(',')).join('\n');
+    const csv = rows.map((r) => r.map(escapeCSV).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
