@@ -1,0 +1,1 @@
+return { query, setQuery, filter, setFilter, results, loading, clearSearch, apiError };
