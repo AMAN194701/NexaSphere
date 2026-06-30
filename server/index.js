@@ -169,6 +169,25 @@ const CONTENT_FILE = path.join(__dirname, 'data', 'content.json');
 
 validateEnvironment();
 
+function requiredStrongPassword(name) {
+  const value = String(process.env[name] || '').trim();
+  if (!value) {
+    throw new Error(`Missing environment variable: ${name}`);
+  }
+  const hasLower = /[a-z]/.test(value);
+  const hasUpper = /[A-Z]/.test(value);
+  const hasNumber = /\d/.test(value);
+  const hasSymbol = /[^A-Za-z0-9]/.test(value);
+  if (value.length < 12 || !hasLower || !hasUpper || !hasNumber || !hasSymbol) {
+    throw new Error(
+      `${name} must be at least 12 characters and include uppercase, lowercase, number, and symbol`
+    );
+  }
+  return value;
+}
+const ADMIN_EVENT_PASSWORD = requiredStrongPassword('ADMIN_EVENT_PASSWORD');
+const SESSION_SECRET = requiredStrongPassword('SESSION_SECRET');
+
 const app = express();
 
 // RECTIFIED: Enable 'trust proxy' to correctly extract client IPs from X-Forwarded-For headers when behind ALBs/Serverless layers
@@ -420,9 +439,7 @@ app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(xssSanitizer);
 app.use(sqlInjectionGuard);
-if (!useStructuredHttpLog) {
-  app.use(morgan('combined'));
-}
+
 app.use(apiLogger);
 app.use(performanceMonitor);
 app.use(cookieParser());
@@ -433,27 +450,27 @@ if (process.env.NODE_ENV === 'production' && !redisSessionUrl.startsWith('rediss
   console.warn('Security Warning: Redis URL should use rediss:// for TLS in production.');
 }
 
-// Reuse the existing getRedisClient if possible, else create a new one
-let sessionClient = getRedisClient();
-if (!sessionClient) {
-  sessionClient = new Redis(redisSessionUrl);
+// Reuse the existing getRedisClient if possible
+const sessionClient = getRedisClient();
+
+const sessionConfig = {
+  secret: SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  name: 'ns_session',
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    sameSite: 'strict',
+    maxAge: process.env.NODE_ENV === 'production' ? 8 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000,
+  },
+};
+
+if (sessionClient) {
+  sessionConfig.store = new RedisStore({ client: sessionClient, prefix: 'session:express:' });
 }
 
-app.use(
-  session({
-    store: new RedisStore({ client: sessionClient, prefix: 'session:express:' }),
-    secret: SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    name: 'ns_session',
-    cookie: {
-      secure: process.env.NODE_ENV === 'production',
-      httpOnly: true,
-      sameSite: 'strict',
-      maxAge: process.env.NODE_ENV === 'production' ? 8 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000,
-    },
-  })
-);
+app.use(session(sessionConfig));
 
 // Session logging middleware
 app.use((req, res, next) => {
@@ -562,28 +579,6 @@ const defaultContent = {
   activityEvents: {},
   coreTeam: [],
 };
-
-function requiredStrongPassword(name) {
-  const value = String(process.env[name] || '').trim();
-  if (!value) {
-    throw new Error(`Missing environment variable: ${name}`);
-  }
-  const hasLower = /[a-z]/.test(value);
-  const hasUpper = /[A-Z]/.test(value);
-  const hasNumber = /\d/.test(value);
-  const hasSymbol = /[^A-Za-z0-9]/.test(value);
-
-  if (value.length < 12 || !hasLower || !hasUpper || !hasNumber || !hasSymbol) {
-    throw new Error(
-      `${name} must be at least 12 characters and include uppercase, lowercase, number, and symbol`
-    );
-  }
-
-  return value;
-}
-
-const ADMIN_EVENT_PASSWORD = requiredStrongPassword('ADMIN_EVENT_PASSWORD');
-const SESSION_SECRET = requiredStrongPassword('SESSION_SECRET');
 
 // ── File Upload Configuration ──
 app.use('/uploads', express.static(UPLOADS_DIR));
