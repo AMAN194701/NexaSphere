@@ -135,6 +135,7 @@ export default function PortfolioBuilder() {
   };
 
   const handleSave = async (e) => {
+    if (isSaving) return;
     e.preventDefault();
     if (!username || username.length < 3) {
       setErrorMsg('Username must be at least 3 characters long.');
