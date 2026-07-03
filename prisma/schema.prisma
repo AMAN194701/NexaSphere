@@ -176,7 +176,6 @@ model SettingsChangeLog {
   @@index([environment, key])
   @@index([changedById])
 }
-
 model EventPricing {
   id            String         @id @default(uuid())
   eventId       String         @unique
@@ -204,3 +203,25 @@ model PriceHistory {
   pricing EventPricing @relation(fields: [pricingId], references: [id], onDelete: Cascade)
 }
 
+model ArchivedReport {
+  id          String   @id @default(cuid())
+  reportType  String
+  filename    String
+  filePath    String
+  summary     String   @db.Text
+  recipients  String   @db.Text
+  generatedAt DateTime @default(now())
+
+  @@index([reportType])
+  @@index([generatedAt])
+}
+
+model ReportScheduleConfig {
+  id             String   @id @default(cuid())
+  reportType     String   @unique
+  cronExpression String
+  recipients     String   @db.Text
+  format         String   @default("csv")
+  enabled        Boolean  @default(true)
+  updatedAt      DateTime @updatedAt
+}
