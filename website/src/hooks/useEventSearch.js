@@ -169,5 +169,5 @@ export function useEventSearch(activities, events) {
     setApiError(null);
   }, []);
 
-  return { query, setQuery, filter, setFilter, results, loading, clearSearch };
+  return { query, setQuery, filter, setFilter, results, loading, apiError, clearSearch };
 }
