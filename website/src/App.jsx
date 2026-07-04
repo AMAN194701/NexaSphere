@@ -1,7 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { BrowserRouter, useLocation, useNavigate } from 'react-router-dom';
 
-import ResourcesPage from './pages/resources/ResourcesPage.jsx';
 import './styles/themes.css';
 import './styles/globals.css';
 import './styles/animations.css';
@@ -15,8 +14,7 @@ import './i18n';
 
 // Core structural elements
 import AppProviders from './providers/AppProviders';
-import AppRoutes, { Wipe } from './router/routes';
-import Cursor from './components/Cursor';
+import AppRoutes from './router/routes';
 import useAppBootstrap from './hooks/useAppBootstrap';
 import { useTheme } from './hooks/useTheme';
 import { useDeveloperMode } from './hooks/useDeveloperMode';
@@ -53,16 +51,7 @@ const isPlaywright =
 
 import { BookmarkProvider } from './context/BookmarkContext';
 import { StudentAuthProvider, useStudentAuth } from './context/StudentAuthContext';
-import BookmarksDrawer from './components/bookmarks/BookmarksDrawer';
-import { useTheme } from './hooks/useTheme';
-import { useInteractionEffects } from './hooks/useInteractionEffects';
-import { useBackToTop } from './hooks/useScrollLogic';
-
-import MoveToTop from './shared/MoveToTop';
-import OfflineBanner from './components/pwa/OfflineBanner.jsx';
-import InstallPrompt from './components/pwa/InstallPrompt.jsx';
-import UpdatePrompt from './components/pwa/UpdatePrompt.jsx';
-import ErrorBoundary from './components/ErrorBoundary';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 // Lazy-loaded heavy pages
 const RecruitmentPage = lazy(() => import('./pages/recruitment/RecruitmentPage'));
@@ -98,9 +87,6 @@ const StatusPage = lazy(() => import('./pages/StatusPage'));
 const LiveStreamPage = lazy(() => import('./pages/streaming/LiveStreamPage'));
 const NotificationHistoryPage = lazy(() => import('./pages/notifications/NotificationHistoryPage'));
 const SponsorsPage = lazy(() => import('./pages/sponsors/SponsorsPage'));
-
-const MNH = 88,
-  DNH = 64;
 
 /* â”€â”€ Page wipe transition â”€â”€ */
 const Wipe = memo(function Wipe({ on: wipeOn, ph }) {

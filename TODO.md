@@ -1,5 +1,10 @@
-<<<<<<< HEAD
-# TODO - Event Stream Processing & Real-Time Analytics (#1776)
+# NexaSphere Monorepo TODO Checklist
+
+This file tracks the status of major features and integrations planned for NexaSphere.
+
+---
+
+## 1. Event Stream Processing & Real-Time Analytics (#1776)
 
 - [ ] Create plan + confirm approach (done)
 - [ ] Add streaming abstraction layer (Queue interface + implementations)
@@ -12,8 +17,10 @@
 - [ ] Implement real-time recommendation regeneration pipeline
 - [ ] Persist processed analytics for historical queries
 - [ ] Extend QA tests to cover outbox delivery, ordering, aggregates, anomaly, fraud, recommendations
-=======
-# TODO - #1754 Real-Time Collaborative Whiteboard
+
+---
+
+## 2. Real-Time Collaborative Whiteboard (#1754)
 
 - [ ] Create a minimal viable whiteboard component (canvas-based) with: pen/highlighter/eraser, shapes (rect/circle/triangle/line/arrow), text boxes, sticky notes, undo/redo per user.
 - [ ] Implement event-linked whiteboard room routing + persistence (load/save state, autosave every 30s).
@@ -25,4 +32,3 @@
 - [ ] Add performance optimizations: pan/zoom smooth, lazy loading for large boards, ensure 1000+ elements handling.
 - [ ] Mobile/touch drawing support.
 - [ ] Add QA/concurrency test plan + minimal automated tests where possible.
->>>>>>> 9bc8f289 (feat(events): event whiteboard collaboration (CRDT/Yjs))

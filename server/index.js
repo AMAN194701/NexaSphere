@@ -1,4 +1,4 @@
-﻿import 'dotenv/config';
+import 'dotenv/config';
 import { tracedFetch } from './config/appContext.js';
 import { initObservability } from './observability/index.js';
 import { setTraceIdResolver } from './utils/logContext.js';
@@ -7,6 +7,9 @@ import helmet from 'helmet';
 import express from 'express';
 import cors from 'cors';
 import csrf from 'csurf';
+import { createBullBoard } from '@bull-board/api';
+import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
+import { ExpressAdapter } from '@bull-board/express';
 import fs, { promises as fsp } from 'fs';
 import { body, validationResult } from 'express-validator';
 import { EventEmitter } from 'events';
@@ -21,6 +24,8 @@ import { initializeSocketIO } from './config/socket.js';
 import adminStreamRouter from './routes/adminStream.js';
 import documentationRouter from './routes/documentation.js';
 import monitoringRouter from './routes/monitoring.js';
+import healthDashboardRouter from './routes/healthDashboard.js';
+import { logEvent } from './controllers/analyticsController.js';
 import healthRouter from './routes/health.js';
 import coreTeamRouter from './routes/coreTeam.js';
 import segmentsRouter from './routes/segments.js';
@@ -34,6 +39,7 @@ import adminRouter from './routes/admin.js';
 import portfolioAnalyticsRouter from './routes/portfolioAnalytics.js';
 import announcementsRouter from './routes/announcements.js';
 import bulkRouter from './routes/bulk.js';
+import complianceRouter from './routes/compliance.js';
 import { validateEnvironment } from './utils/envValidator.js';
 import { performanceMonitor } from './middleware/performanceMonitor.js';
 import { enhancedTracingMiddleware } from './middleware/enhancedTracingMiddleware.js';
@@ -52,7 +58,6 @@ import {
   portfolioRateLimiter,
   searchRateLimiter,
   validateLimiters,
-  searchRateLimiter,
 } from './middleware/rateLimiter.js';
 import {
   authRateLimiter,
@@ -84,7 +89,6 @@ import { slackRepository } from './repositories/slackRepository.js';
 import * as studentAuthController from './controllers/studentAuthController.js';
 import * as forumController from './controllers/forumController.js';
 import { requireStudentAuth } from './middleware/studentAuthMiddleware.js';
-import { studentAuthService } from './services/studentAuthService.js';
 import { loadPersistedPushSubscriptions } from './routes/notifications.js';
 import * as mentorshipController from './controllers/mentorshipController.js';
 import { xssSanitizer } from './middleware/xssSanitizer.js';
@@ -92,6 +96,7 @@ import { tierRateLimiter } from './middleware/tierRateLimiter.js';
 import { startWebhookRetryProcessor } from './services/webhookRetryProcessor.js';
 import { csrfProtection } from './middleware/csrfMiddleware.js';
 import compression from 'compression';
+import morgan from 'morgan';
 import syncRouter from './routes/sync.js';
 import multer from 'multer';
 import learningPathRouter from './routes/learningPaths.js';
@@ -101,8 +106,10 @@ import * as backupController from './controllers/backupController.js';
 import scheduledTasksRouter from './routes/scheduledTasks.js';
 import financialsRouter from './routes/financials.js';
 import { schedulerService } from './services/schedulerService.js';
+import { eventRemindersQueue } from './services/queueService.js';
 import feedbackRouter from './routes/feedbackRoutes.js';
 import * as slackController from './controllers/slackController.js';
+import formSubmissionsRouter from './routes/smartForms.js';
 
 validateLimiters();
 
@@ -259,40 +266,16 @@ app.use(
 
         objectSrc: ["'none'"],
 
- feat/i18n-localization-1397
- feat/i18n-localization-1397
-
- fix/csp-helmet-config-1475
- main
         // ✅ CRITICAL FIX: Missing directives added below
-        baseUri: ["'self'"],                                    // Prevents <base> tag injection
-        frameAncestors: ["'none'"],                             // Prevents clickjacking
-        formAction: ["'self'"],                                 // Prevents form submission to external sites
-        workerSrc: ["'self'", 'blob:'],                         // Restricts web worker sources
-        manifestSrc: ["'self'"],                                // Restricts manifest sources
-        mediaSrc: ["'self'"],                                   // Restricts media sources
+        baseUri: ["'self'"], // Prevents <base> tag injection
+        frameAncestors: ["'none'"], // Prevents clickjacking
+        formAction: ["'self'"], // Prevents form submission to external sites
+        workerSrc: ["'self'", 'blob:'], // Restricts web worker sources
+        manifestSrc: ["'self'"], // Restricts manifest sources
+        mediaSrc: ["'self'"], // Restricts media sources
         frameSrc: ["'self'", 'https://challenges.cloudflare.com', 'https://maps.google.com'], // Restricts iframe sources
-        childSrc: ["'none'"],                                   // Restricts child browsing contexts
-        upgradeInsecureRequests: [],                            // Upgrades HTTP to HTTPS
-
-        baseUri: ["'self'"],
-
-        frameAncestors: ["'none'"],
-
-        formAction: ["'self'"],
-
-        upgradeInsecureRequests: [],
-
-        workerSrc: ["'self'", 'blob:'],
-
-        manifestSrc: ["'self'"],
-
-        mediaSrc: ["'self'"],
-
-        frameSrc: ["'self'", 'https://challenges.cloudflare.com', 'https://maps.google.com'],
-
-        childSrc: ["'none'"],
- main
+        childSrc: ["'none'"], // Restricts child browsing contexts
+        upgradeInsecureRequests: [], // Upgrades HTTP to HTTPS
 
         reportUri: '/api/v1/csp-violation',
       },
@@ -328,16 +311,12 @@ app.use(
     },
   })
 );
- feat/i18n-localization-1397
- feat/i18n-localization-1397
-
- fix/csp-helmet-config-1475
- main
-
-
 app.use(
   cors({
     origin: (origin, callback) => {
+      if (!origin) {
+        return callback(null, true);
+      }
       if (origin && allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
@@ -364,7 +343,6 @@ app.use(
     maxAge: 86400,
   })
 );
- main
 app.options('*', cors());
 
 app.use(enhancedTracingMiddleware);
@@ -372,6 +350,7 @@ app.use(enhancedTracingMiddleware);
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(xssSanitizer);
+const useStructuredHttpLog = process.env.USE_STRUCTURED_HTTP_LOG === 'true';
 if (useStructuredHttpLog) {
   app.use(apiLogger);
 } else {
@@ -410,7 +389,7 @@ app.use('/api', formsRouter);
 app.use('/api', portfolioAnalyticsRouter);
 app.use('/api', portfolioRouter);
 app.use('/api', recoveryRouter);
-app.use('/', notificationsRouter);
+app.use('/api', notificationsRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api', learningPathRouter);
 app.use('/', syncRouter);
@@ -453,27 +432,6 @@ const defaultContent = {
   activityEvents: {},
   coreTeam: [],
 };
-
-function requiredStrongPassword(name) {
-  const value = String(process.env[name] || '').trim();
-  if (!value) {
-    throw new Error(`Missing environment variable: ${name}`);
-  }
-  const hasLower = /[a-z]/.test(value);
-  const hasUpper = /[A-Z]/.test(value);
-  const hasNumber = /\d/.test(value);
-  const hasSymbol = /[^A-Za-z0-9]/.test(value);
-
-  if (value.length < 12 || !hasLower || !hasUpper || !hasNumber || !hasSymbol) {
-    throw new Error(
-      `${name} must be at least 12 characters and include uppercase, lowercase, number, and symbol`
-    );
-  }
-
-  return value;
-}
-
-const ADMIN_EVENT_PASSWORD = requiredStrongPassword('ADMIN_EVENT_PASSWORD');
 
 // â”€â”€ File Upload Configuration â”€â”€
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
@@ -1245,8 +1203,8 @@ app.post('/api/auth/theme', requireStudentAuth, studentAuthController.updateThem
 app.post('/api/auth/logout', studentAuthController.logout);
 
 // Student Profile Endpoints
-app.get('/api/auth/profile',       requireStudentAuth, studentAuthController.getProfile);
-app.put('/api/auth/profile',       requireStudentAuth, studentAuthController.updateProfile);
+app.get('/api/auth/profile', requireStudentAuth, studentAuthController.getProfile);
+app.put('/api/auth/profile', requireStudentAuth, studentAuthController.updateProfile);
 app.get('/api/auth/registrations', requireStudentAuth, studentAuthController.getRegistrations);
 
 // Slack Integration Endpoints
@@ -1295,11 +1253,6 @@ app.get('/api/streams/:id/questions', streamController.listQuestions);
 app.patch('/api/streams/questions/:qId/answer', adminAuth, streamController.answerQuestion);
 app.post('/api/streams/:id/reactions', streamController.addReaction);
 app.get('/api/streams/:id/reactions', streamController.getReactions);
-
-// search routes
-app.get('/api/search', searchRateLimiter, searchController.search);
-app.get('/api/search/trending', searchRateLimiter, searchController.trending);
-app.get('/api/recommendations', searchRateLimiter, searchController.recommendations);
 
 // Public listings
 app.get('/api/content/team', async (req, res) => {
@@ -1540,11 +1493,14 @@ function requireNotificationPrefAuth(req, res, next) {
       if (err2 || !req.studentUser) {
         return res.status(401).json({ error: 'Unauthorized: Authentication required' });
       }
-      const userId = req.method === 'GET' ? (req.query.userId || 'global') : (req.body.userId || 'global');
+      const userId =
+        req.method === 'GET' ? req.query.userId || 'global' : req.body.userId || 'global';
       if (req.studentUser.sub === userId || req.studentUser.id === userId) {
         return next();
       }
-      return res.status(403).json({ error: 'Forbidden: You cannot access or modify other users\' preferences' });
+      return res
+        .status(403)
+        .json({ error: "Forbidden: You cannot access or modify other users' preferences" });
     });
   });
 }
@@ -1719,8 +1675,16 @@ app.put(
   requireMentorshipAuth,
   mentorshipController.updateMentorshipStatus
 );
-app.post('/api/mentorship/requests/:id/sessions', requireStudentAuth, mentorshipController.logSession);
-app.get('/api/mentorship/requests/:id/sessions', requireStudentAuth, mentorshipController.listSessions);
+app.post(
+  '/api/mentorship/requests/:id/sessions',
+  requireStudentAuth,
+  mentorshipController.logSession
+);
+app.get(
+  '/api/mentorship/requests/:id/sessions',
+  requireStudentAuth,
+  mentorshipController.listSessions
+);
 app.post('/api/mentorship/buddy-pairs', requireStudentAuth, mentorshipController.createBuddyPair);
 app.get('/api/mentorship/buddy-pairs', requireStudentAuth, mentorshipController.listBuddyPairs);
 app.get('/api/admin/mentorships', adminAuth, mentorshipController.adminListAll);

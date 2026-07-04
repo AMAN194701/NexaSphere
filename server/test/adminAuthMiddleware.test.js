@@ -189,28 +189,28 @@ test('Security + Concurrency Validation', async (t) => {
 
     assert.ok(duration < 500);
   });
-});
 
-await t.test('safeEqual verifies string equality securely and correctly', () => {
-  const { _safeEqual } = adminAuthMiddleware;
+  await t.test('safeEqual verifies string equality securely and correctly', () => {
+    const { _safeEqual } = adminAuthMiddleware;
 
-  // Correct comparison
-  assert.equal(_safeEqual('hello', 'hello'), true);
-  assert.equal(_safeEqual('', ''), true);
+    // Correct comparison
+    assert.equal(_safeEqual('hello', 'hello'), true);
+    assert.equal(_safeEqual('', ''), true);
 
-  // Incorrect comparison
-  assert.equal(_safeEqual('hello', 'world'), false);
-  assert.equal(_safeEqual('hello', 'hell'), false);
-  assert.equal(_safeEqual('hell', 'hello'), false);
+    // Incorrect comparison
+    assert.equal(_safeEqual('hello', 'world'), false);
+    assert.equal(_safeEqual('hello', 'hell'), false);
+    assert.equal(_safeEqual('hell', 'hello'), false);
 
-  // Null-byte collision safety (tests against previous Buffer allocation vulnerability)
-  assert.equal(_safeEqual('hello', 'hello\0'), false);
-  assert.equal(_safeEqual('hello\0', 'hello'), false);
+    // Null-byte collision safety (tests against previous Buffer allocation vulnerability)
+    assert.equal(_safeEqual('hello', 'hello\0'), false);
+    assert.equal(_safeEqual('hello\0', 'hello'), false);
 
-  // Truncation/large string safety (tests against previous 64-byte padding limit)
-  const longStringA = 'a'.repeat(100);
-  const longStringB = 'a'.repeat(100);
-  const longStringC = 'a'.repeat(99) + 'b';
-  assert.equal(_safeEqual(longStringA, longStringB), true);
-  assert.equal(_safeEqual(longStringA, longStringC), false);
+    // Truncation/large string safety (tests against previous 64-byte padding limit)
+    const longStringA = 'a'.repeat(100);
+    const longStringB = 'a'.repeat(100);
+    const longStringC = 'a'.repeat(99) + 'b';
+    assert.equal(_safeEqual(longStringA, longStringB), true);
+    assert.equal(_safeEqual(longStringA, longStringC), false);
+  });
 });
