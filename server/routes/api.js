@@ -1,3 +1,4 @@
+import { Router } from 'express';
 import { throttleMiddleware } from '../middleware/throttleMiddleware.js';
 import rateLimitAdminRoutes from './rateLimitAdminRoutes.js';
 import { auditLogController } from '../controllers/auditLogController.js';
@@ -26,11 +27,13 @@ import * as portfolioAnalyticsController from '../controllers/portfolioAnalytics
 import { achievementSchema } from '../validators/portfolioSchemas.js';
 import { auditLogRepository } from '../repositories/auditLogRepository.js';
 import * as localAuthController from '../controllers/localAuthController.js';
-
 import * as recommendationsController from '../controllers/recommendationsController.js';
 import * as gamificationController from '../controllers/gamificationController.js';
-import * as subscriptionsController from '../controllers/subscriptionsController.js';
 import multer from 'multer';
+import settingsRouter from './settingsRoutes.js';
+import { impersonationService } from '../services/impersonationService.js';
+
+const router = Router();
 
 router.use(rateLimitAdminRoutes);
 router.use(throttleMiddleware);
@@ -38,8 +41,6 @@ router.use(throttleMiddleware);
 const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
 });
-
-const router = Router();
 
 // Public
 router.get('/api/dashboard/leaderboard', gamificationController.getLeaderboard);
