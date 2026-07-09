@@ -27,10 +27,12 @@ export default function LiveQa({ eventId: propEventId, onBack }) {
     socketRef.current = socket;
     if (socket && eventId) {
       if (socket.id) setSocketId(socket.id);
-      socket.on('connect', () => setSocketId(socket.id));
+      const handleConnect = () => setSocketId(socket.id);
+      socket.on('connect', handleConnect);
       socket.emit('qa:join', { eventId });
       return () => {
         socket.emit('qa:leave', { eventId });
+        socket.off('connect', handleConnect);
       };
     }
   }, [eventId]);
