@@ -117,22 +117,25 @@ export default function Navbar({
       <nav className="ns-navbar-mobile">
         <div
           className="ns-mobile-top"
-          onClick={goHome}
-          style={{ cursor: 'pointer' }}
-          aria-label="Go to homepage"
+          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 14px 5px', width: '100%' }}
         >
-          <img
-            src={BRAND_LOGO_ICON}
-            alt="NexaSphere"
-            className="ns-mobile-logo-ns"
-            loading="lazy"
-            width="28"
-            height="28"
-          />
-
-          <span className="ns-mobile-brand">
-            <span>NexaSphere</span>
-          </span>
+          <div
+            onClick={goHome}
+            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+            aria-label="Go to homepage"
+          >
+            <img
+              src={BRAND_LOGO_ICON}
+              alt="NexaSphere"
+              className="ns-mobile-logo-ns"
+              loading="lazy"
+              width="28"
+              height="28"
+            />
+            <span className="ns-mobile-brand">
+              <span>NexaSphere</span>
+            </span>
+          </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <NotificationBell />
