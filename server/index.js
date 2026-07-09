@@ -258,94 +258,45 @@ app.use(
           }
         : false,
 
-fix/search-clear-button-1487
- HEAD
-    // Strict Content Security Policy with ALL directives
-
-    // ✅ FIXED: Strict Content Security Policy with ALL directives
- 921757a7 (fix(server): harden helmet CSP configuration with missing security directives)
-
-    // ✅ FIXED: Strict Content Security Policy with ALL directives
- main
     contentSecurityPolicy: {
       useDefaults: false,
-
       directives: {
         defaultSrc: ["'self'"],
-
-        scriptSrc: ["'self'", 'https://challenges.cloudflare.com'],
-
+        scriptSrc: [
+          "'self'", 
+          'https://challenges.cloudflare.com',
+          'https://www.googletagmanager.com',
+          'https://www.google-analytics.com'
+        ],
         styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-
         imgSrc: [
           "'self'",
           'data:',
           'blob:',
           'https://api.dicebear.com',
           'https://images.unsplash.com',
+          'https://www.google-analytics.com',
         ],
-
         fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
-
         connectSrc: [
           "'self'",
           'https://challenges.cloudflare.com',
           'https://*.ingest.sentry.io',
           'https://*.ingest.us.sentry.io',
+          'https://www.google-analytics.com',
           process.env.FRONTEND_URL || 'http://localhost:5173',
           `wss://${process.env.DOMAIN || 'localhost'}`,
         ],
-
         objectSrc: ["'none'"],
-
- fix/search-clear-button-1487
-
- feat/i18n-localization-1397
- feat/i18n-localization-1397
-
- fix/csp-helmet-config-1475
- main
- main
-        // ✅ CRITICAL FIX: Missing directives added below
-        baseUri: ["'self'"],                                    // Prevents <base> tag injection
-        frameAncestors: ["'none'"],                             // Prevents clickjacking
-        formAction: ["'self'"],                                 // Prevents form submission to external sites
-        workerSrc: ["'self'", 'blob:'],                         // Restricts web worker sources
-        manifestSrc: ["'self'"],                                // Restricts manifest sources
-        mediaSrc: ["'self'"],                                   // Restricts media sources
-fix/search-clear-button-1487
- HEAD
-        frameSrc: ["'self'", 'https://challenges.cloudflare.com', 'https://maps.google.com'],
-
-        frameSrc: ["'self'", 'https://challenges.cloudflare.com', 'https://maps.google.com'], // Restricts iframe sources
- 921757a7 (fix(server): harden helmet CSP configuration with missing security directives)
-        childSrc: ["'none'"],                                   // Restricts child browsing contexts
-        upgradeInsecureRequests: [],                            // Upgrades HTTP to HTTPS
-
-        frameSrc: ["'self'", 'https://challenges.cloudflare.com', 'https://maps.google.com'], // Restricts iframe sources
-        childSrc: ["'none'"],                                   // Restricts child browsing contexts
-        upgradeInsecureRequests: [],                            // Upgrades HTTP to HTTPS
-
         baseUri: ["'self'"],
-
         frameAncestors: ["'none'"],
-
         formAction: ["'self'"],
-
-        upgradeInsecureRequests: [],
-
         workerSrc: ["'self'", 'blob:'],
-
         manifestSrc: ["'self'"],
-
         mediaSrc: ["'self'"],
-
         frameSrc: ["'self'", 'https://challenges.cloudflare.com', 'https://maps.google.com'],
-
         childSrc: ["'none'"],
- main
- main
-
+        upgradeInsecureRequests: [],
         reportUri: '/api/v1/csp-violation',
       },
     },
@@ -414,12 +365,8 @@ app.use(
     optionsSuccessStatus: 204,
     maxAge: 86400,
   })
+  })
 );
-fix/search-clear-button-1487
- 921757a7 (fix(server): harden helmet CSP configuration with missing security directives)
-
- main
- main
 app.options('*', cors());
 
 app.use(enhancedTracingMiddleware);
