@@ -18,8 +18,9 @@ import {
   precacheAndRoute,
   cleanupOutdatedCaches,
   createHandlerBoundToURL,
+  matchPrecache,
 } from 'workbox-precaching';
-import { registerRoute, NavigationRoute } from 'workbox-routing';
+import { registerRoute, NavigationRoute, setCatchHandler } from 'workbox-routing';
 import { CacheFirst, NetworkFirst, StaleWhileRevalidate } from 'workbox-strategies';
 import { ExpirationPlugin } from 'workbox-expiration';
 import { CacheableResponsePlugin } from 'workbox-cacheable-response';
@@ -197,4 +198,14 @@ self.addEventListener('sync', (event) => {
   if (event.tag === 'nexasphere-offline-queue') {
     console.log('[SW] Background sync triggered for offline queue.');
   }
+});
+
+// ── 5. Offline Fallback ───────────────────────────────────────────────────────
+// Provide a fallback response when a navigation request fails because the app
+// is offline and the requested route isn't cached.
+setCatchHandler(async ({ request }) => {
+  if (request.destination === 'document') {
+    return (await matchPrecache('/offline.html')) || Response.error();
+  }
+  return Response.error();
 });
