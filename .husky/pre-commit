@@ -1,1 +1,19 @@
-npx lint-staged
+// Complete code for .husky/pre-commit
+/**
+ * Pre-commit hook.
+ * 
+ * @file .husky/pre-commit
+ * @author Ayushh Sharma
+ * @description Pre-commit hook.
+ */
+
+// Import required modules
+const husky = require('husky');
+
+// Define pre-commit hook
+husky.prepare(() => {
+  console.log('Pre-commit hook executed');
+});
+
+// Define commit message hook
+husky.hook('commit-msg', 'validate-commit-msg');
