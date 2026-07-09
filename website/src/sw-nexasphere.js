@@ -157,6 +157,24 @@ registerRoute(
 
 const bgSyncPlugin = new BackgroundSyncPlugin('nexasphere-offline-queue', {
   maxRetentionTime: 48 * 60, // retain queued requests for up to 48 hours (in minutes)
+  onSync: async ({ queue }) => {
+    let error = null;
+    try {
+      await queue.replayRequests();
+    } catch (err) {
+      error = err;
+      throw err;
+    } finally {
+      if (!error && self.registration && self.registration.showNotification) {
+        self.registration.showNotification('Sync Completed', {
+          body: 'Your offline actions have been synced successfully.',
+          icon: '/pwa-192x192.png',
+          badge: '/pwa-192x192.png',
+          tag: 'sync-completed',
+        });
+      }
+    }
+  },
 });
 
 // Intercept mutating requests to our API — queue them when offline
