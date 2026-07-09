@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { buildUrl } from '../../utils/runtimeConfig';
+import useFocusTrap from '../../hooks/useFocusTrap';
 
 const pageStyle = {
   padding: '24px',
@@ -110,6 +111,10 @@ export default function ModerationDashboard() {
   const [showResolveModal, setShowResolveModal] = useState(false);
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [selectedFlag, setSelectedFlag] = useState(null);
+
+  const reportModalRef = useFocusTrap(showReportModal, () => setShowReportModal(false));
+  const resolveModalRef = useFocusTrap(showResolveModal, () => setShowResolveModal(false));
+  const noteModalRef = useFocusTrap(showNoteModal, () => setShowNoteModal(false));
 
   const [reportForm, setReportForm] = useState({
     contentType: 'comment',
@@ -522,8 +527,8 @@ export default function ModerationDashboard() {
 
         {/* Report Content Modal */}
         {showReportModal && (
-          <div style={MODAL_OVERLAY} onClick={() => setShowReportModal(false)}>
-            <div style={MODAL_STYLE} onClick={(e) => e.stopPropagation()}>
+          <div style={MODAL_OVERLAY} onClick={() => setShowReportModal(false)} role="dialog" aria-modal="true">
+            <div ref={reportModalRef} style={MODAL_STYLE} onClick={(e) => e.stopPropagation()}>
               <h3
                 style={{
                   margin: '0 0 24px 0',
@@ -615,8 +620,8 @@ export default function ModerationDashboard() {
 
         {/* Resolve Modal */}
         {showResolveModal && selectedFlag && (
-          <div style={MODAL_OVERLAY} onClick={() => setShowResolveModal(false)}>
-            <div style={MODAL_STYLE} onClick={(e) => e.stopPropagation()}>
+          <div style={MODAL_OVERLAY} onClick={() => setShowResolveModal(false)} role="dialog" aria-modal="true">
+            <div ref={resolveModalRef} style={MODAL_STYLE} onClick={(e) => e.stopPropagation()}>
               <h3
                 style={{
                   margin: '0 0 24px 0',
@@ -670,8 +675,8 @@ export default function ModerationDashboard() {
 
         {/* Add Note Modal */}
         {showNoteModal && (
-          <div style={MODAL_OVERLAY} onClick={() => setShowNoteModal(false)}>
-            <div style={MODAL_STYLE} onClick={(e) => e.stopPropagation()}>
+          <div style={MODAL_OVERLAY} onClick={() => setShowNoteModal(false)} role="dialog" aria-modal="true">
+            <div ref={noteModalRef} style={MODAL_STYLE} onClick={(e) => e.stopPropagation()}>
               <h3
                 style={{
                   margin: '0 0 24px 0',

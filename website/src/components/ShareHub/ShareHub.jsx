@@ -1,19 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { PLATFORMS, addUtmParams, getQRUrl, copyToClipboard } from '../../utils/shareUtils';
+import useFocusTrap from '../../hooks/useFocusTrap';
 import './ShareHub.css';
 
 export default function ShareHub({ isOpen, onClose, data }) {
   const [copied, setCopied] = useState(false);
   const [showQR, setShowQR] = useState(false);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const handler = (e) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [isOpen, onClose]);
+  const modalRef = useFocusTrap(isOpen, onClose);
 
   useEffect(() => {
     document.body.style.overflow = isOpen ? 'hidden' : '';
@@ -46,9 +39,6 @@ export default function ShareHub({ isOpen, onClose, data }) {
   function handleNativeShare() {
     if (navigator.share) {
       navigator.share({ title: shareTitle, url: shareUrl }).catch((err) => {
-        // User cancelled (AbortError) — no feedback needed.
-        // Any other failure (e.g. share target unavailable) falls back to
-        // copying the URL to clipboard so the user can still share manually.
         if (err?.name !== 'AbortError' && navigator.clipboard) {
           navigator.clipboard.writeText(shareUrl).catch(() => {});
         }
@@ -64,7 +54,7 @@ export default function ShareHub({ isOpen, onClose, data }) {
       aria-modal="true"
       aria-label="Share"
     >
-      <div className="sharehub-modal" onClick={(e) => e.stopPropagation()}>
+      <div ref={modalRef} className="sharehub-modal" onClick={(e) => e.stopPropagation()}>
         <div className="sharehub-header">
           <h2 className="sharehub-heading">Share</h2>
           <button className="sharehub-close" onClick={onClose} aria-label="Close">
