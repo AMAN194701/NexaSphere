@@ -10,7 +10,33 @@ const WEBSITE_URL = import.meta.env.VITE_WEBSITE_URL || 'http://localhost:5175';
 
 const links = [
   { to: '/dashboard', label: 'Dashboard', icon: 'Dashboard' },
+  { to: '/dashboard/analytics', label: 'Analytics', icon: 'BarChart' },
+  { to: '/dashboard/segments', label: 'Segments', icon: 'Users' },
   { to: '/dashboard/events', label: 'Events', icon: 'Calendar', requiredScope: 'events:read' },
+  {
+    to: '/dashboard/waiting-room',
+    label: 'Waiting Room',
+    icon: 'Clock',
+    requiredScope: 'events:read',
+  },
+  {
+    to: '/dashboard/event-registrations',
+    label: 'Registrations',
+    icon: 'FileText',
+    requiredScope: 'events:read',
+  },
+  {
+    to: '/dashboard/event-scanner',
+    label: 'Scanner',
+    icon: 'Camera',
+    requiredScope: 'events:write',
+  },
+  {
+    to: '/dashboard/event-analytics',
+    label: 'Analytics',
+    icon: 'BarChart',
+    requiredScope: 'events:read',
+  },
   {
     to: '/dashboard/activity-events',
     label: 'Activity Events',
@@ -23,10 +49,22 @@ const links = [
     icon: 'Users',
     requiredScope: 'settings:admin',
   },
+  {
+    to: '/dashboard/roles',
+    label: 'User Roles',
+    icon: 'Shield',
+    requiredScope: 'settings:admin',
+  },
   { to: '/dashboard/membership', label: 'Membership', icon: 'FileText' },
   { to: '/dashboard/recruitment', label: 'Recruitment', icon: 'UserPlus' },
   { to: '/dashboard/certificates', label: 'Certificates', icon: 'Award' },
   { to: '/dashboard/announcements', label: 'Announcements', icon: 'Megaphone' },
+  {
+    to: '/dashboard/banners',
+    label: 'Banners (Hero)',
+    icon: 'Image',
+    requiredScope: 'settings:admin',
+  },
   {
     to: '/dashboard/portfolios',
     label: 'Portfolios',
@@ -55,15 +93,44 @@ const links = [
     icon: 'Activity',
   },
   {
-    to: '/dashboard/sponsorships',
-    label: 'Sponsorships',
-    icon: 'Handshake',
+    to: '/dashboard/qa-poll',
+    label: 'Q&A / Polling',
+    icon: 'MessageSquare',
     requiredScope: 'events:read',
+  },
+  {
+    to: '/dashboard/tasks',
+    label: 'Scheduled Tasks',
+    icon: 'Clock',
+    requiredScope: 'settings:admin',
+  },
+  {
+    to: '/dashboard/audit-logs',
+    label: 'Audit Logs',
+    icon: 'FileText',
+    requiredScope: 'settings:admin',
   },
   {
     to: '/dashboard/scheduled-tasks',
     label: 'Scheduled Tasks',
     icon: 'Clock',
+    requiredScope: 'settings:admin',
+  },
+  {
+    to: '/dashboard/backups',
+    label: 'Backups / Restore',
+    icon: 'Database',
+    requiredScope: 'settings:admin',
+  },
+  {
+    to: '/dashboard/reports',
+    label: 'Reports',
+    icon: 'Target',
+  },
+  {
+    to: '/dashboard/sso-invites',
+    label: 'SSO Invites',
+    icon: 'UserPlus',
     requiredScope: 'settings:admin',
   },
 ];
@@ -74,6 +141,16 @@ export function Sidebar() {
   const location = useLocation();
 
   const [open, setOpen] = useState(false);
+  const [theme, setTheme] = useState(document.documentElement.getAttribute('data-theme') || 'dark');
+  const toggleTheme = () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+
+    document.documentElement.setAttribute('data-theme', newTheme);
+
+    localStorage.setItem('ns-admin-theme', newTheme);
+
+    setTheme(newTheme);
+  };
 
   const sidebarRef = useRef(null);
 
@@ -214,13 +291,31 @@ export function Sidebar() {
         {/* Navigation */}
 
         <nav className="sidebar-nav">
-          {links.map(({ to, label, icon, requiredScope }) => {
-            const LinkElement = (
+          {links.map(({ to, label, icon, requiredScope, external }) => {
+            const LinkElement = external ? (
+              <a
+                key={to}
+                href={to}
+                target="_blank"
+                rel="noreferrer"
+                className="nav-link"
+                onClick={close}
+              >
+                <AdminIcon name={icon} size={16} aria-hidden="true" />
+                {label}
+                <AdminIcon
+                  name="ExternalLink"
+                  size={12}
+                  style={{ marginLeft: 'auto', opacity: 0.5 }}
+                />
+              </a>
+            ) : (
               <NavLink
                 key={to}
                 to={to}
                 end={to === '/dashboard'}
                 className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+                aria-current={({ isActive }) => (isActive ? 'page' : undefined)}
                 onClick={close}
               >
                 <AdminIcon name={icon} size={16} aria-hidden="true" />
@@ -245,8 +340,21 @@ export function Sidebar() {
           <span className="sidebar-email" aria-label={`Logged in as ${email}`}>
             {email}
           </span>
+          <button
+            className="btn-logout"
+            onClick={toggleTheme}
+            aria-label="Toggle theme"
+            style={{ marginBottom: '10px' }}
+          >
+            Switch to {theme === 'dark' ? 'Light' : 'Dark'} Mode
+          </button>
 
-          <button className="btn-logout" onClick={logout} aria-label={`Logout ${email}`}>
+          <button
+            className="btn-logout"
+            onClick={logout}
+            aria-label={`Logout ${email}`}
+            style={{ marginTop: '10px' }}
+          >
             Logout
           </button>
         </div>

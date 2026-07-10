@@ -1,10 +1,20 @@
 import { useState, useEffect, useMemo } from 'react';
+
+// Validates a date value before formatting — avoids rendering literal
+// "Invalid Date" text when the API returns a null or malformed timestamp.
+function formatThreadDate(value) {
+  if (!value) return 'Unknown date';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return 'Unknown date';
+  return d.toLocaleDateString();
+}
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../../utils/apiClient';
 import { getApiBase } from '../../utils/runtimeConfig';
 import { fallbackCategories, fallbackThreads } from '../../data/forumData.js';
 import Footer from '../../shared/Footer';
 import { EmptyState } from '../../components/EmptyState';
+import { ForumPostSkeleton } from '../../components/ui/skeleton/ForumPostSkeleton';
 
 export default function ForumPage({ onBack }) {
   const navigate = useNavigate();
@@ -44,6 +54,7 @@ export default function ForumPage({ onBack }) {
         if (threadData?.threads) setThreads(threadData.threads);
       })
       .catch(() => {
+        setCategories(fallbackCategories);
         setThreads(fallbackThreads);
       })
       .finally(() => setLoading(false));
@@ -222,9 +233,7 @@ export default function ForumPage({ onBack }) {
         </div>
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: 60, color: 'var(--text-secondary)' }}>
-            Loading discussions...
-          </div>
+          <ForumPostSkeleton count={5} />
         ) : filteredThreads.length === 0 ? (
           <EmptyState
             title="No Threads Found"
@@ -329,7 +338,7 @@ export default function ForumPage({ onBack }) {
                     <div
                       style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: 8 }}
                     >
-                      by {thread.authorName} · {new Date(thread.createdAt).toLocaleDateString()}
+                      by {thread.authorName} · {formatThreadDate(thread.createdAt)}
                     </div>
                   </div>
                 </div>

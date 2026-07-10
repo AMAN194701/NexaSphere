@@ -1,3 +1,4 @@
+import { CopyButton } from '../components/CopyButton';
 import { DashboardCardSkeleton } from '../components/DashboardCardSkeleton';
 import { useState, useEffect } from 'react';
 import { api, auth } from '../services/api';
@@ -17,7 +18,7 @@ export function DashboardHome() {
       api.membership.getAll().catch(() => ({ responses: [] })),
     ]).then(([eventsData, teamData, membershipData]) => {
       const events = eventsData?.events ?? [];
-      const team = teamData?.members ?? teamData ?? [];
+      const team = teamData?.members || teamData?.data || (Array.isArray(teamData) ? teamData : []);
       const applications = membershipData?.responses ?? [];
       setStats({
         totalEvents: events.length,
@@ -148,6 +149,15 @@ export function DashboardHome() {
           >
             <AdminIcon name="FileText" size={18} aria-hidden="true" /> Membership
           </a>
+        </div>
+        <div
+          style={{
+            marginTop: '20px',
+            display: 'flex',
+            justifyContent: 'flex-end',
+          }}
+        >
+          <CopyButton text={window.location.origin + '/dashboard'} label="Copy Dashboard Link" />
         </div>
       </div>
     </div>

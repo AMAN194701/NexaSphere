@@ -30,7 +30,9 @@ export default function AiMentor() {
       });
       setResult(data);
     } catch (err) {
-      console.error(err);
+      if (import.meta.env.DEV) {
+        console.error('[AiMentor] AI Mentor request failed:', err.message);
+      }
       setResult({ error: 'Failed to connect to AI Mentor. Try again later.' });
     } finally {
       setLoading(false);
@@ -162,7 +164,7 @@ export default function AiMentor() {
           >
             {result.suggestions &&
               result.suggestions.map((s, i) => (
-                <li key={i} style={{ marginBottom: '4px' }}>
+                <li key={`suggestion-${i}`} style={{ marginBottom: '4px' }}>
                   {s}
                 </li>
               ))}

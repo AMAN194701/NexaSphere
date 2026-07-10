@@ -1,9 +1,23 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+
+// Validates a date value before formatting — avoids rendering literal
+// "Invalid Date" text when the API returns a null or malformed timestamp.
+function formatStreamDate(value) {
+  if (!value) return 'Unknown';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return 'Unknown';
+  return d.toLocaleString();
+}
+function formatStreamTime(value) {
+  if (!value) return 'Unknown';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return 'Unknown';
+  return d.toLocaleTimeString();
+}
 import { getApiBase } from '../../utils/runtimeConfig';
 import { useParams } from 'react-router-dom';
 import {
   Play,
-  Pause,
   Send,
   MessageSquare,
   BarChart3,
@@ -89,7 +103,7 @@ function HlsPlayer({ streamUrl, hlsUrl, status }) {
   );
 }
 
-function ChatPanel({ streamId, messages, onSendMessage }) {
+function ChatPanel({ messages, onSendMessage }) {
   const [input, setInput] = useState('');
   const [userName, setUserName] = useState(() => {
     try {
@@ -194,7 +208,7 @@ function PollPanel({ polls, onVote }) {
                 const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
                 return (
                   <button
-                    key={idx}
+                    key={`${poll.id}-opt-${opt}`}
                     onClick={() => handleVote(poll.id, idx)}
                     disabled={votedPolls.has(poll.id)}
                     className="w-full relative overflow-hidden rounded bg-gray-600 px-3 py-2 text-left text-sm hover:bg-gray-500 transition disabled:opacity-80 disabled:cursor-default"
@@ -232,10 +246,22 @@ function LiveStreamPage() {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('chat');
   const [toast, setToast] = useState(null);
+  const toastTimerRef = React.useRef(null);
+
+  // Clear running timers when the stream layout unmounts
+  React.useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
+  }, []);
 
   const showToast = useCallback((message, type) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     setToast({ message, type });
-    setTimeout(() => setToast(null), 4000);
+    toastTimerRef.current = setTimeout(() => {
+      setToast(null);
+      toastTimerRef.current = null;
+    }, 4000);
   }, []);
 
   const fetchStream = useCallback(async () => {
@@ -268,14 +294,14 @@ function LiveStreamPage() {
   }, []);
 
   useEffect(() => {
-    setLoading(true);
-    setError(null);
     (async () => {
+      setLoading((prev) => (prev === true ? prev : true));
+      setError(null);
       const s = await fetchStream();
       if (s) {
         await Promise.all([fetchMessages(s.id), fetchPolls(s.id)]);
       } else if (!streamId) {
-        setError('No stream found for this event');
+        setError('No stream found for this event.');
       }
       setLoading(false);
     })();
@@ -338,7 +364,7 @@ function LiveStreamPage() {
               <Users className="w-4 h-4" /> {stream.viewerCount || 0} viewers
             </span>
             {stream.scheduledStart && (
-              <span>Scheduled: {new Date(stream.scheduledStart).toLocaleString()}</span>
+              <span>Scheduled: {formatStreamDate(stream.scheduledStart)}</span>
             )}
           </div>
         </div>
@@ -401,7 +427,7 @@ function LiveStreamPage() {
                   <div className="flex justify-between">
                     <span className="text-gray-400">Started</span>
                     <span className="font-medium">
-                      {new Date(stream.startedAt).toLocaleTimeString()}
+                      {formatStreamTime(stream.startedAt)}
                     </span>
                   </div>
                 )}
@@ -409,7 +435,7 @@ function LiveStreamPage() {
                   <div className="flex justify-between">
                     <span className="text-gray-400">Ended</span>
                     <span className="font-medium">
-                      {new Date(stream.endedAt).toLocaleTimeString()}
+                      {formatStreamTime(stream.endedAt)}
                     </span>
                   </div>
                 )}

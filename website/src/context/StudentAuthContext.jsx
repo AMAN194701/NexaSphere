@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import apiClient from '../utils/apiClient';
+import { useTheme } from '../hooks/useTheme';
 
 export const StudentAuthContext = createContext(null);
 
@@ -34,20 +35,6 @@ export function StudentAuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const urlToken = params.get('token');
-    if (urlToken) {
-      params.delete('token');
-      const cleanUrl =
-        window.location.pathname +
-        (params.toString() ? '?' + params.toString() : '') +
-        window.location.hash;
-      window.history.replaceState({}, '', cleanUrl);
-      fetchMe(urlToken);
-      setLoading(false);
-      return;
-    }
-
     const storedToken = localStorage.getItem(TOKEN_KEY);
     if (storedToken) {
       fetchMe(storedToken).finally(() => setLoading(false));
@@ -55,6 +42,18 @@ export function StudentAuthProvider({ children }) {
       setLoading(false);
     }
   }, [fetchMe]);
+
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem('ns_user');
+      setUser(null);
+      alert('Your session has expired. Please log in again.');
+      window.location.href = '/login';
+    };
+    window.addEventListener('session-expired', handleSessionExpired);
+    return () => window.removeEventListener('session-expired', handleSessionExpired);
+  }, []);
 
   const login = useCallback((provider) => {
     window.location.href = `/api/auth/${provider}`;
@@ -70,6 +69,14 @@ export function StudentAuthProvider({ children }) {
     localStorage.removeItem('ns_user');
     setUser(null);
   }, []);
+
+  const { setTheme } = useTheme();
+
+  useEffect(() => {
+    if (user && user.theme) {
+      setTheme(user.theme);
+    }
+  }, [user, setTheme]);
 
   const value = { user, loading, login, logout, isAuthenticated: !!user };
 

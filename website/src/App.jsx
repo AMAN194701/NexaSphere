@@ -1,22 +1,5 @@
-import {
-  useState,
-  useEffect,
-  useRef,
-  useCallback,
-  useLayoutEffect,
-  lazy,
-  Suspense,
-  memo,
-} from 'react';
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-  useNavigate,
-  useLocation,
-  useParams,
-  Navigate,
-} from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
+import { createBrowserRouter, RouterProvider, useLocation, useNavigate } from 'react-router-dom';
 
 import './styles/themes.css';
 import './styles/globals.css';
@@ -27,78 +10,63 @@ import './styles/portfolio.css';
 import './styles/pwa.css';
 import './styles/aurora.css';
 import './styles/motion.css';
+import './i18n';
 
-import SearchBar from './components/SearchBar';
-import FloatingDock from './components/common/FloatingDock';
-import ParticleBackground from './shared/ParticleBackground';
-import GeometricGridBackground from './shared/GeometricGridBackground';
-import ScrollProgress from './shared/ScrollProgress';
+// Core structural elements
+import AppProviders from './providers/AppProviders';
+import AppRoutes from './router/routes';
+import useAppBootstrap from './hooks/useAppBootstrap';
+import { useTheme } from './hooks/useTheme';
+import { useDeveloperMode } from './hooks/useDeveloperMode';
+import { useInteractionEffects } from './hooks/useInteractionEffects';
+import { useBackToTop } from './hooks/useScrollLogic';
+
+// Shared layout and telemetry widgets
 import Navbar from './shared/Navbar';
-import { DynamicIcon } from './shared/Icons';
-import HeroSection from './pages/home/HeroSection';
-import ActivitiesSection from './pages/activities/ActivitiesSection';
-import EventsSection from './pages/events/EventsSection';
-import AboutSection from './pages/about/AboutSection';
-import TeamSection from './pages/team/TeamSection';
-import Footer from './shared/Footer';
-import CinematicOpening from './shared/CinematicOpening';
+import MoveToTop from './shared/MoveToTop';
 import Chatbot from './shared/Chatbot';
+import ScrollProgress from './shared/ScrollProgress';
+import SearchBar from './components/SearchBar';
+import Terminal from './components/developer/Terminal';
+import BookmarksDrawer from './components/bookmarks/BookmarksDrawer';
+import CinematicOpening from './shared/CinematicOpening';
+import OfflineBanner from './components/pwa/OfflineBanner.jsx';
+import InstallPrompt from './components/pwa/InstallPrompt.jsx';
+import UpdatePrompt from './components/pwa/UpdatePrompt.jsx';
+
 import {
   AmbientOrbs,
-  SectionDivider,
-  PageFlash,
   useNsReveal,
   useHeroParallax,
   useNavScrollTint,
   useGlobalMouseParallax,
   useMagneticCards,
 } from './shared/MotionLayer';
-import apiClient from './utils/apiClient.js';
-import {
-  getLocalEvents,
-  mergeEvents,
-  subscribePublicContent,
-  initStorageSyncBridge,
-} from './utils/publicContentStore.js';
-import { initializeSocket, on, off, joinRoom } from './utils/socketClient.js';
-import NotFoundPage from './pages/NotFoundPage';
-
 import { activityPages } from './data/activities/index';
-import { events as fallbackEvents } from './data/eventsData';
-import nexasphereLogo from './assets/images/logos/nexasphere-logo.png';
 
-import Terminal from './components/developer/Terminal';
-import { useDeveloperMode } from './hooks/useDeveloperMode';
+const isPlaywright =
+  typeof window !== 'undefined' && window.navigator.userAgent.includes('Playwright');
 
 import { BookmarkProvider } from './context/BookmarkContext';
 import { StudentAuthProvider, useStudentAuth } from './context/StudentAuthContext';
-import BookmarksDrawer from './components/bookmarks/BookmarksDrawer';
-import { useTheme } from './hooks/useTheme';
-import { useInteractionEffects } from './hooks/useInteractionEffects';
-import { useBackToTop } from './hooks/useScrollLogic';
-
-import MoveToTop from './shared/MoveToTop';
-import OfflineBanner from './components/pwa/OfflineBanner.jsx';
-import InstallPrompt from './components/pwa/InstallPrompt.jsx';
-import UpdatePrompt from './components/pwa/UpdatePrompt.jsx';
 import ErrorBoundary from './components/ErrorBoundary';
 
 // Lazy-loaded heavy pages
 const RecruitmentPage = lazy(() => import('./pages/recruitment/RecruitmentPage'));
 const MembershipPage = lazy(() => import('./pages/membership/MembershipPage'));
-const AdminPage = lazy(() => import('./pages/admin/AdminPage'));
 const ActivitiesPage = lazy(() => import('./pages/activities/ActivitiesPage'));
 const ActivityDetailPage = lazy(() => import('./pages/activities/ActivityDetailPage'));
 const EventsPage = lazy(() => import('./pages/events/EventsPage'));
 const EventDetailPage = lazy(() => import('./pages/events/EventDetailPage'));
+const EventPlanningPage = lazy(() => import('./pages/events/EventPlanningPage'));
 const AboutPage = lazy(() => import('./pages/about/AboutPage'));
 const TeamPage = lazy(() => import('./pages/team/TeamPage'));
 const ContactPage = lazy(() => import('./pages/contact/ContactPage'));
 const RoadmapsPage = lazy(() => import('./pages/roadmaps/RoadmapsPage'));
 const ProjectsPage = lazy(() => import('./pages/projects/ProjectsPage'));
 const CertificateVerifyPage = lazy(() => import('./pages/certificates/CertificateVerifyPage'));
-const CollabPage = lazy(() => import('./pages/collab/CollabPage'));
 const PortfolioBuilder = lazy(() => import('./components/portfolio/PortfolioBuilder'));
+const PortfolioAnalytics = lazy(() => import('./pages/portfolio/PortfolioAnalytics'));
 const PublicPortfolio = lazy(() => import('./pages/portfolio/PublicPortfolio'));
 const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage'));
 const AnalyticsPage = lazy(() => import('./pages/analytics/AnalyticsPage'));
@@ -111,12 +79,11 @@ const MentorsPage = lazy(() => import('./pages/mentorship/MentorsPage'));
 const MentorshipDashboard = lazy(() => import('./pages/mentorship/MentorshipDashboard'));
 const StatusPage = lazy(() => import('./pages/StatusPage'));
 const LiveStreamPage = lazy(() => import('./pages/streaming/LiveStreamPage'));
+const NotificationHistoryPage = lazy(() => import('./pages/notifications/NotificationHistoryPage'));
 const SponsorsPage = lazy(() => import('./pages/sponsors/SponsorsPage'));
+const SearchPage = lazy(() => import('./pages/search/SearchPage'));
 
-const MNH = 88,
-  DNH = 64;
-
-/* ── Page wipe transition ── */
+/* â”€â”€ Page wipe transition â”€â”€ */
 const Wipe = memo(function Wipe({ on: wipeOn, ph }) {
   if (!wipeOn) return null;
   return (
@@ -173,7 +140,7 @@ const Wipe = memo(function Wipe({ on: wipeOn, ph }) {
   );
 });
 
-/* ── Page enter animation ── */
+/* â”€â”€ Page enter animation â”€â”€ */
 const PageIn = memo(function PageIn({ children, k }) {
   const [r, setR] = useState(false);
   useLayoutEffect(() => {
@@ -203,302 +170,47 @@ const PageIn = memo(function PageIn({ children, k }) {
   );
 });
 
-/* ── Anti-gravity orb cursor ── */
-function Cursor() {
-  const orbRef = useRef(null);
-  const trailRef = useRef(null);
-  const glowRef = useRef(null);
-  const stateRef = useRef({
-    mx: 0,
-    my: 0,
-    ox: 0,
-    oy: 0,
-    floatY: 0,
-    floatPhase: 0,
-    hovering: false,
-    clicking: false,
-    visible: true,
-    raf: null,
-  });
+/* --   Root App â€” wraps everything in BrowserRouter
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+const router = createBrowserRouter([
+  { path: '*', element: <AppProviders><AppShell /></AppProviders> }
+]);
 
-  useEffect(() => {
-    if (window.matchMedia('(hover:none)').matches) return;
-    document.body.style.cursor = 'none';
-    const s = stateRef.current;
-    const onMove = (e) => {
-      s.mx = e.clientX;
-      s.my = e.clientY;
-    };
-    const onDown = () => {
-      s.clicking = true;
-    };
-    const onUp = () => {
-      s.clicking = false;
-    };
-    const onOver = (e) => {
-      s.hovering = !!e.target.closest('button,a,[role="button"],[tabindex]');
-    };
-    const onMouseLeave = () => {
-      s.visible = false;
-      if (orbRef.current) orbRef.current.style.display = 'none';
-      if (trailRef.current) trailRef.current.style.display = 'none';
-      if (glowRef.current) glowRef.current.style.display = 'none';
-    };
-    const onMouseEnter = () => {
-      s.visible = true;
-      if (orbRef.current) orbRef.current.style.display = 'block';
-      if (trailRef.current) trailRef.current.style.display = 'block';
-      if (glowRef.current) glowRef.current.style.display = 'block';
-    };
-    const tick = () => {
-      s.ox += (s.mx - s.ox) * 1.0;
-      s.oy += (s.my - s.oy) * 1.0;
-      s.floatPhase += 0.022;
-      s.floatY =
-        Math.sin(s.floatPhase) * 2 +
-        Math.sin(s.floatPhase * 1.7) * 1 +
-        Math.sin(s.floatPhase * 0.5) * 1;
-      const fy = s.oy + s.floatY;
-      const scale = s.clicking ? 0.7 : s.hovering ? 1.55 : 1;
-      const opacity = s.visible ? (s.hovering ? 0.95 : 0.82) : 0;
-      if (orbRef.current) {
-        orbRef.current.style.left = s.ox + 'px';
-        orbRef.current.style.top = fy + 'px';
-        orbRef.current.style.transform = `translate(-50%,-50%) scale(${scale})`;
-        orbRef.current.style.opacity = opacity;
-      }
-      if (trailRef.current) {
-        trailRef.current.style.left = s.ox + 'px';
-        trailRef.current.style.top = s.oy + s.floatY * 0.4 + 'px';
-        trailRef.current.style.opacity = s.visible ? (s.hovering ? 0 : 0.35) : 0;
-      }
-      if (glowRef.current) {
-        glowRef.current.style.left = s.mx + 'px';
-        glowRef.current.style.top = s.my + 'px';
-        glowRef.current.style.opacity = s.visible ? 1 : 0;
-      }
-      s.raf = requestAnimationFrame(tick);
-    };
-    window.addEventListener('mousemove', onMove, { passive: true });
-    window.addEventListener('mousedown', onDown);
-    window.addEventListener('mouseup', onUp);
-    window.addEventListener('mouseover', onOver, { passive: true });
-    document.documentElement.addEventListener('mouseleave', onMouseLeave);
-    document.documentElement.addEventListener('mouseenter', onMouseEnter);
-    s.raf = requestAnimationFrame(tick);
-    return () => {
-      document.body.style.cursor = '';
-      cancelAnimationFrame(s.raf);
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mousedown', onDown);
-      window.removeEventListener('mouseup', onUp);
-      window.removeEventListener('mouseover', onOver);
-      document.documentElement.removeEventListener('mouseleave', onMouseLeave);
-      document.documentElement.removeEventListener('mouseenter', onMouseEnter);
-    };
-  }, []);
-
-  return (
-    <>
-      <div
-        ref={glowRef}
-        style={{
-          position: 'fixed',
-          pointerEvents: 'none',
-          zIndex: 10000,
-          width: '320px',
-          height: '320px',
-          borderRadius: '50%',
-          background:
-            'radial-gradient(circle, rgba(204,17,17,.055) 0%, rgba(136,0,0,.03) 40%, transparent 70%)',
-          transform: 'translate(-50%,-50%)',
-          transition: 'opacity .3s',
-          willChange: 'transform, opacity',
-        }}
-      />
-      <div
-        ref={trailRef}
-        style={{
-          position: 'fixed',
-          pointerEvents: 'none',
-          zIndex: 10002,
-          width: '28px',
-          height: '28px',
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(204,17,17,0.7) 0%, transparent 70%)',
-          transform: 'translate(-50%,-50%)',
-          filter: 'blur(6px)',
-          transition: 'opacity .25s',
-          willChange: 'transform, opacity',
-        }}
-      />
-      <div
-        ref={orbRef}
-        style={{
-          position: 'fixed',
-          pointerEvents: 'none',
-          zIndex: 100000,
-          width: '18px',
-          height: '18px',
-          borderRadius: '50%',
-          background: 'radial-gradient(circle at 35% 35%, #fff 0%, #CC1111 40%, #880000 100%)',
-          boxShadow:
-            '0 0 10px rgba(204,17,17,.9), 0 0 24px rgba(204,17,17,.5), 0 0 50px rgba(136,0,0,.3)',
-          transition: 'transform .08s cubic-bezier(.34,1.56,.64,1), opacity .2s',
-          willChange: 'transform, opacity',
-        }}
-      >
-        <div
-          style={{
-            position: 'absolute',
-            top: '20%',
-            left: '22%',
-            width: '5px',
-            height: '5px',
-            borderRadius: '50%',
-            background: 'rgba(255,255,255,.9)',
-            filter: 'blur(1px)',
-          }}
-        />
-      </div>
-    </>
-  );
-}
-
-/* ─────────────────────────────────────────────────────
-   Root App — wraps everything in BrowserRouter
-───────────────────────────────────────────────────── */
 export default function App() {
-  return (
-    <BrowserRouter>
-      <StudentAuthProvider>
-        <AppShell />
-      </StudentAuthProvider>
-    </BrowserRouter>
-  );
+  return <RouterProvider router={router} />;
 }
 
-/* ─────────────────────────────────────────────────────
-   AppShell — initialises global systems, reads location
-───────────────────────────────────────────────────── */
 function AppShell() {
   const location = useLocation();
-  const [cinDone, setCinDone] = useState(false);
-  const [eventsData, setEventsData] = useState(() => getLocalEvents(fallbackEvents));
+  const [cinDone, setCinDone] = useState(() => isPlaywright);
   const { resolvedTheme: theme } = useTheme();
   const { isOpen: isTerminalOpen, closeTerminal } = useDeveloperMode();
 
+  const { eventsData, swUpdateFn } = useAppBootstrap(cinDone);
+  const { isAuthenticated, loading: authLoading } = useStudentAuth();
+  const hasCompletedWalkthrough = useWalkthroughStore((state) => state.hasCompleted);
+  const startWalkthrough = useWalkthroughStore((state) => state.startWalkthrough);
+
+  useEffect(() => {
+    if (cinDone && !authLoading && isAuthenticated && !hasCompletedWalkthrough) {
+      const t = setTimeout(() => {
+        startWalkthrough();
+      }, 1500);
+      return () => clearTimeout(t);
+    }
+  }, [cinDone, authLoading, isAuthenticated, hasCompletedWalkthrough, startWalkthrough]);
+
   // Skip cinematic opening for deep links (anything except "/")
   useEffect(() => {
-    if (location.pathname !== '/') {
+    if (location.pathname !== '/' || isPlaywright) {
       setCinDone(true);
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Socket + cross-origin localStorage sync
-  useEffect(() => {
-    const socket = initializeSocket();
-    if (socket) {
-      joinRoom('events-room');
-      joinRoom('notifications-room');
-    }
-    initStorageSyncBridge();
-    const onPostMessage = (e) => {
-      if (e.data && e.data.type === 'ns-content-updated' && e.data.key) {
-        window.dispatchEvent(new Event('ns-content-updated'));
-      }
-    };
-    window.addEventListener('message', onPostMessage);
-    return () => window.removeEventListener('message', onPostMessage);
-  }, []);
-
-  // Events data fetching
-  useEffect(() => {
-    let alive = true;
-    const base = (import.meta?.env?.VITE_API_BASE || '').replace(/\/+$/, '');
-    const applyLocalEvents = () => {
-      if (alive) setEventsData(getLocalEvents(fallbackEvents));
-    };
-
-    if (!base) {
-      applyLocalEvents();
-      return subscribePublicContent(applyLocalEvents);
-    }
-
-    const url = `${base}/api/content/events`;
-    const fetchEvents = () => {
-      apiClient(url)
-        .then((data) => {
-          if (!alive) return;
-          if (data && Array.isArray(data.events)) {
-            setEventsData(
-              data.events.length
-                ? mergeEvents(fallbackEvents, data.events)
-                : getLocalEvents(fallbackEvents)
-            );
-          } else if (Array.isArray(data)) {
-            setEventsData(
-              data.length ? mergeEvents(fallbackEvents, data) : getLocalEvents(fallbackEvents)
-            );
-          } else {
-            setEventsData(getLocalEvents(fallbackEvents));
-          }
-        })
-        .catch(() => {
-          if (!alive) return;
-          setEventsData((prev) => (prev?.length ? prev : getLocalEvents(fallbackEvents)));
-        });
-    };
-
-    fetchEvents();
-    // Removed unconditional 4s polling — socket event handles live updates.
-    // Re-fetch once when the tab becomes visible again after being backgrounded.
-    const onVisibilityChange = () => {
-      if (document.visibilityState === 'visible') fetchEvents();
-    };
-    const onContentUpdated = (data) => {
-      if (data?.type === 'events' || data?.type === 'activities') fetchEvents();
-    };
-    document.addEventListener('visibilitychange', onVisibilityChange);
-    on('content:updated', onContentUpdated);
-
-    return () => {
-      alive = false;
-      clearInterval(interval);
-      off('content:updated', onContentUpdated);
-    };
-  }, []);
-
-  // Push notifications
-  useEffect(() => {
-    if (!cinDone) return;
-    const initPush = async () => {
-      try {
-        const { initializePushNotifications } = await import('./utils/pushNotificationClient');
-        const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY || '';
-        if (vapidKey) await initializePushNotifications(vapidKey);
-      } catch (err) {
-        console.warn('Push notification initialization skipped:', err);
-      }
-    };
-    const timer = setTimeout(initPush, 3500);
-    return () => clearTimeout(timer);
-  }, [cinDone]);
-
-  /* ── SW update prompt ── */
-  const [swUpdateFn, setSwUpdateFn] = useState(null);
-  useEffect(() => {
-    const handle = (e) => {
-      if (e.detail?.updateSW) setSwUpdateFn(() => e.detail.updateSW);
-    };
-    window.addEventListener('nexasphere:sw-update', handle);
-    return () => window.removeEventListener('nexasphere:sw-update', handle);
-  }, []);
+  }, [location.pathname]);
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [bookmarksOpen, setBookmarksOpen] = useState(false);
 
-  /* Ctrl+K / Cmd+K */
+  // Ctrl+K / Cmd+K search trigger
   useEffect(() => {
     const fn = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
@@ -511,15 +223,15 @@ function AppShell() {
   }, []);
 
   return (
-    <BookmarkProvider>
-      {/* PWA Components */}
+    <>
       <OfflineBanner />
       <InstallPrompt />
       {swUpdateFn && <UpdatePrompt updateSW={swUpdateFn} />}
 
       <Chatbot />
+      <WalkthroughOverlay />
 
-      {/* Loading screen — prevents white-flash during cinematic opening */}
+      {/* Loading cover to prevent flash during intro sequence */}
       <div
         aria-hidden="true"
         style={{
@@ -538,7 +250,6 @@ function AppShell() {
       {cinDone && <ScrollProgress />}
       <Cursor />
 
-      {/* Route-aware main content */}
       <MainRouter
         cinDone={cinDone}
         setCinDone={setCinDone}
@@ -551,26 +262,12 @@ function AppShell() {
         isTerminalOpen={isTerminalOpen}
         closeTerminal={closeTerminal}
       />
-    </BookmarkProvider>
+    </>
   );
 }
 
-/* ─────────────────────────────────────────────────────
-   RequireAuth Wrapper
-───────────────────────────────────────────────────── */
-function RequireAuth({ children }) {
-  const { isAuthenticated, loading } = useStudentAuth();
-  if (loading) return <PageLoadingSpinner />;
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
-  return children;
-}
-
-/* ─────────────────────────────────────────────────────
-   MainRouter — renders the Navbar + Routes
-───────────────────────────────────────────────────── */
 function MainRouter({
   cinDone,
-  setCinDone,
   theme,
   eventsData,
   searchOpen,
@@ -582,6 +279,7 @@ function MainRouter({
 }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { sessionId } = useAnalytics();
 
   const [mobile, setMobile] = useState(window.innerWidth <= 768);
   const [wipeOn, setWipeOn] = useState(false);
@@ -594,7 +292,7 @@ function MainRouter({
     return () => window.removeEventListener('resize', fn);
   }, []);
 
-  // Sync activeTab with current URL
+  // Sync activeTab with route path
   useEffect(() => {
     const pathMap = {
       '/': 'Home',
@@ -602,28 +300,19 @@ function MainRouter({
       '/events': 'Events',
       '/projects': 'Projects',
       '/roadmaps': 'Roadmaps',
-      '/portfolio': 'Portfolio',
-      '/collab': 'Collab',
       '/about': 'About',
       '/team': 'Core Team',
       '/contact': 'Contact',
       '/dashboard': 'Dashboard',
       '/analytics': 'Analytics',
-      '/gamification': 'Gamification',
-      '/apply': 'Apply',
-      '/join': 'Join',
       '/explore': 'Explore',
       '/forum': 'Forum',
-      '/mentorship': 'Mentorship',
-      '/mentorship/mentors': 'Mentorship',
-      '/mentorship/dashboard': 'Mentorship',
-      '/sponsors': 'Sponsors',
     };
     const tab = pathMap[location.pathname] || 'Home';
     setActiveTab(tab);
   }, [location.pathname]);
 
-  // Scroll-spy on home page
+  // Scroll spy on home page
   useEffect(() => {
     if (location.pathname !== '/') return;
     const HOME_SECTIONS = ['Home', 'Activities', 'Events', 'About', 'Core Team', 'Contact'];
@@ -643,6 +332,7 @@ function MainRouter({
     return () => window.removeEventListener('scroll', fn);
   }, [mobile, location.pathname]);
 
+  // Wire motion effects and event scroll behaviors
   useInteractionEffects(cinDone, location.pathname !== '/');
   useBackToTop();
   useNsReveal([cinDone, location.pathname]);
@@ -651,7 +341,7 @@ function MainRouter({
   useGlobalMouseParallax();
   useMagneticCards();
 
-  /* ── Wipe-transition navigate ── */
+  // Screen wipe transition utility
   const nav = useCallback(
     (path, fn) => {
       setWipeOn(true);
@@ -669,27 +359,21 @@ function MainRouter({
     [navigate]
   );
 
-  /* ── Tab click handler ── */
   const onTab = useCallback(
     (tab) => {
       const routeMap = {
         Dashboard: '/dashboard',
         Analytics: '/analytics',
-        Gamification: '/gamification',
         Activities: '/activities',
         Events: '/events',
         Projects: '/projects',
         Roadmaps: '/roadmaps',
-        Portfolio: '/portfolio',
-        Collab: '/collab',
         Explore: '/explore',
         Resources: '/resources',
         About: '/about',
         'Core Team': '/team',
         Contact: '/contact',
         Forum: '/forum',
-        Mentorship: '/mentorship',
-        Sponsors: '/sponsors',
       };
       const targetPath = routeMap[tab];
       if (targetPath) {
@@ -704,7 +388,6 @@ function MainRouter({
         }
         return;
       }
-      // Home-page scroll targets
       const idStr = tab === 'Core Team' ? 'team' : tab.toLowerCase();
       if (location.pathname === '/') {
         setActiveTab(tab);
@@ -736,8 +419,6 @@ function MainRouter({
   const openJoin = useCallback(() => nav('/join'), [nav]);
   const onBackHome = useCallback(() => nav('/'), [nav]);
 
-  const nh = mobile ? MNH : DNH;
-
   const onNavigate = useCallback(
     (type, title) => {
       if (type === 'activity') nav(`/activities/${encodeURIComponent(title)}`);
@@ -752,13 +433,11 @@ function MainRouter({
     [nav]
   );
 
-  return (
-    <>
-      {cinDone && <AmbientOrbs theme={theme} />}
-      {cinDone && <GeometricGridBackground theme={theme} />}
-      {cinDone && <ParticleBackground theme={theme} />}
-      <Wipe on={wipeOn} ph={wipePh} />
+  const nh = mobile ? MNH : DNH;
 
+  return (
+    <SessionRecordingProvider sessionId={sessionId}>
+      {cinDone && <AmbientOrbs theme={theme} />}
       {cinDone && (
         <Navbar
           activeTab={activeTab}
@@ -767,13 +446,16 @@ function MainRouter({
           onApply={openApply}
           onJoin={openJoin}
           onToggleBookmarks={() => setBookmarksOpen((prev) => !prev)}
+          onSearchToggle={() => setSearchOpen(true)}
         />
       )}
+
+      <Wipe on={wipeOn} ph={wipePh} />
 
       <main style={{ paddingTop: nh, position: 'relative', zIndex: 1 }}>
         <Suspense fallback={<PageLoadingSpinner />}>
           <Routes>
-            {/* ── Home (scrollable sections) ── */}
+            {/* â”€â”€ Home (scrollable sections) â”€â”€ */}
             <Route
               path="/"
               element={
@@ -805,7 +487,7 @@ function MainRouter({
               }
             />
 
-            {/* ── Activities ── */}
+            {/* â”€â”€ Activities â”€â”€ */}
             <Route
               path="/activities"
               element={
@@ -828,7 +510,7 @@ function MainRouter({
               }
             />
 
-            {/* ── Events ── */}
+            {/* â”€â”€ Events â”€â”€ */}
             <Route
               path="/events"
               element={
@@ -846,6 +528,12 @@ function MainRouter({
                   <EventDetailWrapper onBack={() => nav('/events')} events={eventsData} />
                 </ErrorBoundary>
               }
+            />
+
+            {/* ── Event Planning (collaborative) ── */}
+            <Route
+              path="/events/:eventId/planning"
+              element={<EventPlanningWrapper onBack={() => nav('/events')} />}
             />
 
             {/* ── Live Streaming ── */}
@@ -870,7 +558,7 @@ function MainRouter({
               }
             />
 
-            {/* ── Dashboard (requires auth) ── */}
+            {/* â”€â”€ Dashboard (requires auth) â”€â”€ */}
             <Route
               path="/dashboard"
               element={
@@ -884,7 +572,7 @@ function MainRouter({
               }
             />
 
-            {/* ── Gamification ── */}
+            {/* â”€â”€ Gamification â”€â”€ */}
             <Route
               path="/gamification"
               element={
@@ -896,7 +584,7 @@ function MainRouter({
               }
             />
 
-            {/* ── Analytics ── */}
+            {/* â”€â”€ Analytics â”€â”€ */}
             <Route
               path="/analytics"
               element={
@@ -908,7 +596,7 @@ function MainRouter({
               }
             />
 
-            {/* ── Projects ── */}
+            {/* â”€â”€ Projects â”€â”€ */}
             <Route
               path="/projects"
               element={
@@ -920,7 +608,7 @@ function MainRouter({
               }
             />
 
-            {/* ── Roadmaps ── */}
+            {/* â”€â”€ Roadmaps â”€â”€ */}
             <Route
               path="/roadmaps"
               element={
@@ -932,7 +620,7 @@ function MainRouter({
               }
             />
 
-            {/* ── Portfolio Builder ── */}
+            {/* â”€â”€ Portfolio Builder â”€â”€ */}
             <Route
               path="/portfolio"
               element={
@@ -943,7 +631,7 @@ function MainRouter({
                 </ErrorBoundary>
               }
             />
-            {/* ── Public Portfolio ── */}
+            {/* â”€â”€ Public Portfolio â”€â”€ */}
             <Route
               path="/p/:username"
               element={
@@ -960,20 +648,16 @@ function MainRouter({
                 </ErrorBoundary>
               }
             />
-
-            {/* ── Collab ── */}
             <Route
-              path="/collab"
+              path="/p/:username/analytics"
               element={
                 <ErrorBoundary>
-                  <PageIn k="collab">
-                    <CollabPage onBack={onBackHome} />
-                  </PageIn>
+                  <PortfolioAnalyticsWrapper />
                 </ErrorBoundary>
               }
             />
 
-            {/* ── About ── */}
+            {/* â”€â”€ About â”€â”€ */}
             <Route
               path="/about"
               element={
@@ -985,7 +669,7 @@ function MainRouter({
               }
             />
 
-            {/* ── Team ── */}
+            {/* â”€â”€ Team â”€â”€ */}
             <Route
               path="/team"
               element={
@@ -997,7 +681,7 @@ function MainRouter({
               }
             />
 
-            {/* ── Contact ── */}
+            {/* â”€â”€ Contact â”€â”€ */}
             <Route
               path="/contact"
               element={
@@ -1009,7 +693,7 @@ function MainRouter({
               }
             />
 
-            {/* ── Recruitment / Apply ── */}
+            {/* â”€â”€ Recruitment / Apply â”€â”€ */}
             <Route
               path="/apply"
               element={
@@ -1021,7 +705,7 @@ function MainRouter({
               }
             />
 
-            {/* ── Membership / Join ── */}
+            {/* â”€â”€ Membership / Join â”€â”€ */}
             <Route
               path="/join"
               element={
@@ -1033,7 +717,7 @@ function MainRouter({
               }
             />
 
-            {/* ── Certificate Verify ── */}
+            {/* â”€â”€ Certificate Verify â”€â”€ */}
             <Route
               path="/verify/:certId"
               element={
@@ -1043,7 +727,7 @@ function MainRouter({
               }
             />
 
-            {/* ── Workspace (collaborative room) ── */}
+            {/* â”€â”€ Workspace (collaborative room) â”€â”€ */}
             <Route
               path="/workspace/:roomId"
               element={
@@ -1053,7 +737,7 @@ function MainRouter({
               }
             />
 
-            {/* ── Forum ── */}
+            {/* â”€â”€ Forum â”€â”€ */}
             <Route
               path="/forum"
               element={
@@ -1075,7 +759,7 @@ function MainRouter({
               }
             />
 
-            {/* ── Sponsors ── */}
+            {/* â”€â”€ Sponsors â”€â”€ */}
             <Route
               path="/sponsors"
               element={
@@ -1085,7 +769,7 @@ function MainRouter({
               }
             />
 
-            {/* ── Mentorship ── */}
+            {/* â”€â”€ Mentorship â”€â”€ */}
             <Route
               path="/mentorship"
               element={
@@ -1117,24 +801,33 @@ function MainRouter({
               }
             />
 
-            {/* ── Admin (embedded, for quick access) ── */}
+            {/* â”€â”€ Resources / Library â”€â”€ */}
             <Route
-              path="/admin"
+              path="/resources"
               element={
                 <ErrorBoundary>
-                  <PageIn k="admin">
-                    <AdminPage onBack={onBackHome} />
+                  <PageIn k="resources">
+                    <ResourcesPage onBack={onBackHome} />
                   </PageIn>
                 </ErrorBoundary>
               }
             />
 
-            {/* ── Resources / Library ── */}
+            {/* ── Recommendations ── */}
             <Route
-              path="/resources"
+              path="/recommendations"
               element={
-                <PageIn k="resources">
-                  <ResourcesPage onBack={onBackHome} />
+                <PageIn k="recommendations">
+                  <RecommendationsPage onBack={onBackHome} />
+                </PageIn>
+              }
+            />
+            {/* ── Notification History ── */}
+            <Route
+              path="/notifications"
+              element={
+                <PageIn k="notifications">
+                  <NotificationHistoryPage />
                 </PageIn>
               }
             />
@@ -1146,6 +839,18 @@ function MainRouter({
                 <ErrorBoundary>
                   <PageIn k="login">
                     <LoginPage />
+                  </PageIn>
+                </ErrorBoundary>
+              }
+            />
+
+            {/* ── Search Page ── */}
+            <Route
+              path="/search"
+              element={
+                <ErrorBoundary>
+                  <PageIn k="search">
+                    <SearchPage />
                   </PageIn>
                 </ErrorBoundary>
               }
@@ -1163,6 +868,16 @@ function MainRouter({
               }
             />
 
+            {/* ── Skill Exchange ── */}
+            <Route
+              path="/skill-exchange"
+              element={
+                <PageIn k="skill-exchange">
+                  <SkillExchangePage />
+                </PageIn>
+              }
+            />
+
             {/* ── 404 ── */}
             <Route path="*" element={<NotFoundPage onGoHome={onBackHome} />} />
           </Routes>
@@ -1171,7 +886,7 @@ function MainRouter({
 
       {cinDone && <MoveToTop />}
 
-      {/* Floating Search Button */}
+      {/* Floating search FAB */}
       {cinDone && (
         <button
           id="search-fab"
@@ -1220,7 +935,6 @@ function MainRouter({
         </button>
       )}
 
-      {/* Search Overlay */}
       <SearchBar
         open={searchOpen}
         onClose={() => setSearchOpen(false)}
@@ -1230,7 +944,6 @@ function MainRouter({
         onEventClick={onKSSClick}
       />
 
-      {/* Developer Terminal */}
       <Terminal
         isOpen={isTerminalOpen}
         onClose={closeTerminal}
@@ -1239,7 +952,6 @@ function MainRouter({
         onNavigate={onTab}
       />
 
-      {/* Bookmarks Drawer */}
       <BookmarksDrawer
         isOpen={bookmarksOpen}
         onClose={() => setBookmarksOpen(false)}
@@ -1249,15 +961,14 @@ function MainRouter({
           else if (type === 'Roadmap') onTab('Roadmaps');
         }}
       />
-
       {cinDone && <FloatingDock />}
-    </>
+    </SessionRecordingProvider>
   );
 }
 
-/* ─────────────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    Route wrapper components (URL param readers)
-───────────────────────────────────────────────────── */
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 function ActivityDetailWrapper({ onBack, onSelectEvent }) {
   const { activityKey } = useParams();
@@ -1336,6 +1047,14 @@ function PublicPortfolioWrapper({ onBack }) {
   );
 }
 
+function PortfolioAnalyticsWrapper() {
+  const { username } = useParams();
+  return (
+    <PageIn k={`portfolio-analytics-${username}`}>
+      <PortfolioAnalytics username={username} />
+    </PageIn>
+  );
+}
 function CertVerifyWrapper({ onGoHome }) {
   const { certId } = useParams();
   return <CertificateVerifyPage certificateId={certId} onGoHome={onGoHome} />;
@@ -1350,9 +1069,18 @@ function WorkspaceWrapper({ onBack }) {
   );
 }
 
+function EventPlanningWrapper({ onBack }) {
+  const { eventId } = useParams();
+  return (
+    <PageIn k={`event-planning-${eventId}`}>
+      <EventPlanningPage event={{ id: eventId, eventId }} onBack={onBack} />
+    </PageIn>
+  );
+}
+
 /* ─────────────────────────────────────────────────────
    Page loading spinner (Suspense fallback)
-───────────────────────────────────────────────────── */
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function PageLoadingSpinner() {
   return (
     <div
@@ -1376,7 +1104,7 @@ function PageLoadingSpinner() {
           animation: 'spin 0.8s linear infinite',
         }}
       />
-      <span style={{ fontSize: '0.85rem', opacity: 0.6 }}>Loading…</span>
+      <span style={{ fontSize: '0.85rem', opacity: 0.6 }}>Loadingâ€¦</span>
     </div>
   );
 }

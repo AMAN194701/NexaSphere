@@ -30,6 +30,12 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
+ HEAD
+from database import Base
+import models.forms
+import models.portfolio
+import models.certificate
+
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
 # add your model's MetaData object here
@@ -43,6 +49,7 @@ from database import Base
 # For example: import models 
 
 # 2. Assign the metadata
+ 38be4bdc (Fix: Configure Alembic target_metadata and add missing dependency)
 target_metadata = Base.metadata
 
 # Get the database URL from environment

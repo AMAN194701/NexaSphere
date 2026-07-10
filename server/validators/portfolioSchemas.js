@@ -155,10 +155,26 @@ export const portfolioContentSchema = z
     avatarUrl: z.string().trim().max(2048).optional(),
     education: z.array(EducationSchema).max(20).optional(),
     workExperience: z.array(WorkExperienceSchema).max(20).optional(),
+    githubUsername: z
+      .string()
+      .trim()
+      .max(39)
+      .regex(/^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9])){0,38}$/, 'Invalid GitHub username format')
+      .optional(),
   })
   .strict();
 
 export const portfolioPatchSchema = portfolioContentSchema;
+
+export const achievementSchema = z
+  .object({
+    name: z.string().trim().min(1, 'Achievement name is required').max(120),
+    description: z.string().trim().max(1000).optional().nullable(),
+    tier: z.string().trim().max(40).optional().nullable(),
+    iconUrl: OptionalSafeUrl.nullable(),
+    source: z.string().trim().max(60).optional().nullable(),
+  })
+  .strict();
 
 /**
  * Validate a single URL string against the same rules used by

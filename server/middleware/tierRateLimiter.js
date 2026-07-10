@@ -5,8 +5,9 @@ import { _getRedisClient } from '../services/rateLimitService.js';
 const memoryBuckets = new Map(); // key -> { tokens, lastUpdated }
 const memoryViolations = new Map(); // key -> { count, expiresAt }
 const memoryBlocked = new Map(); // key -> expiresAt
+const MEMORY_BUCKET_TTL_MS = 60 * 60 * 1000;
 
-// Rate limiting configurations
+// Base rate limiting configurations per tier
 const CONFIG = {
   guest: {
     capacity: 20,
@@ -20,16 +21,54 @@ const CONFIG = {
   },
 };
 
+// Per-endpoint rate limit overrides (#1618)
+// More specific paths take precedence over less specific ones.
+// Auth endpoints are stricter; data endpoints are more lenient.
+const ENDPOINT_LIMITS = {
+  '/api/auth': {
+    guest: { capacity: 10, refillRate: 0.17, baseCooldown: 30 },
+    authenticated: { capacity: 30, refillRate: 0.5, baseCooldown: 15 },
+  },
+  '/api/portfolio': {
+    guest: { capacity: 15, refillRate: 0.5, baseCooldown: 20 },
+    authenticated: { capacity: 60, refillRate: 2.0, baseCooldown: 10 },
+  },
+  '/api/sync': {
+    guest: { capacity: 5, refillRate: 0.17, baseCooldown: 60 },
+    authenticated: { capacity: 20, refillRate: 1.0, baseCooldown: 20 },
+  },
+  '/api/activity': {
+    guest: { capacity: 10, refillRate: 0.33, baseCooldown: 30 },
+    authenticated: { capacity: 40, refillRate: 1.5, baseCooldown: 10 },
+  },
+};
+
+const ENDPOINT_PREFIXES = Object.keys(ENDPOINT_LIMITS).sort((a, b) => b.length - a.length);
+
+function resolveEndpointConfig(path, tier) {
+  if (!path) return {};
+  const matched = ENDPOINT_PREFIXES.find((prefix) => path.startsWith(prefix));
+  return matched ? ENDPOINT_LIMITS[matched][tier] : {};
+}
+
+export function resolveRateLimitConfig(path, tier, options = {}) {
+  const baseConfig = CONFIG[tier] || CONFIG.guest;
+  const endpointCfg = resolveEndpointConfig(path, tier) || {};
+  return { ...baseConfig, ...options, ...endpointCfg };
+}
+
 /**
  * Clean up expired memory entries to prevent memory leaks
  */
-function pruneMemoryStores() {
-  const now = Date.now();
+export function pruneMemoryStores(now = Date.now()) {
   for (const [key, val] of memoryViolations.entries()) {
     if (now > val.expiresAt) memoryViolations.delete(key);
   }
   for (const [key, expiresAt] of memoryBlocked.entries()) {
     if (now > expiresAt) memoryBlocked.delete(key);
+  }
+  for (const [key, bucket] of memoryBuckets.entries()) {
+    if (now - bucket.lastUpdated > MEMORY_BUCKET_TTL_MS) memoryBuckets.delete(key);
   }
 }
 
@@ -61,7 +100,7 @@ export function tierRateLimiter(options = {}) {
       tier = 'guest';
     }
 
-    const { capacity, refillRate, baseCooldown } = { ...CONFIG[tier], ...options };
+    const { capacity, refillRate, baseCooldown } = resolveRateLimitConfig(req.path, tier, options);
     const rateLimitKey = `tier-rate-limit:${identifier}`;
     const violationsKey = `tier-rate-limit-violations:${identifier}`;
     const blockedKey = `tier-rate-limit-blocked:${identifier}`;
@@ -73,6 +112,9 @@ export function tierRateLimiter(options = {}) {
         const blockedTtl = await redis.ttl(blockedKey);
         if (blockedTtl > 0) {
           res.setHeader('Retry-After', blockedTtl);
+          res.setHeader('X-RateLimit-Limit', capacity);
+          res.setHeader('X-RateLimit-Remaining', 0);
+          res.setHeader('X-RateLimit-Reset', Math.ceil(Date.now() / 1000) + blockedTtl);
           return res.status(429).json({
             error: 'Too many requests. Temporary cooldown active.',
             retryAfter: blockedTtl,
@@ -122,8 +164,10 @@ export function tierRateLimiter(options = {}) {
         );
 
         if (allowed === 1) {
+          const resetIn = Math.ceil((capacity - tokensLeft) / refillRate);
           res.setHeader('X-RateLimit-Limit', capacity);
           res.setHeader('X-RateLimit-Remaining', tokensLeft);
+          res.setHeader('X-RateLimit-Reset', Math.ceil(Date.now() / 1000) + resetIn);
           return next();
         }
 
@@ -140,6 +184,9 @@ export function tierRateLimiter(options = {}) {
         );
 
         res.setHeader('Retry-After', cooldownSec);
+        res.setHeader('X-RateLimit-Limit', capacity);
+        res.setHeader('X-RateLimit-Remaining', 0);
+        res.setHeader('X-RateLimit-Reset', Math.ceil(Date.now() / 1000) + cooldownSec);
         return res.status(429).json({
           error: 'Rate limit exceeded. Temporary cooldown active.',
           retryAfter: cooldownSec,
@@ -157,6 +204,9 @@ export function tierRateLimiter(options = {}) {
     if (blockExpiresAt && now < blockExpiresAt) {
       const remainingSec = Math.ceil((blockExpiresAt - now) / 1000);
       res.setHeader('Retry-After', remainingSec);
+      res.setHeader('X-RateLimit-Limit', capacity);
+      res.setHeader('X-RateLimit-Remaining', 0);
+      res.setHeader('X-RateLimit-Reset', Math.ceil(Date.now() / 1000) + remainingSec);
       return res.status(429).json({
         error: 'Too many requests. Temporary cooldown active.',
         retryAfter: remainingSec,
@@ -179,8 +229,11 @@ export function tierRateLimiter(options = {}) {
       bucket.tokens -= 1;
       memoryBuckets.set(rateLimitKey, bucket);
 
+      const remainingMem = Math.floor(bucket.tokens);
+      const resetMem = Math.ceil((capacity - remainingMem) / refillRate);
       res.setHeader('X-RateLimit-Limit', capacity);
-      res.setHeader('X-RateLimit-Remaining', Math.floor(bucket.tokens));
+      res.setHeader('X-RateLimit-Remaining', remainingMem);
+      res.setHeader('X-RateLimit-Reset', Math.ceil(Date.now() / 1000) + resetMem);
       return next();
     }
 
@@ -203,6 +256,9 @@ export function tierRateLimiter(options = {}) {
     );
 
     res.setHeader('Retry-After', cooldownSec);
+    res.setHeader('X-RateLimit-Limit', capacity);
+    res.setHeader('X-RateLimit-Remaining', 0);
+    res.setHeader('X-RateLimit-Reset', Math.ceil(Date.now() / 1000) + cooldownSec);
     return res.status(429).json({
       error: 'Rate limit exceeded. Temporary cooldown active.',
       retryAfter: cooldownSec,
