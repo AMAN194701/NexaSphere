@@ -29,7 +29,7 @@ export default function WaitingRoom({ eventId, fullName, email, onJoinEvent }) {
         setPosition(data.position);
       }
       setTotal(data.total);
-      estimateWait(data.position || position);
+      estimateWait(data.position ?? position);
     };
 
     const handleAdmitted = () => {
@@ -74,7 +74,12 @@ export default function WaitingRoom({ eventId, fullName, email, onJoinEvent }) {
   }, [eventId, fullName, email, onJoinEvent, position]);
 
   const estimateWait = (pos) => {
-    if (pos == null) return;
+    if (pos === null || pos === undefined) return;
+    if (pos === 0) {
+      setWaitTime(0);
+      return;
+    }
+
     const mins = Math.max(1, Math.round(pos * 2));
     setWaitTime(mins);
   };
@@ -174,7 +179,7 @@ export default function WaitingRoom({ eventId, fullName, email, onJoinEvent }) {
         </div>
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--t1)' }}>
-            ~{waitTime ?? '-'}m
+            {waitTime === 0 ? 'Ready' : waitTime != null ? `~${waitTime}m` : '-'}
           </div>
           <div style={{ fontSize: '0.75rem', color: 'var(--t3)' }}>Est. Wait</div>
         </div>
