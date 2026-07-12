@@ -3,8 +3,9 @@
  * Main dashboard for displaying live event metrics
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useEventAnalytics } from '../hooks/useAnalyticsSocket.js';
+import { useLogoutAwareInterval } from '../hooks/useLogoutAwareInterval.js';
 import analyticsAPI from '../services/analyticsAPI.js';
 import LiveMetricsCards from './LiveMetricsCards';
 import RegistrationTrendsChart from './RegistrationTrendsChart';
@@ -22,24 +23,23 @@ export default function AnalyticsDashboard({ eventId }) {
   const [selectedTimeWindow, setSelectedTimeWindow] = useState('7 days');
   const [refreshing, setRefreshing] = useState(false);
 
-  // Fetch check-in stats
-  useEffect(() => {
+  const fetchCheckInStats = useCallback(async () => {
     if (!eventId) return;
 
-    const fetchCheckInStats = async () => {
-      try {
-        const stats = await analyticsAPI.getCheckInStats(eventId);
-        setCheckInStats(stats);
-      } catch (err) {
-        console.error('Failed to fetch check-in stats:', err);
-      }
-    };
-
-    fetchCheckInStats();
-    const interval = setInterval(fetchCheckInStats, 10000); // Refresh every 10 seconds
-
-    return () => clearInterval(interval);
+    try {
+      const stats = await analyticsAPI.getCheckInStats(eventId);
+      setCheckInStats(stats);
+    } catch (err) {
+      console.error('Failed to fetch check-in stats:', err);
+    }
   }, [eventId]);
+
+  // Fetch check-in stats
+  useEffect(() => {
+    fetchCheckInStats();
+  }, [fetchCheckInStats]);
+
+  useLogoutAwareInterval(fetchCheckInStats, 10000, Boolean(eventId));
 
   // Fetch all events metrics for overview
   useEffect(() => {

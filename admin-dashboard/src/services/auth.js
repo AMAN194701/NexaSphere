@@ -1,3 +1,5 @@
+import { eventEmitter, EVENTS } from './eventEmitter';
+
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
 
 let _email = null;
@@ -55,6 +57,8 @@ export const auth = {
     _role = null;
     _scopes = [];
     _impersonatingUser = null;
+
+    eventEmitter.emit(EVENTS.AUTH_LOGOUT);
   },
 
   setImpersonating(user) {

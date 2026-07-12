@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import UserTimelineModal from '../components/UserTimelineModal';
+import { useLogoutAwareInterval } from '../hooks/useLogoutAwareInterval';
 
 const ROLES = ['member', 'moderator', 'admin'];
 const PASSWORD_REQUIREMENTS = [
@@ -49,7 +50,7 @@ export default function UserManager() {
   const [importProgress, setImportProgress] = useState(null);
   const [importErrors, setImportErrors] = useState([]);
 
-  async function fetchUsers() {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch('/api/admin/users', { credentials: 'include' });
@@ -60,34 +61,31 @@ export default function UserManager() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
     fetchUsers();
   }, []);
 
-  useEffect(() => {
-    let interval;
-    if (importJobId && importProgress !== 100) {
-      interval = setInterval(async () => {
-        try {
-          const res = await fetch(`/api/admin/bulk/jobs/${importJobId}`, { credentials: 'include' });
-          if (res.ok) {
-            const job = await res.json();
-            setImportProgress(job.progress);
-            if (job.status === 'completed' || job.status === 'failed') {
-              setImportErrors(job.errors || []);
-              clearInterval(interval);
-              fetchUsers(); // Refresh after import
-            }
-          }
-        } catch (err) {
-          console.error('Failed to poll job status');
+  const pollImportJob = useCallback(async () => {
+    if (!importJobId || importProgress === 100) return;
+
+    try {
+      const res = await fetch(`/api/admin/bulk/jobs/${importJobId}`, { credentials: 'include' });
+      if (res.ok) {
+        const job = await res.json();
+        setImportProgress(job.progress);
+        if (job.status === 'completed' || job.status === 'failed') {
+          setImportErrors(job.errors || []);
+          fetchUsers(); // Refresh after import
         }
-      }, 2000);
+      }
+    } catch (err) {
+      console.error('Failed to poll job status');
     }
-    return () => clearInterval(interval);
-  }, [importJobId, importProgress]);
+  }, [fetchUsers, importJobId, importProgress]);
+
+  useLogoutAwareInterval(pollImportJob, 2000, Boolean(importJobId && importProgress !== 100));
 
   function downloadCsvTemplate() {
     const template = 'email,username,displayname,role,major,year,tags\njohn@college.edu,johndoe,John Doe,user,Computer Science,2028,tech;sports\n';

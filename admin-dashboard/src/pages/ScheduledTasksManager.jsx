@@ -12,8 +12,9 @@
  *  - Auto-refresh every 30 s
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { AdminIcon } from '../components/AdminIcon';
+import { useLogoutAwareInterval } from '../hooks/useLogoutAwareInterval';
 import { useToast } from '../hooks/useToast';
 
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -247,8 +248,6 @@ export function ScheduledTasksManager() {
   const [editCronTask, setEditCron] = useState(null); // task object or null
   const [triggering, setTriggering] = useState({}); // taskId → bool
 
-  const intervalRef = useRef(null);
-
   // ── Data fetch ─────────────────────────────────────────────────────────────
 
   const load = useCallback(async (silent = false) => {
@@ -269,9 +268,11 @@ export function ScheduledTasksManager() {
 
   useEffect(() => {
     load();
-    intervalRef.current = setInterval(() => load(true), REFRESH_MS);
-    return () => clearInterval(intervalRef.current);
   }, [load]);
+
+  const refreshTasks = useCallback(() => load(true), [load]);
+
+  useLogoutAwareInterval(refreshTasks, REFRESH_MS);
 
   // ── Actions ────────────────────────────────────────────────────────────────
 

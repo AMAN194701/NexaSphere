@@ -2,11 +2,17 @@ import { describe, test, expect, beforeAll, beforeEach, afterEach, vi } from 'vi
 
 const API_BASE = 'http://test:8080';
 let auth;
+let eventEmitter;
+let EVENTS;
 
 beforeAll(async () => {
   process.env.VITE_API_BASE = API_BASE;
   const mod = await import('../../services/auth.js');
   auth = mod.auth;
+
+  const ee = await import('../../services/eventEmitter.js');
+  eventEmitter = ee.eventEmitter;
+  EVENTS = ee.EVENTS;
 });
 
 beforeEach(() => {
@@ -102,6 +108,15 @@ describe('auth.logout', () => {
       'events:read',
       'events:write',
     ]);
+  });
+
+  test('broadcasts logout so polling can stop immediately', async () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: true });
+    const emitSpy = vi.spyOn(eventEmitter, 'emit');
+
+    await auth.logout();
+
+    expect(emitSpy).toHaveBeenCalledWith(EVENTS.AUTH_LOGOUT);
   });
 });
 

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '../services/api';
+import { useLogoutAwareInterval } from '../hooks/useLogoutAwareInterval';
 
 const STATE_COLORS = {
   CLOSED: '#22c55e',
@@ -45,9 +46,9 @@ export function CircuitBreakerManager() {
 
   useEffect(() => {
     fetchMetrics();
-    const interval = setInterval(fetchMetrics, 5000);
-    return () => clearInterval(interval);
   }, [fetchMetrics]);
+
+  useLogoutAwareInterval(fetchMetrics, 5000);
 
   async function handleReset(name) {
     try {
