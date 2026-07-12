@@ -1645,11 +1645,11 @@
 }
 .ns-footer-text {
   font-size: 0.78rem;
-  color: var(--t3);
+  color: var(--t2);
   text-align: center;
 }
 [data-theme='light'] .ns-footer-text {
-  color: #6b6b6b;
+  color: #4a4a4a;
 }
 .ns-footer-text span {
   background: linear-gradient(135deg, var(--c1), var(--c2));
@@ -1688,11 +1688,10 @@
 }
 .ns-footer-built {
   font-size: 0.72rem;
-  opacity: 0.75;
+  opacity: 1;
 }
 [data-theme='light'] .ns-footer-built {
-  opacity: 1;
-  color: #6b6b6b;
+  color: #4a4a4a;
 }
 
 .corner-tl {
@@ -2558,4 +2557,3 @@ kbd {
   color: var(--t2);
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
 }
-

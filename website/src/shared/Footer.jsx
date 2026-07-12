@@ -100,16 +100,17 @@ export default function Footer({ onAdmin }) {
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: 'var(--t2)',
+                  color: 'var(--t1)',
                   cursor: 'pointer',
                   fontSize: '0.78rem',
                   fontFamily: 'inherit',
                   letterSpacing: '0.04em',
                   padding: '2px 0',
                   transition: 'color 0.2s',
+                  opacity: 0.92,
                 }}
                 onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--c1)')}
-                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--t2)')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--t1)')}
               >
                 {getLinkLabel(label)}
               </button>
@@ -121,16 +122,17 @@ export default function Footer({ onAdmin }) {
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: 'var(--t2)',
+                  color: 'var(--t1)',
                   cursor: 'pointer',
                   fontSize: '0.78rem',
                   fontFamily: 'inherit',
                   letterSpacing: '0.04em',
                   padding: '2px 0',
                   transition: 'color 0.2s',
+                  opacity: 0.92,
                 }}
                 onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--c1)')}
-                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--t2)')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--t1)')}
               >
                 {getLinkLabel(label)}
               </button>
