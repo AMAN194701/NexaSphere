@@ -49,7 +49,7 @@ export default function RevenueDashboardPage() {
         <h1 style={styles.heading}>Revenue Analytics Dashboard</h1>
         <div style={styles.loadingGrid}>
           {[...Array(3)].map((_, i) => (
-            <div key={i} style={styles.skeletonCard} />
+            <div key={`skeleton-card-${i}`} style={styles.skeletonCard} />
           ))}
         </div>
       </div>
@@ -75,8 +75,8 @@ export default function RevenueDashboardPage() {
           <div style={styles.emptyIcon}>📊</div>
           <p style={styles.emptyText}>No pricing data configured yet.</p>
           <p style={styles.emptySubtext}>
-            Set up dynamic pricing for events via{' '}
-            <code>POST /api/pricing/config/:eventId</code> to see analytics here.
+            Set up dynamic pricing for events via <code>POST /api/pricing/config/:eventId</code> to
+            see analytics here.
           </p>
         </div>
       </div>
@@ -303,7 +303,14 @@ const styles = {
   },
   kpiIcon: { fontSize: '1.5rem', marginBottom: '0.5rem' },
   kpiValue: { fontSize: '1.75rem', fontWeight: 800, lineHeight: 1.1 },
-  kpiLabel: { fontSize: '0.8rem', fontWeight: 600, color: '#6b7280', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.05em' },
+  kpiLabel: {
+    fontSize: '0.8rem',
+    fontWeight: 600,
+    color: '#6b7280',
+    marginTop: 4,
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+  },
   kpiSub: { fontSize: '0.8rem', color: '#9ca3af', marginTop: 2 },
   tableSection: { marginBottom: '2.5rem' },
   sectionTitle: {
@@ -334,7 +341,13 @@ const styles = {
   td: { padding: '11px 14px', borderBottom: '1px solid #f3f4f6', verticalAlign: 'middle' },
   rowEven: { background: '#fff' },
   rowOdd: { background: '#fafafa' },
-  eventId: { background: '#f3f4f6', borderRadius: 4, padding: '2px 6px', fontSize: '0.8rem', fontFamily: 'monospace' },
+  eventId: {
+    background: '#f3f4f6',
+    borderRadius: 4,
+    padding: '2px 6px',
+    fontSize: '0.8rem',
+    fontFamily: 'monospace',
+  },
   legendSection: {},
   legendGrid: {
     display: 'grid',
@@ -353,8 +366,18 @@ const styles = {
   legendIcon: { fontSize: '1.25rem', flexShrink: 0 },
   legendLabel: { fontWeight: 700, fontSize: '0.88rem' },
   legendDesc: { color: '#6b7280', fontSize: '0.8rem', marginTop: 2 },
-  loadingGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginTop: '2rem' },
-  skeletonCard: { height: 120, background: '#f3f4f6', borderRadius: 12, animation: 'pulse 1.5s infinite' },
+  loadingGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: '1rem',
+    marginTop: '2rem',
+  },
+  skeletonCard: {
+    height: 120,
+    background: '#f3f4f6',
+    borderRadius: 12,
+    animation: 'pulse 1.5s infinite',
+  },
   errorBox: {
     background: '#fef2f2',
     border: '1px solid #fecaca',
