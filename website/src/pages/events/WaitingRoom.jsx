@@ -24,12 +24,12 @@ export default function WaitingRoom({ eventId, fullName, email, onJoinEvent }) {
 
     const handleQueueUpdate = (data) => {
       if (data.position === 0) {
-        setPosition((prev) => (prev ? prev - 1 : 0));
+        setPosition((prev) => (prev != null && prev > 0 ? prev - 1 : 0));
       } else {
         setPosition(data.position);
       }
       setTotal(data.total);
-      estimateWait(data.position || position);
+      estimateWait(data.position ?? position);
     };
 
     const handleAdmitted = () => {
@@ -75,7 +75,7 @@ export default function WaitingRoom({ eventId, fullName, email, onJoinEvent }) {
 
   const estimateWait = (pos) => {
     if (pos == null) return;
-    const mins = Math.max(1, Math.round(pos * 2));
+    const mins = pos === 0 ? 0 : Math.max(1, Math.round(pos * 2));
     setWaitTime(mins);
   };
 
@@ -173,8 +173,8 @@ export default function WaitingRoom({ eventId, fullName, email, onJoinEvent }) {
           <div style={{ fontSize: '0.75rem', color: 'var(--t3)' }}>Total Waiting</div>
         </div>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--t1)' }}>
-            ~{waitTime ?? '-'}m
+        <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--t1)' }}>
+            {waitTime === 0 ? 'Ready' : `~${waitTime ?? '-'}m`}
           </div>
           <div style={{ fontSize: '0.75rem', color: 'var(--t3)' }}>Est. Wait</div>
         </div>
@@ -210,7 +210,12 @@ export default function WaitingRoom({ eventId, fullName, email, onJoinEvent }) {
             borderRadius: '2px',
             background: 'var(--c1)',
             transition: 'width 0.5s ease',
-            width: position && total ? `${((total - position + 1) / total) * 100}%` : '0%',
+            width:
+              position != null && total
+                ? position === 0
+                  ? '100%'
+                  : `${((total - position + 1) / total) * 100}%`
+                : '0%',
           }}
         />
       </div>
