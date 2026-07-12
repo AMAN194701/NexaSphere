@@ -54,16 +54,18 @@ export default function WebhooksPage() {
     setSelectedWebhook(webhook);
     // Fetch deliveries and stats
     try {
-      const [delRes, statsRes] = await Promise.all([
+      const [delResult, statsResult] = await Promise.allSettled([
         fetch(buildUrl(`/api/webhooks/${webhook.id}/deliveries`)),
         fetch(buildUrl(`/api/webhooks/${webhook.id}/stats`)),
       ]);
-      if (delRes.ok) {
-        const delData = await delRes.json();
+
+      if (delResult.status === 'fulfilled' && delResult.value.ok) {
+        const delData = await delResult.value.json();
         setDeliveries(delData.data || []);
       }
-      if (statsRes.ok) {
-        const statsData = await statsRes.json();
+
+      if (statsResult.status === 'fulfilled' && statsResult.value.ok) {
+        const statsData = await statsResult.value.json();
         setStats(statsData.data || null);
       }
     } catch (err) {
