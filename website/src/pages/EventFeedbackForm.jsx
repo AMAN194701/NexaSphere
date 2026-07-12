@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { getApiBase, buildUrl } from '../utils/runtimeConfig';
 
 const EventFeedbackForm = () => {
   const { eventId } = useParams();
   const navigate = useNavigate();
+  const apiBase = getApiBase();
   const [formData, setFormData] = useState({
     ratingOverall: 5,
     wouldAttendAgain: true,
@@ -12,22 +14,27 @@ const EventFeedbackForm = () => {
     bestParts: '',
   });
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
     try {
-      const response = await fetch('/api/feedback', {
+      const response = await fetch(buildUrl(apiBase, '/api/feedback'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ ...formData, eventId }),
       });
-      if (response.ok) {
-        setSubmitted(true);
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.error || `Failed to submit feedback (${response.status})`);
       }
+      setSubmitted(true);
     } catch (err) {
       console.error(err);
+      setError(err instanceof Error ? err.message : 'Failed to submit feedback.');
     }
   };
 
@@ -52,6 +59,11 @@ const EventFeedbackForm = () => {
     <div className="max-w-2xl mx-auto p-6 bg-white shadow rounded-lg mt-10">
       <h1 className="text-3xl font-bold mb-6 text-gray-800">Event Feedback</h1>
       <form onSubmit={handleSubmit} className="space-y-6">
+        {error && (
+          <div className="p-3 rounded-md bg-red-50 text-red-700 text-sm border border-red-200">
+            {error}
+          </div>
+        )}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Overall Rating (1-5)
