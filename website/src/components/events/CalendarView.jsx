@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import useSocketConnection from '../../hooks/useSocketConnection';
 import { getEventConflictStatus, detectConflicts } from '../../services/eventConflicts';
 import './CalendarView.css';
@@ -17,6 +17,7 @@ export default function CalendarView({ events: initialEvents, onEventClick, isAd
   const [searchQuery, setSearchQuery] = useState('');
   const [draggedEvent, setDraggedEvent] = useState(null);
   const [conflictToast, setConflictToast] = useState(null); // { message, severity }
+  const conflictToastTimerRef = useRef(null);
 
   const { on: onSocket } = useSocketConnection();
 
@@ -27,6 +28,13 @@ export default function CalendarView({ events: initialEvents, onEventClick, isAd
     });
     return unsubscribe;
   }, [onSocket]);
+
+  useEffect(() => {
+    return () => {
+      if (conflictToastTimerRef.current) clearTimeout(conflictToastTimerRef.current);
+      conflictToastTimerRef.current = null;
+    };
+  }, []);
 
   const parseEventDate = (dateStr) => {
     if (!dateStr) return null;
@@ -66,8 +74,12 @@ export default function CalendarView({ events: initialEvents, onEventClick, isAd
   };
 
   const showConflictToast = (message, severity) => {
+    if (conflictToastTimerRef.current) clearTimeout(conflictToastTimerRef.current);
     setConflictToast({ message, severity });
-    setTimeout(() => setConflictToast(null), 4000);
+    conflictToastTimerRef.current = setTimeout(() => {
+      setConflictToast(null);
+      conflictToastTimerRef.current = null;
+    }, 4000);
   };
 
   const handleDrop = async (e, targetDate, hour = null) => {
