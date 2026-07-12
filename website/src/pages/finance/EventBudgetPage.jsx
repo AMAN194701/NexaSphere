@@ -235,7 +235,7 @@ export default function EventBudgetPage() {
   const selectBudget = useCallback(
     async (budget) => {
       setSelectedBudget(budget);
-      await Promise.all([
+      await Promise.allSettled([
         fetchExpenses(budget.id),
         fetchRevenues(budget.id),
         fetchVariance(budget.id),
