@@ -279,8 +279,10 @@ function LiveStreamPage() {
     try {
       const data = await apiFetch(`/api/streams/${id}/chat?limit=200`);
       setMessages(data.messages || []);
-    } catch {
-      // ignore
+    } catch (err) {
+      if (import.meta.env.DEV) {
+        console.error('[LiveStreamPage] Failed to fetch messages:', err.message);
+      }
     }
   }, []);
 
@@ -288,8 +290,10 @@ function LiveStreamPage() {
     try {
       const data = await apiFetch(`/api/streams/${id}/polls`);
       setPolls(data.polls || []);
-    } catch {
-      // ignore
+    } catch (err) {
+      if (import.meta.env.DEV) {
+        console.error('[LiveStreamPage] Failed to fetch polls:', err.message);
+      }
     }
   }, []);
 
