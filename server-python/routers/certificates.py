@@ -12,8 +12,8 @@ import io
 import os
 import uuid
 import hmac
-import hashlib
 import logging
+import secrets
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -102,10 +102,13 @@ class VerifyResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 def _make_certificate_id(student_id: str, event_id: str) -> str:
-    """Deterministic, collision-resistant certificate ID based on student+event."""
-    seed = f"{student_id}:{event_id}"
-    digest = hashlib.sha256(seed.encode()).hexdigest()[:16]
-    return f"NS-CERT-{digest.upper()}"
+    """Return a random, unguessable certificate ID.
+
+    The student/event inputs are intentionally unused so certificate IDs do not
+    leak enrollment relationships or become predictable from public data.
+    """
+    _ = student_id, event_id
+    return f"NS-CERT-{secrets.token_hex(16).upper()}"
 
 
 def _build_verification_url(cert_id: str) -> str:
