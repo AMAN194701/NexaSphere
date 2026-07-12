@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../../utils/apiClient';
 import { formatRelativeTime } from '../../utils/formatRelativeTime';
@@ -17,6 +17,70 @@ const TYPE_ICONS = {
   mention: '@',
   system: '🔔',
 };
+
+function groupNotificationsForDisplay(items) {
+  const grouped = [];
+  const bucketIndex = new Map();
+
+  for (const item of items) {
+    if (item && Array.isArray(item.notifications)) {
+      grouped.push({
+        ...item,
+        sortAt: item.notifications.reduce(
+          (latest, note) => Math.max(latest, new Date(note.createdAt || 0).getTime()),
+          0
+        ),
+      });
+      continue;
+    }
+
+    if (!item) continue;
+
+    const key =
+      item.groupType && item.groupKey
+        ? `${item.groupType}:${item.groupKey}`
+        : item.eventId
+          ? `event:${item.eventId}`
+          : item.sender
+            ? `sender:${item.sender}`
+            : item.type
+              ? `type:${item.type}`
+              : `notification:${item.id}`;
+
+    if (!bucketIndex.has(key)) {
+      const createdAt = new Date(item.createdAt || 0).getTime();
+      const groupTitle =
+        item.groupType === 'event'
+          ? 'Event Updates'
+          : item.groupType === 'sender'
+            ? `Messages from ${item.sender || 'Unknown'}`
+            : item.groupType === 'type'
+              ? `${item.type} updates`
+              : item.sender
+                ? `Messages from ${item.sender}`
+                : item.eventId
+                  ? 'Event Updates'
+                  : `${item.type || 'Notification'} updates`;
+
+      const group = {
+        id: key,
+        title: groupTitle,
+        summaryCount: 0,
+        notifications: [],
+        sortAt: createdAt,
+      };
+      bucketIndex.set(key, group);
+      grouped.push(group);
+    }
+
+    const group = bucketIndex.get(key);
+    group.summaryCount += 1;
+    group.notifications.push(item);
+    group.sortAt = Math.max(group.sortAt, new Date(item.createdAt || 0).getTime());
+  }
+
+  return grouped.sort((a, b) => (b.sortAt || 0) - (a.sortAt || 0));
+}
 
 export default function NotificationHistoryPage({ userId }) {
   const { user: authUser } = useStudentAuth();
@@ -139,6 +203,8 @@ export default function NotificationHistoryPage({ userId }) {
     }
     return notifications;
   })();
+
+  const displayList = useMemo(() => groupNotificationsForDisplay(filteredList), [filteredList]);
 
   const renderItem = (n) => (
     <div
@@ -347,7 +413,7 @@ export default function NotificationHistoryPage({ userId }) {
         <NotificationSkeleton count={4} />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          {filteredList.map((n) => (
+          {displayList.map((n) => (
             <div key={n.id || n.groupKey || n.groupType}>
               {n.notifications && Array.isArray(n.notifications) ? (
                 <ExpandableGroup group={n} />
