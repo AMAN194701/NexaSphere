@@ -18,13 +18,19 @@
 /** Periodic update check interval for long-lived sessions (ms) */
 const UPDATE_POLL_INTERVAL_MS = 60 * 60 * 1000; // 60 minutes
 
+function devLog(...args) {
+  if (import.meta.env.DEV) {
+    console.log(...args);
+  }
+}
+
 /**
  * Register the service worker and wire up update / offline-ready callbacks.
  * Safe to call multiple times — internally idempotent.
  */
 export async function registerAndWatchSW() {
   if (!('serviceWorker' in navigator)) {
-    console.log('[SW] Service workers not supported in this browser.');
+    devLog('[SW] Service workers not supported in this browser.');
     return;
   }
 
@@ -38,13 +44,13 @@ export async function registerAndWatchSW() {
       // A new SW has installed and is waiting to activate.
       // Dispatch an event — AppShell listens and shows the UpdatePrompt.
       onNeedRefresh() {
-        console.log('[SW] New version available — prompting user.');
+        devLog('[SW] New version available — prompting user.');
         window.dispatchEvent(new CustomEvent('nexasphere:sw-update', { detail: { updateSW } }));
       },
 
       // ── App is offline-capable ────────────────────────────────────────────
       onOfflineReady() {
-        console.log('[SW] App ready for offline use.');
+        devLog('[SW] App ready for offline use.');
         window.dispatchEvent(new CustomEvent('nexasphere:sw-offline-ready'));
       },
 
@@ -55,7 +61,7 @@ export async function registerAndWatchSW() {
       onRegistered(registration) {
         if (!registration) return;
 
-        console.log('[SW] Registered. Checking for updates now...');
+        devLog('[SW] Registered. Checking for updates now...');
         registration
           .update()
           .catch((err) => console.warn('[SW] Update check on load failed:', err));
@@ -63,7 +69,7 @@ export async function registerAndWatchSW() {
         // Periodic update check: covers users who leave the tab open for hours.
         setInterval(() => {
           if (!registration.installing && navigator.onLine) {
-            console.log('[SW] Periodic update check...');
+            devLog('[SW] Periodic update check...');
             registration
               .update()
               .catch((err) => console.warn('[SW] Periodic update check failed:', err));
@@ -77,7 +83,7 @@ export async function registerAndWatchSW() {
     });
   } catch (err) {
     // Expected in dev when DISABLE_PWA=true
-    console.log('[SW] PWA registration skipped:', err.message);
+    devLog('[SW] PWA registration skipped:', err.message);
   }
 }
 
@@ -91,7 +97,7 @@ export async function checkForSWUpdate() {
     const reg = await navigator.serviceWorker.getRegistration();
     if (reg) {
       await reg.update();
-      console.log('[SW] Manual update check triggered.');
+      devLog('[SW] Manual update check triggered.');
     }
   } catch (err) {
     console.warn('[SW] Manual update check failed:', err);
