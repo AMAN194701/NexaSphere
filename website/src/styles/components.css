@@ -1514,6 +1514,42 @@
   }
 }
 
+@media (min-width: 768px) and (max-width: 1024px) {
+  .events-timeline::before {
+    left: 20px;
+  }
+
+  .timeline-item,
+  .timeline-item:nth-child(odd) {
+    flex-direction: column;
+    align-items: stretch;
+    padding-left: 52px;
+    margin-bottom: 24px;
+  }
+
+  .timeline-dot {
+    left: 20px;
+  }
+
+  .timeline-card {
+    width: 100% !important;
+    padding: 18px;
+  }
+
+  .timeline-event-name {
+    font-size: 0.9rem;
+    flex-wrap: wrap;
+  }
+
+  .timeline-event-desc {
+    font-size: 0.84rem;
+  }
+
+  .view-details-badge {
+    margin-left: 0;
+  }
+}
+
 .about-text {
   font-size: 0.96rem;
   color: var(--t2);
@@ -2558,4 +2594,3 @@ kbd {
   color: var(--t2);
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
 }
-
