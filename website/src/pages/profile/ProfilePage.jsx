@@ -206,6 +206,7 @@ export default function ProfilePage() {
   const [error,      setError]      = useState(null);
   const [editing,    setEditing]    = useState(false);
   const [saving,     setSaving]     = useState(false);
+  const [avatarFailed, setAvatarFailed] = useState(false);
   const [activeTab,  setActiveTab]  = useState("registrations");
   const [editForm,   setEditForm]   = useState({ fullName: "", bio: "", socialLinks: { github: "", linkedin: "", portfolio: "" } });
 
@@ -225,6 +226,7 @@ export default function ProfilePage() {
       if (!res.ok) throw new Error('Failed to fetch profile');
       const data = await res.json();
       setProfile(data);
+      setAvatarFailed(false);
       setEditForm({
         fullName: data.fullName || data.name || '',
         bio: data.bio || '',
@@ -281,8 +283,13 @@ export default function ProfilePage() {
         {/* Header */}
         <div style={styles.header}>
           <div>
-            {profile.avatar ? (
-              <img src={profile.avatar} alt="avatar" style={styles.avatar} />
+            {profile.avatar && !avatarFailed ? (
+              <img
+                src={profile.avatar}
+                alt="avatar"
+                style={styles.avatar}
+                onError={() => setAvatarFailed(true)}
+              />
             ) : (
               <div style={styles.avatarFallback}>
                 {(profile.fullName || profile.name || 'U')[0].toUpperCase()}
