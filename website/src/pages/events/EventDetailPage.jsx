@@ -943,7 +943,11 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
           const stored = JSON.parse(localStorage.getItem('ns_registrations') || '[]');
           stored.push(localTicket);
           localStorage.setItem('ns_registrations', JSON.stringify(stored.slice(-20)));
-        } catch {}
+        } catch (error) {
+          if (import.meta.env.DEV) {
+            console.warn('[EventDetailPage] Failed to persist local registration:', error);
+          }
+        }
       }
     } catch (err) {
       if (err.message?.includes('waitlist')) {
