@@ -1,5 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Shield, Settings, Activity, Trash2, Send, CheckCircle2, XCircle, AlertTriangle, RefreshCw, Plus, Check } from 'lucide-react';
+import {
+  Shield,
+  Settings,
+  Activity,
+  Trash2,
+  Send,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  RefreshCw,
+  Plus,
+  Check,
+} from 'lucide-react';
 import { buildUrl } from '../../utils/runtimeConfig';
 
 const WEBHOOK_EVENTS = [
@@ -54,16 +66,18 @@ export default function WebhooksPage() {
     setSelectedWebhook(webhook);
     // Fetch deliveries and stats
     try {
-      const [delRes, statsRes] = await Promise.all([
+      const [delResult, statsResult] = await Promise.allSettled([
         fetch(buildUrl(`/api/webhooks/${webhook.id}/deliveries`)),
         fetch(buildUrl(`/api/webhooks/${webhook.id}/stats`)),
       ]);
-      if (delRes.ok) {
-        const delData = await delRes.json();
+
+      if (delResult.status === 'fulfilled' && delResult.value.ok) {
+        const delData = await delResult.value.json();
         setDeliveries(delData.data || []);
       }
-      if (statsRes.ok) {
-        const statsData = await statsRes.json();
+
+      if (statsResult.status === 'fulfilled' && statsResult.value.ok) {
+        const statsData = await statsResult.value.json();
         setStats(statsData.data || null);
       }
     } catch (err) {
@@ -134,7 +148,9 @@ export default function WebhooksPage() {
 
   const handleReplayDelivery = async (deliveryId) => {
     try {
-      const res = await fetch(buildUrl(`/api/webhooks/deliveries/${deliveryId}/replay`), { method: 'POST' });
+      const res = await fetch(buildUrl(`/api/webhooks/deliveries/${deliveryId}/replay`), {
+        method: 'POST',
+      });
       if (!res.ok) throw new Error('Failed to replay webhook delivery');
       alert('Webhook delivery replayed successfully!');
       if (selectedWebhook) {
@@ -147,9 +163,25 @@ export default function WebhooksPage() {
 
   return (
     <div style={{ padding: '40px 20px', maxWidth: '1200px', margin: '0 auto', color: 'var(--t1)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '32px',
+        }}
+      >
         <div>
-          <h1 style={{ fontSize: '2.2rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '12px', margin: 0 }}>
+          <h1
+            style={{
+              fontSize: '2.2rem',
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              margin: 0,
+            }}
+          >
             <Activity color="var(--c1)" size={32} />
             Webhook Integrations
           </h1>
@@ -188,13 +220,37 @@ export default function WebhooksPage() {
             marginBottom: '32px',
           }}
         >
-          <h2 style={{ fontSize: '1.25rem', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h2
+            style={{
+              fontSize: '1.25rem',
+              marginBottom: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
             <Settings size={20} /> Register New Webhook
           </h2>
           <form onSubmit={handleCreateWebhook}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '16px',
+                marginBottom: '16px',
+              }}
+            >
               <div>
-                <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.85rem', color: 'var(--t2)' }}>Webhook Name</label>
+                <label
+                  style={{
+                    display: 'block',
+                    marginBottom: '6px',
+                    fontSize: '0.85rem',
+                    color: 'var(--t2)',
+                  }}
+                >
+                  Webhook Name
+                </label>
                 <input
                   type="text"
                   required
@@ -213,7 +269,16 @@ export default function WebhooksPage() {
                 />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.85rem', color: 'var(--t2)' }}>Payload URL (HTTPS required)</label>
+                <label
+                  style={{
+                    display: 'block',
+                    marginBottom: '6px',
+                    fontSize: '0.85rem',
+                    color: 'var(--t2)',
+                  }}
+                >
+                  Payload URL (HTTPS required)
+                </label>
                 <input
                   type="url"
                   required
@@ -234,10 +299,23 @@ export default function WebhooksPage() {
             </div>
 
             <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--t2)' }}>
+              <label
+                style={{
+                  display: 'block',
+                  marginBottom: '8px',
+                  fontSize: '0.85rem',
+                  color: 'var(--t2)',
+                }}
+              >
                 Subscribe to Events
               </label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px' }}>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                  gap: '10px',
+                }}
+              >
                 {WEBHOOK_EVENTS.map((event) => {
                   const active = formData.events.includes(event);
                   return (
@@ -305,11 +383,21 @@ export default function WebhooksPage() {
       <div style={{ display: 'grid', gridTemplateColumns: '350px 1fr', gap: '24px' }}>
         {/* Left column — list */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '8px' }}>Active Configurations</h3>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '8px' }}>
+            Active Configurations
+          </h3>
           {loading && <p>Loading webhooks...</p>}
           {error && <p style={{ color: 'var(--c1)' }}>{error}</p>}
           {!loading && webhooks.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '32px', color: 'var(--t2)', border: '1px dashed rgba(255,255,255,0.1)', borderRadius: '12px' }}>
+            <div
+              style={{
+                textAlign: 'center',
+                padding: '32px',
+                color: 'var(--t2)',
+                border: '1px dashed rgba(255,255,255,0.1)',
+                borderRadius: '12px',
+              }}
+            >
               No webhooks registered yet.
             </div>
           )}
@@ -328,7 +416,14 @@ export default function WebhooksPage() {
                   transition: 'all 0.2s',
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '8px',
+                  }}
+                >
                   <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>{wh.name}</span>
                   <span
                     style={{
@@ -342,19 +437,52 @@ export default function WebhooksPage() {
                     {wh.isActive ? 'Active' : 'Disabled'}
                   </span>
                 </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--t2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: '12px' }}>
+                <div
+                  style={{
+                    fontSize: '0.75rem',
+                    color: 'var(--t2)',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    marginBottom: '12px',
+                  }}
+                >
                   {wh.url}
                 </div>
                 <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                   <button
-                    onClick={(e) => { e.stopPropagation(); handleTestWebhook(wh.id); }}
-                    style={{ background: 'none', border: 'none', color: '#9999ff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem' }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleTestWebhook(wh.id);
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#9999ff',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '0.75rem',
+                    }}
                   >
                     <Send size={12} /> Test
                   </button>
                   <button
-                    onClick={(e) => { e.stopPropagation(); handleDeleteWebhook(wh.id); }}
-                    style={{ background: 'none', border: 'none', color: '#ff5555', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem' }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteWebhook(wh.id);
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#ff5555',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '0.75rem',
+                    }}
                   >
                     <Trash2 size={12} /> Delete
                   </button>
@@ -376,9 +504,19 @@ export default function WebhooksPage() {
         >
           {selectedWebhook ? (
             <div>
-              <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '16px', marginBottom: '20px' }}>
-                <h3 style={{ fontSize: '1.4rem', fontWeight: 600, marginBottom: '4px' }}>{selectedWebhook.name}</h3>
-                <p style={{ fontSize: '0.85rem', color: 'var(--t2)' }}>Endpoint: {selectedWebhook.url}</p>
+              <div
+                style={{
+                  borderBottom: '1px solid rgba(255,255,255,0.08)',
+                  paddingBottom: '16px',
+                  marginBottom: '20px',
+                }}
+              >
+                <h3 style={{ fontSize: '1.4rem', fontWeight: 600, marginBottom: '4px' }}>
+                  {selectedWebhook.name}
+                </h3>
+                <p style={{ fontSize: '0.85rem', color: 'var(--t2)' }}>
+                  Endpoint: {selectedWebhook.url}
+                </p>
                 <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
                   {selectedWebhook.events.map((e) => (
                     <span
@@ -399,25 +537,89 @@ export default function WebhooksPage() {
               </div>
 
               {stats && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '24px' }}>
-                  <div style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.15)', borderRadius: '10px', padding: '12px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--t2)' }}>Successful Deliveries</div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#22c55e', marginTop: '4px' }}>{stats.success}</div>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr 1fr',
+                    gap: '16px',
+                    marginBottom: '24px',
+                  }}
+                >
+                  <div
+                    style={{
+                      background: 'rgba(34,197,94,0.06)',
+                      border: '1px solid rgba(34,197,94,0.15)',
+                      borderRadius: '10px',
+                      padding: '12px',
+                      textAlign: 'center',
+                    }}
+                  >
+                    <div style={{ fontSize: '0.75rem', color: 'var(--t2)' }}>
+                      Successful Deliveries
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '1.5rem',
+                        fontWeight: 700,
+                        color: '#22c55e',
+                        marginTop: '4px',
+                      }}
+                    >
+                      {stats.success}
+                    </div>
                   </div>
-                  <div style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)', borderRadius: '10px', padding: '12px', textAlign: 'center' }}>
+                  <div
+                    style={{
+                      background: 'rgba(239,68,68,0.06)',
+                      border: '1px solid rgba(239,68,68,0.15)',
+                      borderRadius: '10px',
+                      padding: '12px',
+                      textAlign: 'center',
+                    }}
+                  >
                     <div style={{ fontSize: '0.75rem', color: 'var(--t2)' }}>Failed Deliveries</div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#ef4444', marginTop: '4px' }}>{stats.failed}</div>
+                    <div
+                      style={{
+                        fontSize: '1.5rem',
+                        fontWeight: 700,
+                        color: '#ef4444',
+                        marginTop: '4px',
+                      }}
+                    >
+                      {stats.failed}
+                    </div>
                   </div>
-                  <div style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)', borderRadius: '10px', padding: '12px', textAlign: 'center' }}>
+                  <div
+                    style={{
+                      background: 'rgba(245,158,11,0.06)',
+                      border: '1px solid rgba(245,158,11,0.15)',
+                      borderRadius: '10px',
+                      padding: '12px',
+                      textAlign: 'center',
+                    }}
+                  >
                     <div style={{ fontSize: '0.75rem', color: 'var(--t2)' }}>Pending Retries</div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#f59e0b', marginTop: '4px' }}>{stats.pending}</div>
+                    <div
+                      style={{
+                        fontSize: '1.5rem',
+                        fontWeight: 700,
+                        color: '#f59e0b',
+                        marginTop: '4px',
+                      }}
+                    >
+                      {stats.pending}
+                    </div>
                   </div>
                 </div>
               )}
 
-              <h4 style={{ fontSize: '1.05rem', fontWeight: 600, marginBottom: '12px' }}>Recent Deliveries</h4>
+              <h4 style={{ fontSize: '1.05rem', fontWeight: 600, marginBottom: '12px' }}>
+                Recent Deliveries
+              </h4>
               {deliveries.length === 0 ? (
-                <p style={{ color: 'var(--t2)', fontSize: '0.9rem' }}>No delivery logs available for this webhook.</p>
+                <p style={{ color: 'var(--t2)', fontSize: '0.9rem' }}>
+                  No delivery logs available for this webhook.
+                </p>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {deliveries.map((del) => {
@@ -444,9 +646,14 @@ export default function WebhooksPage() {
                             <XCircle color="#ef4444" size={18} />
                           )}
                           <div>
-                            <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{del.eventType}</div>
-                            <div style={{ fontSize: '0.7rem', color: 'var(--t2)', marginTop: '2px' }}>
-                              Attempt {del.attemptCount} • {new Date(del.createdAt).toLocaleString()}
+                            <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>
+                              {del.eventType}
+                            </div>
+                            <div
+                              style={{ fontSize: '0.7rem', color: 'var(--t2)', marginTop: '2px' }}
+                            >
+                              Attempt {del.attemptCount} •{' '}
+                              {new Date(del.createdAt).toLocaleString()}
                             </div>
                           </div>
                         </div>
@@ -484,9 +691,20 @@ export default function WebhooksPage() {
               )}
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--t2)' }}>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '100%',
+                color: 'var(--t2)',
+              }}
+            >
               <Shield size={48} color="rgba(255,255,255,0.15)" style={{ marginBottom: '16px' }} />
-              <p style={{ fontSize: '0.95rem' }}>Select a webhook from the left to view details, statistics, and delivery logs.</p>
+              <p style={{ fontSize: '0.95rem' }}>
+                Select a webhook from the left to view details, statistics, and delivery logs.
+              </p>
             </div>
           )}
         </div>
