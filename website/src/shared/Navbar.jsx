@@ -101,6 +101,19 @@ export default function Navbar({
     };
   }, []);
 
+  useEffect(() => {
+    if (!compact || !menuOpen) return undefined;
+
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        setMenuOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [compact, menuOpen]);
+
   const { user, isAuthenticated, login } = useStudentAuth();
 
   const handleTab = (tab) => {
@@ -385,7 +398,9 @@ export default function Navbar({
             <button
               className={`ns-nav-menu-toggle${menuOpen ? ' open' : ''}`}
               onClick={() => compact && setMenuOpen((open) => !open)}
-              aria-label="Toggle navigation menu"
+              type="button"
+              aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              aria-controls="ns-nav-menu"
               aria-expanded={menuOpen}
             >
               <span />
@@ -395,7 +410,7 @@ export default function Navbar({
           </div>
         </div>
 
-        <div className="ns-nav-menu">
+        <div className="ns-nav-menu" id="ns-nav-menu" aria-hidden={compact ? !menuOpen : undefined}>
           <ul className="ns-nav-tabs">
             {TABS.map((t) => (
               <li key={t}>
