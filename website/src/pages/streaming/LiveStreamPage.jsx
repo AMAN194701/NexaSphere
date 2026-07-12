@@ -299,7 +299,7 @@ function LiveStreamPage() {
       setError(null);
       const s = await fetchStream();
       if (s) {
-        await Promise.all([fetchMessages(s.id), fetchPolls(s.id)]);
+        await Promise.allSettled([fetchMessages(s.id), fetchPolls(s.id)]);
       } else if (!streamId) {
         setError('No stream found for this event.');
       }
