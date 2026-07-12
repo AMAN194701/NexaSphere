@@ -7,6 +7,7 @@ import { NotificationSkeleton } from '../../components/ui/skeleton/NotificationS
 import {
   initializeSocket,
   joinRoom,
+  emit as socketEmit,
   on as socketOn,
   off as socketOff,
 } from '../../utils/socketClient';
@@ -99,6 +100,7 @@ export default function NotificationHistoryPage({ userId }) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id, userId: effectiveUserId }),
         });
+        socketEmit('notifications:updated', { userId: effectiveUserId, notificationId: id });
       } catch {
         /* ignore */
       }
@@ -114,6 +116,7 @@ export default function NotificationHistoryPage({ userId }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: effectiveUserId }),
       });
+      socketEmit('notifications:updated', { userId: effectiveUserId, allRead: true });
     } catch {
       /* ignore */
     }
@@ -124,6 +127,7 @@ export default function NotificationHistoryPage({ userId }) {
     setHasMore(false);
     try {
       await apiClient(`/api/notifications?userId=${effectiveUserId}`, { method: 'DELETE' });
+      socketEmit('notifications:updated', { userId: effectiveUserId, cleared: true });
     } catch {
       /* ignore */
     }
