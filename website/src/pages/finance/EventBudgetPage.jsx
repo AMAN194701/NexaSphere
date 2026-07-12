@@ -414,6 +414,11 @@ export default function EventBudgetPage() {
     }).format(amount || 0);
   };
 
+  const formatDate = (value) => {
+    const date = value ? new Date(value) : null;
+    return date && !Number.isNaN(date.getTime()) ? date.toLocaleDateString() : 'Unknown';
+  };
+
   const totalSpent = expenses
     .filter((e) => e.status === 'approved' || e.status === 'reimbursed')
     .reduce((sum, e) => sum + e.amount, 0);
@@ -807,7 +812,7 @@ export default function EventBudgetPage() {
                     <td style={tdStyle}>{revenue.source}</td>
                     <td style={tdStyle}>{revenue.description || '-'}</td>
                     <td style={tdStyle}>{formatCurrency(revenue.amount)}</td>
-                    <td style={tdStyle}>{new Date(revenue.receivedAt).toLocaleDateString()}</td>
+                    <td style={tdStyle}>{formatDate(revenue.receivedAt)}</td>
                     <td style={tdStyle}>
                       <button
                         style={{ ...buttonStyle('danger'), padding: '6px 12px', fontSize: '12px' }}
