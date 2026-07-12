@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { PLATFORMS, addUtmParams, getQRUrl, copyToClipboard } from '../../utils/shareUtils';
 import './ShareHub.css';
 
 export default function ShareHub({ isOpen, onClose, data }) {
   const [copied, setCopied] = useState(false);
   const [showQR, setShowQR] = useState(false);
+  const copyResetRef = useRef(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -18,6 +19,8 @@ export default function ShareHub({ isOpen, onClose, data }) {
   useEffect(() => {
     document.body.style.overflow = isOpen ? 'hidden' : '';
     return () => {
+      if (copyResetRef.current) clearTimeout(copyResetRef.current);
+      copyResetRef.current = null;
       document.body.style.overflow = '';
     };
   }, [isOpen]);
@@ -26,10 +29,14 @@ export default function ShareHub({ isOpen, onClose, data }) {
   const shareTitle = data?.title || 'Check this out on NexaSphere!';
 
   const handleCopy = useCallback(async () => {
+    if (copyResetRef.current) clearTimeout(copyResetRef.current);
     const ok = await copyToClipboard(shareUrl);
     if (ok) {
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      copyResetRef.current = setTimeout(() => {
+        setCopied(false);
+        copyResetRef.current = null;
+      }, 2000);
     }
   }, [shareUrl]);
 
