@@ -17,6 +17,16 @@ export default function CalendarView({ events: initialEvents, onEventClick, isAd
   const [searchQuery, setSearchQuery] = useState('');
   const [draggedEvent, setDraggedEvent] = useState(null);
   const [conflictToast, setConflictToast] = useState(null); // { message, severity }
+  const conflictToastTimerRef = React.useRef(null);
+
+  useEffect(
+    () => () => {
+      if (conflictToastTimerRef.current) {
+        clearTimeout(conflictToastTimerRef.current);
+      }
+    },
+    []
+  );
 
   const { on: onSocket } = useSocketConnection();
 
@@ -67,7 +77,8 @@ export default function CalendarView({ events: initialEvents, onEventClick, isAd
 
   const showConflictToast = (message, severity) => {
     setConflictToast({ message, severity });
-    setTimeout(() => setConflictToast(null), 4000);
+    if (conflictToastTimerRef.current) clearTimeout(conflictToastTimerRef.current);
+    conflictToastTimerRef.current = setTimeout(() => setConflictToast(null), 4000);
   };
 
   const handleDrop = async (e, targetDate, hour = null) => {
