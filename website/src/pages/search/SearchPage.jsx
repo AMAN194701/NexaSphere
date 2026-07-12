@@ -128,11 +128,17 @@ export default function SearchPage() {
 
   // Debounced input query
   useEffect(() => {
+    if (!inputVal.trim() || inputVal.trim().length < 2) {
+      setLoading(false);
+      return undefined;
+    }
+
+    setLoading(true);
     const timer = setTimeout(() => {
       if (inputVal.trim() !== initialQuery) {
         setSearchParams({ q: inputVal.trim(), type: activeFilter });
       }
-    }, 400);
+    }, 300);
     return () => clearTimeout(timer);
   }, [inputVal, setSearchParams, activeFilter, initialQuery]);
 
@@ -143,13 +149,16 @@ export default function SearchPage() {
       return;
     }
 
+    const controller = new AbortController();
+    activeRequestRef.current = controller;
+
     const fetchSearchResults = async () => {
       setLoading(true);
       setError(null);
       const apiBase = getApiBase();
       if (!apiBase) {
         setError('Search is currently in offline mode.');
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
         return;
       }
 
@@ -159,21 +168,27 @@ export default function SearchPage() {
           type: activeFilter,
           limit: '40',
         });
-        const res = await fetch(`${apiBase}/api/search?${params}`);
+        const res = await fetch(`${apiBase}/api/search?${params}`, {
+          signal: controller.signal,
+        });
         if (!res.ok) {
           throw new Error('Search request failed.');
         }
         const data = await res.json();
         setResults(data.results || []);
       } catch (err) {
+        if (err?.name === 'AbortError') return;
         console.error('Dedicated search page fetch error:', err);
         setError('Failed to load search results. Please check your connection.');
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchSearchResults();
+    return () => controller.abort();
   }, [initialQuery, activeFilter]);
 
   const handleFilterClick = (filterKey) => {
