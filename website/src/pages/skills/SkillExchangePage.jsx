@@ -7,6 +7,13 @@ const PROFICIENCY = ['Beginner', 'Intermediate', 'Advanced'];
 const FORMATS = ['Video', 'Chat', 'In-person'];
 const DURATIONS = [30, 60, 90];
 
+function formatSkillDate(value) {
+  if (!value) return 'Unknown date';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Unknown date';
+  return date.toLocaleDateString();
+}
+
 if (!localStorage.getItem('ns_user_id')) {
   localStorage.setItem('ns_user_id', USER_ID);
 }
@@ -460,7 +467,7 @@ export default function SkillExchangePage({ onBack }) {
                     </div>
                     <div style={{ fontSize: '0.85rem', color: 'var(--t2)' }}>
                       Status: <strong>{s.status}</strong> · Scheduled:{' '}
-                      {new Date(s.scheduledAt).toLocaleDateString()}
+                      {formatSkillDate(s.scheduledAt)}
                     </div>
                     {s.notes && (
                       <div style={{ fontSize: '0.85rem', color: 'var(--t3)' }}>
