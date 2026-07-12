@@ -25,6 +25,11 @@ export default function GamificationDashboard() {
     }, 4000);
   };
 
+  const formatAchievementDate = (value) => {
+    const date = value ? new Date(value) : null;
+    return date && !Number.isNaN(date.getTime()) ? date.toLocaleDateString() : 'Unknown date';
+  };
+
   const loadData = async () => {
     const stats = gamificationService.getUserStats();
     setUserStats(stats);
@@ -329,7 +334,7 @@ export default function GamificationDashboard() {
                     <div style={{ fontSize: '13px', color: '#9CA3AF' }}>{ach.description}</div>
                   </div>
                   <div style={{ fontSize: '12px', color: '#6B7280' }}>
-                    {new Date(ach.unlockedAt).toLocaleDateString()}
+                    {formatAchievementDate(ach.unlockedAt)}
                   </div>
                 </div>
               ))}
