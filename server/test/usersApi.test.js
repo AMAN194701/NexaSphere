@@ -46,10 +46,14 @@ test('Scenario 5: Admin endpoint - Privileged fields only', () => {
 
 test('Controller handles public API responses correctly', async () => {
   const originalGetAll = usersRepository.getAllPublicUsers;
-  usersRepository.getAllPublicUsers = async () => [mockRawUser];
+  let receivedArgs;
+  usersRepository.getAllPublicUsers = async (args) => {
+    receivedArgs = args;
+    return [mockRawUser];
+  };
 
   let jsonRes;
-  const req = {};
+  const req = { query: { page: '2', limit: '5', role: 'moderator' } };
   const res = {
     json: (data) => {
       jsonRes = data;
@@ -60,6 +64,7 @@ test('Controller handles public API responses correctly', async () => {
 
   await getPublicUsers(req, res);
 
+  assert.deepEqual(receivedArgs, { page: 2, limit: 5, role: 'moderator' });
   assert.ok(Array.isArray(jsonRes));
   assert.equal(jsonRes.length, 1);
   assert.equal(jsonRes[0].username, 'hacker123');
