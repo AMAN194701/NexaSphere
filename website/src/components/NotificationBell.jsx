@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { MessageCircle, Users, AtSign, Settings, X, CheckCheck, Trash2 } from 'lucide-react';
 import { useNotifications } from '../hooks/useNotifications';
@@ -24,6 +25,7 @@ export default function NotificationBell() {
 
   const shouldReduceMotion = useReducedMotion();
   const panelRef = useRef(null);
+  const location = useLocation();
 
   // Close on outside click
   useEffect(() => {
@@ -44,6 +46,10 @@ export default function NotificationBell() {
     if (isOpen) window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [isOpen, closePanel]);
+
+  useEffect(() => {
+    if (isOpen) closePanel();
+  }, [location.pathname, isOpen, closePanel]);
 
   return (
     <div ref={panelRef} style={{ position: 'relative', display: 'inline-block' }}>
