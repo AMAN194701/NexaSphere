@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { initializeSocket, getSocket, on, off, emit } from '../../utils/socketClient';
+import { getEstimatedWaitMinutes } from './waitingRoomUtils.js';
 
 export default function WaitingRoom({ eventId, fullName, email, onJoinEvent }) {
   const [status, setStatus] = useState('connecting');
@@ -74,9 +75,7 @@ export default function WaitingRoom({ eventId, fullName, email, onJoinEvent }) {
   }, [eventId, fullName, email, onJoinEvent, position]);
 
   const estimateWait = (pos) => {
-    if (pos == null) return;
-    const mins = pos === 0 ? 0 : Math.max(1, Math.round(pos * 2));
-    setWaitTime(mins);
+    setWaitTime(getEstimatedWaitMinutes(pos));
   };
 
   if (status === 'offline') {
