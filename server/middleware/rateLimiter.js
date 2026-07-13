@@ -59,6 +59,10 @@ const createLimiterHandler = (logMessage, clientErrorMessage) => {
   };
 };
 
+const setRetryAfterHeader = (res, windowMs) => {
+  res.setHeader('Retry-After', String(Math.ceil(windowMs / 1000)));
+};
+
 export const apiRateLimiter = rateLimit({
   windowMs: API_WINDOW_MS,
   max: API_MAX_REQUESTS,
@@ -203,8 +207,58 @@ export const eventRegistrationLimiter = rateLimit({
       path: req.originalUrl || req.path,
       method: req.method,
     });
+    setRetryAfterHeader(res, options.windowMs);
     res.status(options.statusCode).json({
       error: 'Too many registration attempts. Please try again later.',
+    });
+  },
+});
+
+function getEventRegistrationIdentity(req) {
+  const email = String(req.body?.email || '').trim().toLowerCase();
+  if (req.user?.id) return `user:${req.user.id}`;
+  if (req.studentUser?.id) return `student:${req.studentUser.id}`;
+  if (req.studentUser?.email) return `student:${String(req.studentUser.email).toLowerCase()}`;
+  if (email) return `email:${email}`;
+  return `ip:${req.ip}`;
+}
+
+export const eventRegistrationUserLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: true,
+  store: createRateLimitStore('rate-limit:event-reg-user:'),
+  keyGenerator: getEventRegistrationIdentity,
+  handler: (req, res, _next, options) => {
+    logger.warn('Event registration user rate limit exceeded', {
+      identity: getEventRegistrationIdentity(req),
+      ip: req.ip,
+      path: req.originalUrl || req.path,
+      method: req.method,
+    });
+    setRetryAfterHeader(res, options.windowMs);
+    res.status(options.statusCode).json({
+      error: 'Too many registration attempts from this user. Please try again later.',
+    });
+  },
+});
+
+export const eventRegistrationIpLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: true,
+  store: createRateLimitStore('rate-limit:event-reg-ip:'),
+  handler: (req, res, _next, options) => {
+    logger.warn('Event registration IP rate limit exceeded', {
+      ip: req.ip,
+      path: req.originalUrl || req.path,
+      method: req.method,
+    });
+    setRetryAfterHeader(res, options.windowMs);
+    res.status(options.statusCode).json({
+      error: 'Too many registration attempts from this IP. Please try again later.',
     });
   },
 });
@@ -253,6 +307,9 @@ export function validateLimiters() {
     authRateLimiter,
     notificationRateLimiter,
     activityAuthRateLimiter,
+    eventRegistrationLimiter,
+    eventRegistrationUserLimiter,
+    eventRegistrationIpLimiter,
     syncRateLimiter,
     portfolioRateLimiter,
     searchRateLimiter,

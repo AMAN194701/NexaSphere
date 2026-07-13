@@ -15,7 +15,7 @@ import * as bannersController from '../controllers/bannersController.js';
 import { adminAuditMiddleware, attachOldState } from '../middleware/adminAuditMiddleware.js';
 import { eventsRepository } from '../repositories/eventsRepository.js';
 import { authRateLimiter, protectedActionRateLimiter } from '../middleware/authRateLimiter.js';
-import { eventRegistrationLimiter } from '../middleware/rateLimiter.js';
+import { eventRegistrationUserLimiter, eventRegistrationIpLimiter } from '../middleware/rateLimiter.js';
 import { portfolioRepository } from '../repositories/portfolioRepository.js';
 import { achievementsRepository } from '../repositories/achievementsRepository.js';
 import { portfolioService } from '../services/portfolioService.js';
@@ -69,7 +69,8 @@ router.get('/api/content/events', eventsController.listEvents);
 router.get('/api/content/banners', bannersController.listActiveBanners);
 router.post(
   '/api/content/events/:eventId/register',
-  eventRegistrationLimiter,
+  eventRegistrationUserLimiter,
+  eventRegistrationIpLimiter,
   eventRegistrationController.registerForEvent
 );
 router.get('/api/content/events/:eventId/calendar', eventRegistrationController.getEventCalendar);
