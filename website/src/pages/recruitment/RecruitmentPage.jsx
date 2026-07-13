@@ -384,6 +384,7 @@ function Input({
   type = 'text',
   maxLength,
   inputMode: inputModeProp,
+  autoComplete,
   onPaste,
 }) {
   return (
@@ -395,8 +396,10 @@ function Input({
       type={type}
       maxLength={maxLength}
       inputMode={inputModeProp || (type === 'tel' ? 'numeric' : undefined)}
+      autoComplete={autoComplete}
       style={{
         width: '100%',
+        minHeight: '44px',
         padding: '12px 14px',
         background: 'var(--card2)',
         border: '1px solid var(--bdr2)',
@@ -461,6 +464,8 @@ function PillRadio({ options, value, onChange }) {
             onClick={() => onChange(opt)}
             className="btn btn-outline btn-sm"
             style={{
+              minHeight: '44px',
+              padding: '10px 14px',
               background: active ? 'linear-gradient(135deg,var(--c1),var(--c2))' : undefined,
               color: active ? '#fff' : undefined,
               borderColor: active ? 'transparent' : undefined,
@@ -487,6 +492,8 @@ function MultiSelectChips({ options, values, onToggle }) {
             onClick={() => onToggle(opt)}
             className="btn btn-outline btn-sm"
             style={{
+              minHeight: '44px',
+              padding: '10px 14px',
               background: active ? 'rgba(0,212,255,.12)' : undefined,
               borderColor: active ? 'var(--c1)' : undefined,
               color: active ? 'var(--t1)' : undefined,
@@ -714,6 +721,7 @@ export default function RecruitmentPage({ onBack }) {
                 }}
                 placeholder="Your full name"
                 maxLength={60}
+                autoComplete="name"
               />
             </Field>
             <Field label="College Email ID" required hint="Must end with @glbajajgroup.org">
@@ -723,6 +731,7 @@ export default function RecruitmentPage({ onBack }) {
                 placeholder="name@glbajajgroup.org"
                 type="email"
                 maxLength={80}
+                autoComplete="email"
               />
             </Field>
             <Field label="WhatsApp Number" required>
@@ -743,6 +752,7 @@ export default function RecruitmentPage({ onBack }) {
                 type="tel"
                 inputMode="numeric"
                 maxLength={10}
+                autoComplete="tel"
               />
             </Field>
             <Field label="Year of Study" required>
@@ -803,18 +813,19 @@ export default function RecruitmentPage({ onBack }) {
                     ))}
                   </select>
                   {form.branch === 'Other' && (
-                    <Input
-                      value={form.branchOther}
-                      onChange={(v) => {
-                        const cleaned = v.replace(/[^a-zA-Z0-9\s\/\-&().]/g, '');
-                        setForm((f) => ({ ...f, branchOther: cleaned }));
-                      }}
-                      placeholder="Please specify your department"
-                      maxLength={60}
-                    />
-                  )}
-                </div>
-              </Field>
+                  <Input
+                    value={form.branchOther}
+                    onChange={(v) => {
+                      const cleaned = v.replace(/[^a-zA-Z0-9\s\/\-&().]/g, '');
+                      setForm((f) => ({ ...f, branchOther: cleaned }));
+                    }}
+                    placeholder="Please specify your department"
+                    maxLength={60}
+                    autoComplete="organization-title"
+                  />
+                )}
+              </div>
+            </Field>
               <Field label="Section" required hint="Academic Section (A/B/C/...)">
                 <div style={{ display: 'grid', gap: 8 }}>
                   <select
@@ -859,15 +870,16 @@ export default function RecruitmentPage({ onBack }) {
                     ))}
                   </select>
                   {form.section === 'Other' && (
-                    <Input
-                      value={form.sectionOther}
-                      onChange={(v) => setForm((f) => ({ ...f, sectionOther: v.toUpperCase() }))}
-                      placeholder="Type your section (e.g. J)"
-                      maxLength={10}
-                    />
-                  )}
-                </div>
-              </Field>
+                  <Input
+                    value={form.sectionOther}
+                    onChange={(v) => setForm((f) => ({ ...f, sectionOther: v.toUpperCase() }))}
+                    placeholder="Type your section (e.g. J)"
+                    maxLength={10}
+                    autoComplete="off"
+                  />
+                )}
+              </div>
+            </Field>
             </div>
           </div>
         ),
@@ -997,6 +1009,7 @@ export default function RecruitmentPage({ onBack }) {
                 type="url"
                 inputMode="url"
                 maxLength={120}
+                autoComplete="url"
               />
               <div style={{ color: 'var(--t3)', fontSize: '.8rem', marginTop: 4 }}>
                 Format:{' '}
