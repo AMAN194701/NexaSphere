@@ -7,10 +7,12 @@ const SearchBar = ({ onSelectPrompt, workspace = 'default' }) => {
   const [results, setResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [searchError, setSearchError] = useState('');
 
   const handleSearch = useCallback(
     async (searchQuery) => {
       setQuery(searchQuery);
+      setSearchError('');
 
       if (!searchQuery.trim()) {
         setResults([]);
@@ -20,14 +22,16 @@ const SearchBar = ({ onSelectPrompt, workspace = 'default' }) => {
 
       setIsSearching(true);
       try {
-        const foundPrompts = await searchPrompts(searchQuery, workspace);
+        const foundPrompts = await searchPrompts(searchQuery, workspace, { throwOnError: true });
         setResults(foundPrompts);
         setShowResults(true);
       } catch (error) {
+        setResults([]);
+        setShowResults(true);
+        setSearchError('Search is temporarily unavailable.');
         if (import.meta.env.DEV) {
           console.error('[HistorySearchBar] Search error:', error.message);
         }
-        setResults([]);
       } finally {
         setIsSearching(false);
       }
@@ -64,6 +68,7 @@ const SearchBar = ({ onSelectPrompt, workspace = 'default' }) => {
               setQuery('');
               setResults([]);
               setShowResults(false);
+              setSearchError('');
             }}
           >
             ✕
@@ -89,7 +94,7 @@ const SearchBar = ({ onSelectPrompt, workspace = 'default' }) => {
 
       {showResults && query && results.length === 0 && !isSearching && (
         <div className="search-empty">
-          <p>No results found</p>
+          <p>{searchError || 'No results found'}</p>
         </div>
       )}
     </div>
