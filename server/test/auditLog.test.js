@@ -89,6 +89,51 @@ test('Audit Log Checksum and Tampering Detection', async () => {
   assert.equal(corruptedIds[0], 'corrupted-uuid');
 });
 
+test('Audit log queries mask emails and phone numbers before returning rows', async () => {
+  setWithDbOverride(async (fn) => {
+    const mockClient = {
+      query: async (sql) => {
+        if (sql.toLowerCase().includes('select * from audit_logs')) {
+          return {
+            rows: [
+              {
+                id: 'log-1',
+                admin_id: 'admin-1',
+                action: 'update_profile',
+                ip_address: '127.0.0.1',
+                user_agent: 'Mozilla/5.0',
+                old_state: {
+                  email: 'user@example.com',
+                  phone: '1234567890',
+                  nested: { contact: 'friend@example.com' },
+                },
+                new_state: {
+                  email: 'new@example.com',
+                  phone: '+1 987 654 3210',
+                },
+                resource_type: 'profile',
+                resource_id: 'profile-1',
+                session_id: 'session-1',
+              },
+            ],
+          };
+        }
+        return { rows: [] };
+      },
+      release: () => {},
+    };
+    return await fn(mockClient);
+  });
+
+  const logs = await auditLogRepository.queryAuditLogs();
+  assert.equal(logs.length, 1);
+  assert.equal(logs[0].old_state.email, 'u***@example.com');
+  assert.equal(logs[0].old_state.phone, '******7890');
+  assert.equal(logs[0].old_state.nested.contact, 'f***@example.com');
+  assert.equal(logs[0].new_state.email, 'n***@example.com');
+  assert.equal(logs[0].new_state.phone, '******3210');
+});
+
 test('Suspicious Login Alert Checks', async () => {
   setWithDbOverride(async (fn) => {
     const mockClient = {

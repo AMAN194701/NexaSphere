@@ -1,6 +1,17 @@
 import { withDb } from './db.js';
 import crypto from 'crypto';
 import logger from '../utils/logger.js';
+import { maskSensitiveData } from '../utils/sensitiveDataMasking.js';
+
+function maskAuditLogRow(row) {
+  if (!row) return row;
+
+  return {
+    ...row,
+    old_state: maskSensitiveData(row.old_state),
+    new_state: maskSensitiveData(row.new_state),
+  };
+}
 
 class AuditLogRepository {
   async init() {
@@ -171,7 +182,7 @@ class AuditLogRepository {
       }
 
       const { rows } = await client.query(query, values);
-      return rows;
+      return rows.map(maskAuditLogRow);
     });
   }
 

@@ -18,7 +18,7 @@ const IP_REGEX = /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g;
 function maskEmail(email) {
   const [local, domain] = email.split('@');
   if (!domain) return '***';
-  const maskedLocal = local.length > 2 ? local[0] + '***' + local[local.length - 1] : '***';
+  const maskedLocal = local ? `${local[0]}***` : '***';
   return `${maskedLocal}@${domain}`;
 }
 
