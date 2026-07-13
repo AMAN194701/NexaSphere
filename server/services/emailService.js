@@ -63,7 +63,10 @@ async function renderTemplate(templateName, data, customTemplateContent = null) 
       return ejs.render(dbTemplate.body, data);
     }
   } catch (err) {
-    console.warn(`[Email Service] Failed to load DB template ${templateName}, falling back to file`, err.message);
+    console.warn(
+      `[Email Service] Failed to load DB template ${templateName}, falling back to file`,
+      err.message
+    );
   }
 
   const templatePath = path.join(__dirname, 'templates', `${templateName}.ejs`);
@@ -75,7 +78,15 @@ export async function renderTemplateHtml(templateName, data, customTemplateConte
   return renderTemplate(templateName, data, customTemplateContent);
 }
 
-export async function sendEmail({ to, subject, templateName, data, from = defaultFrom, customTemplateContent = null }) {
+export async function sendEmail({
+  to,
+  subject,
+  templateName,
+  data,
+  from = defaultFrom,
+  customTemplateContent = null,
+  attachments = [],
+}) {
   try {
     const html = await renderTemplate(templateName, data, customTemplateContent);
 
@@ -84,12 +95,18 @@ export async function sendEmail({ to, subject, templateName, data, from = defaul
       to,
       subject,
       html,
+      attachments,
     };
 
     if (!isProduction && (!process.env.SMTP_USER || !process.env.SMTP_PASS)) {
       console.log(`[Email Service - DEV] Would send email to: ${to}`);
       console.log(`[Email Service - DEV] Subject: ${subject}`);
       console.log(`[Email Service - DEV] Template: ${templateName}`);
+      if (attachments.length > 0) {
+        console.log(
+          `[Email Service - DEV] Attachments: ${attachments.map((attachment) => attachment.filename || 'attachment').join(', ')}`
+        );
+      }
       return { success: true, simulated: true };
     }
 
