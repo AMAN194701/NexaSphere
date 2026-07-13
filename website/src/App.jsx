@@ -27,6 +27,7 @@ import MoveToTop from './shared/MoveToTop';
 import Chatbot from './shared/Chatbot';
 import ScrollProgress from './shared/ScrollProgress';
 import SearchBar from './components/SearchBar';
+import SkipLink from './components/common/SkipLink';
 import Terminal from './components/developer/Terminal';
 import BookmarksDrawer from './components/bookmarks/BookmarksDrawer';
 import CinematicOpening from './shared/CinematicOpening';
@@ -449,6 +450,7 @@ function MainRouter({
   return (
     <SessionRecordingProvider sessionId={sessionId}>
       {cinDone && <AmbientOrbs theme={theme} />}
+      <SkipLink targetId="main-content" label="Skip to main content" />
       {cinDone && (
         <Navbar
           activeTab={activeTab}
@@ -463,7 +465,7 @@ function MainRouter({
 
       <Wipe on={wipeOn} ph={wipePh} />
 
-      <main style={{ paddingTop: nh, position: 'relative', zIndex: 1 }}>
+      <main id="main-content" style={{ paddingTop: nh, position: 'relative', zIndex: 1 }}>
         <Suspense fallback={<PageLoadingSpinner />}>
           <Routes>
             {/* â”€â”€ Home (scrollable sections) â”€â”€ */}
