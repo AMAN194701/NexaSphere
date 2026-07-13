@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { useEventAnalytics } from '../hooks/useAnalyticsSocket.js';
 import analyticsAPI from '../services/analyticsAPI.js';
+import { useAuth } from '../context/AuthContext';
 import LiveMetricsCards from './LiveMetricsCards';
 import RegistrationTrendsChart from './RegistrationTrendsChart';
 import RecentRegistrationsList from './RecentRegistrationsList';
@@ -14,6 +15,7 @@ import AnalyticsExport from './AnalyticsExport';
 import '../styles/analytics-dashboard.css';
 
 export default function AnalyticsDashboard({ eventId }) {
+  const { isAuthenticated } = useAuth();
   const { metrics, registrationTrends, recentRegistrations, loading, error, isConnected } =
     useEventAnalytics(eventId);
 
@@ -24,7 +26,7 @@ export default function AnalyticsDashboard({ eventId }) {
 
   // Fetch check-in stats
   useEffect(() => {
-    if (!eventId) return;
+    if (!eventId || !isAuthenticated) return;
 
     const fetchCheckInStats = async () => {
       try {
@@ -39,7 +41,7 @@ export default function AnalyticsDashboard({ eventId }) {
     const interval = setInterval(fetchCheckInStats, 10000); // Refresh every 10 seconds
 
     return () => clearInterval(interval);
-  }, [eventId]);
+  }, [eventId, isAuthenticated]);
 
   // Fetch all events metrics for overview
   useEffect(() => {
