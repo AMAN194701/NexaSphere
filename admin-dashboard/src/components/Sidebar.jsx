@@ -165,6 +165,12 @@ export function Sidebar() {
     hamburgerRef.current?.focus();
   };
 
+  useEffect(() => {
+    const handleOpenSidebar = () => setOpen(true);
+    window.addEventListener('admin:open-sidebar', handleOpenSidebar);
+    return () => window.removeEventListener('admin:open-sidebar', handleOpenSidebar);
+  }, []);
+
   // Focus first link when sidebar opens
   useEffect(() => {
     if (open) {
