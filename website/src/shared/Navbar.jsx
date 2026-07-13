@@ -6,6 +6,7 @@ import { ThemeToggle } from '../components/common/ThemeToggle';
 import { useStudentAuth } from '../context/StudentAuthContext';
 import LanguageSelector from '../components/common/LanguageSelector';
 import { useTranslation } from 'react-i18next';
+import { Trophy } from 'lucide-react';
 import { useWalkthroughStep } from '../hooks/useWalkthroughStep';
 import { WalkthroughWrapper } from '../components/walkthrough/WalkthroughWrapper';
 
@@ -154,6 +155,27 @@ export default function Navbar({
               📋
             </button>
             <button
+              onClick={() => navigate('/leaderboard')}
+              aria-label="Leaderboard"
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--t1)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '6px',
+                borderRadius: '50%',
+                transition: 'background 0.2s',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+              title="Open leaderboard"
+            >
+              <Trophy size={16} />
+            </button>
+            <button
               onClick={onSearchToggle}
               aria-label="Search"
               style={{
@@ -284,6 +306,27 @@ export default function Navbar({
               title="View all notifications"
             >
               📋
+            </button>
+            <button
+              onClick={() => navigate('/leaderboard')}
+              aria-label="Leaderboard"
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--t1)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '6px',
+                borderRadius: '50%',
+                transition: 'background 0.2s',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+              title="Open leaderboard"
+            >
+              <Trophy size={16} />
             </button>
             <button
               onClick={onSearchToggle}

@@ -633,7 +633,7 @@ class GamificationService {
     return Math.min(100, Math.max(0, progress));
   }
 
-  async getLeaderboard() {
+  async getLeaderboard(filter = 'all') {
     const MOCK_LEADERBOARD = [
       { rank: 1, name: 'Alex Johnson', xp: 2850, level: 8, avatar: '👨‍💻', streak: 12 },
       { rank: 2, name: 'Sarah Chen', xp: 2420, level: 7, avatar: '👩‍💻', streak: 7 },
@@ -646,18 +646,23 @@ class GamificationService {
     if (!base) return MOCK_LEADERBOARD;
 
     try {
-      const res = await fetch(`${base}/api/dashboard/leaderboard`);
+      const res = await fetch(
+        `${base}/api/dashboard/leaderboard?filter=${encodeURIComponent(filter)}`
+      );
       if (!res.ok) return MOCK_LEADERBOARD;
       const data = await res.json();
       if (!Array.isArray(data) || data.length === 0) return MOCK_LEADERBOARD;
       // Map backend UserProfileEntity shape to leaderboard display shape
       return data.map((user, i) => ({
+        id: user.id || user.user_id || user.email || `leaderboard-${i + 1}`,
         rank: i + 1,
         name: user.username || user.name || 'Anonymous',
+        username: user.username || user.name || 'Anonymous',
         xp: user.xp ?? 0,
         level: user.level ?? 1,
-        avatar: '👤',
+        avatar: user.avatar || '👤',
         streak: user.current_streak ?? user.streak ?? 0,
+        badges: user.badges || [],
       }));
     } catch {
       return MOCK_LEADERBOARD;

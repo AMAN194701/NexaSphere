@@ -22,6 +22,7 @@ const CertificateVerifyPage = lazy(() => import('../pages/certificates/Certifica
 const PortfolioBuilder = lazy(() => import('../components/portfolio/PortfolioBuilder'));
 const PublicPortfolio = lazy(() => import('../pages/portfolio/PublicPortfolio'));
 const DashboardPage = lazy(() => import('../pages/dashboard/DashboardPage'));
+const LeaderboardPage = lazy(() => import('../pages/leaderboard/LeaderboardPage'));
 const AnalyticsPage = lazy(() => import('../pages/analytics/AnalyticsPage'));
 const WorkspacePage = lazy(() => import('../pages/workspace/WorkspacePage'));
 const GamificationDashboard = lazy(
@@ -595,6 +596,16 @@ export function AppRoutes({
         }
       />
 
+      {/* ── Public Leaderboard ── */}
+      <Route
+        path="/leaderboard"
+        element={
+          <PageIn k="leaderboard">
+            <LeaderboardPage />
+          </PageIn>
+        }
+      />
+
       {/* ── Skill Exchange ── */}
       <Route
         path="/skill-exchange"
@@ -618,8 +629,26 @@ export function AppRoutes({
       />
 
       {/* ── Profile & Settings ── */}
-      <Route path="/profile" element={<ProtectedRoute><PageIn k="profile"><ProfilePage /></PageIn></ProtectedRoute>} />
-      <Route path="/settings/account" element={<ProtectedRoute><PageIn k="settings"><AccountSettingsPage /></PageIn></ProtectedRoute>} />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <PageIn k="profile">
+              <ProfilePage />
+            </PageIn>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings/account"
+        element={
+          <ProtectedRoute>
+            <PageIn k="settings">
+              <AccountSettingsPage />
+            </PageIn>
+          </ProtectedRoute>
+        }
+      />
 
       {/* ── 404 ── */}
       <Route path="*" element={<NotFoundPage onGoHome={onBackHome} />} />
