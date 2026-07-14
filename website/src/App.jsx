@@ -23,6 +23,7 @@ import { useBackToTop } from './hooks/useScrollLogic';
 
 // Shared layout and telemetry widgets
 import Navbar from './shared/Navbar';
+import SkipLink from './components/common/SkipLink';
 import MoveToTop from './shared/MoveToTop';
 import Chatbot from './shared/Chatbot';
 import ScrollProgress from './shared/ScrollProgress';
@@ -449,6 +450,7 @@ function MainRouter({
   return (
     <SessionRecordingProvider sessionId={sessionId}>
       {cinDone && <AmbientOrbs theme={theme} />}
+      <SkipLink />
       {cinDone && (
         <Navbar
           activeTab={activeTab}
@@ -463,7 +465,7 @@ function MainRouter({
 
       <Wipe on={wipeOn} ph={wipePh} />
 
-      <main style={{ paddingTop: nh, position: 'relative', zIndex: 1 }}>
+      <main id="main-content" style={{ paddingTop: nh, position: 'relative', zIndex: 1 }}>
         <Suspense fallback={<PageLoadingSpinner />}>
           <Routes>
             {/* â”€â”€ Home (scrollable sections) â”€â”€ */}

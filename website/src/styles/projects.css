@@ -83,7 +83,6 @@
   border-color: var(--c1b);
   box-shadow: 0 4px 12px rgba(204, 17, 17, 0.15);
   transform: translateY(-2px);
-  outline: none;
 }
 
 [data-theme='light'] .filter-pill:hover {

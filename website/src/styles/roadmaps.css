@@ -77,7 +77,11 @@
   align-items: center;
   gap: 12px;
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  outline: none;
+}
+
+.domain-card-tab:focus-visible {
+  outline: 2px solid var(--c1);
+  outline-offset: 2px;
 }
 
 [data-theme='light'] .domain-card-tab {
@@ -513,7 +517,6 @@
   padding: 14px 18px;
   text-decoration: none;
   transition: all 0.25s ease;
-  outline: none;
 }
 
 [data-theme='light'] .resource-card-link {
@@ -837,7 +840,11 @@
   padding: 10px 14px;
   color: var(--t1);
   transition: border-color 0.2s;
-  outline: none;
+}
+
+.glass-input:focus-visible {
+  outline: 2px solid var(--c1);
+  outline-offset: 2px;
 }
 
 [data-theme='light'] .glass-input {

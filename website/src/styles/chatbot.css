@@ -242,8 +242,12 @@
   border-color: rgba(99, 102, 241, 0.6);
 }
 
+.workspace-selector-inline:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+
 .workspace-selector-inline:focus {
-  outline: none;
   background: rgba(255, 255, 255, 0.15);
   border-color: #6366f1;
 }
@@ -260,9 +264,13 @@
   padding: 8px 12px;
   border-radius: 8px;
   color: #fff;
-  outline: none;
   font-size: 13px;
   font-family: inherit;
+}
+
+.chat-input-container input:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
 }
 
 .chat-input-container input::placeholder {

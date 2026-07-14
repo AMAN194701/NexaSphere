@@ -157,8 +157,12 @@
   color: var(--t1);
   font-family: 'Rajdhani', sans-serif;
   font-size: 1rem;
-  outline: none;
   transition: all 0.25s ease;
+}
+
+.portfolio-input:focus-visible {
+  outline: 2px solid var(--c1);
+  outline-offset: 2px;
 }
 
 [data-theme='light'] .form-input,
