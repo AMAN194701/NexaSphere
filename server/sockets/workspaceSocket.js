@@ -47,9 +47,16 @@ export function setupWorkspaceSocket(io) {
       if (typeof ack === 'function') ack({ success: true, roomId });
     });
 
+    //  RECTIFIED BLOCK (leave_room)
     socket.on('leave_room', (roomId, ack) => {
       if (!isValidRoomId(roomId)) {
         if (typeof ack === 'function') ack({ success: false, error: 'Invalid roomId' });
+        return;
+      }
+
+      // Security Check: Verify socket is actually in the room
+      if (!socket.rooms || !socket.rooms.has(roomId)) {
+        if (typeof ack === 'function') ack({ success: false, error: 'Unauthorized: Not a member of this room' });
         return;
       }
 
@@ -64,12 +71,19 @@ export function setupWorkspaceSocket(io) {
       if (typeof ack === 'function') ack({ success: true, roomId });
     });
 
+    //  RECTIFIED BLOCK (task_create)
     socket.on('task_create', async (data, ack) => {
       try {
         const { roomId, task } = data || {};
 
         if (!isValidRoomId(roomId)) {
           if (typeof ack === 'function') ack({ success: false, error: 'Invalid roomId' });
+          return;
+        }
+
+        // Security Check: Verify socket is actually in the room
+        if (!socket.rooms || !socket.rooms.has(roomId)) {
+          if (typeof ack === 'function') ack({ success: false, error: 'Unauthorized: Not a member of this room' });
           return;
         }
 
@@ -97,12 +111,19 @@ export function setupWorkspaceSocket(io) {
       }
     });
 
+    //  RECTIFIED BLOCK (task_update_status)
     socket.on('task_update_status', async (data, ack) => {
       try {
         const { roomId, taskId, status, previousStatus, updatedBy } = data || {};
 
         if (!isValidRoomId(roomId)) {
           if (typeof ack === 'function') ack({ success: false, error: 'Invalid roomId' });
+          return;
+        }
+
+        // Security Check: Verify socket is actually in the room
+        if (!socket.rooms || !socket.rooms.has(roomId)) {
+          if (typeof ack === 'function') ack({ success: false, error: 'Unauthorized: Not a member of this room' });
           return;
         }
 
@@ -137,9 +158,10 @@ export function setupWorkspaceSocket(io) {
       }
     });
 
+    //  RECTIFIED BLOCK (typing_start & typing_stop)
     socket.on('typing_start', (data) => {
       const { roomId, user } = data || {};
-      if (!isValidRoomId(roomId)) return;
+      if (!isValidRoomId(roomId) || !socket.rooms || !socket.rooms.has(roomId)) return;
 
       socket.to(roomId).emit('typing_start', {
         socketId: socket.id,
@@ -152,7 +174,7 @@ export function setupWorkspaceSocket(io) {
 
     socket.on('typing_stop', (data) => {
       const { roomId } = data || {};
-      if (!isValidRoomId(roomId)) return;
+      if (!isValidRoomId(roomId) || !socket.rooms || !socket.rooms.has(roomId)) return;
 
       socket.to(roomId).emit('typing_stop', { socketId: socket.id });
     });
