@@ -157,6 +157,21 @@ export function setupWorkspaceSocket(io) {
       socket.to(roomId).emit('typing_stop', { socketId: socket.id });
     });
 
+    socket.on('disconnecting', () => {
+      if (socket.rooms) {
+        socket.rooms.forEach((roomId) => {
+          // Ignore the socket's private internal room matching its ID
+          if (roomId !== socket.id) {
+            socket.to(roomId).emit('user_left', {
+              socketId: socket.id,
+              timestamp: Date.now(),
+            });
+            logger.info('Broadcasted auto-departure on disconnect', { socketId: socket.id, roomId });
+          }
+        });
+      }
+    });
+
     socket.on('disconnect', () => {
       logger.info('Socket disconnected from workspace handler', {
         socketId: socket.id,
