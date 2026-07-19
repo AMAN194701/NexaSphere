@@ -47,9 +47,16 @@ export function setupWorkspaceSocket(io) {
       if (typeof ack === 'function') ack({ success: true, roomId });
     });
 
+    //  RECTIFIED BLOCK (leave_room)
     socket.on('leave_room', (roomId, ack) => {
       if (!isValidRoomId(roomId)) {
         if (typeof ack === 'function') ack({ success: false, error: 'Invalid roomId' });
+        return;
+      }
+
+      // Security Check: Verify socket is actually in the room
+      if (!socket.rooms || !socket.rooms.has(roomId)) {
+        if (typeof ack === 'function') ack({ success: false, error: 'Unauthorized: Not a member of this room' });
         return;
       }
 
@@ -64,12 +71,19 @@ export function setupWorkspaceSocket(io) {
       if (typeof ack === 'function') ack({ success: true, roomId });
     });
 
+    //  RECTIFIED BLOCK (task_create)
     socket.on('task_create', async (data, ack) => {
       try {
         const { roomId, task } = data || {};
 
         if (!isValidRoomId(roomId)) {
           if (typeof ack === 'function') ack({ success: false, error: 'Invalid roomId' });
+          return;
+        }
+
+        // Security Check: Verify socket is actually in the room
+        if (!socket.rooms || !socket.rooms.has(roomId)) {
+          if (typeof ack === 'function') ack({ success: false, error: 'Unauthorized: Not a member of this room' });
           return;
         }
 
@@ -155,6 +169,28 @@ export function setupWorkspaceSocket(io) {
       if (!isValidRoomId(roomId)) return;
 
       socket.to(roomId).emit('typing_stop', { socketId: socket.id });
+    });
+
+    // FEATURE #3704: Clean up stale users from active room rosters on unexpected drop
+    socket.on('disconnecting', (reason) => {
+      if (socket.rooms) {
+        for (const roomId of socket.rooms) {
+          // Skip the socket's private room ID
+          if (roomId !== socket.id) {
+            socket.to(roomId).emit('user_left', {
+              socketId: socket.id,
+              timestamp: Date.now(),
+              reason: reason || 'disconnect',
+            });
+            
+            logger.info('Broadcasted unexpected user_left on disconnect', {
+              socketId: socket.id,
+              roomId,
+              reason,
+            });
+          }
+        }
+      }
     });
 
     socket.on('disconnect', () => {
