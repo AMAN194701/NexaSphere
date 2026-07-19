@@ -87,7 +87,12 @@ function requestLogger(req, res, next) {
   next();
 }
 
-app.use(requestLogger);
+// FEATURE #3259: Wrap requestLogger to prevent duplicate logging executions
+const useStructuredHttpLog = process.env.NODE_ENV === 'production' || process.env.USE_STRUCTURED_LOG === 'true';
+
+if (useStructuredHttpLog) {
+  app.use(requestLogger);
+}
 
 // ── Health check (required by Render, Railway, and load balancers) ──
 app.get('/health', (_req, res) => {
