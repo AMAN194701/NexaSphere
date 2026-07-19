@@ -160,15 +160,17 @@ export function setupWorkspaceSocket(io) {
     });
 
     socket.on('typing_start', (data) => {
-      const { roomId, user } = data || {};
+      const { roomId } = data || {};
       if (!isValidRoomId(roomId)) return;
+
+      // Extract the verified user from the socket's secure server-side session data
+      const sessionUser = socket.data?.user;
 
       socket.to(roomId).emit('typing_start', {
         socketId: socket.id,
-        user:
-          user && typeof user === 'object'
-            ? { name: String(user.name || 'Anonymous').slice(0, 100) }
-            : { name: 'Anonymous' },
+        user: {
+          name: sessionUser?.name ? String(sessionUser.name).slice(0, 100) : 'Anonymous'
+        },
       });
     });
 
