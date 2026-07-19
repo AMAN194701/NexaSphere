@@ -86,6 +86,7 @@ const SECRET_KEYS = new Set([
   'sendgrid_api_key',
   'stripe_api_key',
   'analytics_tracking_id',
+  'google_forms_webhook_secret',
 ]);
 
 function maskSecrets(settings) {
@@ -204,14 +205,23 @@ const DEFAULT_SETTINGS = {
   email_sending_limit_per_hour: 1000,
 
   // Integrations
+  slack_enabled: false,
+  discord_enabled: false,
+  analytics_enabled: false,
   google_calendar_enabled: false,
   discord_bot_token: '',
   slack_webhook_url: '',
   sendgrid_api_key: '',
   stripe_api_key: '',
   analytics_tracking_id: '',
+
+  // Authentication
   social_login_google: false,
   social_login_github: false,
+  social_login_discord: false,
+
+  // Webhooks
+  google_forms_webhook_secret: '',
 };
 
 // ─── Controller functions ─────────────────────────────────────────────────────

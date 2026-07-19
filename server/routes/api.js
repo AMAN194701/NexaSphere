@@ -94,6 +94,7 @@ const workflowAutomationRoutes = require("./workflowAutomation");
 const router = Router();
 const apiAnalyticsRoutes = require('./apiAnalytics');
 const digitalAssetRoutes = require("./digitalAsset");
+import googleFormsWebhookRoutes from './googleFormsWebhookRoutes.js';
 
 router.use(rateLimitAdminRoutes);
 router.use(throttleMiddleware);
@@ -742,8 +743,8 @@ router.get(
 // Platform Analytics APIs
 router.use("/api/analytics", platformAnalyticsRoutes);
 router.use("/digital-assets", digitalAssetRoutes);
-router.use('/api/analytics', platformAnalyticsRoutes);
-
-router.use('/api-analytics', apiAnalyticsRoutes);
+router.use('/api/analytics', requireStudentAuth, platformAnalyticsRoutes);
+router.use('/api/budget', adminAuthMiddleware.requireAdmin, budgetRoutes);
+router.use('/api/webhooks', googleFormsWebhookRoutes);
 router.use("/notification-campaigns", notificationCampaignRoutes);
 export default router;

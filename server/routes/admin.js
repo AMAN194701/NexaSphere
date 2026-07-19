@@ -8,6 +8,7 @@ import { adminAuthMiddleware } from '../middleware/adminAuthMiddleware.js';
 import { supabaseBreaker, HAS_SUPABASE } from '../storage/supabaseClient.js';
 import { validate } from '../middleware/validate.js';
 import { ssoInviteSchema } from '../validators/routes/adminSchemas.js';
+import { usersRepository } from '../repositories/usersRepository.js';
 import { financialService } from '../services/financialService.js';
 import {
   validateConfigChange,
@@ -131,6 +132,51 @@ router.get('/membership', adminAuth, async (req, res) => {
     }
     console.error('[Membership] Failed to fetch responses from Google Apps Script:', err.message);
     return sendError(req, res, 'Failed to fetch membership responses', 500, 'INTERNAL_ERROR');
+  }
+});
+
+/**
+ * POST /api/admin/membership/sync — Manually sync missed Google Forms responses.
+ */
+router.post('/membership/sync', adminAuth, async (req, res) => {
+  const scriptUrl = process.env.MEMBERSHIP_SCRIPT_URL;
+  const secret = process.env.MEMBERSHIP_SECRET;
+
+  if (!scriptUrl || !secret) {
+    return sendError(req, res, 'Membership script URL or secret not configured', 503, 'SERVICE_UNAVAILABLE');
+  }
+
+  try {
+    const data = await membershipBreaker.execute(scriptUrl, secret);
+    const responses = data.responses || [];
+
+    let createdCount = 0;
+    for (const response of responses) {
+      const email = response.email || response.collegeEmail || response.college_email;
+      const fullName = response.fullName || response.full_name || response.name;
+
+      if (!email) continue;
+
+      const existingUser = await usersRepository.getUserByEmail(email);
+      if (existingUser) continue;
+
+      try {
+        await usersRepository.createUser({
+          username: email,
+          display_name: fullName || email.split('@')[0],
+          email: email,
+          role: 'member',
+        });
+        createdCount++;
+      } catch (err) {
+        console.error(`[Membership Sync] Failed to create user for ${email}:`, err.message);
+      }
+    }
+
+    return sendSuccess(res, { message: 'Sync complete', created: createdCount });
+  } catch (err) {
+    console.error('[Membership Sync] Failed to sync responses:', err.message);
+    return sendError(req, res, 'Failed to sync membership responses', 500, 'INTERNAL_ERROR');
   }
 });
 
