@@ -16,7 +16,8 @@ export function setupWorkspaceSocket(io) {
     const handshakeRoomId = socket.handshake.auth?.roomId || socket.handshake.query?.roomId || null;
 
     if (handshakeRoomId && isValidRoomId(handshakeRoomId)) {
-      if (roomsCount(socket) < MAX_ROOMS_PER_SOCKET) {
+      const alreadyInRoom = socket.rooms && socket.rooms.has(handshakeRoomId);
+      if (alreadyInRoom || roomsCount(socket) < MAX_ROOMS_PER_SOCKET) {
         socket.join(handshakeRoomId);
         logger.info('Socket auto-joined room via handshake', {
           socketId: socket.id,
@@ -28,6 +29,13 @@ export function setupWorkspaceSocket(io) {
     socket.on('join_room', (roomId, ack) => {
       if (!isValidRoomId(roomId)) {
         if (typeof ack === 'function') ack({ success: false, error: 'Invalid roomId' });
+        return;
+      }
+
+      // Check if already a member first to make the operation idempotent
+      if (socket.rooms && socket.rooms.has(roomId)) {
+        logger.info('Socket requested redundant join_room (already a member)', { socketId: socket.id, roomId });
+        if (typeof ack === 'function') ack({ success: true, roomId });
         return;
       }
 
