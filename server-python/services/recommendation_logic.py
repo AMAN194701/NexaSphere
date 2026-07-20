@@ -189,34 +189,34 @@ def get_recommendations(user_id, num_recommendations=5):
         target_idx_list = users_df.index[users_df['id'] == user_id].tolist()
         if target_idx_list: # Ensure target user is in the dataframe
             try:
-            user_matrix = vectorizer.fit_transform(users_df['interests_str'].tolist())
-            target_user_vector = user_matrix[target_idx]
-            user_similarities = cosine_similarity(target_user_vector, user_matrix).flatten()
+                user_matrix = vectorizer.fit_transform(users_df['interests_str'].tolist())
+                target_user_vector = user_matrix[target_idx]
+                user_similarities = cosine_similarity(target_user_vector, user_matrix).flatten()
             
-            # Add similarity back
-            users_df['similarity'] = user_similarities
+                # Add similarity back
+                users_df['similarity'] = user_similarities
             
-            # Find similar users (excluding the target user itself)
-            similar_users = users_df[users_df['id'] != user_id].sort_values(by='similarity', ascending=False)
+                # Find similar users (excluding the target user itself)
+                similar_users = users_df[users_df['id'] != user_id].sort_values(by='similarity', ascending=False)
             
-            # Top 3 similar users who have similarity > 0
-            top_similar_users = similar_users[similar_users['similarity'] > 0.1].head(3)
+                # Top 3 similar users who have similarity > 0
+                top_similar_users = similar_users[similar_users['similarity'] > 0.1].head(3)
             
-            # Gather events those similar users have joined
-            for _, sim_user in top_similar_users.iterrows():
-                sim_user_id = sim_user['id']
-                sim_score = sim_user['similarity']
-                
-                joined_events = [p["event_id"] for p in participations if p["user_id"] == sim_user_id]
-                
-                # Apply boost to those events proportional to the user similarity
-                for i, event in events_df.iterrows():
-                    if event['id'] in joined_events:
-                        # Add a collaborative boost (adjustable weight)
-                        collab_scores[i] += sim_score * 0.5 
-                        
-        except ValueError:
-            pass # Ignore if vocabulary error
+                # Gather events those similar users have joined
+                for _, sim_user in top_similar_users.iterrows():
+                    sim_user_id = sim_user['id']
+                    sim_score = sim_user['similarity']
+                    
+                    joined_events = [p["event_id"] for p in participations if p["user_id"] == sim_user_id]
+                    
+                    # Apply boost to those events proportional to the user similarity
+                    for i, event in events_df.iterrows():
+                        if event['id'] in joined_events:
+                            # Add a collaborative boost (adjustable weight)
+                            collab_scores[i] += sim_score * 0.5 
+
+            except ValueError:
+                pass # Ignore if vocabulary error
             
     events_df['collab_score'] = collab_scores
     

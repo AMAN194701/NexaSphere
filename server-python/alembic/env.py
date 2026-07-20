@@ -48,7 +48,6 @@ from database import Base
 # For example: import models 
 
 # 2. Assign the metadata
- 38be4bdc (Fix: Configure Alembic target_metadata and add missing dependency)
 target_metadata = Base.metadata
 
 # Get the database URL from environment
