@@ -168,22 +168,21 @@ import {
   sanitizeEvent,
   normalizePhone,
 } from './repositories/contentStore.js';
+  import {
   checkPasskeyLockout,
   recordFailedPasskeyAttempt,
   clearPasskeyAttempts,
 } from './middleware/auth/passkeyLockout.js';
+import {
   checkActivityAuthLockout,
   recordFailedActivityAuth,
   clearActivityAuthAttempts,
   canManageActivityEvent,
 } from './middleware/auth/activityAuth.js';
+import {
   requireNotificationPrefAuth,
   requireMentorshipAuth,
 } from './middleware/auth/customAuth.js';
-  uploadWithMagicCheck,
-  validateMagicBytes,
-  UPLOADS_DIR,
-} from './middleware/uploadMiddleware.js';
 import circuitBreakerRouter from './routes/circuitBreaker.js';
 import { validate } from './middleware/validate.js';
 import * as indexSchemas from './validators/routes/indexSchemas.js';
@@ -568,11 +567,10 @@ app.use('/api/monitoring', monitoringRouter);
 
 app.use('/api/health-dashboard', healthDashboardRouter);
 app.use('/api', documentationRouter);
-app.use('/', dashboardRouter);
-app.use('/', apiRouter);
-app.use('/', healthRouter);
-app.use('/', coreTeamRouter);
-app.use('/', announcementsRouter);
+// Compliance & Legal Documents (handles both public and admin routes internally)
+// Mounted early to prevent wildcard root routes ('/') from stealing the requests
+app.use('/api/compliance', complianceRouter);
+
 app.use('/api', formsRouter);
 app.use('/api', portfolioAnalyticsRouter);
 app.use('/api', portfolioRouter);
@@ -580,187 +578,42 @@ app.use('/api', recoveryRouter);
 app.use('/api/faqs', faqRouter);
 app.use('/api', userGroupsRouter);
 app.use('/api', notificationsRouter);
-app.use('/', notificationsRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/admin', projectHealthRouter);
 app.use('/api', learningPathRouter);
-app.use('/', syncRouter);
 app.use('/api/feedback', feedbackRouter);
-import webhooksRouter from './routes/webhooks.js';
 
+// Admin Specific Routes
 const adminAuth = [apiRateLimiter, adminAuthMiddleware.requireAdmin];
-
-// Webhooks Management
+import webhooksRouter from './routes/webhooks.js';
 app.use('/api/webhooks', webhooksRouter);
-
-// Scheduled Tasks Management
 app.use('/api/admin/scheduled-tasks', adminAuth, scheduledTasksRouter);
-
-// User Segments
 app.use('/api/admin/segments', adminAuth, segmentsRouter);
-app.use('/api/admin/email-templates', adminAuth, emailTemplateRouter);
-
-// Content Moderation
 app.use('/api/moderation', adminAuth, moderationRouter);
-
-// Role-Based Access Control
 app.use('/api/admin/rbac', adminAuth, rbacRouter);
-// Database Backup & Recovery Endpoints
-app.get('/api/admin/backups', adminAuth, backupController.getBackups);
-app.post(
-  '/api/admin/backups/manual',
-  validate(indexSchemas.manualBackupSchema),
-  adminAuth,
-  backupController.runManualBackup
-);
-app.post(
-  '/api/admin/backups/restore',
-  validate(indexSchemas.restoreBackupSchema),
-  adminAuth,
-  backupController.runRestore
-);
-app.get('/api/admin/backups/restore-test-history', adminAuth, backupController.getRestoreHistory);
-app.delete(
-  '/api/admin/backups',
-  validate(indexSchemas.deleteBackupSchema),
-  adminAuth,
-  backupController.deleteBackup
-);
 
-// API Key Management
+app.get('/api/admin/backups', adminAuth, backupController.getBackups);
+app.post('/api/admin/backups/manual', validate(indexSchemas.manualBackupSchema), adminAuth, backupController.runManualBackup);
+app.post('/api/admin/backups/restore', validate(indexSchemas.restoreBackupSchema), adminAuth, backupController.runRestore);
+app.get('/api/admin/backups/restore-test-history', adminAuth, backupController.getRestoreHistory);
+app.delete('/api/admin/backups', validate(indexSchemas.deleteBackupSchema), adminAuth, backupController.deleteBackup);
 app.use(apiKeysRouter);
 
-const defaultContent = {
-  events: [
-    {
-      id: 'kss-153',
-      name: 'KSS #153 â€” Knowledge Sharing Session',
-      shortName: 'KSS #153',
-      date: 'March 14, 2025',
-      description: "NexaSphere's inaugural Knowledge Sharing Session focused on the impact of AI.",
-      status: 'completed',
-      icon: 'Brain',
-      tags: ['AI', 'Learning', 'Community'],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-  ],
-  activityEvents: {},
-  coreTeam: [],
-};
+// Root Level Routers (Keep at the bottom of route stack)
+app.use('/', dashboardRouter);
+app.use('/', apiRouter);
+app.use('/', healthRouter);
+app.use('/', coreTeamRouter);
+app.use('/', announcementsRouter);
+app.use('/', notificationsRouter);
+app.use('/', syncRouter);
 
-// â”€â”€ File Upload Configuration â”€â”€
+// ── File Upload Configuration ──
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
 try {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 } catch (_) {}
-
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
-  filename: (_req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname) || '';
-    cb(null, `${uniqueSuffix}${ext}`);
-  },
-});
-
-const MAGIC_BYTES = {
-  'application/pdf': [[0x25, 0x50, 0x44, 0x46]],
-  'image/png': [[0x89, 0x50, 0x4e, 0x47]],
-  'image/jpeg': [[0xff, 0xd8, 0xff]],
-  'image/gif': [[0x47, 0x49, 0x46]],
-  'image/webp': [[0x52, 0x49, 0x46, 0x46]],
-  'application/zip': [
-    [0x50, 0x4b, 0x03, 0x04],
-    [0x50, 0x4b, 0x05, 0x06],
-    [0x50, 0x4b, 0x07, 0x08],
-  ],
-  'application/x-zip-compressed': [[0x50, 0x4b, 0x03, 0x04]],
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': [
-    [0x50, 0x4b, 0x03, 0x04],
-  ],
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation': [
-    [0x50, 0x4b, 0x03, 0x04],
-  ],
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': [[0x50, 0x4b, 0x03, 0x04]],
-  'text/plain': [],
-  'text/markdown': [],
-  'application/json': [],
-};
-
-function validateMagicBytes(filepath, mimeType) {
-  const signatures = MAGIC_BYTES[mimeType];
-  if (!signatures || signatures.length === 0) return true;
-  const fd = fs.openSync(filepath, 'r');
-  const buffer = Buffer.alloc(8);
-  fs.readSync(fd, buffer, 0, 8, 0);
-  fs.closeSync(fd);
-  return signatures.some((sig) => sig.every((byte, i) => buffer[i] === byte));
-}
-
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-
-const fileFilter = (_req, file, cb) => {
-  if (!file.originalname || file.originalname.includes('..') || file.originalname.includes('/')) {
-    return cb(new Error('Invalid file name'), false);
-  }
-  const allowedMimes = Object.keys(MAGIC_BYTES);
-  if (allowedMimes.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(new Error(`File type ${file.mimetype} not allowed`), false);
-  }
-};
-
-const upload = multer({
-  storage,
-  fileFilter,
-  limits: { fileSize: MAX_FILE_SIZE },
-});
-
-const uploadWithMagicCheck = (req, res, next) => {
-  upload.single('file')(req, res, (err) => {
-    if (err) {
-      if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
-        return sendError(req, res, 'File too large. Maximum size is 10MB.', 413, 'INTERNAL_ERROR');
-      }
-      return sendError(req, res, err.message, 400, 'VALIDATION_ERROR');
-    }
-    if (req.file && !validateMagicBytes(req.file.path, req.file.mimetype)) {
-      fs.unlink(req.file.path, () => {});
-      return sendError(
-        req,
-        res,
-        'File content does not match its declared type.',
-        400,
-        'VALIDATION_ERROR'
-      );
-    }
-    next();
-  });
-};
-
-// Serve uploaded files statically
-function requiredStrongPassword(name) {
-  const value = String(process.env[name] || '').trim();
-  if (!value) {
-    throw new Error(`Missing environment variable: ${name}`);
-  const hasLower = /[a-z]/.test(value);
-  const hasUpper = /[A-Z]/.test(value);
-  const hasNumber = /\d/.test(value);
-  const hasSymbol = /[^A-Za-z0-9]/.test(value);
-  if (value.length < 12 || !hasLower || !hasUpper || !hasNumber || !hasSymbol) {
-    throw new Error(
-      `${name} must be at least 12 characters and include uppercase, lowercase, number, and symbol`
-    );
-  return value;
-const ADMIN_EVENT_PASSWORD = requiredStrongPassword('ADMIN_EVENT_PASSWORD');
-const SESSION_SECRET = requiredStrongPassword('SESSION_SECRET');
-// ── File Upload Configuration ──
 app.use('/uploads', express.static(UPLOADS_DIR));
-
-// Compliance & Legal Documents (handles both public and admin routes internally)
-app.use('/api/compliance', complianceRouter);
 
 // Compliance & Accessibility Audit Tools (#1801)
 app.use('/api', auditToolsRouter);
