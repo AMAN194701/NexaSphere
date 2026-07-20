@@ -99,16 +99,28 @@ function DocumentsTab({ documents, load, showToast }) {
       </div>
 
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 600 }}>
-            <h3>Create New Document Version</h3>
+        <div
+          className="modal-overlay"
+          onClick={() => setShowModal(false)}
+          onKeyDown={(e) => e.key === 'Escape' && setShowModal(false)}
+        >
+          <div
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="compliance-doc-version-title"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: 600 }}
+          >
+            <h3 id="compliance-doc-version-title">Create New Document Version</h3>
             <form
               onSubmit={handleSubmit}
               style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}
             >
               <div>
-                <label>Document Type</label>
+                <label htmlFor="compliance-doc-type">Document Type</label>
                 <select
+                  id="compliance-doc-type"
                   className="input"
                   style={{ width: '100%', padding: 8 }}
                   value={formData.type}

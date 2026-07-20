@@ -56,22 +56,28 @@ export function CoreTeamForm({ member, onClose }) {
       className="modal-overlay"
       ref={modalRef}
       onClick={(e) => e.target === e.currentTarget && onClose()}
+      onKeyDown={(e) => e.key === 'Escape' && onClose()}
     >
-      <div className="modal">
+      <div
+        className="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="core-team-form-title"
+      >
         <div className="modal-header">
-          <h3>{isEdit ? 'Edit Core Team Member' : 'Add Core Team Member'}</h3>
-          <button className="modal-close" onClick={onClose} aria-label="Close">
+          <h3 id="core-team-form-title">{isEdit ? 'Edit Core Team Member' : 'Add Core Team Member'}</h3>
+          <button className="modal-close" onClick={onClose} aria-label="Close modal">
             <AdminIcon name="X" size={18} />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="form">
           <div className="form-row">
-            <label>Name *</label>
-            <input value={form.name} onChange={(e) => set('name', e.target.value)} required />
+            <label htmlFor="core-team-name">Name *</label>
+            <input id="core-team-name" value={form.name} onChange={(e) => set('name', e.target.value)} required />
           </div>
           <div className="form-row">
-            <label>Role</label>
-            <select value={form.role} onChange={(e) => set('role', e.target.value)}>
+            <label htmlFor="core-team-role">Role</label>
+            <select id="core-team-role" value={form.role} onChange={(e) => set('role', e.target.value)}>
               {ROLES.map((r) => (
                 <option key={r} value={r}>
                   {r}
@@ -80,36 +86,39 @@ export function CoreTeamForm({ member, onClose }) {
             </select>
           </div>
           <div className="form-row">
-            <label>Branch</label>
+            <label htmlFor="core-team-branch">Branch</label>
             <input
+              id="core-team-branch"
               value={form.branch}
               onChange={(e) => set('branch', e.target.value)}
               placeholder="e.g. CSE"
             />
           </div>
           <div className="form-row">
-            <label>Year</label>
+            <label htmlFor="core-team-year">Year</label>
             <input
+              id="core-team-year"
               value={form.year}
               onChange={(e) => set('year', e.target.value)}
               placeholder="e.g. 2nd Year"
             />
           </div>
           <div className="form-row">
-            <label>Email</label>
-            <input value={form.email} onChange={(e) => set('email', e.target.value)} type="email" />
+            <label htmlFor="core-team-email">Email</label>
+            <input id="core-team-email" value={form.email} onChange={(e) => set('email', e.target.value)} type="email" />
           </div>
           <div className="form-row">
-            <label>LinkedIn URL</label>
+            <label htmlFor="core-team-linkedin">LinkedIn URL</label>
             <input
+              id="core-team-linkedin"
               value={form.linkedin}
               onChange={(e) => set('linkedin', e.target.value)}
               type="url"
             />
           </div>
           <div className="form-row">
-            <label>Photo URL</label>
-            <input value={form.photo} onChange={(e) => set('photo', e.target.value)} type="url" />
+            <label htmlFor="core-team-photo">Photo URL</label>
+            <input id="core-team-photo" value={form.photo} onChange={(e) => set('photo', e.target.value)} type="url" />
           </div>
           {error && <div className="form-error">{error}</div>}
           <div className="form-actions">

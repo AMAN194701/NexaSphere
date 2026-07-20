@@ -74,13 +74,19 @@ export default function ShareHub({ isOpen, onClose, data }) {
     <div
       className="sharehub-overlay"
       onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Share"
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') onClose();
+      }}
     >
-      <div className="sharehub-modal" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="sharehub-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="sharehub-heading"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="sharehub-header">
-          <h2 className="sharehub-heading">Share</h2>
+          <h2 id="sharehub-heading" className="sharehub-heading">Share</h2>
           <button className="sharehub-close" onClick={onClose} aria-label="Close">
             ✕
           </button>

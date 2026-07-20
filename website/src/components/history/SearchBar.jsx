@@ -79,7 +79,19 @@ const SearchBar = ({ onSelectPrompt, workspace = 'default' }) => {
       {showResults && results.length > 0 && (
         <div className="search-results">
           {results.slice(0, 5).map((prompt) => (
-            <div key={prompt.id} className="result-item" onClick={() => handleSelectResult(prompt)}>
+            <div
+              key={prompt.id}
+              className="result-item"
+              role="button"
+              tabIndex={0}
+              onClick={() => handleSelectResult(prompt)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleSelectResult(prompt);
+                }
+              }}
+            >
               <div className="result-content">
                 <p className="result-query">{formatPreview(prompt.userPrompt)}</p>
                 <p className="result-response">{formatPreview(prompt.botResponse)}</p>

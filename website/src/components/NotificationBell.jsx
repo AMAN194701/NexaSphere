@@ -123,6 +123,8 @@ export default function NotificationBell() {
         {isOpen && (
           <motion.div
             id="notification-panel"
+            role="region"
+            aria-label="Notifications Panel"
             initial={{
               opacity: 0,
               y: shouldReduceMotion ? 0 : -10,
@@ -220,6 +222,7 @@ export default function NotificationBell() {
                     whileTap={{ scale: 0.95 }}
                     onClick={clearAll}
                     title="Clear all"
+                    aria-label="Clear all notifications"
                     style={{
                       background: 'rgba(255,255,255,0.07)',
                       border: 'none',
@@ -238,6 +241,7 @@ export default function NotificationBell() {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={closePanel}
+                  aria-label="Close notifications"
                   style={{
                     background: 'rgba(255,255,255,0.07)',
                     border: 'none',

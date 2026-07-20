@@ -6,7 +6,18 @@ export function AmaCard({ ama }) {
   const navigate = useNavigate();
 
   return (
-    <div className="ama-card" onClick={() => navigate(`/ama/${ama.id}`)}>
+    <div
+      className="ama-card"
+      role="button"
+      tabIndex={0}
+      onClick={() => navigate(`/ama/${ama.id}`)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          navigate(`/ama/${ama.id}`);
+        }
+      }}
+    >
       <div className="ama-card-header">
         <span className={`ama-status-badge ${ama.status}`}>
           {ama.status}

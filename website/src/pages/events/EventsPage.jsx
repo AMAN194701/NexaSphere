@@ -28,6 +28,7 @@ export default function EventsPage({
     location: '',
     search: '',
   });
+  const [currentPage, setCurrentPage] = useState(1);
 
 
   const getEffectiveStatus = (ev) => {
@@ -90,6 +91,8 @@ export default function EventsPage({
         return da - db;
       });
   }, [filteredEvents]);
+
+  const totalPages = Math.ceil(sortedEvents.length / 10) || 1;
 
 
   const { recommendations, loading: recsLoading } = useRecommendations(user?.sub || user?.id || '');

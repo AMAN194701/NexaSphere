@@ -7,7 +7,18 @@ export default function BlogCard({ post, onClick }) {
     post;
 
   return (
-    <div className="ns-blog-card mag-card" onClick={() => onClick(post.id)}>
+    <div
+      className="ns-blog-card mag-card"
+      role="button"
+      tabIndex={0}
+      onClick={() => onClick(post.id)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick(post.id);
+        }
+      }}
+    >
       <div className="ns-blog-card-image">
         <SafeImage src={coverImage} alt={title} fallbackType="project" fill />
         <span className="ns-blog-category-badge">{category}</span>

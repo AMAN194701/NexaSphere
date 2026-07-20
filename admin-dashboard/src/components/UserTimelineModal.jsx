@@ -92,8 +92,9 @@ export default function UserTimelineModal({ user, onClose }) {
         </div>
 
         <div style={{ display: 'flex', gap: 10, marginBottom: 20, alignItems: 'center' }}>
-          <label>Portfolio Username:</label>
+          <label htmlFor="portfolio-username-input">Portfolio Username:</label>
           <input
+            id="portfolio-username-input"
             type="text"
             value={usernameInput}
             onChange={(e) => setUsernameInput(e.target.value)}

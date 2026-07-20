@@ -178,6 +178,12 @@ export function Pagination({
       {/* Previous button */}
       <button
         onClick={() => handlePageChange(safePage - 1)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            if (!isFirstPage && !loading) handlePageChange(safePage - 1);
+          }
+        }}
         disabled={isFirstPage || loading}
         aria-label="Previous page"
         style={{
@@ -266,6 +272,12 @@ export function Pagination({
       {/* Next button */}
       <button
         onClick={() => handlePageChange(safePage + 1)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            if (!isLastPage && !loading) handlePageChange(safePage + 1);
+          }
+        }}
         disabled={isLastPage || loading}
         aria-label="Next page"
         style={{

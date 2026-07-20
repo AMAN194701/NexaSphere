@@ -206,7 +206,6 @@ export default function ParticleBackground({ theme = 'dark' }) {
     <canvas
       ref={canvasRef}
       aria-hidden="true"
-      role="presentation"
       style={{
         position: 'fixed',
         top: 0,

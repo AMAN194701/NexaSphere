@@ -1050,9 +1050,19 @@ export default function EventBudgetPage() {
 
       {/* Create Budget Modal */}
       {showBudgetModal && (
-        <div style={modalOverlayStyle} onClick={() => setShowBudgetModal(false)}>
-          <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ margin: '0 0 24px 0', fontSize: '20px', fontWeight: '600' }}>
+        <div
+          style={modalOverlayStyle}
+          onClick={() => setShowBudgetModal(false)}
+          onKeyDown={(e) => e.key === 'Escape' && setShowBudgetModal(false)}
+        >
+          <div
+            style={modalStyle}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="create-budget-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="create-budget-title" style={{ margin: '0 0 24px 0', fontSize: '20px', fontWeight: '600' }}>
               Create Budget
             </h3>
             <label style={labelStyle}>Budget Name *</label>
@@ -1114,9 +1124,19 @@ export default function EventBudgetPage() {
 
       {/* Create Expense Modal */}
       {showExpenseModal && (
-        <div style={modalOverlayStyle} onClick={() => setShowExpenseModal(false)}>
-          <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ margin: '0 0 24px 0', fontSize: '20px', fontWeight: '600' }}>
+        <div
+          style={modalOverlayStyle}
+          onClick={() => setShowExpenseModal(false)}
+          onKeyDown={(e) => e.key === 'Escape' && setShowExpenseModal(false)}
+        >
+          <div
+            style={modalStyle}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="add-expense-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="add-expense-title" style={{ margin: '0 0 24px 0', fontSize: '20px', fontWeight: '600' }}>
               Add Expense
             </h3>
             <label style={labelStyle}>Expense Name *</label>
@@ -1176,9 +1196,19 @@ export default function EventBudgetPage() {
 
       {/* Create Revenue Modal */}
       {showRevenueModal && (
-        <div style={modalOverlayStyle} onClick={() => setShowRevenueModal(false)}>
-          <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ margin: '0 0 24px 0', fontSize: '20px', fontWeight: '600' }}>
+        <div
+          style={modalOverlayStyle}
+          onClick={() => setShowRevenueModal(false)}
+          onKeyDown={(e) => e.key === 'Escape' && setShowRevenueModal(false)}
+        >
+          <div
+            style={modalStyle}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="add-revenue-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="add-revenue-title" style={{ margin: '0 0 24px 0', fontSize: '20px', fontWeight: '600' }}>
               Add Revenue
             </h3>
             <label style={labelStyle}>Revenue Source *</label>
