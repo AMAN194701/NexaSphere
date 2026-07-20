@@ -458,12 +458,11 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
       id: 'volunteers',
       label: 'Contributors',
       show:
-        event.volunteers?.length > 0 ||
-        event.acknowledgements?.length > 0 ||
-        event.videoPresenter?.length > 0 ||
-        event.anchor,
+        (event.volunteers?.length > 0) ||
+        (event.acknowledgements?.length > 0) ||
+        (event.videoPresenter?.length > 0) ||
+        !!event.anchor,
     },
-
     { id: 'media', label: 'Media', show: true },
   ].filter((t) => t.show);
 
@@ -523,12 +522,12 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
               fontWeight: 600,
             }}
             onMouseEnter={(e) => {
-              e.target.style.background = `rgba(${rgb},0.12)`;
-              e.target.style.transform = 'translateX(-4px)';
+              e.currentTarget.style.background = `rgba(${rgb},0.12)`;
+              e.currentTarget.style.transform = 'translateX(-4px)';
             }}
             onMouseLeave={(e) => {
-              e.target.style.background = 'none';
-              e.target.style.transform = '';
+              e.currentTarget.style.background = 'none';
+              e.currentTarget.style.transform = '';
             }}
           >
             ← Back
@@ -849,12 +848,12 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
                           transition: 'all 0.2s',
                         }}
                         onMouseEnter={(e) => {
-                          e.target.style.background = `rgba(${rgb},0.18)`;
-                          e.target.style.transform = 'translateY(-2px)';
+                          e.currentTarget.style.background = `rgba(${rgb},0.18)`;
+                          e.currentTarget.style.transform = 'translateY(-2px)';
                         }}
                         onMouseLeave={(e) => {
-                          e.target.style.background = `rgba(${rgb},0.08)`;
-                          e.target.style.transform = '';
+                          e.currentTarget.style.background = `rgba(${rgb},0.08)`;
+                          e.currentTarget.style.transform = '';
                         }}
                       >
                         {tag}
