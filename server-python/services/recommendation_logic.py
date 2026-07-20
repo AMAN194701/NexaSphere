@@ -188,7 +188,7 @@ def get_recommendations(user_id, num_recommendations=5):
         
         target_idx_list = users_df.index[users_df['id'] == user_id].tolist()
         if target_idx_list: # Ensure target user is in the dataframe
-        try:
+            try:
             user_matrix = vectorizer.fit_transform(users_df['interests_str'].tolist())
             target_user_vector = user_matrix[target_idx]
             user_similarities = cosine_similarity(target_user_vector, user_matrix).flatten()
