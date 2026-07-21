@@ -3,6 +3,9 @@
 
 import crypto from 'crypto';
 import { sendSuccess, sendError } from '../utils/responseHelper.js';
+import { generateQrCodeImageBuffer, buildVerificationUrl } from '../services/certificates/qrGenerator.js';
+import { renderCertificatePdf } from '../services/certificates/certificatePdfGenerator.js';
+import { uploadCertificatePdfToS3, uploadQrCodeToS3 } from '../services/certificates/s3Storage.js';
 
 // --- Helpers ---
 function buildCertificateCode({ userId, eventId }) {
@@ -82,7 +85,6 @@ export async function getCertificateVerificationShare(req, res) {
 
 // Admin issuance trigger (placeholder)
 export async function issueCertificates(req, res) {
-  // Expected input: { eventId, attendeeIds: [...] , expirationDays? }
   const body = req.body || {};
   const eventId = body.eventId;
   const attendeeIds = Array.isArray(body.attendeeIds) ? body.attendeeIds : [];
@@ -91,16 +93,30 @@ export async function issueCertificates(req, res) {
     return sendError(req, res, 'eventId and attendeeIds[] are required', 400, 'VALIDATION_ERROR');
   }
 
-  // TODO: generate PDF/QR/badge and persist
-  const issued = attendeeIds.map((userId) => {
-    const code = buildCertificateCode({ userId, eventId });
-    return {
-      userId,
-      eventId,
-      code,
-      status: 'ISSUED',
-    };
-  });
+  try {
+    const issued = [];
+    for (const userId of attendeeIds) {
+      const code = buildCertificateCode({ userId, eventId });
 
-  return sendSuccess(res, { issued });
+      const verifyUrl = buildVerificationUrl({ code });
+      const qrBuffer = await generateQrCodeImageBuffer({ url: verifyUrl });
+      const pdfBuffer = await renderCertificatePdf({ variables: { code, verifyUrl } });
+
+      const qrUpload = await uploadQrCodeToS3({ buffer: qrBuffer, key: `certificates/qr-${code}.png` });
+      const pdfUpload = await uploadCertificatePdfToS3({ buffer: pdfBuffer, key: `certificates/${code}.pdf` });
+
+      // Note: Full persistence is handled in Issue 3770 PR.
+      issued.push({
+        userId,
+        eventId,
+        code,
+        status: 'ISSUED',
+        qrUrl: qrUpload.url || qrUpload.key,
+        pdfUrl: pdfUpload.url || pdfUpload.key,
+      });
+    }
+    return sendSuccess(res, { issued });
+  } catch (error) {
+    return sendError(req, res, 'Failed to issue certificates', 500);
+  }
 }
