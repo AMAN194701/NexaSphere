@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Skeleton } from '../../components/Skeleton';
 import { events as fallbackEvents } from '../../data/eventsData';
 import { BannerOrbs } from '../../shared/MotionLayer';
@@ -14,6 +14,7 @@ export default function EventsPage({ onBack, onEventClick, events = fallbackEven
   const [recommendationView, setRecommendationView] = useState(false);
   const [scheduleView, setScheduleView] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   useEffect(() => {
     const t = setTimeout(() => setIsLoading(false), 1200);
     return () => clearTimeout(t);
@@ -22,6 +23,23 @@ export default function EventsPage({ onBack, onEventClick, events = fallbackEven
   const sortedEvents = [...events].sort((a, b) => {
     return new Date(a.date) - new Date(b.date);
   });
+
+  const filteredEvents = useMemo(() => {
+    if (!searchQuery.trim()) return sortedEvents;
+    const q = searchQuery.toLowerCase().trim();
+    return sortedEvents.filter((ev) => {
+      const fields = [
+        ev.name,
+        ev.shortName,
+        ev.category,
+        ev.location,
+        ev.description,
+        ev.organizer,
+        ...(ev.tags || []),
+      ];
+      return fields.some((f) => f && f.toLowerCase().includes(q));
+    });
+  }, [sortedEvents, searchQuery]);
 
   useIntersectionObserver(
     '#events-page .pop-in, #events-page .pop-left, #events-page .pop-right, #events-page .pop-word',
@@ -240,7 +258,92 @@ export default function EventsPage({ onBack, onEventClick, events = fallbackEven
         ) : recommendationView ? (
           <PersonalizedFeed events={sortedEvents} onEventClick={onEventClick} />
         ) : view === 'timeline' ? (
-          <div className="events-timeline ns-reveal">
+          <>
+            {/* Search Bar */}
+            <div
+              style={{
+                maxWidth: '520px',
+                margin: '0 auto 40px',
+                position: 'relative',
+                zIndex: 2,
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  background: 'var(--card)',
+                  border: '1px solid var(--bdr)',
+                  borderRadius: '100px',
+                  padding: '8px 20px',
+                  transition: 'all 0.25s ease',
+                  boxShadow: searchQuery.trim()
+                    ? '0 0 0 1px var(--c1b), 0 4px 20px rgba(168,85,247,.1)'
+                    : 'none',
+                }}
+              >
+                <DynamicIcon name="Search" size={18} style={{ color: 'var(--t3)', flexShrink: 0 }} />
+                <input
+                  type="text"
+                  placeholder="Search events by title, category, location..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{
+                    flex: 1,
+                    background: 'transparent',
+                    border: 'none',
+                    outline: 'none',
+                    color: 'var(--t1)',
+                    fontSize: '0.9rem',
+                    fontFamily: "'Rajdhani', sans-serif",
+                    fontWeight: 500,
+                    minWidth: 0,
+                  }}
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--t3)',
+                      cursor: 'pointer',
+                      padding: '4px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      borderRadius: '50%',
+                      transition: 'color 0.2s ease',
+                      flexShrink: 0,
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--t1)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--t3)')}
+                    aria-label="Clear search"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+              {searchQuery.trim() && (
+                <div
+                  style={{
+                    textAlign: 'center',
+                    marginTop: '10px',
+                    fontSize: '0.82rem',
+                    color: 'var(--t3)',
+                    fontFamily: "'Rajdhani', sans-serif",
+                  }}
+                >
+                  Found {filteredEvents.length} {filteredEvents.length === 1 ? 'event' : 'events'}
+                  {searchQuery.trim() ? ` matching "${searchQuery.trim()}"` : ''}
+                </div>
+              )}
+            </div>
+
+            <div className="events-timeline ns-reveal">
             {isLoading
               ? Array.from({ length: 5 }).map((_, i) => (
                   <div className="timeline-item" key={i}>
@@ -253,7 +356,35 @@ export default function EventsPage({ onBack, onEventClick, events = fallbackEven
                     </div>
                   </div>
                 ))
-              : sortedEvents.map((ev, i) => {
+              : filteredEvents.length === 0 ? (
+                <div className="timeline-item" style={{ justifyContent: 'center' }}>
+                  <div
+                    className="timeline-card pop-in"
+                    style={{
+                      textAlign: 'center',
+                      color: 'var(--t3)',
+                      width: '100%',
+                      maxWidth: '400px',
+                      margin: '0 auto',
+                    }}
+                  >
+                    <div style={{ fontSize: '2.5rem', marginBottom: '12px', opacity: 0.4 }}>
+                      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--c1)' }}>
+                        <circle cx="11" cy="11" r="8" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                        <line x1="8" y1="11" x2="14" y2="11" />
+                      </svg>
+                    </div>
+                    <p style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--t2)', marginBottom: '6px' }}>
+                      No events found
+                    </p>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--t3)' }}>
+                      Try adjusting your search query or clear the search to see all events.
+                    </p>
+                  </div>
+                </div>
+              )
+              : filteredEvents.map((ev, i) => {
                   const hasDetailPage = !!ev.hasDetailPage;
                   return (
                     <div className="timeline-item" key={ev.id}>
@@ -401,7 +532,8 @@ export default function EventsPage({ onBack, onEventClick, events = fallbackEven
                 </p>
               </div>
             </div>
-          </div>
+            </div>
+          </>
         ) : (
           <EventCalendarView events={events} onEventClick={onEventClick} />
         )}
