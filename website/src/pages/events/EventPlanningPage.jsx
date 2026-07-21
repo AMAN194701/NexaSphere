@@ -41,6 +41,7 @@ export default function EventPlanningPage({ event, onBack }) {
   const [showForm, setShowForm] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [commentText, setCommentText] = useState('');
+  const [error, setError] = useState(null);
 
   const eventId = event?.id || event?.eventId;
 
@@ -52,7 +53,11 @@ export default function EventPlanningPage({ event, onBack }) {
       try {
         const data = await apiClient(url);
         setPlan(data);
-      } catch {}
+        setError(null);
+      } catch (err) {
+        console.error('Failed to fetch event plan:', err);
+        setError(err.message || 'Failed to load event plan. Please try again.');
+      }
     }
     setLoading(false);
   }, [eventId]);
@@ -160,6 +165,16 @@ export default function EventPlanningPage({ event, onBack }) {
       <div className="page-loading">
         <div className="spinner" />
         <p>Loading event plan...</p>
+      </div>
+    );
+
+  if (error)
+    return (
+      <div style={{ padding: '40px 24px', textAlign: 'center', color: 'var(--danger, red)' }}>
+        <p style={{ marginBottom: 16 }}>{error}</p>
+        <button onClick={fetchPlan} className="btn-primary">
+          Retry
+        </button>
       </div>
     );
 
