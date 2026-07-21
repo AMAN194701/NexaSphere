@@ -1,3 +1,4 @@
+import logger from './logger.js';
 /**
  * Background Sync Manager for NexaSphere
  * ========================================
@@ -145,7 +146,7 @@ async function runSync() {
   _pendingSync = false;
 
   emit('nexasphere:sync-start');
-  console.log(`[SyncManager] Starting sync — ${queue.length} request(s) queued.`);
+  logger.info(`[SyncManager] Starting sync — ${queue.length} request(s) queued.`);
 
   let synced = 0;
   let failed = 0;
@@ -172,7 +173,7 @@ async function runSync() {
       if (success) {
         await removeFromQueue(id);
         synced++;
-        console.log(`[SyncManager] ✓ Synced: ${method} ${url}`);
+        logger.info(`[SyncManager] ✓ Synced: ${method} ${url}`);
       } else if (shouldRetry && retryCount < MAX_RETRIES) {
         await updateRetryCount(id, retryCount + 1);
         console.warn(
@@ -205,7 +206,7 @@ async function runSync() {
   isSyncing = false;
 
   emit('nexasphere:sync-complete', { synced, failed });
-  console.log(`[SyncManager] Sync complete — ${synced} synced, ${failed} failed.`);
+  logger.info(`[SyncManager] Sync complete — ${synced} synced, ${failed} failed.`);
 
   // Handle queued sync request that arrived during this run
   if (_pendingSync) {
@@ -225,7 +226,7 @@ async function tryRegisterSWSync() {
     const registration = await navigator.serviceWorker.ready;
     if ('sync' in registration) {
       await registration.sync.register('ns-bg-sync');
-      console.log('[SyncManager] SW Background Sync registered.');
+      logger.info('[SyncManager] SW Background Sync registered.');
     }
   } catch (err) {
     console.warn(
@@ -238,7 +239,7 @@ async function tryRegisterSWSync() {
 // ── Online event handler ──────────────────────────────────────────────────────
 
 function handleOnline() {
-  console.log('[SyncManager] Connection restored — triggering sync.');
+  logger.info('[SyncManager] Connection restored — triggering sync.');
   tryRegisterSWSync(); // attempt SW sync first
   runSync(); // also trigger app-level sync immediately
 }
@@ -259,7 +260,7 @@ export function initSyncManager() {
   if (navigator.onLine) {
     getQueue().then((queue) => {
       if (queue.length > 0) {
-        console.log(`[SyncManager] Found ${queue.length} queued request(s) on startup — syncing.`);
+        logger.info(`[SyncManager] Found ${queue.length} queued request(s) on startup — syncing.`);
         runSync();
       }
     });
@@ -274,7 +275,7 @@ export function initSyncManager() {
     });
   }
 
-  console.log('[SyncManager] Initialized.');
+  logger.info('[SyncManager] Initialized.');
 }
 
 /**
@@ -284,7 +285,7 @@ export function triggerSync() {
   if (navigator.onLine) {
     runSync();
   } else {
-    console.log('[SyncManager] triggerSync called but offline — skipping.');
+    logger.info('[SyncManager] triggerSync called but offline — skipping.');
   }
 }
 

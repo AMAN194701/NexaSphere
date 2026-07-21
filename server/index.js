@@ -1,3 +1,4 @@
+import logger from './utils/logger.js';
 import { getRedisClient } from './utils/redis.js';
 import 'dotenv/config';
 ﻿import 'dotenv/config';
@@ -516,7 +517,7 @@ app.use((req, res, next) => {
   if (req.session && !req.session.created_at) {
     req.session.created_at = Date.now();
     req.session.ip = req.ip || req.connection?.remoteAddress || 'unknown';
-    console.log('[Session] New session created:', req.sessionID, 'IP:', req.session.ip);
+    logger.info('[Session] New session created:', req.sessionID, 'IP:', req.session.ip);
   } else if (
     req.session &&
     req.session.ip &&
@@ -533,7 +534,7 @@ app.use((req, res, next) => {
   if (req.session) {
     const now = Date.now();
     if (req.session.lastActive && now - req.session.lastActive > 30 * 60 * 1000) {
-      console.log('[Session] Destroying idle session:', req.sessionID);
+      logger.info('[Session] Destroying idle session:', req.sessionID);
       req.session.destroy((err) => {
         if (err) console.error('[Session] Error destroying idle session:', err);
         return res.status(401).json({ error: 'Session expired due to inactivity' });
@@ -1816,7 +1817,7 @@ app.post('/api/notifications/analytics', async (req, res) => {
   try {
     const event = req.body || {};
     // Minimal validation â€” in future route can forward to analytics pipeline
-    console.log('[notification-analytics]', event.type || 'unknown', event);
+    logger.info('[notification-analytics]', event.type || 'unknown', event);
     return sendSuccess(res, { ok: true });
   } catch (err) {
     return sendError(req, res, err.message, 500, 'INTERNAL_ERROR');
@@ -2068,7 +2069,7 @@ if (process.env.NODE_ENV !== 'test') {
       }
       slackIntegrationService.init();
       server = app.listen(port, () => {
-        console.log(`NexaSphere server listening on http://localhost:${port}`);
+        logger.info(`NexaSphere server listening on http://localhost:${port}`);
         schedulerService.init();
 
         // Register Learning Path Nudges (Runs daily)
@@ -2085,7 +2086,7 @@ if (process.env.NODE_ENV !== 'test') {
     loadPersistedPushSubscriptions();
     slackIntegrationService.init();
     server = app.listen(port, () => {
-      console.log(`NexaSphere server listening on http://localhost:${port}`);
+      logger.info(`NexaSphere server listening on http://localhost:${port}`);
       schedulerService.init();
       initScheduler();
       startWebhookRetryProcessor();

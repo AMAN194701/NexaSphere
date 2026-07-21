@@ -1,3 +1,4 @@
+import logger from '../utils/logger.js';
 import { io, Socket } from 'socket.io-client';
 
 /** Type-safe listener signature matching Socket.IO's internal contract. */
@@ -17,13 +18,13 @@ export const initializeSocket = (
   if (!socketInstance || (connectionUrl && connectionUrl !== url)) {
     if (socketInstance) {
       if (import.meta.env.DEV) {
-        console.log(`[Socket.IO] Disconnecting existing socket due to URL change.`);
+        logger.info(`[Socket.IO] Disconnecting existing socket due to URL change.`);
       }
       socketInstance.disconnect();
     }
 
     if (import.meta.env.DEV) {
-      console.log(`[Socket.IO] Initializing new socket connection to: ${url}`);
+      logger.info(`[Socket.IO] Initializing new socket connection to: ${url}`);
     }
     connectionUrl = url;
 
@@ -39,13 +40,13 @@ export const initializeSocket = (
 
     socketInstance.on('connect', () => {
       if (import.meta.env.DEV) {
-        console.log(`[Socket.IO] Connected with ID: ${socketInstance?.id}`);
+        logger.info(`[Socket.IO] Connected with ID: ${socketInstance?.id}`);
       }
     });
 
     socketInstance.on('disconnect', (reason) => {
       if (import.meta.env.DEV) {
-        console.log(`[Socket.IO] Disconnected. Reason: ${reason}`);
+        logger.info(`[Socket.IO] Disconnected. Reason: ${reason}`);
       }
     });
 
@@ -62,7 +63,7 @@ export const initializeSocket = (
       const originalOn = socketInstance.on.bind(socketInstance);
       socketInstance.on = (event: string, listener: SocketListener) => {
         if (event !== 'connect' && event !== 'disconnect') {
-          console.log(`[Socket.IO] Listener registered for event: ${event}`);
+          logger.info(`[Socket.IO] Listener registered for event: ${event}`);
         }
         return originalOn(event, listener);
       };
@@ -70,7 +71,7 @@ export const initializeSocket = (
       const originalOff = socketInstance.off.bind(socketInstance);
       socketInstance.off = (event: string, listener?: SocketListener) => {
         if (event !== 'connect' && event !== 'disconnect') {
-          console.log(`[Socket.IO] Listener removed for event: ${event}`);
+          logger.info(`[Socket.IO] Listener removed for event: ${event}`);
         }
         return originalOff(event, listener);
       };
@@ -90,7 +91,7 @@ export const getSocket = (): Socket => {
 export const disconnectSocket = () => {
   if (socketInstance) {
     if (import.meta.env.DEV) {
-      console.log(`[Socket.IO] Manually destroying socket instance.`);
+      logger.info(`[Socket.IO] Manually destroying socket instance.`);
     }
     socketInstance.disconnect();
     socketInstance = null;
