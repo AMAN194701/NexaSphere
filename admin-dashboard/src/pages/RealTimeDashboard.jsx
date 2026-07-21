@@ -66,11 +66,9 @@ export default function RealTimeDashboard() {
       handleConnect();
     }
 
-    socket.on('connect', handleConnect);
+    const handleDisconnect = () => setConnected(false);
 
-    socket.on('disconnect', () => setConnected(false));
-
-    socket.on('analytics:metrics:current', (data) => {
+    const handleMetricsCurrent = (data) => {
       if (data?.metrics) {
         setStats({
           registrations: data.metrics.totalRegistrations || 0,
@@ -79,13 +77,13 @@ export default function RealTimeDashboard() {
         });
         if (data.metrics.eventData) setEventData(data.metrics.eventData);
       }
-    });
+    };
 
-    socket.on('analytics:trends:current', (data) => {
+    const handleTrendsCurrent = (data) => {
       if (data?.trends) setTrendData(data.trends);
-    });
+    };
 
-    socket.on('analytics:metrics:update', (data) => {
+    const handleMetricsUpdate = (data) => {
       if (data?.metrics) {
         setStats({
           registrations: data.metrics.totalRegistrations || 0,
@@ -93,9 +91,21 @@ export default function RealTimeDashboard() {
           checkIns: data.metrics.totalCheckIns || 0,
         });
       }
-    });
+    };
 
-    return () => socket.off();
+    socket.on('connect', handleConnect);
+    socket.on('disconnect', handleDisconnect);
+    socket.on('analytics:metrics:current', handleMetricsCurrent);
+    socket.on('analytics:trends:current', handleTrendsCurrent);
+    socket.on('analytics:metrics:update', handleMetricsUpdate);
+
+    return () => {
+      socket.off('connect', handleConnect);
+      socket.off('disconnect', handleDisconnect);
+      socket.off('analytics:metrics:current', handleMetricsCurrent);
+      socket.off('analytics:trends:current', handleTrendsCurrent);
+      socket.off('analytics:metrics:update', handleMetricsUpdate);
+    };
   }, []);
 
   const exportCSV = useCallback(() => {

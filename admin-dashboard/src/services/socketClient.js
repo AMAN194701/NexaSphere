@@ -68,3 +68,34 @@ export function broadcastContentUpdate(type) {
 export function getSocket() {
   return socket;
 }
+
+/**
+ * Register a socket event listener
+ */
+export function on(eventName, handler) {
+  if (socket) {
+    socket.on(eventName, handler);
+  }
+}
+
+/**
+ * Unregister a socket event listener
+ */
+export function off(eventName, handler) {
+  if (socket) {
+    if (handler) {
+      socket.off(eventName, handler);
+    } else {
+      socket.off(eventName);
+    }
+  }
+}
+
+/**
+ * Emit a socket event
+ */
+export function emit(eventName, data) {
+  if (socket) {
+    socket.emit(eventName, data);
+  }
+}
