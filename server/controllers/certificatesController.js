@@ -3,6 +3,9 @@
 
 import crypto from 'crypto';
 import { sendSuccess, sendError } from '../utils/responseHelper.js';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 // --- Helpers ---
 function buildCertificateCode({ userId, eventId }) {
@@ -19,28 +22,46 @@ function buildCertificateCode({ userId, eventId }) {
 export async function verifyCertificate(req, res) {
   const { code } = req.params;
 
-  // TODO: lookup certificate by code.
-  // Placeholder response shape per acceptance criteria.
-  return sendSuccess(res, {
-    certificate: {
-      code,
-      attendeeName: 'Demo Attendee',
-      eventName: 'Demo Workshop',
-      date: new Date().toISOString().slice(0, 10),
-      completionCriteria: 'Completed workshop requirements',
-      status: 'PENDING',
-      verified: false,
-      verifiedAt: null,
-      expiresAt: null,
-    },
-  });
+  try {
+    const certificate = await prisma.certificate.findUnique({
+      where: { code },
+      include: { user: true },
+    });
+
+    if (!certificate) {
+      return sendError(req, res, 'Certificate not found', 404, 'NOT_FOUND');
+    }
+
+    return sendSuccess(res, {
+      certificate: {
+        code: certificate.code,
+        attendeeName: certificate.attendeeName || certificate.user?.name,
+        eventName: certificate.eventName,
+        date: certificate.date.toISOString().slice(0, 10),
+        completionCriteria: certificate.completionCriteria,
+        status: certificate.status,
+        verified: certificate.verified,
+        verifiedAt: certificate.verifiedAt,
+        expiresAt: certificate.expiresAt,
+      },
+    });
+  } catch (error) {
+    return sendError(req, res, 'Error verifying certificate', 500, 'VERIFICATION_ERROR');
+  }
 }
 
 export async function getMyCertificates(req, res) {
-  // TODO: use req.studentUser / DB
-  return sendSuccess(res, {
-    certificates: [],
-  });
+  const userId = req.user?.id;
+  if (!userId) return sendError(req, res, 'Unauthorized', 401, 'UNAUTHORIZED');
+
+  try {
+    const certificates = await prisma.certificate.findMany({
+      where: { userId },
+    });
+    return sendSuccess(res, { certificates });
+  } catch (error) {
+    return sendError(req, res, 'Failed to fetch certificates', 500);
+  }
 }
 
 export async function downloadCertificatePdf(req, res) {
@@ -82,7 +103,6 @@ export async function getCertificateVerificationShare(req, res) {
 
 // Admin issuance trigger (placeholder)
 export async function issueCertificates(req, res) {
-  // Expected input: { eventId, attendeeIds: [...] , expirationDays? }
   const body = req.body || {};
   const eventId = body.eventId;
   const attendeeIds = Array.isArray(body.attendeeIds) ? body.attendeeIds : [];
@@ -91,16 +111,23 @@ export async function issueCertificates(req, res) {
     return sendError(req, res, 'eventId and attendeeIds[] are required', 400, 'VALIDATION_ERROR');
   }
 
-  // TODO: generate PDF/QR/badge and persist
-  const issued = attendeeIds.map((userId) => {
-    const code = buildCertificateCode({ userId, eventId });
-    return {
-      userId,
-      eventId,
-      code,
-      status: 'ISSUED',
-    };
-  });
+  try {
+    const issued = [];
+    for (const userId of attendeeIds) {
+      const code = buildCertificateCode({ userId, eventId });
 
-  return sendSuccess(res, { issued });
+      const cert = await prisma.certificate.create({
+        data: {
+          code,
+          userId,
+          eventId,
+          status: 'ISSUED',
+        },
+      });
+      issued.push(cert);
+    }
+    return sendSuccess(res, { issued });
+  } catch (error) {
+    return sendError(req, res, 'Failed to issue certificates', 500);
+  }
 }
