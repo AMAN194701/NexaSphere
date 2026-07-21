@@ -131,21 +131,7 @@ export default function SearchBar({ open, onClose, activities, events, onNavigat
     removeRecentSearch,
   } = useSearch(activities, events);
 
-  const [localQuery, setLocalQuery] = useState('');
-  const timeoutRef = useRef(null);
 
-  const handleInputChange = (e) => {
-    const val = e.target.value;
-    setLocalQuery(val);
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => {
-      setQuery(val);
-    }, 350);
-  };
-
-  useEffect(() => {
-    setLocalQuery(query);
-  }, [query]);
 
   useEffect(() => {
     if (open) {
@@ -154,7 +140,7 @@ export default function SearchBar({ open, onClose, activities, events, onNavigat
       return () => clearTimeout(t);
     }
     setFocusIdx(-1);
-  }, [open]);
+  }, [open, clearSearch]);
 
   useEffect(() => {
     setFocusIdx(-1);
@@ -170,7 +156,7 @@ export default function SearchBar({ open, onClose, activities, events, onNavigat
       onClose();
       clearSearch();
     },
-    [onNavigate, onEventClick, onClose, clearSearch, navigate]
+    [onNavigate, onEventClick, onClose, clearSearch, navigate, addRecentSearch, query]
   );
 
   useEffect(() => {
