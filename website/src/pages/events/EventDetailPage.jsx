@@ -951,7 +951,10 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
           const stored = JSON.parse(localStorage.getItem('ns_registrations') || '[]');
           stored.push(localTicket);
           localStorage.setItem('ns_registrations', JSON.stringify(stored.slice(-20)));
-        } catch {}
+        } catch (err) {
+          console.error('Failed to save ticket locally:', err);
+          setRegError('Warning: Could not save ticket to your device. Please take a screenshot.');
+        }
       }
     } catch (err) {
       if (err.message?.includes('waitlist')) {
