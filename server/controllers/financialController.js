@@ -162,7 +162,11 @@ export const exportReport = wrapAsync(async (req, res) => {
     return res.status(200).send(result);
   }
 
-  return sendSuccess(res, JSON.parse(result));
+  try {
+    return sendSuccess(res, JSON.parse(result));
+  } catch (error) {
+    return sendError(res, 500, 'Failed to parse report data as JSON');
+  }
 });
 
 export const getRevenueReport = wrapAsync(async (req, res) => {
