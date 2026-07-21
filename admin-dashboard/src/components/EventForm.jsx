@@ -2,6 +2,8 @@ import { useState, useCallback } from 'react';
 import { api } from '../services/api';
 import { AdminIcon } from './AdminIcon';
 import { useFocusTrap } from '../hooks/useFocusTrap';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
 const STATUSES = ['upcoming', 'ongoing', 'completed', 'cancelled'];
 
@@ -342,10 +344,19 @@ export function EventForm({ event, onClose }) {
 
           <div className="form-row">
             <label>Description</label>
-            <textarea
+            <ReactQuill
+              theme="snow"
               value={form.description || ''}
-              onChange={(e) => set('description', e.target.value)}
-              rows={4}
+              onChange={(val) => set('description', val)}
+              modules={{
+                toolbar: [
+                  ['bold', 'italic'],
+                  [{ list: 'ordered' }, { list: 'bullet' }],
+                  ['link'],
+                  ['clean'],
+                ],
+              }}
+              style={{ background: 'var(--bg)', color: 'var(--text)' }}
             />
           </div>
 

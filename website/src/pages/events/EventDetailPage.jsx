@@ -3,6 +3,7 @@ import { DynamicIcon } from '../../shared/Icons';
 import { getApiBase } from '../../utils/runtimeConfig';
 import apiClient from '../../utils/apiClient';
 import { downloadICS } from '../../utils/icsExport';
+import DOMPurify from 'dompurify';
 
 function hexToRgb(hex) {
   if (!hex || !hex.startsWith('#')) return '0,212,255';
@@ -1278,17 +1279,16 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
                     pointerEvents: 'none',
                   }}
                 />
-                <p
+                <div
+                  className="event-description-html"
                   style={{
                     color: 'var(--text-secondary)',
-                    lineHeight: 1.85,
-                    fontSize: '0.98rem',
+                    fontSize: '0.95rem',
+                    lineHeight: 1.8,
                     margin: 0,
-                    whiteSpace: 'pre-line',
                   }}
-                >
-                  <Typewriter text={overview} speed={6} />
-                </p>
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(overview) }}
+                />
               </div>
             </section>
           )}

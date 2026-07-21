@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { DynamicIcon } from '../../shared/Icons';
 import apiClient from '../../utils/apiClient.js';
+import DOMPurify from 'dompurify';
 import { getApiBase } from '../../utils/runtimeConfig';
 
 /* ── Animated counter ── */
@@ -206,16 +207,17 @@ function EventCard({ event, activityColor, onSelect }) {
           >
             <DynamicIcon name="Calendar" size={14} /> {event.dateText ?? event.date}
           </div>
-          <p
+          <div
+            className="event-description-html"
             style={{
               color: 'var(--text-secondary)',
-              fontSize: '0.88rem',
-              margin: '0 0 12px',
+              fontSize: '1rem',
               lineHeight: 1.6,
             }}
-          >
-            {event.tagline || event.description}
-          </p>
+            dangerouslySetInnerHTML={{
+              __html: DOMPurify.sanitize(event.tagline || event.description || ''),
+            }}
+          />
           {event.stats && (
             <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
               {event.stats.map((s) => (
@@ -328,15 +330,16 @@ function UpcomingCard({ event, color }) {
       >
         <DynamicIcon name="Calendar" size={14} /> {event.dateText ?? event.date}
       </div>
-      <p
+      <div
+        className="event-description-html"
         style={{
           color: 'var(--text-secondary)',
-          fontSize: '0.85rem',
+          fontSize: '0.92rem',
+          lineHeight: 1.6,
           margin: 0,
         }}
-      >
-        {event.description}
-      </p>
+        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(event.description || '') }}
+      />
     </div>
   );
 }
@@ -518,18 +521,19 @@ export default function ActivityDetailPage({ activity, onBack, onSelectEvent }) 
             >
               {activity.tagline}
             </div>
-            <p
+            <div
+              className="event-description-html"
               style={{
                 color: 'var(--text-secondary)',
-                maxWidth: '560px',
-                fontSize: '1.05rem',
-                lineHeight: 1.7,
+                fontSize: '0.98rem',
+                lineHeight: 1.65,
+                margin: 0,
                 opacity: mounted ? 1 : 0,
-                transition: 'opacity 0.7s 0.35s ease',
+                transform: mounted ? 'translateY(0)' : 'translateY(15px)',
+                transition: 'all 0.7s 0.35s ease',
               }}
-            >
-              {activity.description}
-            </p>
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(activity.description || '') }}
+            />
           </div>
         </div>
       </div>
