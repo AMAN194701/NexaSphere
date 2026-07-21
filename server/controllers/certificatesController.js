@@ -3,6 +3,7 @@
 
 import crypto from 'crypto';
 import { sendSuccess, sendError } from '../utils/responseHelper.js';
+import { buildBadgeAssertion } from '../services/certificates/openBadgesGenerator.js';
 
 // --- Helpers ---
 function buildCertificateCode({ userId, eventId }) {
@@ -49,16 +50,22 @@ export async function downloadCertificatePdf(req, res) {
 }
 
 export async function getOpenBadge(req, res) {
-  // TODO: return OpenBadges compliant JSON from stored badge assertion.
   const { id } = req.params;
+
+  const assertion = buildBadgeAssertion({
+    id,
+    badgeId: 'default-badge-class',
+    recipient: {
+      email: 'demo@example.com',
+      name: 'Demo Attendee',
+    },
+    verificationUrl: `${process.env.PUBLIC_APP_URL || ''}/certificates/verify/${id}`,
+    issuedOn: new Date().toISOString(),
+  });
+
   return sendSuccess(res, {
     id,
-    openBadges: {
-      '@context': 'https://w3.org/2018/credentials/v1',
-      type: 'OpenBadgeCredential',
-      badge: { name: 'Demo Badge' },
-      // assertion evidence TODO
-    },
+    openBadges: assertion,
   });
 }
 
