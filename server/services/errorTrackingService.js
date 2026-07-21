@@ -1,15 +1,10 @@
 import 'dotenv/config';
-import { validateEnvironment } from '../utils/envValidator.js';
-
-validateEnvironment();
-
-import helmet from 'helmet';
-import express from 'express';
 /**
  * Error Tracking Service
  * Manages error logging, tracking, and analysis
  */
 
+import crypto from 'crypto';
 import logger from '../utils/logger.js';
 import { captureMessage, addBreadcrumb } from '../utils/sentry.js';
 import securityPatchManager from '../utils/securityPatchManager.js';
@@ -20,15 +15,38 @@ const errorStore = {
   errors: [],
 };
 
+function getEnvironmentMetadata() {
+  return {
+    nodeVersion: process.version,
+    platform: process.platform,
+    arch: process.arch,
+    nodeEnv: process.env.NODE_ENV || 'unknown',
+  };
+}
+
+function generateErrorFingerprint(error, context = {}) {
+  const name = error?.name || 'Error';
+  const message = error?.message || 'Unknown error';
+  const endpoint = `${context.method || 'UNKNOWN'} ${context.url || 'unknown'}`;
+
+  return crypto
+    .createHash('sha1')
+    .update(`${name}:${message}:${endpoint}`)
+    .digest('hex');
+}
+
 /**
  * Log error with full context
  * @param {Error} error - Error object
  * @param {Object} context - Request context
  */
 async function logError(error, context = {}) {
+  const fingerprint = generateErrorFingerprint(error, context);
+  const environment = getEnvironmentMetadata();
   const errorData = {
     timestamp: new Date(),
     message: error.message,
+    fingerprint,
     status: context.status || 500,
     stack: error.stack,
     url: context.url,
@@ -39,6 +57,7 @@ async function logError(error, context = {}) {
     requestBody: sanitizeData(context.requestBody),
     queryParams: truncateData(context.queryParams, 512),
     headers: sanitizeHeaders(context.headers),
+    environment,
   };
 
   // Store error
@@ -61,12 +80,12 @@ async function logError(error, context = {}) {
   const endpoint = `${errorData.method} ${errorData.url}`;
 
   // Log to Winston (which now forwards to Sentry automatically)
-  logger.error(error.message || 'Error logged', { 
-    error, 
-    ...errorData, 
+  logger.error(error.message || 'Error logged', {
+    error,
+    ...errorData,
     userId: context.userId,
     requestPath: context.url,
-    tags: { status: errorData.status, endpoint } 
+    tags: { status: errorData.status, endpoint },
   });
 
   // Add breadcrumb
@@ -113,12 +132,33 @@ function getErrorStats() {
       errorCount: count,
     }));
 
+  const errorsByFingerprintMap = {};
+  for (const err of errorStore.errors) {
+    const key = err.fingerprint || `${err.method} ${err.url} ${err.message}`;
+    errorsByFingerprintMap[key] = errorsByFingerprintMap[key] || {
+      fingerprint: err.fingerprint || key,
+      message: err.message,
+      endpoint: `${err.method} ${err.url}`,
+      count: 0,
+      lastSeen: err.timestamp,
+    };
+    errorsByFingerprintMap[key].count += 1;
+    if (new Date(err.timestamp) > new Date(errorsByFingerprintMap[key].lastSeen)) {
+      errorsByFingerprintMap[key].lastSeen = err.timestamp;
+    }
+  }
+
+  const groupedErrors = Object.values(errorsByFingerprintMap)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
+
   return {
     total,
     lastHour,
     last24Hours,
     errorsByStatus,
     topEndpoints,
+    groupedErrors,
   };
 }
 

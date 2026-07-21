@@ -1,25 +1,29 @@
+import React, { Suspense } from 'react';
 import RateLimitMonitor from './pages/dashboard/RateLimitMonitor';
-import AuditLogViewer from './pages/dashboard/AuditLogViewer';
+const AuditLogViewer = React.lazy(() => import('./pages/dashboard/AuditLogViewer'));
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import { Sidebar } from './components/Sidebar';
 import { Toast } from './components/Toast';
 import { OfflineBanner } from './components/OfflineBanner';
+import { ImpersonationBanner } from './components/ImpersonationBanner';
 import ErrorBoundary from './components/ErrorBoundary';
 import { LoginPage } from './pages/LoginPage';
 import { UnauthorizedPage } from './pages/UnauthorizedPage';
-import { ComprehensiveAnalytics } from './pages/ComprehensiveAnalytics';
+const ComprehensiveAnalytics = React.lazy(() => import('./pages/ComprehensiveAnalytics').then(module => ({ default: module.ComprehensiveAnalytics })));
 import { FunnelAnalysis } from './pages/FunnelAnalysis';
 import { CustomEventTracking } from './pages/CustomEventTracking';
 import { ForumManager } from './pages/ForumManager';
 import { MentorshipManager } from './pages/MentorshipManager';
 import { DashboardHome } from './pages/DashboardHome';
-import { EventsManager } from './pages/EventsManager';
+const EventsManager = React.lazy(() => import('./pages/EventsManager').then(module => ({ default: module.EventsManager })));
 import { ActivityEventsManager } from './pages/ActivityEventsManager';
 import { ScheduledTasksManager } from './pages/ScheduledTasksManager';
 import UserGroups from './pages/UserGroups';
+
 import { CoreTeamManager } from './pages/CoreTeamManager';
 import { MembershipResponsesManager } from './pages/MembershipResponsesManager';
+import { SyncMonitor } from './pages/SyncMonitor';
 import { RecruitmentResponsesManager } from './pages/RecruitmentResponsesManager';
 import { CertificateManager } from './pages/CertificateManager';
 import { AnnouncementsManager } from './pages/AnnouncementsManager';
@@ -29,8 +33,15 @@ import { CircuitBreakerManager } from './pages/CircuitBreakerManager';
 import { WaitingRoomManager } from './pages/WaitingRoomManager';
 import { SponsorshipsManager } from './pages/SponsorshipsManager';
 import { UserSegmentation } from './pages/UserSegmentation';
-import './styles/admin.css';
+import PlatformSettings from './pages/dashboard/PlatformSettings';
+import { SsoInvitePage } from './pages/SsoInvitePage';
+import { ModerationManager } from './pages/ModerationManager';
+import { RBACManager } from './pages/RBACManager';
+import { BackupsManager } from './pages/BackupsManager';
+import { UserEngagementReport } from './pages/UserEngagementReport';
 
+import ScheduledReports from './pages/dashboard/ScheduledReports';
+import './styles/admin.css';
 function RequireAuth() {
   const { isLoading, isVerified } = useAuth();
 
@@ -56,10 +67,13 @@ function DashboardLayout() {
       <Sidebar />
       <main className="main-content" id="main-content">
         <ErrorBoundary>
-          <Outlet />
+          <Suspense fallback={<div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading module...</div>}>
+            <Outlet />
+          </Suspense>
         </ErrorBoundary>
       </main>
       <Toast />
+      <OnboardingTour />
     </div>
   );
 }
@@ -74,12 +88,15 @@ export default function App() {
           <Route element={<DashboardLayout />}>
             <Route path="/dashboard/settings" element={<PlatformSettings />} />
             <Route path="/dashboard" element={<DashboardHome />} />
+            <Route path="/dashboard/project-health" element={<ProjectHealthDashboard />} />
             <Route path="/dashboard/analytics" element={<ComprehensiveAnalytics />} />
-            <Route path="/dashboard/segments" element={<UserSegmentation />} />
+            <Route path="/dashboard/analytics/funnel" element={<FunnelAnalysis />} />
+            <Route path="/dashboard/analytics/custom-events" element={<CustomEventTracking />} />
             <Route path="/dashboard/events" element={<EventsManager />} />
             <Route path="/dashboard/activity-events" element={<ActivityEventsManager />} />
             <Route path="/dashboard/core-team" element={<CoreTeamManager />} />
             <Route path="/dashboard/membership" element={<MembershipResponsesManager />} />
+            <Route path="/dashboard/sync-monitor" element={<SyncMonitor />} />
             <Route path="/dashboard/recruitment" element={<RecruitmentResponsesManager />} />
             <Route path="/dashboard/certificates" element={<CertificateManager />} />
             <Route path="/dashboard/announcements" element={<AnnouncementsManager />} />
@@ -95,7 +112,6 @@ export default function App() {
             <Route path="/dashboard/sponsorships" element={<SponsorshipsManager />} />
             <Route path="/dashboard/audit-logs" element={<AuditLogViewer />} />
             <Route path="/dashboard/reports" element={<UserEngagementReport />} />
-            <Route path="/dashboard/scheduled-reports" element={<ScheduledReports />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />

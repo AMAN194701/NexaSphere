@@ -13,7 +13,7 @@ import notificationsService from './notificationsService.js';
 import { withDb } from '../repositories/db.js';
 import { HAS_SUPABASE } from '../storage/supabaseClient.js';
 import { backupService } from './backupService.js';
-import { segmentationService } from './segmentationService.js';
+import { sendEmail } from './emailService.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -196,6 +196,14 @@ const TASK_DEFINITIONS = [
     enabled: true,
   },
   {
+    id: 'evaluate-segments',
+    name: 'Evaluate Analytics Segments',
+    description: 'Periodically evaluate rules and assign users to segments',
+    cron: '0 */6 * * *', // Every 6 hours
+    category: 'analytics',
+    enabled: true,
+  },
+  {
     id: 'overdue-task-reminder',
     name: 'Overdue Task Reminder',
     description: 'Scans Kanban boards for overdue tasks and notifies assignees',
@@ -219,6 +227,7 @@ const TASK_DEFINITIONS = [
     category: 'email',
     enabled: true,
   },
+
 ];
 
 // ─── In-memory state ──────────────────────────────────────────────────────────
@@ -263,12 +272,21 @@ class SchedulerService extends EventEmitter {
     if (!next) return;
 
     task.nextRun = next;
-    const delay = next.getTime() - Date.now();
+    const MAX_DELAY = 2147483647; // max 32-bit signed int (~24.8 days)
+    const rawDelay = next.getTime() - Date.now();
+    const delay = Math.min(Math.max(rawDelay, 0), MAX_DELAY);
+    const needsRecheck = rawDelay > MAX_DELAY;
 
     const existing = this._timers.get(taskId);
     if (existing) clearTimeout(existing);
 
-    const handle = setTimeout(() => this._runTask(taskId), delay);
+    const handle = setTimeout(() => {
+      if (needsRecheck) {
+        this._scheduleNext(taskId);
+      } else {
+        this._runTask(taskId);
+      }
+    }, delay);
     // Allow the process to exit even if a timer is pending
     if (handle.unref) handle.unref();
     this._timers.set(taskId, handle);
@@ -340,9 +358,7 @@ class SchedulerService extends EventEmitter {
         break;
       case 'weekly-analytics-report':
         await this._generateWeeklyAnalyticsReport();
-        break;
-      case 'auto-user-segmentation':
-        await segmentationService.runAutoSegmentation();
+
         break;
       case 'inactive-user-check':
         await this._flagInactiveUsers();
@@ -352,6 +368,9 @@ class SchedulerService extends EventEmitter {
         break;
       case 'analytics-aggregation':
         await this._aggregateAnalytics();
+        break;
+      case 'evaluate-segments':
+        await this._evaluateSegments();
         break;
       case 'overdue-task-reminder':
         console.log('[SchedulerService] Processing overdue task notifications...');
@@ -363,9 +382,16 @@ class SchedulerService extends EventEmitter {
       case 'email-queue-processor':
         await this._processEmailQueue();
         break;
+
       default:
         throw new Error(`No implementation for task "${task.id}"`);
     }
+  }
+
+  async _evaluateSegments() {
+    logger.info('[Scheduler] Evaluating analytics segments');
+    const { analyticsService } = await import('./analyticsService.js');
+    await analyticsService.evaluateSegments();
   }
 
   async _sendEmailDigest() {
@@ -429,6 +455,31 @@ class SchedulerService extends EventEmitter {
 
   async _backupDatabase() {
     logger.info('[Scheduler] Starting database full backup');
+    if (!HAS_SUPABASE) {
+      logger.info('[Scheduler] No database configured, skipping backup');
+      return;
+    }
+    const tables = [
+      'events',
+      'student_users',
+      'core_team_members',
+      'resources',
+      'push_subscriptions',
+    ];
+    let totalRows = 0;
+    await withDb(async (client) => {
+      for (const table of tables) {
+        try {
+          const { rows } = await client.query(`SELECT COUNT(*) as count FROM ${table}`);
+          totalRows += parseInt(rows[0]?.count || '0', 10);
+        } catch {
+          logger.warn(`[Scheduler] Backup: table ${table} not found, skipping`);
+        }
+      }
+    });
+    logger.info(`[Scheduler] Backup summary: ${tables.length} tables, ${totalRows} total rows`);
+
+    // Run the actual daily backup service
     await backupService.runDailyBackup();
   }
 
@@ -627,6 +678,7 @@ class SchedulerService extends EventEmitter {
       throw err;
     }
   }
+
 
   // ── Public API ───────────────────────────────────────────────────────────────
 

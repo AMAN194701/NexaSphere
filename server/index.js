@@ -1,3 +1,5 @@
+import { getRedisClient } from './utils/redis.js';
+import 'dotenv/config';
 ﻿import 'dotenv/config';
 import { tracedFetch } from './config/appContext.js';
 import { initObservability } from './observability/index.js';
@@ -5,8 +7,11 @@ import { setTraceIdResolver } from './utils/logContext.js';
 import { getActiveTraceId } from './observability/tracing.js';
 import helmet from 'helmet';
 import express from 'express';
+import morgan from 'morgan';
 import cors from 'cors';
 import csrf from 'csurf';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './swagger.js';
 import fs, { promises as fsp } from 'fs';
 import { body, validationResult } from 'express-validator';
 import { EventEmitter } from 'events';
@@ -16,21 +21,50 @@ import { fileURLToPath } from 'url';
 import crypto from 'crypto';
 import { adminAuthMiddleware } from './middleware/adminAuthMiddleware.js';
 import analyticsRouter from './routes/analytics.js';
+import customEventsRouter from './routes/customEvents.js';
 import apiRouter from './routes/api.js';
+import formSubmissionsRouter from './routes/forms.js';
+import complianceRouter from './routes/compliance.js';
+import { createBullBoard } from '@bull-board/api';
+import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
+import { ExpressAdapter } from '@bull-board/express';
+import { eventRemindersQueue } from './services/queueService.js';
+import { slackIntegrationService } from './services/slackIntegrationService.js';
 import { initializeSocketIO } from './config/socket.js';
 import adminStreamRouter from './routes/adminStream.js';
+import faqRouter from './routes/faqRoutes.js';
 import documentationRouter from './routes/documentation.js';
 import monitoringRouter from './routes/monitoring.js';
 import healthRouter from './routes/health.js';
+import dashboardRouter from './routes/dashboard.js';
 import coreTeamRouter from './routes/coreTeam.js';
+import healthDashboardRouter from './routes/healthDashboard.js';
+import complianceRouter from './routes/compliance.js';
+import { logEvent } from './controllers/analyticsController.js';
+import { eventRemindersQueue } from './services/queueService.js';
+import { bulkOperationsQueue } from './services/bulkOperationsService.js';
+import { createBullBoard } from '@bull-board/api';
+import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
+import { ExpressAdapter } from '@bull-board/express';
 import segmentsRouter from './routes/segments.js';
 import formsRouter from './routes/forms.js';
 import portfolioRouter from './routes/portfolio.js';
 import recoveryRouter from './routes/recovery.js';
+import healthDashboardRouter from './routes/healthDashboard.js';
+import complianceRouter from './routes/compliance.js';
+import auditToolsRouter from './routes/auditTools.js';
+import certificatesRouter from './routes/certificates.js';
+import { logEvent } from './controllers/analyticsController.js';
+import { createBullBoard } from '@bull-board/api';
+import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
+import { ExpressAdapter } from '@bull-board/express';
+import { eventRemindersQueue } from './services/queueService.js';
+import './workers/reminderWorker.js';
 import portfolioExportRouter from './routes/portfolioExport.js';
 import userGroupsRouter from './routes/userGroups.js';
 import notificationsRouter from './routes/notifications.js';
 import adminRouter from './routes/admin.js';
+import projectHealthRouter from './routes/projectHealth.js';
 import portfolioAnalyticsRouter from './routes/portfolioAnalytics.js';
 import announcementsRouter from './routes/announcements.js';
 import bulkRouter from './routes/bulk.js';
@@ -39,11 +73,14 @@ import { performanceMonitor } from './middleware/performanceMonitor.js';
 import { enhancedTracingMiddleware } from './middleware/enhancedTracingMiddleware.js';
 import { apiLogger } from './middleware/apiLogger.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+import { intrusionDetectionMiddleware, abnormalRequestDetector } from './middleware/intrusionDetectionMiddleware.js';
 import { notificationAnalyticsRepository } from './repositories/notificationAnalyticsRepository.js';
 import { notificationPreferencesRepository } from './repositories/notificationPreferencesRepository.js';
 import notificationsService from './services/notificationsService.js';
 import { studentAuthService } from './services/studentAuthService.js';
+import { slackIntegrationService } from './services/slackIntegrationService.js';
 import { initializeSentry, addSentryErrorHandler } from './utils/sentry.js';
+import { recordCompressionRatio } from './observability/metrics.js';
 import {
   apiRateLimiter,
   formRateLimiter,
@@ -52,7 +89,6 @@ import {
   portfolioRateLimiter,
   searchRateLimiter,
   validateLimiters,
-  searchRateLimiter,
 } from './middleware/rateLimiter.js';
 import {
   authRateLimiter,
@@ -67,6 +103,7 @@ import { CircuitBreaker, circuitBreakerRegistry } from './utils/circuitBreaker.j
 import { getPublicAppUrl } from './utils/publicAppUrl.js';
 import * as eventsController from './controllers/eventsController.js';
 import './workers/bulkWorker.js';
+import './workers/waitlistWorker.js';
 import * as activityEventsController from './controllers/activityEventsController.js';
 import * as streamController from './controllers/streamController.js';
 import * as coreTeamController from './controllers/coreTeamController.js';
@@ -84,10 +121,10 @@ import { slackRepository } from './repositories/slackRepository.js';
 import * as studentAuthController from './controllers/studentAuthController.js';
 import * as forumController from './controllers/forumController.js';
 import { requireStudentAuth } from './middleware/studentAuthMiddleware.js';
-import { studentAuthService } from './services/studentAuthService.js';
 import { loadPersistedPushSubscriptions } from './routes/notifications.js';
 import * as mentorshipController from './controllers/mentorshipController.js';
 import { xssSanitizer } from './middleware/xssSanitizer.js';
+import { sqlInjectionGuard } from './middleware/sqlInjectionGuard.js';
 import { tierRateLimiter } from './middleware/tierRateLimiter.js';
 import { startWebhookRetryProcessor } from './services/webhookRetryProcessor.js';
 import { csrfProtection } from './middleware/csrfMiddleware.js';
@@ -103,6 +140,56 @@ import financialsRouter from './routes/financials.js';
 import { schedulerService } from './services/schedulerService.js';
 import feedbackRouter from './routes/feedbackRoutes.js';
 import * as slackController from './controllers/slackController.js';
+import activityTimelineRoutes from './routes/activityTimeline.js';
+app.use('/api/activity-timeline', activityTimelineRoutes);
+import advancedProfileRoutes from './routes/advancedProfile.js';
+
+import { initializeTypesenseCollections } from './config/typesense.js';
+
+import moderationRouter from './routes/moderation.js';
+import rbacRouter from './routes/rbac.js';
+import { startStreamingWorkers } from './streaming/startStreamingWorkers.js';
+import {
+  listEventsStore,
+  createEventStore,
+  updateEventStore,
+  deleteEventStore,
+  listActivityEventsStore,
+  createActivityEventStore,
+  deleteActivityEventStore,
+  listCoreTeamStore,
+  createCoreTeamStore,
+  deleteCoreTeamStore,
+  appendToSupabaseForms,
+  timingSafeStringEqual,
+  toSafeString,
+  validateWhatsApp,
+  validateSection,
+  sanitizeEvent,
+  normalizePhone,
+} from './repositories/contentStore.js';
+  checkPasskeyLockout,
+  recordFailedPasskeyAttempt,
+  clearPasskeyAttempts,
+} from './middleware/auth/passkeyLockout.js';
+  checkActivityAuthLockout,
+  recordFailedActivityAuth,
+  clearActivityAuthAttempts,
+  canManageActivityEvent,
+} from './middleware/auth/activityAuth.js';
+  requireNotificationPrefAuth,
+  requireMentorshipAuth,
+} from './middleware/auth/customAuth.js';
+  uploadWithMagicCheck,
+  validateMagicBytes,
+  UPLOADS_DIR,
+} from './middleware/uploadMiddleware.js';
+import circuitBreakerRouter from './routes/circuitBreaker.js';
+import { validate } from './middleware/validate.js';
+import * as indexSchemas from './validators/routes/indexSchemas.js';
+import { sendSuccess, sendError, sendNoContent } from './utils/responseHelper.js';
+import apiKeysRouter from './routes/apiKeys.js';
+import { apiKeysRepository } from './repositories/apiKeysRepository.js';
 
 validateLimiters();
 
@@ -111,8 +198,14 @@ const __dirname = path.dirname(__filename);
 const CONTENT_FILE = path.join(__dirname, 'data', 'content.json');
 
 validateEnvironment();
+initializeTypesenseCollections().catch((err) => {
+  console.error('Failed to initialize Typesense collections:', err);
+});
 
 function requiredStrongPassword(name) {
+  if (process.env.NODE_ENV === 'test') {
+    return process.env[name] || 'TestStrongPass123!';
+  }
   const value = String(process.env[name] || '').trim();
   if (!value) {
     throw new Error(`Missing environment variable: ${name}`);
@@ -130,13 +223,17 @@ function requiredStrongPassword(name) {
 }
 const ADMIN_EVENT_PASSWORD = requiredStrongPassword('ADMIN_EVENT_PASSWORD');
 const SESSION_SECRET = requiredStrongPassword('SESSION_SECRET');
+const ADMIN_PASSWORD = requiredStrongPassword('ADMIN_PASSWORD');
 
 const app = express();
 
+const useStructuredHttpLog = (process.env.LOG_FORMAT || '').toLowerCase() === 'json';
 // RECTIFIED: Enable 'trust proxy' to correctly extract client IPs from X-Forwarded-For headers when behind ALBs/Serverless layers
 app.set('trust proxy', 1);
 
 initializeSentry(app);
+app.use(compression());
+app.use('/api/notification-preferences', notificationPreferenceRoutes);
 
 // Use compression with fallback (Brotli supported by default in compression v1.8 if zlib supports it)
 // Skip compression for responses smaller than 1KB (1024 bytes)
@@ -145,6 +242,22 @@ app.use(
     threshold: 1024,
   })
 );
+
+app.use(
+  '/api-docs',
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, {
+    customSiteTitle: 'NexaSphere API Docs',
+    swaggerOptions: {
+      persistAuthorization: true,
+    },
+  })
+);
+
+app.get('/api-docs.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
 
 // Middleware to monitor compression ratio
 app.use((req, res, next) => {
@@ -183,7 +296,6 @@ app.use((req, res, next) => {
 
   next();
 });
-
 const corsOrigin =
   process.env.CORS_ORIGIN ||
   (process.env.NODE_ENV === 'test' ? 'http://localhost,http://127.0.0.1' : '');
@@ -228,16 +340,14 @@ app.use(
         : false,
 
     // ✅ FIXED: Strict Content Security Policy with ALL directives
+    // Strict Content Security Policy with ALL directives
     contentSecurityPolicy: {
       useDefaults: false,
 
       directives: {
         defaultSrc: ["'self'"],
-
         scriptSrc: ["'self'", 'https://challenges.cloudflare.com'],
-
         styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-
         imgSrc: [
           "'self'",
           'data:',
@@ -245,9 +355,7 @@ app.use(
           'https://api.dicebear.com',
           'https://images.unsplash.com',
         ],
-
         fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
-
         connectSrc: [
           "'self'",
           'https://challenges.cloudflare.com',
@@ -256,55 +364,44 @@ app.use(
           process.env.FRONTEND_URL || 'http://localhost:5173',
           `wss://${process.env.DOMAIN || 'localhost'}`,
         ],
-
         objectSrc: ["'none'"],
 
- feat/i18n-localization-1397
- feat/i18n-localization-1397
-
- fix/csp-helmet-config-1475
- main
         // ✅ CRITICAL FIX: Missing directives added below
-        baseUri: ["'self'"],                                    // Prevents <base> tag injection
-        frameAncestors: ["'none'"],                             // Prevents clickjacking
-        formAction: ["'self'"],                                 // Prevents form submission to external sites
-        workerSrc: ["'self'", 'blob:'],                         // Restricts web worker sources
-        manifestSrc: ["'self'"],                                // Restricts manifest sources
-        mediaSrc: ["'self'"],                                   // Restricts media sources
+        baseUri: ["'self'"], // Prevents <base> tag injection
+        frameAncestors: ["'none'"], // Prevents clickjacking
+        formAction: ["'self'"], // Prevents form submission to external sites
+        workerSrc: ["'self'", 'blob:'], // Restricts web worker sources
+        manifestSrc: ["'self'"], // Restricts manifest sources
+        mediaSrc: ["'self'"], // Restricts media sources
+
         frameSrc: ["'self'", 'https://challenges.cloudflare.com', 'https://maps.google.com'], // Restricts iframe sources
-        childSrc: ["'none'"],                                   // Restricts child browsing contexts
-        upgradeInsecureRequests: [],                            // Upgrades HTTP to HTTPS
-
+        childSrc: ["'none'"], // Restricts child browsing contexts
+        upgradeInsecureRequests: [], // Upgrades HTTP to HTTPS
         baseUri: ["'self'"],
-
         frameAncestors: ["'none'"],
-
         formAction: ["'self'"],
-
         upgradeInsecureRequests: [],
-
         workerSrc: ["'self'", 'blob:'],
-
         manifestSrc: ["'self'"],
-
         mediaSrc: ["'self'"],
-
-        frameSrc: ["'self'", 'https://challenges.cloudflare.com', 'https://maps.google.com'],
-
+        frameSrc: [
+          "'self'",
+          'https://challenges.cloudflare.com',
+          'https://maps.google.com',
+          'https://www.google.com',
+          'https://www.google.co.in',
+        ],
         childSrc: ["'none'"],
- main
-
+        frameSrc: ["'self'", 'https://challenges.cloudflare.com', 'https://maps.google.com'],
         reportUri: '/api/v1/csp-violation',
       },
     },
 
     // Safer cross-origin behavior
     crossOriginEmbedderPolicy: false,
-
     crossOriginOpenerPolicy: {
       policy: 'same-origin',
     },
-
     crossOriginResourcePolicy: {
       policy: 'same-origin',
     },
@@ -328,18 +425,28 @@ app.use(
     },
   })
 );
- feat/i18n-localization-1397
- feat/i18n-localization-1397
-
- fix/csp-helmet-config-1475
- main
-
+app.use(intrusionDetectionMiddleware);
+app.use(abnormalRequestDetector);
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (origin && allowedOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.includes(origin)) {
         return callback(null, true);
+      }
+      if (process.env.NODE_ENV === 'test') {
+        try {
+          const url = new URL(origin);
+          if (
+            url.hostname === 'localhost' ||
+            url.hostname === '127.0.0.1' ||
+            url.hostname === '[::1]' ||
+            url.hostname === '::1'
+          ) {
+            return callback(null, true);
+          }
+        } catch {}
+      if (origin && allowedOrigins.includes(origin)) {
       }
       if (process.env.NODE_ENV === 'test') {
         try {
@@ -364,7 +471,7 @@ app.use(
     maxAge: 86400,
   })
 );
- main
+
 app.options('*', cors());
 
 app.use(enhancedTracingMiddleware);
@@ -372,15 +479,66 @@ app.use(enhancedTracingMiddleware);
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(xssSanitizer);
-if (useStructuredHttpLog) {
-  app.use(apiLogger);
-} else {
+app.use(sqlInjectionGuard);
+if (!useStructuredHttpLog) {
   app.use(morgan('combined'));
 }
 app.use(apiLogger);
 app.use(performanceMonitor);
 app.use(cookieParser());
 
+// Verify Redis URL protocol in production
+const redisSessionUrl = process.env.REDIS_URL || '';
+if (process.env.NODE_ENV === 'production' && !redisSessionUrl.startsWith('rediss://')) {
+  console.warn('Security Warning: Redis URL should use rediss:// for TLS in production.');
+}
+// Reuse the existing getRedisClient if possible, else create a new one
+let sessionClient = getRedisClient();
+if (!sessionClient) {
+  sessionClient = new Redis(redisSessionUrl);
+app.use(
+  session({
+    store: new RedisStore({ client: sessionClient, prefix: 'session:express:' }),
+    secret: SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    name: 'ns_session',
+    cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+      sameSite: 'strict',
+      maxAge: process.env.NODE_ENV === 'production' ? 8 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000,
+    },
+  })
+);
+// Session logging middleware
+app.use((req, res, next) => {
+  if (req.session && !req.session.created_at) {
+    req.session.created_at = Date.now();
+    req.session.ip = req.ip || req.connection?.remoteAddress || 'unknown';
+    console.log('[Session] New session created:', req.sessionID, 'IP:', req.session.ip);
+  } else if (
+    req.session &&
+    req.session.ip &&
+    req.session.ip !== (req.ip || req.connection?.remoteAddress)
+  ) {
+    console.warn(
+      '[Session] Suspicious activity: Session accessed from different IP. Original:',
+      req.session.ip,
+      'New:',
+      req.ip || req.connection?.remoteAddress
+  next();
+});
+// Idle timeout middleware (30 mins)
+  if (req.session) {
+    const now = Date.now();
+    if (req.session.lastActive && now - req.session.lastActive > 30 * 60 * 1000) {
+      console.log('[Session] Destroying idle session:', req.sessionID);
+      req.session.destroy((err) => {
+        if (err) console.error('[Session] Error destroying idle session:', err);
+        return res.status(401).json({ error: 'Session expired due to inactivity' });
+      return;
+    req.session.lastActive = now;
 // Track app activity for smart notification frequency adjustment
 app.use((req, res, next) => {
   if (req.studentUser || req.adminSession) {
@@ -397,21 +555,34 @@ app.use(csrfProtection);
 app.use('/api', apiRateLimiter);
 app.use('/api', tierRateLimiter());
 
+// Read-only guard — blocks non-GET requests when system is in maintenance mode
+app.use(readOnlyGuard);
+// CSRF protection — double-submit cookie pattern for all state-changing endpoints
+// Global API rate limiter — protects all /api routes from request flooding
 // Mount route modules
-app.use('/api/form-submissions', formSubmissionsRouter);
+app.post('/api/analytics/track', validate(indexSchemas.analyticsTrackSchema), logEvent);
 app.post('/api/analytics/track', logEvent);
+// Advanced user profile endpoints
+app.use('/', advancedProfileRoutes);
 app.use('/api/monitoring', monitoringRouter);
+
 app.use('/api/health-dashboard', healthDashboardRouter);
 app.use('/api', documentationRouter);
+app.use('/', dashboardRouter);
 app.use('/', apiRouter);
 app.use('/', healthRouter);
 app.use('/', coreTeamRouter);
+app.use('/', announcementsRouter);
 app.use('/api', formsRouter);
 app.use('/api', portfolioAnalyticsRouter);
 app.use('/api', portfolioRouter);
 app.use('/api', recoveryRouter);
+app.use('/api/faqs', faqRouter);
+app.use('/api', userGroupsRouter);
+app.use('/api', notificationsRouter);
 app.use('/', notificationsRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/admin', projectHealthRouter);
 app.use('/api', learningPathRouter);
 app.use('/', syncRouter);
 app.use('/api/feedback', feedbackRouter);
@@ -427,13 +598,37 @@ app.use('/api/admin/scheduled-tasks', adminAuth, scheduledTasksRouter);
 
 // User Segments
 app.use('/api/admin/segments', adminAuth, segmentsRouter);
+app.use('/api/admin/email-templates', adminAuth, emailTemplateRouter);
 
+// Content Moderation
+app.use('/api/moderation', adminAuth, moderationRouter);
+
+// Role-Based Access Control
+app.use('/api/admin/rbac', adminAuth, rbacRouter);
 // Database Backup & Recovery Endpoints
 app.get('/api/admin/backups', adminAuth, backupController.getBackups);
-app.post('/api/admin/backups/manual', adminAuth, backupController.runManualBackup);
-app.post('/api/admin/backups/restore', adminAuth, backupController.runRestore);
+app.post(
+  '/api/admin/backups/manual',
+  validate(indexSchemas.manualBackupSchema),
+  adminAuth,
+  backupController.runManualBackup
+);
+app.post(
+  '/api/admin/backups/restore',
+  validate(indexSchemas.restoreBackupSchema),
+  adminAuth,
+  backupController.runRestore
+);
 app.get('/api/admin/backups/restore-test-history', adminAuth, backupController.getRestoreHistory);
-app.delete('/api/admin/backups', adminAuth, backupController.deleteBackup);
+app.delete(
+  '/api/admin/backups',
+  validate(indexSchemas.deleteBackupSchema),
+  adminAuth,
+  backupController.deleteBackup
+);
+
+// API Key Management
+app.use(apiKeysRouter);
 
 const defaultContent = {
   events: [
@@ -453,27 +648,6 @@ const defaultContent = {
   activityEvents: {},
   coreTeam: [],
 };
-
-function requiredStrongPassword(name) {
-  const value = String(process.env[name] || '').trim();
-  if (!value) {
-    throw new Error(`Missing environment variable: ${name}`);
-  }
-  const hasLower = /[a-z]/.test(value);
-  const hasUpper = /[A-Z]/.test(value);
-  const hasNumber = /\d/.test(value);
-  const hasSymbol = /[^A-Za-z0-9]/.test(value);
-
-  if (value.length < 12 || !hasLower || !hasUpper || !hasNumber || !hasSymbol) {
-    throw new Error(
-      `${name} must be at least 12 characters and include uppercase, lowercase, number, and symbol`
-    );
-  }
-
-  return value;
-}
-
-const ADMIN_EVENT_PASSWORD = requiredStrongPassword('ADMIN_EVENT_PASSWORD');
 
 // â”€â”€ File Upload Configuration â”€â”€
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
@@ -548,33 +722,48 @@ const uploadWithMagicCheck = (req, res, next) => {
   upload.single('file')(req, res, (err) => {
     if (err) {
       if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
-        return res.status(413).json({ error: 'File too large. Maximum size is 10MB.' });
+        return sendError(req, res, 'File too large. Maximum size is 10MB.', 413, 'INTERNAL_ERROR');
       }
-      return res.status(400).json({ error: err.message });
+      return sendError(req, res, err.message, 400, 'VALIDATION_ERROR');
     }
     if (req.file && !validateMagicBytes(req.file.path, req.file.mimetype)) {
       fs.unlink(req.file.path, () => {});
-      return res.status(400).json({ error: 'File content does not match its declared type.' });
+      return sendError(
+        req,
+        res,
+        'File content does not match its declared type.',
+        400,
+        'VALIDATION_ERROR'
+      );
     }
     next();
   });
 };
 
 // Serve uploaded files statically
+function requiredStrongPassword(name) {
+  const value = String(process.env[name] || '').trim();
+  if (!value) {
+    throw new Error(`Missing environment variable: ${name}`);
+  const hasLower = /[a-z]/.test(value);
+  const hasUpper = /[A-Z]/.test(value);
+  const hasNumber = /\d/.test(value);
+  const hasSymbol = /[^A-Za-z0-9]/.test(value);
+  if (value.length < 12 || !hasLower || !hasUpper || !hasNumber || !hasSymbol) {
+    throw new Error(
+      `${name} must be at least 12 characters and include uppercase, lowercase, number, and symbol`
+    );
+  return value;
+const ADMIN_EVENT_PASSWORD = requiredStrongPassword('ADMIN_EVENT_PASSWORD');
+const SESSION_SECRET = requiredStrongPassword('SESSION_SECRET');
+// ── File Upload Configuration ──
 app.use('/uploads', express.static(UPLOADS_DIR));
 
-getPublicAppUrl();
+// Compliance & Legal Documents (handles both public and admin routes internally)
+app.use('/api/compliance', complianceRouter);
 
-async function ensureContentFile() {
-  const dir = path.dirname(CONTENT_FILE);
-  await fsp.mkdir(dir, { recursive: true });
-  try {
-    await fsp.access(CONTENT_FILE);
-  } catch {
-    await fsp.writeFile(CONTENT_FILE, JSON.stringify(defaultContent, null, 2), 'utf8');
-  }
-}
-const fileMutex = new Mutex();
+// Compliance & Accessibility Audit Tools (#1801)
+app.use('/api', auditToolsRouter);
 
 export async function runWithFileLock(callback) {
   return await fileMutex.runExclusive(callback);
@@ -1217,14 +1406,28 @@ function recordFailedActivityAuth(ip) {
 function clearActivityAuthAttempts(ip) {
   failedActivityAuthAttempts.delete(ip);
 }
+// Event Certification & Digital Badges (#1787)
+app.use('/api', certificatesRouter);
 
 // Compliance & Legal Documents (handles both public and admin routes internally)
 app.use('/api/compliance', complianceRouter);
 
 // Admin Analytics & Metrics (mounted with admin auth)
 app.use('/api/admin/analytics', adminAuth, analyticsRouter);
+app.use('/api/admin/custom-events', adminAuth, customEventsRouter);
 app.use('/api/admin/metrics', adminAuth, adminStreamRouter);
-app.use('/api/admin/scheduled-tasks', adminAuth, scheduledTasksRouter);
+
+// Setup Bull Board for background job monitoring
+const serverAdapter = new ExpressAdapter();
+serverAdapter.setBasePath('/api/admin/queues');
+createBullBoard({
+  queues: [
+    ...(eventRemindersQueue ? [new BullMQAdapter(eventRemindersQueue)] : []),
+    ...(bulkOperationsQueue ? [new BullMQAdapter(bulkOperationsQueue)] : [])
+  ],
+  serverAdapter,
+});
+app.use('/api/admin/queues', adminAuth, serverAdapter.getRouter());
 
 // Setup Bull Board for background job monitoring
 const serverAdapter = new ExpressAdapter();
@@ -1236,21 +1439,61 @@ createBullBoard({
 app.use('/api/admin/queues', adminAuth, serverAdapter.getRouter());
 
 // OAuth / SSO Student Auth Endpoints
+app.get('/api/auth/mock-login', async (req, res, next) => {
+  try {
+    const { studentAuthService } = await import('./services/studentAuthService.js');
+    const user = await studentUsersRepository.upsertFromOAuth({
+      provider: 'google',
+      providerId: 'mock-student-id-123',
+      email: 'teststudent@glbajaj.org',
+      fullName: 'Test Student',
+      avatarUrl: '👤',
+    });
+    const token = studentAuthService.generateToken(user);
+    res.cookie('ns_student_token', token, {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+    return res.redirect('/dashboard');
+  } catch (err) {
+    next(err);
+  }
+});
 app.get('/api/auth/google', studentAuthController.googleAuth);
 app.get('/api/auth/google/callback', studentAuthController.googleCallback);
 app.get('/api/auth/github', studentAuthController.githubAuth);
 app.get('/api/auth/github/callback', studentAuthController.githubCallback);
+// Student Auth & Me Endpoints
 app.get('/api/auth/me', requireStudentAuth, studentAuthController.getMe);
-app.post('/api/auth/theme', requireStudentAuth, studentAuthController.updateTheme);
+app.delete('/api/auth/me', requireStudentAuth, studentAuthController.deleteAccount);
+app.get('/api/auth/export', requireStudentAuth, studentAuthController.exportData);
+app.post(
+  '/api/auth/theme',
+  validate(indexSchemas.updateThemeSchema),
+  requireStudentAuth,
+  studentAuthController.updateTheme
+);
 app.post('/api/auth/logout', studentAuthController.logout);
 
 // Student Profile Endpoints
-app.get('/api/auth/profile',       requireStudentAuth, studentAuthController.getProfile);
-app.put('/api/auth/profile',       requireStudentAuth, studentAuthController.updateProfile);
+app.get('/api/auth/profile', requireStudentAuth, studentAuthController.getProfile);
+app.put(
+  '/api/auth/profile',
+  validate(indexSchemas.updateProfileSchema),
+  requireStudentAuth,
+  studentAuthController.updateProfile
+);
 app.get('/api/auth/registrations', requireStudentAuth, studentAuthController.getRegistrations);
 
 // Slack Integration Endpoints
-app.post('/api/auth/slack-settings', requireStudentAuth, studentAuthController.updateSlackSettings);
+app.post(
+  '/api/auth/slack-settings',
+  validate(indexSchemas.slackSettingsSchema),
+  requireStudentAuth,
+  studentAuthController.updateSlackSettings
+);
 app.get('/api/slack/auth', slackController.startSlackAuth);
 app.get('/api/slack/auth/callback', slackController.slackAuthCallback);
 app.post(
@@ -1259,7 +1502,12 @@ app.post(
   slackController.handleSlackCommand
 );
 app.get('/api/admin/slack/config', adminAuth, slackController.getSlackConfig);
-app.post('/api/admin/slack/config', adminAuth, slackController.updateSlackConfig);
+app.post(
+  '/api/admin/slack/config',
+  validate(indexSchemas.slackConfigSchema),
+  adminAuth,
+  slackController.updateSlackConfig
+);
 app.delete('/api/admin/slack/disconnect', adminAuth, slackController.disconnectSlack);
 
 // â”€â”€ Event Admin Management â”€â”€
@@ -1272,28 +1520,80 @@ app.delete('/api/admin/events/:id', adminAuth, eventsController.adminDeleteEvent
 app.get('/api/streams', streamController.listStreams);
 app.get('/api/streams/event/:eventId', streamController.getStreamByEvent);
 app.get('/api/streams/:id', streamController.getStream);
-app.post('/api/streams', adminAuth, streamController.createStream);
-app.put('/api/streams/:id', adminAuth, streamController.updateStream);
-app.patch('/api/streams/:id/status', adminAuth, streamController.setStreamStatus);
+app.post(
+  '/api/streams',
+  validate(indexSchemas.createStreamSchema),
+  adminAuth,
+  streamController.createStream
+);
+app.put(
+  '/api/streams/:id',
+  validate(indexSchemas.updateStreamSchema),
+  adminAuth,
+  streamController.updateStream
+);
+app.patch(
+  '/api/streams/:id/status',
+  validate(indexSchemas.streamStatusSchema),
+  adminAuth,
+  streamController.setStreamStatus
+);
 app.delete('/api/streams/:id', adminAuth, streamController.deleteStream);
-app.post('/api/streams/:id/chat', apiRateLimiter, streamController.addChatMessage);
+app.post(
+  '/api/streams/:id/chat',
+  validate(indexSchemas.addChatMessageSchema),
+  apiRateLimiter,
+  streamController.addChatMessage
+);
 app.get('/api/streams/:id/chat', streamController.listChatMessages);
-app.post('/api/streams/:id/ban', adminAuth, streamController.banUser);
-app.post('/api/streams/:id/polls', adminAuth, streamController.createPoll);
+app.post(
+  '/api/streams/:id/ban',
+  validate(indexSchemas.banUserSchema),
+  adminAuth,
+  streamController.banUser
+);
+app.post(
+  '/api/streams/:id/polls',
+  validate(indexSchemas.createPollSchema),
+  adminAuth,
+  streamController.createPoll
+);
 app.get('/api/streams/:id/polls', streamController.listPolls);
-app.post('/api/streams/polls/:pollId/vote', streamController.votePoll);
+app.post(
+  '/api/streams/polls/:pollId/vote',
+  validate(indexSchemas.votePollSchema),
+  streamController.votePoll
+);
 app.patch('/api/streams/polls/:pollId/close', adminAuth, streamController.closePoll);
 app.patch('/api/streams/chat/:messageId/moderate', adminAuth, streamController.moderateChatMessage);
 app.get('/api/admin/streams', adminAuth, streamController.adminListAll);
-app.post('/api/streams/:id/mod-chat', adminAuth, streamController.addModChatMessage);
+app.post(
+  '/api/streams/:id/mod-chat',
+  validate(indexSchemas.addModChatMessageSchema),
+  adminAuth,
+  streamController.addModChatMessage
+);
 app.get('/api/streams/:id/mod-chat', adminAuth, streamController.listModChatMessages);
 app.get('/api/streams/:id/analytics', adminAuth, streamController.getStreamAnalytics);
 
 // Streaming Engagement: Q&A and Reactions
-app.post('/api/streams/:id/questions', streamController.addQuestion);
+app.post(
+  '/api/streams/:id/questions',
+  validate(indexSchemas.addQuestionSchema),
+  streamController.addQuestion
+);
 app.get('/api/streams/:id/questions', streamController.listQuestions);
-app.patch('/api/streams/questions/:qId/answer', adminAuth, streamController.answerQuestion);
-app.post('/api/streams/:id/reactions', streamController.addReaction);
+app.patch(
+  '/api/streams/questions/:qId/answer',
+  validate(indexSchemas.answerQuestionSchema),
+  adminAuth,
+  streamController.answerQuestion
+);
+app.post(
+  '/api/streams/:id/reactions',
+  validate(indexSchemas.addReactionSchema),
+  streamController.addReaction
+);
 app.get('/api/streams/:id/reactions', streamController.getReactions);
 
 // search routes
@@ -1301,62 +1601,19 @@ app.get('/api/search', searchRateLimiter, searchController.search);
 app.get('/api/search/trending', searchRateLimiter, searchController.trending);
 app.get('/api/recommendations', searchRateLimiter, searchController.recommendations);
 
-// Public listings
-app.get('/api/content/team', async (req, res) => {
-  try {
-    const rawMembers = await coreTeamService.listMembers();
-    const members = (rawMembers || []).map((m) => {
-      let email = m.email || null;
-      if (email && !email.toLowerCase().endsWith('@glbajajgroup.org')) {
-        email = null;
-      }
-      return {
-        ...m,
-        email,
-        whatsapp: 'https://chat.whatsapp.com/FhpJEaod2g419jFMfqrhGZ',
-      };
-    });
-    return res.json({ members });
-  } catch (e) {
-    return res.status(500).json({ error: e?.message || 'Failed to load core team' });
-  }
-});
-
-// Admin Team Management
-app.get(
-  '/api/admin/core-team',
-  adminAuthMiddleware.requireScope('settings:admin'),
-  coreTeamController.adminListCoreTeamMembers
-);
-app.post(
-  '/api/admin/core-team',
-  adminAuthMiddleware.requireScope('settings:admin'),
-  coreTeamController.adminAddCoreTeamMember
-);
-app.put(
-  '/api/admin/core-team/:id',
-  adminAuthMiddleware.requireScope('settings:admin'),
-  coreTeamController.adminUpdateCoreTeamMember
-);
-app.delete(
-  '/api/admin/core-team/:id',
-  adminAuthMiddleware.requireScope('settings:admin'),
-  coreTeamController.adminDeleteCoreTeamMember
-);
-
 // Circuit Breaker Admin API
 app.get('/api/admin/circuit-breaker/metrics', adminAuth, async (req, res) => {
   const metrics = circuitBreakerRegistry.getAllMetrics();
-  return res.json({ circuitBreakers: metrics });
+  return sendSuccess(res, { circuitBreakers: metrics });
 });
 
 app.post('/api/admin/circuit-breaker/reset/:name', adminAuth, async (req, res) => {
   const { name } = req.params;
   const ok = circuitBreakerRegistry.reset(name);
   if (!ok) {
-    return res.status(404).json({ error: `No circuit breaker found: "${name}"` });
+    return sendError(req, res, `No circuit breaker found: "${name}"`, 404, 'NOT_FOUND');
   }
-  return res.json({ ok: true, message: `Circuit breaker "${name}" reset to CLOSED` });
+  return sendSuccess(res, { ok: true, message: `Circuit breaker "${name}" reset to CLOSED` });
 });
 
 app.post('/api/admin/circuit-breaker/retry/:name', adminAuth, async (req, res) => {
@@ -1364,12 +1621,12 @@ app.post('/api/admin/circuit-breaker/retry/:name', adminAuth, async (req, res) =
   try {
     const breaker = circuitBreakerRegistry.get(name);
     if (!breaker) {
-      return res.status(404).json({ error: `No circuit breaker found: "${name}"` });
+      return sendError(req, res, `No circuit breaker found: "${name}"`, 404, 'NOT_FOUND');
     }
     const result = await breaker.manualRetry();
-    return res.json({ ok: true, state: breaker.state, result });
+    return sendSuccess(res, { ok: true, state: breaker.state, result });
   } catch (err) {
-    return res.json({ ok: false, error: err.message });
+    return sendSuccess(res, { ok: false, error: err.message });
   }
 });
 
@@ -1476,124 +1733,83 @@ function clearPasskeyAttempts(username, ip) {
   failedPasskeyAttemptsByUsername.delete(userKey);
 }
 
-app.get('/api/notifications', async (req, res) => {
+app.get('/api/notifications', adminAuth, async (req, res) => {
   try {
     const userId = req.query.userId || 'global';
-
-    if (userId !== 'global') {
-      let authenticated = false;
-
-      // 1. Try Student Auth
-      let token = null;
-      const authHeader = req.headers.authorization;
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        token = authHeader.slice(7).trim();
-      }
-      if (!token && req.cookies?.ns_student_token) {
-        token = req.cookies.ns_student_token;
-      }
-      if (token) {
-        const payload = studentAuthService.verifyToken(token);
-        if (payload && (payload.sub === userId || payload.id === userId)) {
-          authenticated = true;
-        }
-      }
-
-      // 2. Try Admin Auth
-      if (!authenticated) {
-        let adminToken = null;
-        if (authHeader && authHeader.startsWith('Bearer ')) {
-          adminToken = authHeader.slice(7).trim();
-        }
-        if (!adminToken && req.cookies?.ns_admin_token) {
-          adminToken = req.cookies.ns_admin_token;
-        }
-        if (adminToken) {
-          const { getAdminSession } = await import('./repositories/adminSessionsRepository.js');
-          const session = await getAdminSession(adminToken);
-          if (session) {
-            authenticated = true;
-          }
-        }
-      }
-
-      if (!authenticated) {
-        return res.status(401).json({ error: 'Unauthorized to view these notifications' });
-      }
-    }
-
     const offset = parseInt(req.query.offset, 10) || 0;
     const limit = Math.min(parseInt(req.query.limit, 10) || 100, 500);
     const list = await notificationsService.getNotifications(userId, offset, limit);
-    return res.json({ notifications: list });
+    return sendSuccess(res, { notifications: list });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return sendError(req, res, err.message, 500, 'INTERNAL_ERROR');
   }
 });
 
-function requireNotificationPrefAuth(req, res, next) {
-  adminAuthMiddleware.requireAdmin(req, res, (err) => {
-    if (!err && req.adminSession) {
-      return next();
-    }
-    requireStudentAuth(req, res, (err2) => {
-      if (err2 || !req.studentUser) {
-        return res.status(401).json({ error: 'Unauthorized: Authentication required' });
-      }
-      const userId = req.method === 'GET' ? (req.query.userId || 'global') : (req.body.userId || 'global');
-      if (req.studentUser.sub === userId || req.studentUser.id === userId) {
-        return next();
-      }
-      return res.status(403).json({ error: 'Forbidden: You cannot access or modify other users\' preferences' });
-    });
-  });
-}
-
-// Notification Preferences
-app.get('/api/notifications/preferences', requireNotificationPrefAuth, async (req, res) => {
+app.get('/api/notifications/preferences', adminAuth, async (req, res) => {
   try {
     const userId = req.query.userId || 'global';
     const prefs = await notificationPreferencesRepository.list(userId);
-    return res.json({ preferences: prefs });
+    return sendSuccess(res, { preferences: prefs });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return sendError(req, res, err.message, 500, 'INTERNAL_ERROR');
   }
 });
-
-app.put('/api/notifications/preferences', requireNotificationPrefAuth, async (req, res) => {
-  try {
-    const userId = req.body.userId || 'global';
-    const { category, email, push, in_app, sms, frequency, quiet_start, quiet_end, dnd } = req.body;
-    if (!category) return res.status(400).json({ error: 'category is required' });
-    const pref = await notificationPreferencesRepository.set(userId, category, {
-      email,
-      push,
-      in_app,
-      sms,
-      frequency,
-      quiet_start,
-      quiet_end,
-      dnd,
-    });
-    return res.json({ preference: pref });
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-app.put('/api/notifications/preferences/bulk', requireNotificationPrefAuth, async (req, res) => {
-  try {
-    const userId = req.body.userId || 'global';
-    const { preferences } = req.body;
-    if (!Array.isArray(preferences) || !preferences.length) {
-      return res.status(400).json({ error: 'preferences array is required' });
+// Notification analytics (lightweight collector)
+app.put(
+  '/api/notifications/preferences',
+  validate(indexSchemas.notificationPreferencesSchema),
+  adminAuth,
+  async (req, res) => {
+    try {
+      const userId = req.body.userId || 'global';
+      const { category, email, push, in_app, sms, frequency, quiet_start, quiet_end, dnd } =
+        req.body;
+      if (!category) return sendError(req, res, 'category is required', 400, 'VALIDATION_ERROR');
+      const pref = await notificationPreferencesRepository.set(userId, category, {
+        email,
+        push,
+        in_app,
+        sms,
+        frequency,
+        quiet_start,
+        quiet_end,
+        dnd,
+      });
+      return sendSuccess(res, { preference: pref });
+    } catch (err) {
+      return sendError(req, res, err.message, 500, 'INTERNAL_ERROR');
     }
-    const results = await notificationPreferencesRepository.setBulk(userId, preferences);
-    return res.json({ preferences: results });
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
   }
 });
+// Public listings
+// Admin Team Management
+app.get(
+  '/api/admin/core-team',
+  adminAuthMiddleware.requireScope('settings:admin'),
+  coreTeamController.adminListCoreTeamMembers
+);
+app.post(
+  coreTeamController.adminAddCoreTeamMember
+app.put(
+  '/api/admin/core-team/:id',
+  coreTeamController.adminUpdateCoreTeamMember
+app.delete(
+  coreTeamController.adminDeleteCoreTeamMember
+app.use('/api/admin/circuit-breaker', circuitBreakerRouter);
+  '/api/notifications/preferences/bulk',
+  validate(indexSchemas.bulkNotificationPreferencesSchema),
+  adminAuth,
+  async (req, res) => {
+    try {
+      const userId = req.body.userId || 'global';
+      const { preferences } = req.body;
+      if (!Array.isArray(preferences) || !preferences.length) {
+        return sendError(req, res, 'preferences array is required', 400, 'VALIDATION_ERROR');
+      }
+      const results = await notificationPreferencesRepository.setBulk(userId, preferences);
+      return sendSuccess(res, { preferences: results });
+    } catch (err) {
+      return sendError(req, res, err.message, 500, 'INTERNAL_ERROR');
 
 // Notification analytics (lightweight collector)
 app.post('/api/notifications/analytics', async (req, res) => {
@@ -1601,9 +1817,9 @@ app.post('/api/notifications/analytics', async (req, res) => {
     const event = req.body || {};
     // Minimal validation â€” in future route can forward to analytics pipeline
     console.log('[notification-analytics]', event.type || 'unknown', event);
-    return res.json({ ok: true });
+    return sendSuccess(res, { ok: true });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return sendError(req, res, err.message, 500, 'INTERNAL_ERROR');
   }
 });
 
@@ -1620,7 +1836,13 @@ app.put('/api/portfolio', portfolioRateLimiter, async (req, res) => {
     });
     if (!credentials.success) {
       const firstIssue = credentials.error.issues[0];
-      return res.status(400).json({ error: firstIssue?.message || 'Invalid request body' });
+      return sendError(
+        req,
+        res,
+        firstIssue?.message || 'Invalid request body',
+        400,
+        'VALIDATION_ERROR'
+      );
     }
     const { username, passkey } = credentials.data;
 
@@ -1631,10 +1853,13 @@ app.put('/api/portfolio', portfolioRateLimiter, async (req, res) => {
     const content = portfolioContentSchema.safeParse(body);
     if (!content.success) {
       const firstIssue = content.error.issues[0];
-      return res.status(400).json({
-        error:
-          `Invalid portfolio content: ${firstIssue?.path?.join('.') || ''} ${firstIssue?.message || ''}`.trim(),
-      });
+      return sendError(
+        req,
+        res,
+        `Invalid portfolio content: ${firstIssue?.path?.join('.') || ''} ${firstIssue?.message || ''}`.trim(),
+        400,
+        'VALIDATION_ERROR'
+      );
     }
 
     const existingPortfolio = await portfolioRepository.getByUsername(username);
@@ -1642,9 +1867,13 @@ app.put('/api/portfolio', portfolioRateLimiter, async (req, res) => {
 
     const lockout = checkPasskeyLockout(username, ip);
     if (lockout) {
-      return res.status(429).json({
-        error: 'Too many failed passkey attempts. Please try again later.',
-      });
+      return sendError(
+        req,
+        res,
+        'Too many failed passkey attempts. Please try again later.',
+        429,
+        'RATE_LIMITED'
+      );
     }
 
     const isAuthorized = await portfolioRepository.verifyPasskey(username, passkey, {
@@ -1652,7 +1881,7 @@ app.put('/api/portfolio', portfolioRateLimiter, async (req, res) => {
     });
     if (!isAuthorized) {
       recordFailedPasskeyAttempt(username, ip);
-      return res.status(401).json({ error: 'Incorrect passkey for this username' });
+      return sendError(req, res, 'Incorrect passkey for this username', 401, 'UNAUTHORIZED');
     }
 
     clearPasskeyAttempts(username, ip);
@@ -1662,15 +1891,19 @@ app.put('/api/portfolio', portfolioRateLimiter, async (req, res) => {
       username,
       passkey,
     });
-    return res.json({ ok: true, portfolio: saved });
+    return sendSuccess(res, { ok: true, portfolio: saved });
   } catch (err) {
     if (err.code === '23505') {
-      return res
-        .status(409)
-        .json({ error: 'Username already exists. Another request may have just created it.' });
+      return sendError(
+        req,
+        res,
+        'Username already exists. Another request may have just created it.',
+        409,
+        'CONFLICT'
+      );
     }
     console.error('Error saving portfolio:', err);
-    return res.status(500).json({ error: err.message || 'Internal server error' });
+    return sendError(req, res, err.message || 'Internal server error', 500, 'INTERNAL_ERROR');
   }
 });
 
@@ -1688,8 +1921,18 @@ app.delete('/api/forum/replies/:replyId', requireStudentAuth, forumController.de
 app.post('/api/forum/threads/:id/vote', requireStudentAuth, forumController.voteThread);
 app.post('/api/forum/replies/:replyId/vote', requireStudentAuth, forumController.voteReply);
 app.post('/api/forum/threads/:id/accept/:replyId', requireStudentAuth, forumController.acceptReply);
-app.patch('/api/admin/forum/threads/:id/moderate', adminAuth, forumController.moderateThread);
-app.patch('/api/admin/forum/replies/:replyId/moderate', adminAuth, forumController.moderateReply);
+app.patch(
+  '/api/admin/forum/threads/:id/moderate',
+  validate(indexSchemas.moderateThreadSchema),
+  adminAuth,
+  forumController.moderateThread
+);
+app.patch(
+  '/api/admin/forum/replies/:replyId/moderate',
+  validate(indexSchemas.moderateReplySchema),
+  adminAuth,
+  forumController.moderateReply
+);
 app.get('/api/admin/forum/threads', adminAuth, forumController.adminListThreads);
 
 function requireMentorshipAuth(req, res, next) {
@@ -1701,7 +1944,7 @@ function requireMentorshipAuth(req, res, next) {
       if (!err2 && req.studentUser) {
         return next();
       }
-      return res.status(401).json({ error: 'Unauthorized: Authentication required' });
+      return sendError(req, res, 'Unauthorized: Authentication required', 401, 'UNAUTHORIZED');
     });
   });
 }
@@ -1716,11 +1959,20 @@ app.get('/api/mentorship/requests', requireMentorshipAuth, mentorshipController.
 app.get('/api/mentorship/requests/:id', requireMentorshipAuth, mentorshipController.getMentorship);
 app.put(
   '/api/mentorship/requests/:id/status',
+  validate(indexSchemas.updateMentorshipStatusSchema),
   requireMentorshipAuth,
   mentorshipController.updateMentorshipStatus
 );
-app.post('/api/mentorship/requests/:id/sessions', requireStudentAuth, mentorshipController.logSession);
-app.get('/api/mentorship/requests/:id/sessions', requireStudentAuth, mentorshipController.listSessions);
+app.post(
+  '/api/mentorship/requests/:id/sessions',
+  requireStudentAuth,
+  mentorshipController.logSession
+);
+app.get(
+  '/api/mentorship/requests/:id/sessions',
+  requireStudentAuth,
+  mentorshipController.listSessions
+);
 app.post('/api/mentorship/buddy-pairs', requireStudentAuth, mentorshipController.createBuddyPair);
 app.get('/api/mentorship/buddy-pairs', requireStudentAuth, mentorshipController.listBuddyPairs);
 app.get('/api/admin/mentorships', adminAuth, mentorshipController.adminListAll);
@@ -1731,10 +1983,17 @@ app.get('/api/search', searchRateLimiter, searchController.search);
 app.get('/api/search/trending', searchRateLimiter, searchController.trending);
 app.get('/api/recommendations', searchRateLimiter, searchController.recommendations);
 // â”€â”€ Resource Library Routes â”€â”€
+// ── Search, Discovery & Recommendation Engine ──
+// ── Resource Library Routes ──
 // Public resource endpoints
 app.get('/api/resources', resourcesController.listResources);
 app.get('/api/resources/:id', resourcesController.getResource);
-app.post('/api/resources', resourcesController.createResource);
+app.post('/api/resources', requireStudentAuth, resourcesController.createResource);
+app.post(
+  '/api/resources',
+  validate(indexSchemas.createResourceSchema),
+  resourcesController.createResource
+);
 app.post('/api/resources/:id/vote', resourcesController.voteResource);
 app.post('/api/resources/:id/download', resourcesController.downloadResource);
 app.post('/api/resources/:id/download-track', resourcesController.downloadResource);
@@ -1749,10 +2008,25 @@ app.post(
 
 // Admin resource management
 app.get('/api/admin/resources', adminAuth, resourcesController.listResources);
-app.post('/api/admin/resources', adminAuth, resourcesController.createResource);
-app.put('/api/admin/resources/:id', adminAuth, resourcesController.updateResource);
+app.post(
+  '/api/admin/resources',
+  validate(indexSchemas.createResourceSchema),
+  adminAuth,
+  resourcesController.createResource
+);
+app.put(
+  '/api/admin/resources/:id',
+  validate(indexSchemas.updateResourceSchema),
+  adminAuth,
+  resourcesController.updateResource
+);
 app.delete('/api/admin/resources/:id', adminAuth, resourcesController.deleteResource);
-app.patch('/api/admin/resources/:id/moderate', adminAuth, resourcesController.moderateResource);
+app.patch(
+  '/api/admin/resources/:id/moderate',
+  validate(indexSchemas.moderateResourceSchema),
+  adminAuth,
+  resourcesController.moderateResource
+);
 // Must be registered after all routes.
 app.use(notFoundHandler);
 addSentryErrorHandler(app);
@@ -1777,10 +2051,21 @@ let server;
 if (process.env.NODE_ENV !== 'test') {
   if (!process.env.VERCEL) {
     const boot = HAS_SUPABASE
-      ? Promise.all([studentUsersRepository.ensureSchema(), slackRepository.ensureSchema()])
+      ? Promise.all([
+          studentUsersRepository.ensureSchema(),
+          slackRepository.ensureSchema(),
+          apiKeysRepository.ensureSchema(),
+        ])
       : ensureContentFile();
-    boot.then(() => {
+    boot.then(async () => {
       loadPersistedPushSubscriptions();
+
+      // Start background streaming workers (outbox dispatcher)
+      try {
+        await startStreamingWorkers();
+      } catch (err) {
+        console.error('[streamingWorkers] failed to start', err?.message || err);
+      }
       slackIntegrationService.init();
       server = app.listen(port, () => {
         console.log(`NexaSphere server listening on http://localhost:${port}`);
@@ -1790,6 +2075,9 @@ if (process.env.NODE_ENV !== 'test') {
         schedulerService.schedule('0 10 * * *', async () => {
           await learningPathService.runNudgeJob();
         });
+      });
+      server.on('error', (err) => {
+        console.error('SERVER LISTEN ERROR:', err.code, err.message);
       });
       initializeSocketIO(server);
     });

@@ -4,8 +4,23 @@ import { eventsRepository } from '../repositories/eventsRepository.js';
 import { auditLogRepository } from '../repositories/auditLogRepository.js';
 import { parseCSV, generateCSV } from '../utils/csvParser.js';
 import { sendEmail } from './emailService.js';
+import { bulkOperationsQueue as queueServiceQueue } from './queueService.js';
 import crypto from 'crypto';
-import bcrypt from 'bcryptjs';
+
+import { Queue } from 'bullmq';
+import IORedis from 'ioredis';
+import logger from '../utils/logger.js';
+
+let connection;
+if (process.env.REDIS_URL) {
+  connection = new IORedis(process.env.REDIS_URL, { maxRetriesPerRequest: null });
+}
+
+export const bulkOperationsQueueName = 'bulk-operations';
+
+export const bulkOperationsQueue = connection
+  ? new Queue(bulkOperationsQueueName, { connection })
+  : null;
 
 class BulkOperationsService {
   constructor() {
@@ -206,45 +221,32 @@ class BulkOperationsService {
               );
               
               // Email the user their temporary password
-              try {
-                await sendEmail({
-                  to: user.email,
-                  subject: 'Welcome to NexaSphere!',
-                  templateName: 'generic',
-                  data: {
-                    name: user.display_name || 'Student',
-                    message: `Your account has been created. You can log in using your email and this temporary password: ${plainPassword} \nPlease change it after your first login.`,
-                  },
-                });
-              } catch (emailErr) {
-                console.error(`Failed to send welcome email to ${user.email}:`, emailErr.message);
-              }
+              emailsToSend.push({ email: user.email, displayName: user.display_name, plainPassword });
               
               oldState.push({ type: 'insert', table: 'users', key: id, data: null });
               newState.push({ type: 'insert', table: 'users', key: id, data: insertedRows[0] });
             }
-          });
-          processed++;
-          this.updateJobProgress(job.id, processed, []);
+          }
+          await client.query('COMMIT');
         } catch (err) {
-          jobErrors.push(`Row ${user.row}: Database error - ${err.message}`);
+          await client.query('ROLLBACK');
+          jobErrors.push(`Database error - ${err.message}`);
         }
-      }
+      });
 
       // Log to audit log
       if (oldState.length > 0 || newState.length > 0) {
-        await auditLogRepository.insertAuditLog({
-          adminId,
-          action: 'BULK_USER_IMPORT',
-          oldState: { operations: oldState },
-          newState: { operations: newState },
-        });
-        processed++;
-        this.updateJobProgress(jobId, processed, []);
-      } catch (err) {
-        jobErrors.push(`Row ${user.row}: Database error - ${err.message}`);
+        try {
+          await auditLogRepository.insertAuditLog({
+            adminId,
+            action: 'BULK_USER_IMPORT',
+            oldState: { operations: oldState },
+            newState: { operations: newState },
+          });
+        } catch (auditErr) {
+          logger.error('Failed to insert audit log for bulk operations', { err: auditErr.message });
+        }
       }
-    }
 
     // Log to audit log
     if (oldState.length > 0 || newState.length > 0) {

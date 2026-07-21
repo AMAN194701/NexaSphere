@@ -15,7 +15,7 @@ const { appContext, tracedFetch } = await import('../config/appContext.js');
 const { tracingMiddleware } = await import('../middleware/tracingMiddleware.js');
 
 describe('API Request Tracing and Distributed Correlation IDs', () => {
-  test('generates a new X-Request-ID if not provided', async () => {
+  test('generates a new X-Correlation-ID if not provided', async () => {
     const app = express();
     app.use(tracingMiddleware);
     let capturedReqId = null;
@@ -31,7 +31,7 @@ describe('API Request Tracing and Distributed Correlation IDs', () => {
 
     const res = await fetch(`http://127.0.0.1:${port}/`);
     assert.equal(res.status, 200);
-    const headerReqId = res.headers.get('x-request-id');
+    const headerReqId = res.headers.get('X-Correlation-ID');
 
     server.close();
 
@@ -44,7 +44,7 @@ describe('API Request Tracing and Distributed Correlation IDs', () => {
     );
   });
 
-  test('preserves existing X-Request-ID if provided', async () => {
+  test('preserves existing X-Correlation-ID if provided', async () => {
     const app = express();
     app.use(tracingMiddleware);
     app.get('/', (req, res) => res.send('ok'));
@@ -54,11 +54,11 @@ describe('API Request Tracing and Distributed Correlation IDs', () => {
 
     const testId = 'test-correlation-id-123';
     const res = await fetch(`http://127.0.0.1:${port}/`, {
-      headers: { 'X-Request-ID': testId },
+      headers: { 'X-Correlation-ID': testId },
     });
     server.close();
 
-    assert.equal(res.headers.get('x-request-id'), testId, 'Should preserve incoming request ID');
+    assert.equal(res.headers.get('X-Correlation-ID'), testId, 'Should preserve incoming request ID');
   });
 
   test('prepends reqId to pg client queries', async () => {
@@ -72,7 +72,11 @@ describe('API Request Tracing and Distributed Correlation IDs', () => {
 
     capturedPgArgs = null;
     appContext.run({ reqId: testId }, () => {
-      client.query(config).catch(() => {}); // Catch any errors, we don't need it to succeed
+      client.query(config).catch(() => {
+        // Intentionally suppressed: we're testing query capture, not query success.
+        // The query may fail due to missing DB in test env, but we only care that
+        // the pg query wrapper fires the capture callback.
+      });
     });
 
     // Close the client so the event loop doesn't hang
@@ -87,10 +91,10 @@ describe('API Request Tracing and Distributed Correlation IDs', () => {
     assert.ok(queryText.includes('SELECT * FROM users'), 'SQL should include the original query');
   });
 
-  test('injects X-Request-ID into downstream fetch calls', async () => {
+  test('injects X-Correlation-ID into downstream fetch calls', async () => {
     const server = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ header: req.headers['x-request-id'] }));
+      res.end(JSON.stringify({ header: req.headers['X-Correlation-ID'] }));
     });
 
     await new Promise((resolve) => server.listen(0, resolve));
@@ -103,7 +107,7 @@ describe('API Request Tracing and Distributed Correlation IDs', () => {
       assert.equal(
         data.header,
         testId,
-        'Downstream fetch should have the X-Request-ID header injected'
+        'Downstream fetch should have the X-Correlation-ID header injected'
       );
     });
 

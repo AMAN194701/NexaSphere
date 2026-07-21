@@ -10,8 +10,10 @@ const WEBSITE_URL = import.meta.env.VITE_WEBSITE_URL || 'http://localhost:5175';
 
 const links = [
   { to: '/dashboard', label: 'Dashboard', icon: 'Dashboard' },
+  { to: '/dashboard/project-health', label: 'Project Health', icon: 'Shield' },
   { to: '/dashboard/analytics', label: 'Analytics', icon: 'BarChart' },
-  { to: '/dashboard/segments', label: 'Segments', icon: 'Users' },
+  { to: '/dashboard/analytics/funnel', label: 'Funnel Analysis', icon: 'TrendingDown' },
+  { to: '/dashboard/analytics/custom-events', label: 'Custom Events', icon: 'Target' },
   { to: '/dashboard/events', label: 'Events', icon: 'Calendar', requiredScope: 'events:read' },
   {
     to: '/dashboard/waiting-room',
@@ -49,10 +51,29 @@ const links = [
     icon: 'Users',
     requiredScope: 'settings:admin',
   },
+  {
+    to: '/dashboard/roles',
+    label: 'User Roles',
+    icon: 'Shield',
+    requiredScope: 'settings:admin',
+  },
+  {
+    to: '/dashboard/users',
+    label: 'Users',
+    icon: 'Users',
+    requiredScope: 'settings:admin',
+  },
   { to: '/dashboard/membership', label: 'Membership', icon: 'FileText' },
+  { to: '/dashboard/sync-monitor', label: 'Sync Monitor', icon: 'Database' },
   { to: '/dashboard/recruitment', label: 'Recruitment', icon: 'UserPlus' },
   { to: '/dashboard/certificates', label: 'Certificates', icon: 'Award' },
   { to: '/dashboard/announcements', label: 'Announcements', icon: 'Megaphone' },
+  {
+    to: '/dashboard/banners',
+    label: 'Banners (Hero)',
+    icon: 'Image',
+    requiredScope: 'settings:admin',
+  },
   {
     to: '/dashboard/portfolios',
     label: 'Portfolios',
@@ -117,12 +138,6 @@ const links = [
     to: '/dashboard/reports',
     label: 'Reports',
     icon: 'Target',
-    to: '/dashboard/settings',
-    label: 'Platform Settings',
-    icon: 'Settings',
-    requiredScope: 'settings:admin',
-  },
-  {
     to: '/dashboard/settings',
     label: 'Platform Settings',
     icon: 'Settings',
@@ -310,7 +325,9 @@ export function Sidebar() {
                 to={to}
                 end={to === '/dashboard'}
                 className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+                aria-current={({ isActive }) => (isActive ? 'page' : undefined)}
                 onClick={close}
+                data-tour={label.toLowerCase()}
               >
                 <AdminIcon name={icon} size={16} aria-hidden="true" />
                 {label}
@@ -345,6 +362,7 @@ export function Sidebar() {
 
           <button
             className="btn-logout"
+
             onClick={logout}
             aria-label={`Logout ${email}`}
             style={{ marginTop: '10px' }}
@@ -356,4 +374,3 @@ export function Sidebar() {
     </>
   );
 }
-

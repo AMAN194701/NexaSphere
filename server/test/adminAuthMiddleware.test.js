@@ -8,6 +8,28 @@ process.env.ADMIN_LOGIN_WINDOW_MS = '100';
 process.env.ADMIN_LOGIN_MAX_ATTEMPTS = '2';
 process.env.ADMIN_LOGIN_MAX_TRACKED_IPS = '5';
 
+const { adminAuthMiddleware } = await import('../middleware/adminAuthMiddleware.js');
+const { setWithDbOverride } = await import('../repositories/db.js');
+
+setWithDbOverride(async (fn) => {
+  const mockClient = {
+    query: async (text, params) => {
+      return {
+        rows: [
+          {
+            id: '1',
+            admin_username: 'admin',
+            mfa_secret: null,
+            mfa_enabled: false,
+            backup_codes: '[]',
+          },
+        ],
+      };
+    },
+  };
+  return fn(mockClient);
+});
+
 // Helper
 const createMockReqRes = (ip, username, password) => {
   const req = {
@@ -54,8 +76,6 @@ const createMockReqRes = (ip, username, password) => {
 };
 
 test('Security + Concurrency Validation', async (t) => {
-  const { adminAuthMiddleware } = await import('../middleware/adminAuthMiddleware.js');
-
   await t.test('Initial map is empty', () => {
     adminAuthMiddleware._clearAllLoginAttempts();
 
@@ -191,7 +211,31 @@ test('Security + Concurrency Validation', async (t) => {
   });
 });
 
-await t.test('safeEqual verifies string equality securely and correctly', () => {
+test('safeEqual verifies string equality securely and correctly', () => {
+  const { _safeEqual } = adminAuthMiddleware;
+
+  // Correct comparison
+  assert.equal(_safeEqual('hello', 'hello'), true);
+  assert.equal(_safeEqual('', ''), true);
+
+  // Incorrect comparison
+  assert.equal(_safeEqual('hello', 'world'), false);
+  assert.equal(_safeEqual('hello', 'hell'), false);
+  assert.equal(_safeEqual('hell', 'hello'), false);
+
+  // Null-byte collision safety (tests against previous Buffer allocation vulnerability)
+  assert.equal(_safeEqual('hello', 'hello\0'), false);
+  assert.equal(_safeEqual('hello\0', 'hello'), false);
+
+  // Truncation/large string safety (tests against previous 64-byte padding limit)
+  const longStringA = 'a'.repeat(100);
+  const longStringB = 'a'.repeat(100);
+  const longStringC = 'a'.repeat(99) + 'b';
+  assert.equal(_safeEqual(longStringA, longStringB), true);
+  assert.equal(_safeEqual(longStringA, longStringC), false);
+});
+
+test('safeEqual verifies string equality securely and correctly', () => {
   const { _safeEqual } = adminAuthMiddleware;
 
   // Correct comparison

@@ -330,7 +330,7 @@ class RealTimeEventManager extends EventEmitter {
         notificationsService.addNotification(data.userId || 'global', {
           type: 'system',
           title: `Reminder: ${data.eventName}`,
-          message: `${data.eventName} is starting soon`,
+          message: `${data.eventName} is starting in ${data.timeUntilEvent || 'soon'}`,
           link: `/events/${data.eventId}`,
         });
       } catch (err) {

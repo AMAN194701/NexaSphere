@@ -7,11 +7,20 @@
 import { Router } from 'express';
 import { portfolioRepository } from '../repositories/portfolioRepository.js';
 import { portfolioContentSchema, portfolioPutSchema } from '../validators/portfolioSchemas.js';
+import { validate } from '../middleware/validate.js';
+import { endorseSkillSchema } from '../validators/routes/portfolioExtrasSchemas.js';
 import { protectedActionRateLimiter } from '../middleware/authRateLimiter.js';
 import { requireStudentAuth } from '../middleware/studentAuthMiddleware.js';
 import notificationsService from '../services/notificationsService.js';
+import { sendSuccess, sendError, sendNoContent } from '../utils/responseHelper.js';
 
 const router = Router();
+
+const GITHUB_USERNAME_PATTERN = /^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9])){0,38}$/;
+
+function getGitHubToken() {
+  return String(process.env.GITHUB_TOKEN || process.env.GITHUB_API_TOKEN || '').trim();
+}
 
 // ── Passkey brute-force lockout ────────────────────────────────────────────
 // Tracks failed attempts per IP and per username with exponential backoff.
@@ -119,6 +128,63 @@ function clearPasskeyAttempts(username, ip) {
 // ── Routes ─────────────────────────────────────────────────────────────────
 
 /**
+ * GET /api/portfolio/github-repos/:username — Server-side GitHub repository import.
+ * Keeps GitHub API credentials off the browser and avoids unauthenticated client calls.
+ */
+router.get('/portfolio/github-repos/:username', async (req, res) => {
+  const username = String(req.params.username || '').trim();
+  if (!GITHUB_USERNAME_PATTERN.test(username)) {
+    return sendError(req, res, 'Invalid GitHub username format.', 400, 'VALIDATION_ERROR');
+  }
+
+  const token = getGitHubToken();
+  if (!token) {
+    return sendError(req, res, 'GitHub repository import is unavailable because the server token is not configured.', 503, 'DEPENDENCY_ERROR');
+  }
+
+  const sort =
+    req.query.sort === 'created' || req.query.sort === 'pushed' ? req.query.sort : 'updated';
+  const perPage = Math.min(Math.max(Number.parseInt(req.query.per_page, 10) || 30, 1), 30);
+  const githubUrl = new URL(`https://api.github.com/users/${encodeURIComponent(username)}/repos`);
+  githubUrl.searchParams.set('sort', sort);
+  githubUrl.searchParams.set('per_page', String(perPage));
+
+  try {
+    const response = await fetch(githubUrl, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github+json',
+        'User-Agent': 'NexaSphere-PortfolioBuilder',
+        'X-GitHub-Api-Version': '2022-11-28',
+      },
+    });
+
+    if (response.status === 403 || response.status === 429) {
+      const resetHeader = response.headers.get('X-RateLimit-Reset');
+      const resetDate = resetHeader
+        ? new Date(Number.parseInt(resetHeader, 10) * 1000).toISOString()
+        : null;
+      return sendError(req, res, 'GitHub rate limit reached. Please try again later.', response.status, 'RATE_LIMITED', { rateLimitReset: resetDate });
+    }
+
+    if (response.status === 404) {
+      return sendError(req, res, `GitHub user "${username}" not found. Please check the username and try again.`, 404, 'NOT_FOUND');
+    }
+
+    if (!response.ok) {
+      return sendError(req, res, `GitHub API error: ${response.status} ${response.statusText}`, response.status, 'DEPENDENCY_ERROR');
+    }
+
+    const repos = await response.json();
+    res.set('Cache-Control', 'private, max-age=60');
+    return sendSuccess(res, repos);
+  } catch (err) {
+    console.error('Error fetching GitHub repositories:', err);
+    return sendError(req, res, 'Failed to fetch repositories from GitHub.', 502, 'DEPENDENCY_ERROR');
+  }
+});
+
+/**
  * GET /api/portfolio/:username — Public portfolio lookup.
  * Returns 404 if the username does not exist.
  */
@@ -126,16 +192,16 @@ router.get('/portfolio/:username', async (req, res) => {
   try {
     const username = String(req.params.username || '').trim();
     if (!username) {
-      return res.status(400).json({ error: 'Username is required' });
+      return sendError(req, res, 'Username is required', 400, 'VALIDATION_ERROR');
     }
     const portfolio = await portfolioRepository.getByUsername(username);
     if (!portfolio) {
-      return res.status(404).json({ error: 'Portfolio not found' });
+      return sendError(req, res, 'Portfolio not found', 404, 'NOT_FOUND');
     }
-    return res.json(portfolio);
+    return sendSuccess(res, portfolio);
   } catch (err) {
     console.error('Error fetching portfolio:', err);
-    return res.status(500).json({ error: err.message || 'Internal server error' });
+    return sendError(req, res, err.message || 'Internal server error', 500, 'INTERNAL_ERROR');
   }
 });
 
@@ -144,6 +210,7 @@ router.get('/portfolio/:username', async (req, res) => {
  */
 router.post(
   '/portfolio/:username/endorse',
+  validate(endorseSkillSchema),
   requireStudentAuth,
   protectedActionRateLimiter,
   async (req, res) => {
@@ -153,7 +220,7 @@ router.post(
       const endorserId = req.studentUser.id;
 
       if (!username || !skillName) {
-        return res.status(400).json({ error: 'Username and skillName are required' });
+        return sendError(req, res, 'Username and skillName are required', 400, 'VALIDATION_ERROR');
       }
 
       // Prevent self-endorsements (comparing lowercased usernames/ids, but usually endorserId is ID, portfolio is username. Wait!
@@ -163,7 +230,7 @@ router.post(
         req.studentUser.username &&
         req.studentUser.username.toLowerCase() === username.toLowerCase()
       ) {
-        return res.status(400).json({ error: 'You cannot endorse your own skills' });
+        return sendError(req, res, 'You cannot endorse your own skills', 400, 'VALIDATION_ERROR');
       }
 
       await portfolioRepository.endorseSkill(username, skillName, endorserId);
@@ -181,17 +248,17 @@ router.post(
         console.warn('Failed to send endorsement notification:', notifErr.message);
       }
 
-      return res.json({ success: true, message: 'Skill endorsed successfully' });
+      return sendSuccess(res, { success: true, message: 'Skill endorsed successfully' });
     } catch (err) {
       if (
         err.message === 'You have already endorsed this skill' ||
         err.message === 'You have reached the limit of 3 endorsements per day' ||
         err.message === 'Portfolio not found'
       ) {
-        return res.status(400).json({ error: err.message });
+        return sendError(req, res, err.message, 400, 'VALIDATION_ERROR');
       }
       console.error('Error endorsing skill:', err);
-      return res.status(500).json({ error: 'Internal server error' });
+      return sendError(req, res, 'Internal server error', 500, 'INTERNAL_ERROR');
     }
   }
 );
@@ -214,7 +281,7 @@ router.put('/portfolio', protectedActionRateLimiter, async (req, res) => {
     });
     if (!credentials.success) {
       const firstIssue = credentials.error.issues[0];
-      return res.status(400).json({ error: firstIssue?.message || 'Invalid request body' });
+      return sendError(req, res, firstIssue?.message || 'Invalid request body', 400, 'VALIDATION_ERROR');
     }
     const { username, passkey } = credentials.data;
 
@@ -225,10 +292,9 @@ router.put('/portfolio', protectedActionRateLimiter, async (req, res) => {
     const content = portfolioContentSchema.safeParse(body);
     if (!content.success) {
       const firstIssue = content.error.issues[0];
-      return res.status(400).json({
-        error:
-          `Invalid portfolio content: ${firstIssue?.path?.join('.') || ''} ${firstIssue?.message || ''}`.trim(),
-      });
+      return sendError(req, res,
+        `Invalid portfolio content: ${firstIssue?.path?.join('.') || ''} ${firstIssue?.message || ''}`.trim(),
+        400, 'VALIDATION_ERROR');
     }
 
     const existingPortfolio = await portfolioRepository.getByUsername(username);
@@ -236,9 +302,7 @@ router.put('/portfolio', protectedActionRateLimiter, async (req, res) => {
 
     const lockout = checkPasskeyLockout(username, ip);
     if (lockout) {
-      return res.status(429).json({
-        error: 'Too many failed passkey attempts. Please try again later.',
-      });
+      return sendError(req, res, 'Too many failed passkey attempts. Please try again later.', 429, 'RATE_LIMITED');
     }
 
     const isAuthorized = await portfolioRepository.verifyPasskey(username, passkey, {
@@ -246,7 +310,7 @@ router.put('/portfolio', protectedActionRateLimiter, async (req, res) => {
     });
     if (!isAuthorized) {
       recordFailedPasskeyAttempt(username, ip);
-      return res.status(401).json({ error: 'Incorrect passkey for this username' });
+      return sendError(req, res, 'Incorrect passkey for this username', 401, 'UNAUTHORIZED');
     }
 
     clearPasskeyAttempts(username, ip);
@@ -266,19 +330,20 @@ router.put('/portfolio', protectedActionRateLimiter, async (req, res) => {
           projectName: lastProject.name,
         });
       } catch (socketErr) {
-        console.warn('[Portfolio] Could not emit project-approved notification:', socketErr.message);
+        console.warn(
+          '[Portfolio] Could not emit project-approved notification:',
+          socketErr.message
+        );
       }
     }
 
-    return res.json({ ok: true, portfolio: saved });
+    return sendSuccess(res, { ok: true, portfolio: saved });
   } catch (err) {
     if (err.code === '23505') {
-      return res
-        .status(409)
-        .json({ error: 'Username already exists. Another request may have just created it.' });
+      return sendError(req, res, 'Username already exists. Another request may have just created it.', 409, 'CONFLICT');
     }
     console.error('Error saving portfolio:', err);
-    return res.status(500).json({ error: err.message || 'Internal server error' });
+    return sendError(req, res, err.message || 'Internal server error', 500, 'INTERNAL_ERROR');
   }
 });
 

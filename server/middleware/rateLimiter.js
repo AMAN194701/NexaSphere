@@ -1,17 +1,7 @@
 import rateLimit from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
-import { getRedisClient } from '../utils/redis.js';
+import redisClient from '../utils/redis.js'; // Adjust path if your redis utility is elsewhere
 import logger from '../utils/logger.js';
-import { createRateLimitStore } from '../services/rateLimitService.js';
-
-const suspiciousIPs = new Map();
-function calculateRiskScore(req) {
-  return (suspiciousIPs.get(req.ip) || 0) * 20;
-}
-function parsePositiveInt(value, fallback) {
-  const n = Number(value);
-  return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
-}
 // ---------------------------------------------------------------------------
 // SECURITY WARNING: Upstream Proxy Dependency
 // These rate limiters rely entirely on `req.ip` mapping to individual clients.
@@ -20,11 +10,12 @@ function parsePositiveInt(value, fallback) {
 // specific proxy hop count) is explicitly initialized in the main server app entry file.
 // ---------------------------------------------------------------------------
 
+
 // ---------------------------------------------------------------------------
 // Shared env-var config for the general API limiter
 // Override via API_RATE_LIMIT_WINDOW_MS and API_RATE_LIMIT_MAX in .env
 // ---------------------------------------------------------------------------
-const API_WINDOW_MS = parsePositiveInt(process.env.API_RATE_LIMIT_WINDOW_MS, 10 * 60 * 1000);
+const API_WINDOW_MS = parsePositiveInt(process.env.API_RATE_LIMIT_WINDOW_MS, 15 * 60 * 1000);
 
 const API_MAX_REQUESTS = parsePositiveInt(process.env.API_RATE_LIMIT_MAX, 100);
 
@@ -123,15 +114,15 @@ export const formRateLimiter = rateLimit({
   },
 });
 
-// Authentication rate limiter — 10 requests per IP per minute
+// Authentication rate limiter — 5 requests per IP per 15 minutes
 export const authRateLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 10,
+  windowMs: 15 * 60 * 1000,
+  max: 5,
   standardHeaders: true,
   legacyHeaders: true,
   handler: createLimiterHandler(
     'Authentication rate limit exceeded',
-    'Too many login attempts, please try again after a minute.'
+    'Too many login attempts, please try again after 15 minutes.'
   ),
 });
 
@@ -157,15 +148,10 @@ export const activityAuthRateLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  store: (() => {
-    const c = getRedisClient();
-    return c
-      ? new RedisStore({
-          sendCommand: (...args) => c.call(args[0], ...args.slice(1)),
-          prefix: 'rl:activity:',
-        })
-      : undefined;
-  })(),
+  store: new RedisStore({
+    sendCommand: (...args) => redisClient.call(args[0], ...args.slice(1)),
+    prefix: 'rl:activity:',
+  }),
   handler: (req, res, next, options) => {
     logger.warn('Sync batch rate limit exceeded', {
       ip: req.ip,
@@ -177,7 +163,6 @@ export const activityAuthRateLimiter = rateLimit({
     });
   },
 });
-
 // Portfolio update rate limiter — 10 requests per IP per 15 minutes
 export const portfolioRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -188,6 +173,16 @@ export const portfolioRateLimiter = rateLimit({
     'Portfolio update rate limit exceeded',
     'Too many portfolio update attempts from this IP, please try again after 15 minutes.'
   ),
+});
+
+// Sync batch rate limiter — 30 requests per IP per 15 minutes
+export const syncRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: true,
+  store: createRateLimitStore('rate-limit:sync:'),
+  handler: createLimiterHandler('Sync rate limit exceeded', 'Too many sync requests.'),
 });
 
 // Event registration rate limiter — 10 requests per IP per hour
@@ -209,35 +204,31 @@ export const eventRegistrationLimiter = rateLimit({
   },
 });
 
+
+// Sync rate limiter: 5 requests per minute per IP.
+export const syncRateLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 5, // 5 requests per minute
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: createRateLimitStore('rate-limit:sync:'),
+  handler: (req, res, next, options) => {
+    logger.warn('Sync rate limit exceeded', {
+      ip: req.ip,
+      path: req.originalUrl || req.path,
+    });
+    res.status(options.statusCode).json({
+      error: 'Too many sync requests. Please slow down.',
+    });
+  },
+});
+
 // Search rate limiter: 30 requests per minute per IP.
 export const searchRateLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 30, // 30 requests per minute
   standardHeaders: true,
   legacyHeaders: true,
-  store: createRateLimitStore('rate-limit:search:'),
-  handler: (req, res, next, options) => {
-    logger.warn('Search rate limit exceeded', {
-      ip: req.ip,
-      path: req.originalUrl || req.path,
-    });
-    res.status(options.statusCode).json({
-      error: 'Too many search requests. Please slow down.',
-    });
-  },
-});
-
-// ---------------------------------------------------------------------------
-// Startup guard — call once during server boot to catch missing exports early.
-// Throws immediately if any limiter failed to initialise, preventing the silent
-// "undefined middleware" failure mode that this issue was created to fix.
-// ---------------------------------------------------------------------------
-// Search rate limiter: 30 requests per minute per IP.
-export const searchRateLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 30, // 30 requests per minute
-  standardHeaders: true,
-  legacyHeaders: false,
   store: createRateLimitStore('rate-limit:search:'),
   handler: (req, res, next, options) => {
     logger.warn('Search rate limit exceeded', {
@@ -259,6 +250,7 @@ export function validateLimiters() {
     activityAuthRateLimiter,
     syncRateLimiter,
     portfolioRateLimiter,
+    eventRegistrationLimiter,
     searchRateLimiter,
   };
 

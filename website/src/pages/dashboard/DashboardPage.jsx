@@ -12,7 +12,16 @@ import { useStudentAuth } from '../../context/StudentAuthContext';
 import { STORAGE_KEYS } from '../../utils/storageKeys';
 
 export default function DashboardPage({ onBack }) {
-  const [currentUser] = useState({ id: 'user_123', name: 'Explorer' });
+  const { user: authUser } = useStudentAuth();
+  const { theme: currentTheme, setTheme } = useTheme();
+  const currentUser = authUser
+    ? {
+        id: authUser.sub || authUser.id,
+        name: authUser.name || 'Explorer',
+        email: authUser.email || '',
+        role: authUser.role || 'student',
+      }
+    : { id: 'user_123', name: 'Explorer', email: '', role: 'student' };
   const [interests, setInterests] = useState([]);
   const [quests, setQuests] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
@@ -42,18 +51,32 @@ export default function DashboardPage({ onBack }) {
   }, []);
 
   useEffect(() => {
-    // Simulated data based on timeframe
-    const data = {
-      all: [
-        { id: 'u1', userId: 'user_123', username: 'Explorer', xp: 450, level: 3 },
-        { id: 'u2', userId: 'user_456', username: 'TechNinja', xp: 850, level: 5 },
-        { id: 'u3', userId: 'user_789', username: 'CodeMaster', xp: 320, level: 2 },
-      ].sort((a, b) => b.xp - a.xp),
-      week: [{ id: 'u2', userId: 'user_456', username: 'TechNinja', xp: 200, level: 5 }],
-      month: [{ id: 'u1', userId: 'user_123', username: 'Explorer', xp: 350, level: 3 }],
-    };
-    setLeaderboard(data[timeframe] || data.all);
-  }, [timeframe]);
+    setLeaderboard(
+      [
+        {
+          id: 'u1',
+          userId: 'user_123',
+          username: 'Explorer',
+          xp: 450,
+          level: 3,
+        },
+        {
+          id: 'u2',
+          userId: 'user_456',
+          username: 'TechNinja',
+          xp: 850,
+          level: 5,
+        },
+        {
+          id: 'u3',
+          userId: 'user_789',
+          username: 'CodeMaster',
+          xp: 320,
+          level: 2,
+        },
+      ].sort((a, b) => b.xp - a.xp || a.username.localeCompare(b.username))
+    );
+  }, [currentUser]);
 
   const toggleInterest = (domain) => {
     setInterests((prev) => {
@@ -252,7 +275,9 @@ export default function DashboardPage({ onBack }) {
             </div>
 
             {/* Admin Integrations Card */}
-            {(currentUser.role === 'admin' || currentUser.role === 'SuperAdmin' || currentUser.role === 'faculty') && (
+            {(currentUser.role === 'admin' ||
+              currentUser.role === 'SuperAdmin' ||
+              currentUser.role === 'faculty') && (
               <div
                 style={{
                   background: 'var(--bg-glass)',
@@ -262,7 +287,16 @@ export default function DashboardPage({ onBack }) {
                   marginTop: '20px',
                 }}
               >
-                <h3 style={{ marginBottom: '12px', fontSize: '1.05rem', color: 'var(--t1)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h3
+                  style={{
+                    marginBottom: '12px',
+                    fontSize: '1.05rem',
+                    color: 'var(--t1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                  }}
+                >
                   ⚙️ Admin Integrations
                 </h3>
                 <button
@@ -283,6 +317,107 @@ export default function DashboardPage({ onBack }) {
                 </button>
               </div>
             )}
+          </div>
+
+          <div
+            style={{
+              background: 'var(--bg-glass)',
+              padding: '24px',
+              borderRadius: '16px',
+              border: '1px solid var(--b2)',
+            }}
+          >
+            <h3
+              style={{
+                marginBottom: '12px',
+                color: 'var(--t1)',
+                fontFamily: 'Orbitron, sans-serif',
+              }}
+            >
+              Theme Settings
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <span style={{ fontSize: '0.85rem', color: 'var(--t2)' }}>
+                Choose your appearance preference:
+              </span>
+              <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                <button
+                  onClick={() => setTheme('light')}
+                  style={{
+                    flex: 1,
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    background: currentTheme === 'light' ? 'var(--c1)' : 'rgba(255,255,255,0.04)',
+                    color: currentTheme === 'light' ? '#fff' : 'var(--t1)',
+                    border: '1px solid var(--border-color)',
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    fontWeight: currentTheme === 'light' ? '700' : '500',
+                  }}
+                  onMouseOver={(e) => {
+                    if (currentTheme !== 'light')
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+                  }}
+                  onMouseOut={(e) => {
+                    if (currentTheme !== 'light')
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+                  }}
+                >
+                  Light
+                </button>
+                <button
+                  onClick={() => setTheme('dark')}
+                  style={{
+                    flex: 1,
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    background: currentTheme === 'dark' ? 'var(--c1)' : 'rgba(255,255,255,0.04)',
+                    color: currentTheme === 'dark' ? '#fff' : 'var(--t1)',
+                    border: '1px solid var(--border-color)',
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    fontWeight: currentTheme === 'dark' ? '700' : '500',
+                  }}
+                  onMouseOver={(e) => {
+                    if (currentTheme !== 'dark')
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+                  }}
+                  onMouseOut={(e) => {
+                    if (currentTheme !== 'dark')
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+                  }}
+                >
+                  Dark
+                </button>
+                <button
+                  onClick={() => setTheme('system')}
+                  style={{
+                    flex: 1,
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    background: currentTheme === 'system' ? 'var(--c1)' : 'rgba(255,255,255,0.04)',
+                    color: currentTheme === 'system' ? '#fff' : 'var(--t1)',
+                    border: '1px solid var(--border-color)',
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    fontWeight: currentTheme === 'system' ? '700' : '500',
+                  }}
+                  onMouseOver={(e) => {
+                    if (currentTheme !== 'system')
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+                  }}
+                  onMouseOut={(e) => {
+                    if (currentTheme !== 'system')
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+                  }}
+                >
+                  System
+                </button>
+              </div>
+            </div>
           </div>
 
           <div

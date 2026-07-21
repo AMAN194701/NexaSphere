@@ -3,10 +3,21 @@
  */
 
 import { Router } from 'express';
-import { createClient } from 'redis';
+import { getRedisClient } from '../utils/redis.js';
 import logger from '../utils/logger.js';
 import { adminAuthMiddleware } from '../middleware/adminAuthMiddleware.js';
+import { validate } from '../middleware/validate.js';
 import rateLimit from 'express-rate-limit';
+import { sendSuccess, sendError, sendNoContent } from '../utils/responseHelper.js';
+import {
+  overrideBodySchema,
+  overrideParamsSchema,
+  whitelistBodySchema,
+  whitelistParamsSchema,
+  blacklistBodySchema,
+  blacklistParamsSchema,
+  unblockBodySchema,
+} from '../validators/routes/rateLimitAdminRoutesSchemas.js';
 import {
   addToWhitelist,
   removeFromWhitelist,
@@ -21,27 +32,22 @@ const router = Router();
 router.use(
   rateLimit({ windowMs: 60 * 1000, max: 60, standardHeaders: true, legacyHeaders: false })
 );
-let _redis = null;
 async function redis() {
-  if (_redis) return _redis;
-  try {
-    _redis = createClient({ url: process.env.REDIS_URL });
-    _redis.on('error', () => {});
-    await _redis.connect();
-  } catch {
-    _redis = null;
-  }
-  return _redis;
+  return getRedisClient();
 }
 
 async function scanKeys(pattern) {
   const r = await redis();
   if (!r) return [];
   const keys = [];
-  for await (const key of r.scanIterator({ MATCH: pattern, COUNT: 200 })) {
-    keys.push(key);
-  }
-  return keys;
+  return new Promise((resolve, reject) => {
+    const stream = r.scanStream({ match: pattern, count: 200 });
+    stream.on('data', (resultKeys) => {
+      keys.push(...resultKeys);
+    });
+    stream.on('end', () => resolve(keys));
+    stream.on('error', reject);
+  });
 }
 
 router.get(
@@ -88,7 +94,7 @@ router.get(
       const blockedKeys = await scanKeys('ratelimit:autoblock:*');
       const autoblocked = blockedKeys.map((k) => ({ ip: k.replace('ratelimit:autoblock:', '') }));
 
-      res.json({
+      sendSuccess(res, {
         totalActiveKeys: violations.length,
         topUsers,
         topEndpoints,
@@ -97,7 +103,7 @@ router.get(
       });
     } catch (err) {
       logger.error('rateLimitAdminRoutes /status error', { err: err.message });
-      res.status(500).json({ error: 'Failed to fetch rate limit status' });
+      sendError(req, res, 'Failed to fetch rate limit status', 500, 'INTERNAL_ERROR');
     }
   }
 );
@@ -131,23 +137,22 @@ router.get(
       rows.sort((a, b) => b.count - a.count);
       const start = (parseInt(page) - 1) * parseInt(limit);
       const paginated = rows.slice(start, start + parseInt(limit));
-      res.json({ total: rows.length, page: parseInt(page), data: paginated });
+      sendSuccess(res, { total: rows.length, page: parseInt(page), data: paginated });
     } catch (err) {
       logger.error('rateLimitAdminRoutes /violations error', { err: err.message });
-      res.status(500).json({ error: 'Failed to fetch violations' });
+      sendError(req, res, 'Failed to fetch violations', 500, 'INTERNAL_ERROR');
     }
   }
 );
 
 router.post(
   '/api/admin/rate-limits/override',
+  validate(overrideBodySchema),
   adminAuthMiddleware.requireAdmin,
 
   async (req, res) => {
     try {
       const { identifier, limitPerMinute } = req.body;
-      if (!identifier || !limitPerMinute)
-        return res.status(400).json({ error: 'identifier and limitPerMinute are required' });
 
       const r = await redis();
       if (r) await r.set(`ratelimit:override:${identifier}`, String(limitPerMinute), { EX: 86400 });
@@ -157,25 +162,26 @@ router.post(
         limitPerMinute,
         by: req.adminSession?.adminId,
       });
-      res.json({ success: true, identifier, limitPerMinute });
+      sendSuccess(res, { success: true, identifier, limitPerMinute });
     } catch (err) {
       logger.error('rateLimitAdminRoutes /override error', { err: err.message });
-      res.status(500).json({ error: 'Failed to set override' });
+      sendError(req, res, 'Failed to set override', 500, 'INTERNAL_ERROR');
     }
   }
 );
 
 router.delete(
   '/api/admin/rate-limits/override/:identifier',
+  validate(overrideParamsSchema, 'params'),
   adminAuthMiddleware.requireAdmin,
 
   async (req, res) => {
     try {
       const r = await redis();
       if (r) await r.del(`ratelimit:override:${req.params.identifier}`);
-      res.json({ success: true });
+      sendSuccess(res, { success: true });
     } catch (err) {
-      res.status(500).json({ error: 'Failed to remove override' });
+      sendError(req, res, 'Failed to remove override', 500, 'INTERNAL_ERROR');
     }
   }
 );
@@ -186,40 +192,41 @@ router.get(
 
   async (req, res) => {
     try {
-      res.json({ whitelist: await getWhitelist() });
+      sendSuccess(res, { whitelist: await getWhitelist() });
     } catch (err) {
-      res.status(500).json({ error: 'Failed to fetch whitelist' });
+      sendError(req, res, 'Failed to fetch whitelist', 500, 'INTERNAL_ERROR');
     }
   }
 );
 
 router.post(
   '/api/admin/rate-limits/whitelist',
+  validate(whitelistBodySchema),
   adminAuthMiddleware.requireAdmin,
 
   async (req, res) => {
     try {
       const { ip } = req.body;
-      if (!ip) return res.status(400).json({ error: 'ip is required' });
       await addToWhitelist(ip);
       logger.info('IP whitelisted', { ip, by: req.adminSession?.adminId });
-      res.json({ success: true });
+      sendSuccess(res, { success: true });
     } catch (err) {
-      res.status(500).json({ error: 'Failed to add to whitelist' });
+      sendError(req, res, 'Failed to add to whitelist', 500, 'INTERNAL_ERROR');
     }
   }
 );
 
 router.delete(
   '/api/admin/rate-limits/whitelist/:ip',
+  validate(whitelistParamsSchema, 'params'),
   adminAuthMiddleware.requireAdmin,
 
   async (req, res) => {
     try {
       await removeFromWhitelist(req.params.ip);
-      res.json({ success: true });
+      sendSuccess(res, { success: true });
     } catch (err) {
-      res.status(500).json({ error: 'Failed to remove from whitelist' });
+      sendError(req, res, 'Failed to remove from whitelist', 500, 'INTERNAL_ERROR');
     }
   }
 );
@@ -230,57 +237,58 @@ router.get(
 
   async (req, res) => {
     try {
-      res.json({ blacklist: await getBlacklist() });
+      sendSuccess(res, { blacklist: await getBlacklist() });
     } catch (err) {
-      res.status(500).json({ error: 'Failed to fetch blacklist' });
+      sendError(req, res, 'Failed to fetch blacklist', 500, 'INTERNAL_ERROR');
     }
   }
 );
 
 router.post(
   '/api/admin/rate-limits/blacklist',
+  validate(blacklistBodySchema),
   adminAuthMiddleware.requireAdmin,
 
   async (req, res) => {
     try {
       const { ip } = req.body;
-      if (!ip) return res.status(400).json({ error: 'ip is required' });
       await addToBlacklist(ip);
       logger.info('IP blacklisted', { ip, by: req.adminSession?.adminId });
-      res.json({ success: true });
+      sendSuccess(res, { success: true });
     } catch (err) {
-      res.status(500).json({ error: 'Failed to add to blacklist' });
+      sendError(req, res, 'Failed to add to blacklist', 500, 'INTERNAL_ERROR');
     }
   }
 );
 
 router.delete(
   '/api/admin/rate-limits/blacklist/:ip',
+  validate(blacklistParamsSchema, 'params'),
   adminAuthMiddleware.requireAdmin,
 
   async (req, res) => {
     try {
       await removeFromBlacklist(req.params.ip);
-      res.json({ success: true });
+      sendSuccess(res, { success: true });
     } catch (err) {
-      res.status(500).json({ error: 'Failed to remove from blacklist' });
+      sendError(req, res, 'Failed to remove from blacklist', 500, 'INTERNAL_ERROR');
     }
   }
 );
 
 router.post(
   '/api/admin/rate-limits/unblock',
+  validate(unblockBodySchema),
   adminAuthMiddleware.requireAdmin,
 
   async (req, res) => {
     try {
       const { ip } = req.body;
-      if (!ip) return res.status(400).json({ error: 'ip is required' });
       await unblockIp(ip);
       logger.info('IP auto-block lifted', { ip, by: req.adminSession?.adminId });
-      res.json({ success: true });
+      sendSuccess(res, { success: true });
     } catch (err) {
-      res.status(500).json({ error: 'Failed to unblock IP' });
+      sendError(req, res, 'Failed to unblock IP', 500, 'INTERNAL_ERROR');
     }
   }
 );

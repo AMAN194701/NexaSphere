@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { DynamicIcon } from '../../shared/Icons';
 import { getApiBase } from '../../utils/runtimeConfig';
 import apiClient from '../../utils/apiClient';
+import { downloadICS } from '../../utils/icsExport';
 
 function hexToRgb(hex) {
   if (!hex || !hex.startsWith('#')) return '0,212,255';
@@ -51,6 +52,7 @@ function StatCard({ label, value, color }) {
   const [count, setCount] = useState(0);
   const ref = useRef(null);
   const started = useRef(false);
+  const countIntervalRef = useRef(null);
   useEffect(() => {
     const obs = new IntersectionObserver(
       ([e]) => {
@@ -62,11 +64,12 @@ function StatCard({ label, value, color }) {
             return;
           }
           let cur = 0;
-          const t = setInterval(() => {
+          countIntervalRef.current = setInterval(() => {
             cur += Math.ceil(num / 40);
             if (cur >= num) {
               setCount(num);
-              clearInterval(t);
+              clearInterval(countIntervalRef.current);
+              countIntervalRef.current = null;
             } else setCount(cur);
           }, 25);
         }
@@ -74,7 +77,13 @@ function StatCard({ label, value, color }) {
       { threshold: 0.5 }
     );
     if (ref.current) obs.observe(ref.current);
-    return () => obs.disconnect();
+    return () => {
+      obs.disconnect();
+      if (countIntervalRef.current) {
+        clearInterval(countIntervalRef.current);
+        countIntervalRef.current = null;
+      }
+    };
   }, [value]);
   const rgb = hexToRgb(color);
   return (
@@ -1162,6 +1171,35 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
                 <DynamicIcon name={status === 'completed' ? 'CheckCircle' : 'Calendar'} size={12} />{' '}
                 {status === 'completed' ? 'Completed' : 'Upcoming'}
               </span>
+              {isUpcoming && (
+                <button
+                  onClick={() => downloadICS(event)}
+                  title="Download Calendar Event"
+                  style={{
+                    background: `rgba(${rgb},0.1)`,
+                    border: `1px solid rgba(${rgb},0.3)`,
+                    color: color,
+                    borderRadius: '50%',
+                    width: '28px',
+                    height: '28px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = `rgba(${rgb},0.2)`;
+                    e.currentTarget.style.transform = 'scale(1.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = `rgba(${rgb},0.1)`;
+                    e.currentTarget.style.transform = '';
+                  }}
+                >
+                  <DynamicIcon name="CalendarPlus" size={14} />
+                </button>
+              )}
             </div>
 
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
