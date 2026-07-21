@@ -21,6 +21,7 @@ model User {
   feedbacks        EventFeedback[]
   actionItems      ActionItem[]
   settingsChanges  SettingsChangeLog[]
+  certificates     Certificate[]
 
   @@index([createdAt])
 }
@@ -106,6 +107,9 @@ enum AuditAction {
   CREATE
   UPDATE
   DELETE
+  APPROVE
+  REJECT
+  REVOKE
 }
 
 model AuditLog {
@@ -180,5 +184,25 @@ model SettingsChangeLog {
 
   @@index([environment, key])
   @@index([changedById])
+}
+
+model Certificate {
+  id                 String    @id @default(uuid())
+  code               String    @unique
+  userId             String
+  eventId            String
+  attendeeName       String?
+  eventName          String?
+  date               DateTime  @default(now())
+  completionCriteria String?
+  status             String    @default("PENDING") // PENDING, ISSUED, VERIFIED, REJECTED
+  verified           Boolean   @default(false)
+  verifiedAt         DateTime?
+  expiresAt          DateTime?
+  revoked            Boolean   @default(false)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  user               User      @relation(fields: [userId], references: [id])
 }
 
