@@ -18,7 +18,7 @@ import {
   Brain,
   Lightbulb,
 } from 'lucide-react';
-import PrivacySettings from '../../components/profile/PrivacySettings';
+import ProfileBadges from '../../components/profile/ProfileBadges';
 
 const ACHIEVEMENT_ICONS: Record<
   string,
@@ -312,10 +312,6 @@ export default function UserDashboard() {
             </button>
           </div>
         </div>
-
-        {/* Privacy Settings */}
-        <PrivacySettings />
-
         {/* Recommendations */}
         <div className="bg-gradient-to-r from-[#1A1A1A] to-[#0F0F0F] rounded-xl border border-[#2A2A2A] p-6">
           <div className="flex items-center gap-2 mb-4">

@@ -4,6 +4,7 @@ import { sanitizeCoreTeamMemberRecord } from '../utils/sanitize.js';
 import crypto from 'crypto';
 import { coreTeamMemberSchema, normalizeCoreTeamGate } from '../schemas/coreTeamMemberSchema.js';
 import { UnauthorizedError } from '../utils/errors.js';
+import logger from '../utils/logger.js';
 
 function normalizePhone(value) {
   return String(value || '').replace(/[^\d]/g, '');
@@ -57,7 +58,7 @@ export const coreTeamService = {
         ],
       });
 
-      return sanitizeCoreTeamMemberRecord({
+      const res = sanitizeCoreTeamMemberRecord({
         id: row.id,
         name: row.name,
         role: row.role,
@@ -71,6 +72,10 @@ export const coreTeamService = {
         photoUrl: row.photo_url,
         createdAt: row.created_at,
       });
+      import('../services/searchIndexer.js')
+        .then(({ searchIndexer }) => searchIndexer.indexMember(res))
+        .catch((err) => logger.error('Search index operation failed for core team member', { err, method: 'indexMember' }));
+      return res;
     }
 
     const content = await readContent();
@@ -79,7 +84,11 @@ export const coreTeamService = {
     const newMember = { ...member, id: crypto.randomUUID(), createdAt };
     content.coreTeam.push(newMember);
     await writeContent(content);
-    return sanitizeCoreTeamMemberRecord(newMember);
+    const res = sanitizeCoreTeamMemberRecord(newMember);
+    import('../services/searchIndexer.js')
+      .then(({ searchIndexer }) => searchIndexer.indexMember(res))
+      .catch((err) => logger.error('Failed to index core team member in search (addMember, fallback)', { err, memberId: res?.id }));
+    return res;
   },
 
   async updateMember(id, input) {
@@ -102,7 +111,7 @@ export const coreTeamService = {
         },
       });
 
-      return sanitizeCoreTeamMemberRecord({
+      const res = sanitizeCoreTeamMemberRecord({
         id: row.id,
         name: row.name,
         role: row.role,
@@ -116,6 +125,10 @@ export const coreTeamService = {
         photoUrl: row.photo_url,
         createdAt: row.created_at,
       });
+      import('../services/searchIndexer.js')
+        .then(({ searchIndexer }) => searchIndexer.indexMember(res))
+        .catch((err) => logger.error('Search index operation failed for core team member', { err, method: 'indexMember' }));
+      return res;
     }
 
     const content = await readContent();
@@ -126,7 +139,11 @@ export const coreTeamService = {
     const updated = { ...content.coreTeam[index], ...member, id: content.coreTeam[index].id };
     content.coreTeam[index] = updated;
     await writeContent(content);
-    return sanitizeCoreTeamMemberRecord(updated);
+    const res = sanitizeCoreTeamMemberRecord(updated);
+    import('../services/searchIndexer.js')
+      .then(({ searchIndexer }) => searchIndexer.indexMember(res))
+      .catch((err) => logger.error('Failed to index core team member in search (updateMember, fallback)', { err, memberId: res?.id }));
+    return res;
   },
 
   async deleteMember(id) {
@@ -134,7 +151,13 @@ export const coreTeamService = {
       const rows = await supabaseRequest(`core_team_members?id=eq.${encodeURIComponent(id)}`, {
         method: 'DELETE',
       });
-      return Array.isArray(rows) && rows.length > 0;
+      const success = Array.isArray(rows) && rows.length > 0;
+      if (success) {
+        import('../services/searchIndexer.js')
+          .then(({ searchIndexer }) => searchIndexer.deleteDocument('members', id))
+          .catch((err) => logger.error('Failed to remove core team member from search index', { err, memberId: id }));
+      }
+      return success;
     }
 
     const content = await readContent();
@@ -143,6 +166,9 @@ export const coreTeamService = {
     content.coreTeam = content.coreTeam.filter((member) => String(member.id) !== String(id));
     if (content.coreTeam.length === before) return false;
     await writeContent(content);
+    import('../services/searchIndexer.js')
+      .then(({ searchIndexer }) => searchIndexer.deleteDocument('members', id))
+      .catch((err) => logger.error('Failed to remove core team member from search index (file fallback)', { err, memberId: id }));
     return true;
   },
 

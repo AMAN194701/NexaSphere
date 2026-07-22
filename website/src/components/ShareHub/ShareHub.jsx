@@ -1,10 +1,17 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { PLATFORMS, addUtmParams, getQRUrl, copyToClipboard } from '../../utils/shareUtils';
 import './ShareHub.css';
 
 export default function ShareHub({ isOpen, onClose, data }) {
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState(false);
   const [showQR, setShowQR] = useState(false);
+  const copiedTimeoutRef = useRef(null);
+  useEffect(() => {
+    return () => {
+      if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -29,7 +36,8 @@ export default function ShareHub({ isOpen, onClose, data }) {
     const ok = await copyToClipboard(shareUrl);
     if (ok) {
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
+      copiedTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
     }
   }, [shareUrl]);
 
@@ -50,7 +58,13 @@ export default function ShareHub({ isOpen, onClose, data }) {
         // Any other failure (e.g. share target unavailable) falls back to
         // copying the URL to clipboard so the user can still share manually.
         if (err?.name !== 'AbortError' && navigator.clipboard) {
-          navigator.clipboard.writeText(shareUrl).catch(() => {});
+          navigator.clipboard.writeText(shareUrl).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+          }).catch(() => {
+            setCopyError(true);
+            setTimeout(() => setCopyError(false), 3000);
+          });
         }
       });
     }
@@ -116,10 +130,15 @@ export default function ShareHub({ isOpen, onClose, data }) {
             readOnly
             aria-label="Shareable link"
           />
-          <button className="sharehub-copy-btn" onClick={handleCopy}>
-            {copied ? 'Copied!' : 'Copy'}
+          <button className={`sharehub-copy-btn ${copyError ? 'error' : ''}`} onClick={handleCopy}>
+            {copied ? 'Copied!' : (copyError ? 'Failed' : 'Copy')}
           </button>
         </div>
+        {copyError && (
+          <p style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '4px', textAlign: 'center' }}>
+            Clipboard access denied. Please manually copy the link above.
+          </p>
+        )}
 
         <button
           className="sharehub-qr-toggle"

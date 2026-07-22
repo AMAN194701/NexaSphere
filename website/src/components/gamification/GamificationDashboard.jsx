@@ -1,4 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
+
+// Validates a date value before formatting — avoids rendering literal
+// "Invalid Date" text when the API returns a null or malformed timestamp.
+function formatAchievementDate(value) {
+  if (!value) return 'Unknown date';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return 'Unknown date';
+  return d.toLocaleDateString();
+}
 import { gamificationService, ACHIEVEMENTS } from '../../services/gamification/gamificationService';
 import { DynamicIcon } from '../../shared/Icons';
 
@@ -301,6 +310,19 @@ export default function GamificationDashboard() {
         >
           Earn XP
         </button>
+        <button
+          onClick={() => setActiveTab('quests')}
+          style={{
+            padding: '8px 20px',
+            borderRadius: '100px',
+            background: activeTab === 'quests' ? '#CC1111' : 'transparent',
+            border: 'none',
+            color: activeTab === 'quests' ? 'white' : '#9CA3AF',
+            cursor: 'pointer',
+          }}
+        >
+          Quests
+        </button>
       </div>
 
       {/* Tab Content */}
@@ -329,7 +351,7 @@ export default function GamificationDashboard() {
                     <div style={{ fontSize: '13px', color: '#9CA3AF' }}>{ach.description}</div>
                   </div>
                   <div style={{ fontSize: '12px', color: '#6B7280' }}>
-                    {new Date(ach.unlockedAt).toLocaleDateString()}
+                    {formatAchievementDate(ach.unlockedAt)}
                   </div>
                 </div>
               ))}
@@ -418,6 +440,7 @@ export default function GamificationDashboard() {
               <tr>
                 <th style={{ padding: '12px 16px', color: '#9CA3AF', textAlign: 'left' }}>Rank</th>
                 <th style={{ padding: '12px 16px', color: '#9CA3AF', textAlign: 'left' }}>User</th>
+
                 <th style={{ padding: '12px 16px', textAlign: 'right', color: '#9CA3AF' }}>
                   Level
                 </th>
@@ -435,6 +458,27 @@ export default function GamificationDashboard() {
                       <span style={{ fontSize: '20px' }}>{user.avatar}</span>
                       <span style={{ color: '#FFFFFF' }}>{user.name}</span>
                     </div>
+                  </td>
+                  <td
+                    style={{
+                      padding: '12px 16px',
+                      textAlign: 'center',
+                      color: '#F59E0B',
+                      fontWeight: 'bold',
+                    }}
+                  >
+                    {user.streak > 0 ? (
+                      <span title={`${user.streak} day streak!`}>
+                        {user.streak}{' '}
+                        <DynamicIcon
+                          name="Flame"
+                          size={14}
+                          style={{ display: 'inline', verticalAlign: 'middle' }}
+                        />
+                      </span>
+                    ) : (
+                      <span style={{ color: '#4B5563' }}>-</span>
+                    )}
                   </td>
                   <td style={{ padding: '12px 16px', textAlign: 'right', color: '#FFFFFF' }}>
                     {user.level}
@@ -550,6 +594,85 @@ export default function GamificationDashboard() {
               </span>
               <span style={{ color: '#10B981', fontWeight: 'bold' }}>+10 XP</span>
             </button>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'quests' && (
+        <div>
+          <h3 style={{ color: '#FFFFFF', marginBottom: '16px' }}>Skill Verification Quests</h3>
+          <p style={{ color: '#9CA3AF', marginBottom: '24px' }}>
+            Prove your expertise by completing interactive quests. Earn a "Verified" badge for your
+            profile and boost your visibility in the Skill Exchange!
+          </p>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+              gap: '16px',
+            }}
+          >
+            {['React', 'Node.js', 'Python', 'UI/UX Design', 'Cloud Computing'].map((skill) => {
+              const isVerified = userStats.stats.verified_skills?.includes(skill);
+              return (
+                <div
+                  key={skill}
+                  style={{
+                    background: '#1A1A1A',
+                    border: isVerified ? '1px solid #10B981' : '1px solid #2A2A2A',
+                    borderRadius: '16px',
+                    padding: '20px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#FFFFFF' }}>
+                      {skill}
+                    </div>
+                    {isVerified ? (
+                      <span style={{ color: '#10B981', fontSize: '20px' }}>✅</span>
+                    ) : (
+                      <span style={{ color: '#6B7280', fontSize: '20px' }}>🎯</span>
+                    )}
+                  </div>
+                  <p style={{ color: '#9CA3AF', fontSize: '13px', margin: 0, flex: 1 }}>
+                    {isVerified
+                      ? 'You are a verified expert in this skill.'
+                      : `Take the ${skill} quest to prove your skills and earn a badge.`}
+                  </p>
+                  <button
+                    disabled={isVerified}
+                    onClick={() => {
+                      const res = gamificationService.verifySkill(skill);
+                      if (res.success) {
+                        loadData(); // refresh stats and badges
+                      }
+                    }}
+                    style={{
+                      background: isVerified ? '#064E3B' : '#CC1111',
+                      color: isVerified ? '#10B981' : 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '10px',
+                      fontWeight: 'bold',
+                      cursor: isVerified ? 'default' : 'pointer',
+                      marginTop: '8px',
+                      transition: 'background 0.2s',
+                    }}
+                  >
+                    {isVerified ? 'Verified Expert' : 'Take Verification Quest'}
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

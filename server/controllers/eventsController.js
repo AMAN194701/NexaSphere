@@ -1,3 +1,4 @@
+import { sendSuccess, sendError } from '../utils/responseHelper.js';
 import { eventsService } from '../services/eventsService.js';
 import { paginationSchema } from '../validators/eventSchemas.js';
 import { emitToRole } from '../config/socket.js';
@@ -41,32 +42,20 @@ export const listEvents = wrapAsync(async (req, res) => {
     }
   }
 
-  // Redis caching (15 min). Cache key must include studentGroups scope.
-  const { hashKeyParts, getOrSet } = await import('../utils/endpointCache.js');
-  const scopeHash = hashKeyParts(studentGroups || []);
-  const cacheKey = `cache:endpoint:events:listing:${hashKeyParts(
-    req.query?.status,
+  const { rows, total } = await eventsService.listEvents({
     page,
     limit,
-    scopeHash
-  )}`;
-
-  const { data, hit } = await getOrSet({
-    key: cacheKey,
-    ttlSeconds: 60 * 15,
-    getValue: async () => {
-      const { rows, total } = await eventsService.listEvents({
-        page,
-        limit,
-        status,
-        studentGroups,
-      });
-      return { events: rows, pagination: buildPaginationMeta(page, limit, total) };
-    },
+    status,
+    studentGroups,
+    startDate,
+    endDate,
+    category,
+    location,
+    search,
   });
 
   res.setHeader('X-Cache', hit ? 'HIT' : 'MISS');
-  return res.json(data);
+  return sendSuccess(res, data);
 });
 
 export const adminListEvents = wrapAsync(async (req, res) => {
@@ -83,7 +72,7 @@ export const adminListEvents = wrapAsync(async (req, res) => {
     location,
     search,
   });
-  return res.json({ events: rows, pagination: buildPaginationMeta(page, limit, total) });
+  return sendSuccess(res, { events: rows, pagination: buildPaginationMeta(page, limit, total) });
 });
 
 export const adminCreateEvent = wrapAsync(async (req, res) => {
@@ -97,33 +86,27 @@ export const adminCreateEvent = wrapAsync(async (req, res) => {
     // ignore
   }
 
-  return res.status(201).json({ ok: true, event: created });
+  return sendSuccess(res, { event: created }, 201);
 });
 
 export const adminUpdateEvent = wrapAsync(async (req, res) => {
   const id = String(req.params.id || '').trim();
-  const updated = await eventsService.updateEvent(id, req.body);
-  if (!updated) return res.status(404).json({ error: 'Event not found' });
+  const updateSeries = req.query.updateSeries === 'true';
+  const updated = await eventsService.updateEvent(id, req.body, updateSeries);
+  if (!updated) return sendError(req, res, 'Event not found', 404, 'NOT_FOUND');
 
-  // Invalidate event listing cache (and event detail cache if added later)
-  try {
-    const { invalidateByPrefix } = await import('../utils/endpointCache.js');
-    // Events listing cache prefix: cache:endpoint:events:listing:*
-    await invalidateByPrefix('events:listing');
-  } catch {
-    // ignore
-  }
 
   // Broadcast real-time update to all calendar views
   emitToRole('user', 'calendar:event-updated', updated);
 
-  return res.json({ ok: true, event: updated });
+  return sendSuccess(res, { event: updated });
 });
 
 export const adminDeleteEvent = wrapAsync(async (req, res) => {
   const id = String(req.params.id || '').trim();
-  const deleted = await eventsService.deleteEvent(id);
-  if (!deleted) return res.status(404).json({ error: 'Event not found' });
+  const deleteSeries = req.query.deleteSeries === 'true';
+  const deleted = await eventsService.deleteEvent(id, deleteSeries);
+  if (!deleted) return sendError(req, res, 'Event not found', 404, 'NOT_FOUND');
 
   // Invalidate event listing cache
   try {
@@ -133,5 +116,5 @@ export const adminDeleteEvent = wrapAsync(async (req, res) => {
     // ignore
   }
 
-  return res.json({ ok: true });
+  return sendSuccess(res, { ok: true });
 });

@@ -13,10 +13,12 @@ if (process.env.REDIS_URL) {
 
 export const eventRemindersQueueName = 'event-reminders';
 
+
 // Initialize the queue if Redis is configured
 export const eventRemindersQueue = connection
   ? new Queue(eventRemindersQueueName, { connection })
   : null;
+
 
 /**
  * Schedule an event reminder job.
@@ -65,3 +67,4 @@ export async function scheduleReminderJob({
     throw error;
   }
 }
+

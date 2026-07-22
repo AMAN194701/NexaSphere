@@ -55,6 +55,7 @@ export const reminderWorker = connection
             return { sent: 0 };
           }
 
+
           let sentCount = 0;
           for (const attendee of attendees) {
             try {

@@ -55,18 +55,12 @@ export default function RealTimeDashboard() {
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    const handleConnect = () => {
+    socket.on('connect', () => {
       setConnected(true);
       socket.emit('analytics:subscribe', 'all');
       socket.emit('analytics:request:metrics', 'all');
       socket.emit('analytics:request:trends', { eventId: 'all', timeWindow: '7 days' });
-    };
-
-    if (socket.connected) {
-      handleConnect();
-    }
-
-    socket.on('connect', handleConnect);
+    });
 
     socket.on('disconnect', () => setConnected(false));
 
@@ -99,13 +93,6 @@ export default function RealTimeDashboard() {
   }, []);
 
   const exportCSV = useCallback(() => {
-    const escapeCSV = (val) => {
-      if (typeof val === 'string') {
-        return `"${val.replace(/"/g, '""')}"`;
-      }
-      return val;
-    };
-
     const rows = [
       ['Event', 'Registrations', 'Attendees', 'Check-ins'],
       ...Object.entries(eventData).map(([name, d]) => [
@@ -116,7 +103,7 @@ export default function RealTimeDashboard() {
       ]),
       ['LIVE TOTAL', stats.registrations, stats.attendees, stats.checkIns],
     ];
-    const csv = rows.map((r) => r.map(escapeCSV).join(',')).join('\n');
+    const csv = rows.map((r) => r.join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -174,6 +161,7 @@ export default function RealTimeDashboard() {
           >
             {connected ? '🟢 Connected' : '🔴 Disconnected'}
           </div>
+
           <button
             onClick={exportCSV}
             style={{

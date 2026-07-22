@@ -1,4 +1,4 @@
-﻿import { promises as fs } from 'fs';
+import { promises as fs } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { withDb } from './db.js';
@@ -60,6 +60,19 @@ export const studentUsersRepository = {
       `);
       await client.query(`
         ALTER TABLE student_users ADD COLUMN IF NOT EXISTS social_links JSONB DEFAULT '{}'::jsonb;
+      `);
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS xp_transactions (
+          id SERIAL PRIMARY KEY,
+          student_user_id INTEGER REFERENCES student_users(id) ON DELETE CASCADE,
+          amount INTEGER NOT NULL,
+          action VARCHAR(100) NOT NULL,
+          description TEXT,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+      `);
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS idx_xp_transactions_user_id ON xp_transactions(student_user_id)
       `);
     });
   },
@@ -179,38 +192,47 @@ export const studentUsersRepository = {
   async markRecoveryCodeUsed(id) {
     if (!HAS_SUPABASE) return;
     return withDb(async (client) => {
-      await client.query(
-        'UPDATE recovery_codes SET used = true WHERE id = $1',
-        [id]
-      );
+      await client.query('UPDATE recovery_codes SET used = true WHERE id = $1', [id]);
     });
   },
 
-  async awardXP(userId, amount) {
+  async awardXP(userId, amount, action = 'generic', description = null) {
     if (!HAS_SUPABASE) return null;
     return withDb(async (client) => {
-      const userRes = await client.query('SELECT xp, level, badges FROM student_users WHERE id = $1', [userId]);
+
+      const userRes = await client.query(
+        'SELECT xp, level, badges FROM student_users WHERE id = $1',
+        [userId]
+      );
       if (userRes.rows.length === 0) return null;
 
       const currentXP = userRes.rows[0].xp || 0;
       const newXP = currentXP + amount;
 
+      // Calculate level: Level 1 (0 XP), Level 2 (500 XP), Level 3 (1500 XP), Level 4 (4000 XP), Level 5 (10000 XP)
       let newLevel = 1;
       if (newXP >= 10000) newLevel = 5;
       else if (newXP >= 4000) newLevel = 4;
       else if (newXP >= 1500) newLevel = 3;
       else if (newXP >= 500) newLevel = 2;
 
+      // Award matching badges automatically based on Level milestones
       let badges = Array.isArray(userRes.rows[0].badges) ? userRes.rows[0].badges : [];
       if (newLevel >= 2 && !badges.includes('explorer')) badges.push('explorer');
       if (newLevel >= 3 && !badges.includes('contributor')) badges.push('contributor');
       if (newLevel >= 4 && !badges.includes('expert')) badges.push('expert');
       if (newLevel >= 5 && !badges.includes('legend')) badges.push('legend');
 
+      await client.query(
+        `INSERT INTO xp_transactions (student_user_id, amount, action, description)
+         VALUES ($1, $2, $3, $4)`,
+        [userId, amount, action, description]
+      );
+
       const { rows } = await client.query(
-        `UPDATE student_users
-         SET xp = $1, level = $2, badges = $3::jsonb, updated_at = NOW()
-         WHERE id = $4
+        `UPDATE student_users 
+         SET xp = $1, level = $2, badges = $3::jsonb, updated_at = NOW() 
+         WHERE id = $4 
          RETURNING *`,
         [newXP, newLevel, JSON.stringify(badges), userId]
       );
@@ -218,12 +240,27 @@ export const studentUsersRepository = {
     });
   },
 
-  async getLeaderboard(filter = 'all') {
+  async getXPHistory(userId) {
     if (!HAS_SUPABASE) return [];
     return withDb(async (client) => {
       const { rows } = await client.query(
+        `SELECT id, amount, action, description, created_at
+         FROM xp_transactions
+         WHERE student_user_id = $1
+         ORDER BY created_at DESC`,
+        [userId]
+      );
+      return rows;
+    });
+  },
+
+  async getLeaderboard(filter = 'all') {
+    if (!HAS_SUPABASE) return [];
+    return withDb(async (client) => {
+      // Support sorting contributors by XP score. Filtering could optionally scope to weekly/monthly metrics
+      const { rows } = await client.query(
         `SELECT id, full_name as name, email, avatar_url, xp, level, badges
-         FROM student_users
+         FROM student_users 
          ORDER BY xp DESC, level DESC
          LIMIT 50`
       );
@@ -240,7 +277,6 @@ export const studentUsersRepository = {
       );
       return rows[0] || null;
     });
-  },
 
   async updateProfile(id, updates) {
     if (!HAS_SUPABASE) return null;
@@ -265,11 +301,15 @@ export const studentUsersRepository = {
             : JSON.stringify(updates.social_links)
         );
       }
+      if (updates.phone_number !== undefined) {
+        setClauses.push(`phone_number = $${idx++}`);
+        values.push(updates.phone_number);
+      }
 
       if (setClauses.length === 0) {
-        const { rows } = await client.query(
-          'SELECT * FROM student_users WHERE id = $1 LIMIT 1', [id]
-        );
+        const { rows } = await client.query('SELECT * FROM student_users WHERE id = $1 LIMIT 1', [
+          id,
+        ]);
         return rows[0] || null;
       }
 

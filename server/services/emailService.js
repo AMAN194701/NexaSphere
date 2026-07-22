@@ -56,9 +56,13 @@ async function renderTemplate(templateName, data) {
   return ejs.render(templateStr, data);
 }
 
-export async function sendEmail({ to, subject, templateName, data, from = defaultFrom }) {
+export async function renderTemplateHtml(templateName, data, customTemplateContent = null) {
+  return renderTemplate(templateName, data, customTemplateContent);
+}
+
+export async function sendEmail({ to, subject, templateName, data, from = defaultFrom, customTemplateContent = null }) {
   try {
-    const html = await renderTemplate(templateName, data);
+    const html = await renderTemplate(templateName, data, customTemplateContent);
 
     const mailOptions = {
       from,

@@ -1,5 +1,7 @@
+import './setupEnv.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
+process.env.NODE_ENV = 'test';
 process.env.CORS_ORIGIN = 'http://localhost:3000';
 process.env.ADMIN_EVENT_PASSWORD = 'StrongEventPassword123!';
 
@@ -163,4 +165,28 @@ test('retrieval methods (recent, endpoint, user) work correctly', async () => {
   const userErrors = getUserErrors('usr-1', 10);
   assert.strictEqual(userErrors.length, 1);
   assert.strictEqual(userErrors[0].message, 'User error');
+});
+
+test('logError stores environment metadata and groups similar errors', async () => {
+  await logError(new Error('Grouped error'), {
+    status: 503,
+    url: '/api/grouped',
+    method: 'POST',
+  });
+  await logError(new Error('Grouped error'), {
+    status: 503,
+    url: '/api/grouped',
+    method: 'POST',
+  });
+
+  const recent = getRecentErrors(2);
+  assert.strictEqual(recent[0].environment.nodeVersion, process.version);
+  assert.strictEqual(recent[0].environment.platform, process.platform);
+  assert.ok(recent[0].fingerprint);
+  assert.strictEqual(recent[0].fingerprint, recent[1].fingerprint);
+
+  const stats = getErrorStats();
+  assert.ok(Array.isArray(stats.groupedErrors));
+  assert.strictEqual(stats.groupedErrors[0].message, 'Grouped error');
+  assert.strictEqual(stats.groupedErrors[0].count, 2);
 });

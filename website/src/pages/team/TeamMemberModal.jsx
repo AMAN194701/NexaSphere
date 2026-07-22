@@ -1,9 +1,11 @@
 import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 
 // ── Copy Popup ──
 function CopyPopup({ value, onClose }) {
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState(false);
   const timeoutRef = useRef(null);
   const copiedTimeoutRef = useRef(null);
 
@@ -14,13 +16,24 @@ function CopyPopup({ value, onClose }) {
       .writeText(sanitized)
       .then(() => {
         setCopied(true);
+        setCopyError(false);
         if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
         copiedTimeoutRef.current = setTimeout(() => {
           setCopied(false);
+          setCopyError(false);
           copiedTimeoutRef.current = null;
         }, 2000);
       })
-      .catch(() => {});
+      .catch((err) => {
+        console.error('Failed to copy to clipboard', err);
+        setCopyError(true);
+        setCopied(false);
+        if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
+        copiedTimeoutRef.current = setTimeout(() => {
+          setCopyError(false);
+          copiedTimeoutRef.current = null;
+        }, 2000);
+      });
   };
 
   useEffect(() => {
@@ -46,7 +59,7 @@ function CopyPopup({ value, onClose }) {
     <div className="copy-popup">
       <span className="copy-popup-value">{value}</span>
       <button className="copy-popup-btn" onClick={handleCopy}>
-        {copied ? '✅ Copied!' : '📋 Copy'}
+        {copyError ? '❌ Copy failed' : copied ? '✅ Copied!' : '📋 Copy'}
       </button>
     </div>
   );
@@ -81,17 +94,14 @@ function ModalContent({ member, onClose }) {
   const [activePopup, setActivePopup] = useState(null);
   const [imgError, setImgError] = useState(false);
 
+  const modalRef = useFocusTrap(true, onClose);
+
   useEffect(() => {
-    const handler = (e) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handler);
     document.body.style.overflow = 'hidden';
     return () => {
-      window.removeEventListener('keydown', handler);
       document.body.style.overflow = '';
     };
-  }, [onClose]);
+  }, []);
 
   const hasSocial = member.linkedin || member.whatsapp || member.instagram || member.email;
   const whatsappValue = getWhatsappDisplay(member.whatsapp);
@@ -103,7 +113,13 @@ function ModalContent({ member, onClose }) {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="modal-box">
+      <div
+        className="modal-box"
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={member.name}
+      >
         {/* Close */}
         <button className="modal-close" onClick={onClose} aria-label="Close">
           ✕

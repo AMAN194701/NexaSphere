@@ -18,6 +18,7 @@ import apiClient from '../../utils/apiClient';
 import { getApiBase, buildUrl } from '../../utils/runtimeConfig';
 import { initializeSocket, getSocket, joinRoom, leaveRoom } from '../../utils/socketClient';
 
+
 const STATUSES = ['not_started', 'in_progress', 'done', 'blocked'];
 const PRIORITIES = { low: '#6b7280', medium: '#f59e0b', high: '#ef4444', critical: '#dc2626' };
 
@@ -42,6 +43,7 @@ export default function EventPlanningPage({ event, onBack }) {
   const [commentText, setCommentText] = useState('');
 
   const eventId = event?.id || event?.eventId;
+
 
   const fetchPlan = useCallback(async () => {
     const base = getApiBase();

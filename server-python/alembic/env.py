@@ -30,10 +30,12 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
+
 from database import Base
 import models.forms
 import models.portfolio
 import models.certificate
+
 target_metadata = Base.metadata
 
 # Get the database URL from environment

@@ -3,7 +3,7 @@ import { eventSchema } from '../validators/eventSchemas.js';
 import { recordEventCreated } from '../observability/metrics.js';
 import { scheduleReminderJob } from './queueService.js';
 import logger from '../utils/logger.js';
-import { getCachedQuery, clearCache } from '../utils/redis.js';
+
 
 export const eventsService = {
   async listEvents({
@@ -17,40 +17,61 @@ export const eventsService = {
     location,
     search,
   } = {}) {
-    const cacheKey = `events:list:${JSON.stringify({ page, limit, status, studentGroups, startDate, endDate, category, location, search })}`;
-    return getCachedQuery(
-      cacheKey,
-      () =>
-        eventsRepository.list({
-          page,
-          limit,
-          status,
-          studentGroups,
-          startDate,
-          endDate,
-          category,
-          location,
-          search,
-        }),
-      300
-    ); // 5 minutes cache
+    return eventsRepository.list({
+      page,
+      limit,
+      status,
+      studentGroups,
+      startDate,
+      endDate,
+      category,
+      location,
+      search,
+    });
   },
 
   async createEvent(input) {
     const event = eventSchema.parse(input);
-    const created = await eventsRepository.create(event);
-    recordEventCreated();
-    clearCache('events:list:*');
+    let created;
+    let createdEvents = [];
 
-    // Emit real-time notification to all connected clients
-    try {
-      emitToRoom('notifications-room', 'event-published', {
-        eventId: created.id,
-        eventName: created.name,
-      });
-    } catch (socketErr) {
-      logger.warn(`Could not emit event-published notification: ${socketErr.message}`);
+    if (event.recurrencePattern && event.recurrenceEndDate) {
+      const { generatePrefixedId } = await import('../utils/uuid.js');
+      const seriesId = generatePrefixedId('series');
+      let currentDate = new Date(event.date);
+      const endDate = new Date(event.recurrenceEndDate);
+      let occurrenceIndex = 1;
+
+      while (currentDate <= endDate && occurrenceIndex <= 365) {
+        const occEvent = {
+          ...event,
+          id: `${event.id}-${occurrenceIndex}`,
+          date: currentDate.toISOString(),
+          seriesId,
+          occurrenceIndex
+        };
+
+        const createdOcc = await eventsRepository.create(occEvent);
+        createdEvents.push(createdOcc);
+
+        if (event.recurrencePattern === 'daily') {
+          currentDate.setDate(currentDate.getDate() + 1);
+        } else if (event.recurrencePattern === 'weekly') {
+          currentDate.setDate(currentDate.getDate() + 7);
+        } else if (event.recurrencePattern === 'monthly') {
+          currentDate.setMonth(currentDate.getMonth() + 1);
+        } else {
+          break; // custom not fully supported for auto-generation yet
+        }
+        occurrenceIndex++;
+      }
+      created = createdEvents[0]; // main event
+    } else {
+      created = await eventsRepository.create(event);
+      createdEvents.push(created);
     }
+    
+    recordEventCreated();
 
     // Attempt to schedule a reminder if date is parseable
     try {
@@ -70,11 +91,11 @@ export const eventsService = {
     return created;
   },
 
-  async updateEvent(id, input) {
+  async updateEvent(id, input, updateSeries = false) {
     const patch = eventSchema.partial().parse({ ...input, id });
     const updated = await eventsRepository.update(id, patch);
+
     if (updated) {
-      clearCache('events:list:*');
       try {
         const eventDate = new Date(updated.date);
         if (!isNaN(eventDate.getTime())) {
@@ -94,11 +115,25 @@ export const eventsService = {
     return updated;
   },
 
-  async deleteEvent(id) {
-    const deleted = await eventsRepository.delete(id);
-    clearCache('events:list:*');
+  async deleteEvent(id, deleteSeries = false) {
+    let deleted;
+    if (deleteSeries) {
+      // Find event to get series_id
+      const events = await eventsRepository.listAll({ search: id }); 
+      const event = events.find(e => e.id === id);
+      if (event && event.seriesId) {
+        deleted = await eventsRepository.deleteSeries(event.seriesId);
+      } else {
+        deleted = await eventsRepository.delete(id);
+      }
+    } else {
+      deleted = await eventsRepository.delete(id);
+    }
+    
+    import('../utils/redis.js').then(m => m.clearCache('events:list:*'));
     return deleted;
   },
+
   async adminListEvents({
     page = 1,
     limit = 20,

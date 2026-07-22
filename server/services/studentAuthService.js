@@ -54,7 +54,11 @@ export const studentAuthService = {
   },
 
   generateRecoveryCode() {
-    return Math.floor(100000 + Math.random() * 900000).toString();
+    return crypto.randomInt(100000, 1000000).toString();
+  },
+
+  hashRecoveryCode(code) {
+    return crypto.createHash('sha256').update(code).digest('hex');
   },
 
   hashRecoveryCode(code) {
@@ -67,7 +71,6 @@ export const studentAuthService = {
     await studentUsersRepository.saveRecoveryCode(email, hashed);
     return { email, code };
   },
-
   async verifyRecoveryCode(email, enteredCode) {
     const hashed = this.hashRecoveryCode(enteredCode);
     const stored = await studentUsersRepository.getRecoveryCode(email);

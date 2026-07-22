@@ -18,7 +18,7 @@ from slowapi.errors import RateLimitExceeded
 from observability.metrics import collect_celery_queue_depth
 from observability.tracing import init_tracing
 from prompts.system_prompt import SYSTEM_PROMPT
-from routers import certificates, forms, health, notifications, portfolio, recommend, review
+from routers import certificates, forms, health, notifications, portfolio, recommend, review, webhooks, sync
 from services.sync_worker import periodic_sync_worker
 from utils.security import limiter
 
@@ -127,10 +127,10 @@ app.add_middleware(
 
 @app.middleware("http")
 async def request_id_middleware(request: Request, call_next):
-    req_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+    req_id = request.headers.get("X-Correlation-ID") or str(uuid.uuid4())
     token = request_id_context.set(req_id)
     response = await call_next(request)
-    response.headers["X-Request-ID"] = req_id
+    response.headers["X-Correlation-ID"] = req_id
     request_id_context.reset(token)
     return response
 
@@ -143,6 +143,8 @@ async def root():
 
 
 app.include_router(forms.router)
+app.include_router(webhooks.router)
+app.include_router(sync.router)
 app.include_router(recommend.router)
 app.include_router(certificates.router)
 app.include_router(notifications.router)

@@ -1,6 +1,5 @@
 import { query } from '../utils/db.js';
 import { DEFAULT_ROLES } from '../config/rbac.js';
-
 const CUSTOM_ROLES_TABLE = 'custom_roles';
 const USER_ROLES_TABLE = 'user_roles';
 const AUDIT_LOGS_TABLE = 'audit_logs';

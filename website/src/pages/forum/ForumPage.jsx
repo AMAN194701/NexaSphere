@@ -1,4 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
+
+// Validates a date value before formatting — avoids rendering literal
+// "Invalid Date" text when the API returns a null or malformed timestamp.
+function formatThreadDate(value) {
+  if (!value) return 'Unknown date';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return 'Unknown date';
+  return d.toLocaleDateString();
+}
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../../utils/apiClient';
 import { getApiBase } from '../../utils/runtimeConfig';
@@ -34,19 +43,31 @@ export default function ForumPage({ onBack }) {
       setLoading(false);
       return;
     }
-    Promise.all([
+    Promise.allSettled([
       apiClient(`${base}/api/forum/categories`),
       apiClient(
         `${base}/api/forum/threads?sort=${sort}${activeCategory ? `&category=${activeCategory}` : ''}`
       ),
     ])
-      .then(([catData, threadData]) => {
-        if (catData?.categories) setCategories(catData.categories);
-        if (threadData?.threads) setThreads(threadData.threads);
-      })
-      .catch(() => {
-        setCategories(fallbackCategories);
-        setThreads(fallbackThreads);
+      .then(([catResult, threadResult]) => {
+        // Handle each result independently so one endpoint failure
+        // doesn't discard successfully-fetched data from the other.
+        if (catResult.status === 'fulfilled') {
+          if (catResult.value?.categories) setCategories(catResult.value.categories);
+        } else {
+          if (import.meta.env.DEV) {
+            console.warn('[ForumPage] Categories fetch failed:', catResult.reason?.message);
+          }
+          setCategories(fallbackCategories);
+        }
+        if (threadResult.status === 'fulfilled') {
+          if (threadResult.value?.threads) setThreads(threadResult.value.threads);
+        } else {
+          if (import.meta.env.DEV) {
+            console.warn('[ForumPage] Threads fetch failed:', threadResult.reason?.message);
+          }
+          setThreads(fallbackThreads);
+        }
       })
       .finally(() => setLoading(false));
   }, [sort, activeCategory]);
@@ -329,7 +350,7 @@ export default function ForumPage({ onBack }) {
                     <div
                       style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: 8 }}
                     >
-                      by {thread.authorName} · {new Date(thread.createdAt).toLocaleDateString()}
+                      by {thread.authorName} · {formatThreadDate(thread.createdAt)}
                     </div>
                   </div>
                 </div>

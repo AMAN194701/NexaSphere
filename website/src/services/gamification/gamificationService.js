@@ -17,6 +17,7 @@ export const XP_VALUES = {
   LEARNING_PATH_COMPLETE: 1000,
   COMMENT_POSTED: 5, // for dashboard/tests
   REFERRAL: 100, // for dashboard
+  SKILL_VERIFIED: 200, // XP for verifying a skill
 };
 
 // Achievement tiers and requirements
@@ -295,6 +296,7 @@ class GamificationService {
         special_tags: [],
         longest_streak: 0,
         last_active: null,
+        verified_skills: [], // Array of verified skill names
       },
       badges: [],
       streak_freeze_count: 1,
@@ -601,6 +603,43 @@ class GamificationService {
     return levelObj ? levelObj.xpRequired : 0;
   }
 
+  // Handle skill verification
+  verifySkill(skill) {
+    if (this.userData.stats.verified_skills?.includes(skill)) {
+      return { success: false, message: 'Skill already verified' };
+    }
+
+    // Add skill to verified list
+    if (!this.userData.stats.verified_skills) {
+      this.userData.stats.verified_skills = [];
+    }
+    this.userData.stats.verified_skills.push(skill);
+
+    // Track action
+    this.addXP(XP_VALUES.SKILL_VERIFIED);
+    this.updateStreak();
+
+    // Create a special verified badge
+    const badge = {
+      id: `verified_${skill.toLowerCase().replace(/\s+/g, '_')}`,
+      title: `Verified: ${skill}`,
+      description: `Passed the ${skill} Skill Verification Quest`,
+      icon: '✅',
+      tier: 'gold',
+      unlockedAt: new Date().toISOString(),
+    };
+    this.userData.badges.push(badge);
+
+    this.userData.notifications.push({
+      type: 'achievement',
+      message: `🎉 Skill Verified: ${skill}! +${XP_VALUES.SKILL_VERIFIED} XP`,
+      timestamp: new Date().toISOString(),
+    });
+
+    this.saveUserData();
+    return { success: true, xpEarned: XP_VALUES.SKILL_VERIFIED, badge };
+  }
+
   getUserStats() {
     return {
       xp: this.userData.xp,
@@ -635,11 +674,11 @@ class GamificationService {
 
   async getLeaderboard() {
     const MOCK_LEADERBOARD = [
-      { rank: 1, name: 'Alex Johnson', xp: 2850, level: 8, avatar: '👨‍💻' },
-      { rank: 2, name: 'Sarah Chen', xp: 2420, level: 7, avatar: '👩‍💻' },
-      { rank: 3, name: 'Mike Ross', xp: 2100, level: 7, avatar: '👨‍💼' },
-      { rank: 4, name: 'Emma Watson', xp: 1850, level: 6, avatar: '👩‍🎓' },
-      { rank: 5, name: 'David Kim', xp: 1520, level: 6, avatar: '👨‍🔬' },
+      { rank: 1, name: 'Alex Johnson', xp: 2850, level: 8, avatar: '👨‍💻', streak: 12 },
+      { rank: 2, name: 'Sarah Chen', xp: 2420, level: 7, avatar: '👩‍💻', streak: 7 },
+      { rank: 3, name: 'Mike Ross', xp: 2100, level: 7, avatar: '👨‍💼', streak: 4 },
+      { rank: 4, name: 'Emma Watson', xp: 1850, level: 6, avatar: '👩‍🎓', streak: 2 },
+      { rank: 5, name: 'David Kim', xp: 1520, level: 6, avatar: '👨‍🔬', streak: 0 },
     ];
 
     const base = getApiBase();
@@ -657,9 +696,39 @@ class GamificationService {
         xp: user.xp ?? 0,
         level: user.level ?? 1,
         avatar: '👤',
+        streak: user.current_streak ?? user.streak ?? 0,
       }));
     } catch {
       return MOCK_LEADERBOARD;
+    }
+  }
+
+  async getXPHistory(userId) {
+    const MOCK_HISTORY = [
+      {
+        id: 1,
+        amount: 50,
+        action: 'ATTEND_EVENT',
+        description: 'Attended Web Development Workshop',
+        created_at: new Date().toISOString(),
+      },
+      {
+        id: 2,
+        amount: 100,
+        action: 'ADD_PORTFOLIO_PROJECT',
+        description: 'Added first project',
+        created_at: new Date(Date.now() - 86400000).toISOString(),
+      },
+    ];
+    const base = getApiBase();
+    if (!base) return MOCK_HISTORY;
+
+    try {
+      const res = await fetch(`${base}/api/dashboard/xp-history?userId=${userId}`);
+      if (!res.ok) return MOCK_HISTORY;
+      return await res.json();
+    } catch {
+      return MOCK_HISTORY;
     }
   }
 

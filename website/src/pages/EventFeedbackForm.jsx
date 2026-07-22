@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+
 import { useParams, useNavigate } from 'react-router-dom';
 
 const EventFeedbackForm = () => {
@@ -51,6 +52,7 @@ const EventFeedbackForm = () => {
   return (
     <div className="max-w-2xl mx-auto p-6 bg-white shadow rounded-lg mt-10">
       <h1 className="text-3xl font-bold mb-6 text-gray-800">Event Feedback</h1>
+
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">

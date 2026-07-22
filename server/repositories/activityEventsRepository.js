@@ -1,4 +1,5 @@
 import { withDb } from './db.js';
+import logger from '../utils/logger.js';
 
 function mapRow(row) {
   return {
@@ -68,7 +69,17 @@ export const activityEventsRepository = {
           event.createdBy?.phone || '',
         ]
       );
-      return mapRow(rows[0]);
+      const mapped = mapRow(rows[0]);
+      import('../services/searchIndexer.js')
+        .then(({ searchIndexer }) =>
+          searchIndexer.indexActivity(mapped.id, {
+            title: mapped.name,
+            description: mapped.description,
+            subtitle: mapped.tagline,
+          })
+        )
+        .catch((err) => logger.error('Failed to index activity in search', { err, activityId: mapped?.id }));
+      return mapped;
     });
   },
 
@@ -78,6 +89,11 @@ export const activityEventsRepository = {
         'delete from activity_events where activity_key=$1 and id=$2',
         [activityKey, eventId]
       );
+      if (rowCount > 0) {
+        import('../services/searchIndexer.js')
+          .then(({ searchIndexer }) => searchIndexer.deleteDocument('activities', eventId))
+          .catch((err) => logger.error('Failed to remove activity from search index', { err, activityId: eventId }));
+      }
       return rowCount > 0;
     });
   },

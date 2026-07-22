@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, memo, useLayoutEffect, useRef } from 'react';
 import { BrowserRouter, useLocation, useNavigate } from 'react-router-dom';
 
-import ResourcesPage from './pages/resources/ResourcesPage.jsx';
+// Style overrides and design system stylesheets
 import './styles/themes.css';
 import './styles/globals.css';
 import './styles/animations.css';
@@ -11,6 +11,7 @@ import './styles/portfolio.css';
 import './styles/pwa.css';
 import './styles/aurora.css';
 import './styles/motion.css';
+import './styles/accessibility.css';
 import './i18n';
 
 // Core structural elements
@@ -35,6 +36,7 @@ import CinematicOpening from './shared/CinematicOpening';
 import OfflineBanner from './components/pwa/OfflineBanner.jsx';
 import InstallPrompt from './components/pwa/InstallPrompt.jsx';
 import UpdatePrompt from './components/pwa/UpdatePrompt.jsx';
+import EnablePushPrompt from './components/pwa/EnablePushPrompt.jsx';
 
 import {
   AmbientOrbs,
@@ -46,314 +48,20 @@ import {
 } from './shared/MotionLayer';
 import { activityPages } from './data/activities/index';
 
-const MNH = 88;
-const DNH = 64;
 const isPlaywright =
   typeof window !== 'undefined' && window.navigator.userAgent.includes('Playwright');
 
 import { BookmarkProvider } from './context/BookmarkContext';
 import { StudentAuthProvider, useStudentAuth } from './context/StudentAuthContext';
-import BookmarksDrawer from './components/bookmarks/BookmarksDrawer';
-import { useTheme } from './hooks/useTheme';
-import { useInteractionEffects } from './hooks/useInteractionEffects';
-import { useBackToTop } from './hooks/useScrollLogic';
+import ErrorBoundary from './components/common/ErrorBoundary';
+import { WalkthroughOverlay } from './components/walkthrough/WalkthroughOverlay';
+import { useWalkthroughStore } from './store/useWalkthroughStore';
+import { useAnalytics } from './hooks/useAnalytics';
+import { SessionRecordingProvider } from './context/SessionRecordingProvider';
 
-import MoveToTop from './shared/MoveToTop';
-import OfflineBanner from './components/pwa/OfflineBanner.jsx';
-import InstallPrompt from './components/pwa/InstallPrompt.jsx';
-import UpdatePrompt from './components/pwa/UpdatePrompt.jsx';
-import ErrorBoundary from './components/ErrorBoundary';
+const MNH = 88;
+const DNH = 64;
 
-// Lazy-loaded heavy pages
-const RecruitmentPage = lazy(() => import('./pages/recruitment/RecruitmentPage'));
-const MembershipPage = lazy(() => import('./pages/membership/MembershipPage'));
-const AdminPage = lazy(() => import('./pages/admin/AdminPage'));
-const ActivitiesPage = lazy(() => import('./pages/activities/ActivitiesPage'));
-const ActivityDetailPage = lazy(() => import('./pages/activities/ActivityDetailPage'));
-const EventsPage = lazy(() => import('./pages/events/EventsPage'));
-const EventDetailPage = lazy(() => import('./pages/events/EventDetailPage'));
-const EventPlanningPage = lazy(() => import('./pages/events/EventPlanningPage'));
-const AboutPage = lazy(() => import('./pages/about/AboutPage'));
-const TeamPage = lazy(() => import('./pages/team/TeamPage'));
-const ContactPage = lazy(() => import('./pages/contact/ContactPage'));
-const RoadmapsPage = lazy(() => import('./pages/roadmaps/RoadmapsPage'));
-const ProjectsPage = lazy(() => import('./pages/projects/ProjectsPage'));
-const ResourcesPage = lazy(() => import('./pages/resources/ResourcesPage'));
-
-const CertificateVerifyPage = lazy(() => import('./pages/certificates/CertificateVerifyPage'));
-const CollabPage = lazy(() => import('./pages/collab/CollabPage'));
-const PortfolioBuilder = lazy(() => import('./components/portfolio/PortfolioBuilder'));
-const PortfolioAnalytics = lazy(() => import('./pages/portfolio/PortfolioAnalytics'));
-const PublicPortfolio = lazy(() => import('./pages/portfolio/PublicPortfolio'));
-const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage'));
-const AnalyticsPage = lazy(() => import('./pages/analytics/AnalyticsPage'));
-const WorkspacePage = lazy(() => import('./pages/workspace/WorkspacePage'));
-const GamificationDashboard = lazy(() => import('./components/gamification/GamificationDashboard'));
-const ForumPage = lazy(() => import('./pages/forum/ForumPage'));
-const ForumThreadPage = lazy(() => import('./pages/forum/ForumThreadPage'));
-const LoginPage = lazy(() => import('./pages/login/LoginPage'));
-const MentorsPage = lazy(() => import('./pages/mentorship/MentorsPage'));
-const MentorshipDashboard = lazy(() => import('./pages/mentorship/MentorshipDashboard'));
-const StatusPage = lazy(() => import('./pages/StatusPage'));
-const LiveStreamPage = lazy(() => import('./pages/streaming/LiveStreamPage'));
-const NotificationHistoryPage = lazy(() => import('./pages/notifications/NotificationHistoryPage'));
-const SponsorsPage = lazy(() => import('./pages/sponsors/SponsorsPage'));
-
-const MNH = 88,
-  DNH = 64;
-
-/* â”€â”€ Page wipe transition â”€â”€ */
-const Wipe = memo(function Wipe({ on: wipeOn, ph }) {
-  if (!wipeOn) return null;
-  return (
-    <>
-      <div
-        style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 8000,
-          background: 'var(--bg)',
-          animation: `${ph === 'out' ? 'wipeDown .27s' : 'wipeUp .30s'} cubic-bezier(.77,0,.18,1) forwards`,
-          pointerEvents: 'all',
-        }}
-      />
-      <div
-        style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 8001,
-          background: 'linear-gradient(90deg,#CC1111,#880000,#EE2222)',
-          opacity: 0.09,
-          animation: `${ph === 'out' ? 'wipeDown .20s .04s' : 'wipeUp .24s .04s'} cubic-bezier(.77,0,.18,1) forwards`,
-          pointerEvents: 'none',
-        }}
-      />
-      {ph === 'out' && <div className="wipe-shimmer" aria-hidden="true" />}
-      {ph === 'in' && <PageFlash />}
-      {ph === 'out' && (
-        <div
-          style={{
-            position: 'fixed',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%,-50%)',
-            zIndex: 8002,
-            pointerEvents: 'none',
-            opacity: 0,
-            animation: 'splashIn .16s .1s ease forwards',
-          }}
-        >
-          <img
-            src={nexasphereLogo}
-            style={{
-              height: '46px',
-              mixBlendMode: 'screen',
-              filter: 'drop-shadow(0 0 12px var(--c1))',
-              opacity: 0.6,
-            }}
-            alt=""
-          />
-        </div>
-      )}
-    </>
-  );
-});
-
-/* â”€â”€ Page enter animation â”€â”€ */
-const PageIn = memo(function PageIn({ children, k }) {
-  const [r, setR] = useState(false);
-  useLayoutEffect(() => {
-    let rafOne = 0;
-    let rafTwo = 0;
-    setR(false);
-    rafOne = requestAnimationFrame(() => {
-      rafTwo = requestAnimationFrame(() => setR(true));
-    });
-    return () => {
-      cancelAnimationFrame(rafOne);
-      cancelAnimationFrame(rafTwo);
-    };
-  }, [k]);
-  return (
-    <div
-      style={{
-        opacity: r ? 1 : 0,
-        transform: r ? 'none' : 'translateY(16px) scale(.99)',
-        transition:
-          'opacity .42s cubic-bezier(.22,1,.36,1),transform .42s cubic-bezier(.22,1,.36,1)',
-        willChange: 'opacity,transform',
-      }}
-    >
-      {children}
-    </div>
-  );
-});
-
-/* â”€â”€ Anti-gravity orb cursor â”€â”€ */
-function Cursor() {
-  const orbRef = useRef(null);
-  const trailRef = useRef(null);
-  const glowRef = useRef(null);
-  const stateRef = useRef({
-    mx: 0,
-    my: 0,
-    ox: 0,
-    oy: 0,
-    floatY: 0,
-    floatPhase: 0,
-    hovering: false,
-    clicking: false,
-    visible: true,
-    raf: null,
-  });
-
-  useEffect(() => {
-    if (window.matchMedia('(hover:none)').matches) return;
-    document.body.style.cursor = 'none';
-    const s = stateRef.current;
-    const onMove = (e) => {
-      s.mx = e.clientX;
-      s.my = e.clientY;
-    };
-    const onDown = () => {
-      s.clicking = true;
-    };
-    const onUp = () => {
-      s.clicking = false;
-    };
-    const onOver = (e) => {
-      s.hovering = !!e.target.closest('button,a,[role="button"],[tabindex]');
-    };
-    const onMouseLeave = () => {
-      s.visible = false;
-      if (orbRef.current) orbRef.current.style.display = 'none';
-      if (trailRef.current) trailRef.current.style.display = 'none';
-      if (glowRef.current) glowRef.current.style.display = 'none';
-    };
-    const onMouseEnter = () => {
-      s.visible = true;
-      if (orbRef.current) orbRef.current.style.display = 'block';
-      if (trailRef.current) trailRef.current.style.display = 'block';
-      if (glowRef.current) glowRef.current.style.display = 'block';
-    };
-    const tick = () => {
-      s.ox += (s.mx - s.ox) * 1.0;
-      s.oy += (s.my - s.oy) * 1.0;
-      s.floatPhase += 0.022;
-      s.floatY =
-        Math.sin(s.floatPhase) * 2 +
-        Math.sin(s.floatPhase * 1.7) * 1 +
-        Math.sin(s.floatPhase * 0.5) * 1;
-      const fy = s.oy + s.floatY;
-      const scale = s.clicking ? 0.7 : s.hovering ? 1.55 : 1;
-      const opacity = s.visible ? (s.hovering ? 0.95 : 0.82) : 0;
-      if (orbRef.current) {
-        orbRef.current.style.left = s.ox + 'px';
-        orbRef.current.style.top = fy + 'px';
-        orbRef.current.style.transform = `translate(-50%,-50%) scale(${scale})`;
-        orbRef.current.style.opacity = opacity;
-      }
-      if (trailRef.current) {
-        trailRef.current.style.left = s.ox + 'px';
-        trailRef.current.style.top = s.oy + s.floatY * 0.4 + 'px';
-        trailRef.current.style.opacity = s.visible ? (s.hovering ? 0 : 0.35) : 0;
-      }
-      if (glowRef.current) {
-        glowRef.current.style.left = s.mx + 'px';
-        glowRef.current.style.top = s.my + 'px';
-        glowRef.current.style.opacity = s.visible ? 1 : 0;
-      }
-      s.raf = requestAnimationFrame(tick);
-    };
-    window.addEventListener('mousemove', onMove, { passive: true });
-    window.addEventListener('mousedown', onDown);
-    window.addEventListener('mouseup', onUp);
-    window.addEventListener('mouseover', onOver, { passive: true });
-    document.documentElement.addEventListener('mouseleave', onMouseLeave);
-    document.documentElement.addEventListener('mouseenter', onMouseEnter);
-    s.raf = requestAnimationFrame(tick);
-    return () => {
-      document.body.style.cursor = '';
-      cancelAnimationFrame(s.raf);
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mousedown', onDown);
-      window.removeEventListener('mouseup', onUp);
-      window.removeEventListener('mouseover', onOver);
-      document.documentElement.removeEventListener('mouseleave', onMouseLeave);
-      document.documentElement.removeEventListener('mouseenter', onMouseEnter);
-    };
-  }, []);
-
-  return (
-    <>
-      <div
-        ref={glowRef}
-        style={{
-          position: 'fixed',
-          pointerEvents: 'none',
-          zIndex: 10000,
-          width: '320px',
-          height: '320px',
-          borderRadius: '50%',
-          background:
-            'radial-gradient(circle, rgba(204,17,17,.055) 0%, rgba(136,0,0,.03) 40%, transparent 70%)',
-          transform: 'translate(-50%,-50%)',
-          transition: 'opacity .3s',
-          willChange: 'transform, opacity',
-        }}
-      />
-      <div
-        ref={trailRef}
-        style={{
-          position: 'fixed',
-          pointerEvents: 'none',
-          zIndex: 10002,
-          width: '28px',
-          height: '28px',
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(204,17,17,0.7) 0%, transparent 70%)',
-          transform: 'translate(-50%,-50%)',
-          filter: 'blur(6px)',
-          transition: 'opacity .25s',
-          willChange: 'transform, opacity',
-        }}
-      />
-      <div
-        ref={orbRef}
-        style={{
-          position: 'fixed',
-          pointerEvents: 'none',
-          zIndex: 100000,
-          width: '18px',
-          height: '18px',
-          borderRadius: '50%',
-          background: 'radial-gradient(circle at 35% 35%, #fff 0%, #CC1111 40%, #880000 100%)',
-          boxShadow:
-            '0 0 10px rgba(204,17,17,.9), 0 0 24px rgba(204,17,17,.5), 0 0 50px rgba(136,0,0,.3)',
-          transition: 'transform .08s cubic-bezier(.34,1.56,.64,1), opacity .2s',
-          willChange: 'transform, opacity',
-        }}
-      >
-        <div
-          style={{
-            position: 'absolute',
-            top: '20%',
-            left: '22%',
-            width: '5px',
-            height: '5px',
-            borderRadius: '50%',
-            background: 'rgba(255,255,255,.9)',
-            filter: 'blur(1px)',
-          }}
-        />
-      </div>
-    </>
-  );
-}
-
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-   Root App â€” wraps everything in BrowserRouter
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 export default function App() {
   return (
     <BrowserRouter>
@@ -371,6 +79,18 @@ function AppShell() {
   const { isOpen: isTerminalOpen, closeTerminal } = useDeveloperMode();
 
   const { eventsData, swUpdateFn } = useAppBootstrap(cinDone);
+  const { isAuthenticated, loading: authLoading } = useStudentAuth();
+  const hasCompletedWalkthrough = useWalkthroughStore((state) => state.hasCompleted);
+  const startWalkthrough = useWalkthroughStore((state) => state.startWalkthrough);
+
+  useEffect(() => {
+    if (cinDone && !authLoading && isAuthenticated && !hasCompletedWalkthrough) {
+      const t = setTimeout(() => {
+        startWalkthrough();
+      }, 1500);
+      return () => clearTimeout(t);
+    }
+  }, [cinDone, authLoading, isAuthenticated, hasCompletedWalkthrough, startWalkthrough]);
 
   // Skip cinematic opening for deep links (anything except "/")
   useEffect(() => {
@@ -396,11 +116,17 @@ function AppShell() {
 
   return (
     <>
+      {/* Skip-to-content link: visible only on first Tab press */}
+      <SkipLink targetId="main-content" />
+
       <OfflineBanner />
       <InstallPrompt />
       {swUpdateFn && <UpdatePrompt updateSW={swUpdateFn} />}
+      <EnablePushPrompt />
 
       <Chatbot />
+
+      <WalkthroughOverlay />
 
       {/* Loading cover to prevent flash during intro sequence */}
       <div
@@ -450,6 +176,7 @@ function MainRouter({
 }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { sessionId } = useAnalytics();
 
   const [mobile, setMobile] = useState(window.innerWidth <= 768);
   const [wipeOn, setWipeOn] = useState(false);
@@ -606,7 +333,7 @@ function MainRouter({
   const nh = mobile ? MNH : DNH;
 
   return (
-    <>
+    <SessionRecordingProvider sessionId={sessionId}>
       {cinDone && <AmbientOrbs theme={theme} />}
       {cinDone && (
         <Navbar
@@ -616,12 +343,18 @@ function MainRouter({
           onApply={openApply}
           onJoin={openJoin}
           onToggleBookmarks={() => setBookmarksOpen((prev) => !prev)}
+          onSearchToggle={() => setSearchOpen(true)}
         />
       )}
 
       <Wipe on={wipeOn} ph={wipePh} />
 
-      <main style={{ paddingTop: nh, position: 'relative', zIndex: 1 }}>
+      <main
+        id="main-content"
+        tabIndex={-1}
+        style={{ paddingTop: nh, position: 'relative', zIndex: 1 }}
+        aria-label="Main content"
+      >
         <Suspense fallback={<PageLoadingSpinner />}>
           <Routes>
             {/* â”€â”€ Home (scrollable sections) â”€â”€ */}
@@ -826,18 +559,6 @@ function MainRouter({
               }
             />
 
-            {/* â”€â”€ Collab â”€â”€ */}
-            <Route
-              path="/collab"
-              element={
-                <ErrorBoundary>
-                  <PageIn k="collab">
-                    <CollabPage onBack={onBackHome} />
-                  </PageIn>
-                </ErrorBoundary>
-              }
-            />
-
             {/* â”€â”€ About â”€â”€ */}
             <Route
               path="/about"
@@ -982,18 +703,6 @@ function MainRouter({
               }
             />
 
-            {/* â”€â”€ Admin (embedded, for quick access) â”€â”€ */}
-            <Route
-              path="/admin"
-              element={
-                <ErrorBoundary>
-                  <PageIn k="admin">
-                    <AdminPage onBack={onBackHome} />
-                  </PageIn>
-                </ErrorBoundary>
-              }
-            />
-
             {/* â”€â”€ Resources / Library â”€â”€ */}
             <Route
               path="/resources"
@@ -1037,21 +746,15 @@ function MainRouter({
               }
             />
 
-            {/* ── Live Q&A / Polling ── */}
+            {/* ── Search Page ── */}
             <Route
-              path="/qa-poll"
+              path="/search"
               element={
-                <PageIn k="qa-poll">
-                  <LiveQa onBack={onBackHome} />
-                </PageIn>
-              }
-            />
-            <Route
-              path="/qa-poll/:eventId"
-              element={
-                <PageIn k="qa-poll-event">
-                  <LiveQa onBack={() => nav('/qa-poll')} />
-                </PageIn>
+                <ErrorBoundary>
+                  <PageIn k="search">
+                    <SearchPage />
+                  </PageIn>
+                </ErrorBoundary>
               }
             />
 
@@ -1160,149 +863,6 @@ function MainRouter({
           else if (type === 'Roadmap') onTab('Roadmaps');
         }}
       />
-    </>
-  );
-}
-
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-   Route wrapper components (URL param readers)
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-
-function ActivityDetailWrapper({ onBack, onSelectEvent }) {
-  const { activityKey } = useParams();
-  const decoded = decodeURIComponent(activityKey || '');
-  const activity = activityPages[decoded];
-  if (!activity) return <NotFoundPage onGoHome={onBack} />;
-  return (
-    <PageIn k={`activity-${decoded}`}>
-      <ActivityDetailPage activity={activity} onBack={onBack} onSelectEvent={onSelectEvent} />
-    </PageIn>
-  );
-}
-
-function EventDetailWrapper({ onBack, events }) {
-  const { eventId } = useParams();
-
-  // 1. Look for a matching rich event in the activity pages conductedEvents
-  let event = null;
-  let activityColor = null;
-  let activityIcon = null;
-
-  for (const act of Object.values(activityPages)) {
-    const found = (act.conductedEvents || []).find(
-      (e) =>
-        String(e.id) === eventId ||
-        encodeURIComponent(e.name || '') === eventId ||
-        encodeURIComponent(e.shortName || '') === eventId
-    );
-    if (found) {
-      event = found;
-      activityColor = act.color;
-      activityIcon = act.icon;
-      break;
-    }
-  }
-
-  // 2. If not found in rich conductedEvents, fall back to basic events list
-  if (!event) {
-    event = (events || []).find(
-      (e) =>
-        String(e.id) === eventId ||
-        encodeURIComponent(e.name || '') === eventId ||
-        encodeURIComponent(e.shortName || '') === eventId
-    );
-  }
-
-  if (!event) return <NotFoundPage onGoHome={onBack} />;
-
-  // Render with correct styling if resolved
-  const iconElement = activityIcon ? (
-    <DynamicIcon
-      name={activityIcon}
-      size={13}
-      style={{ marginRight: '4px', verticalAlign: '-1px' }}
-    />
-  ) : null;
-
-  return (
-    <PageIn k={`event-${eventId}`}>
-      <EventDetailPage
-        event={event}
-        activityColor={activityColor}
-        activityIcon={iconElement}
-        onBack={onBack}
-      />
-    </PageIn>
-  );
-}
-
-function PublicPortfolioWrapper({ onBack }) {
-  const { username } = useParams();
-  return (
-    <PageIn k={`portfolio-${username}`}>
-      <PublicPortfolio username={username} onBack={onBack} />
-    </PageIn>
-  );
-}
-
-function PortfolioAnalyticsWrapper() {
-  const { username } = useParams();
-  return (
-    <PageIn k={`portfolio-analytics-${username}`}>
-      <PortfolioAnalytics username={username} />
-    </PageIn>
-  );
-}
-function CertVerifyWrapper({ onGoHome }) {
-  const { certId } = useParams();
-  return <CertificateVerifyPage certificateId={certId} onGoHome={onGoHome} />;
-}
-
-function WorkspaceWrapper({ onBack }) {
-  const { roomId } = useParams();
-  return (
-    <PageIn k={`workspace-${roomId}`}>
-      <WorkspacePage roomId={roomId} onBack={onBack} />
-    </PageIn>
-  );
-}
-
-function EventPlanningWrapper({ onBack }) {
-  const { eventId } = useParams();
-  return (
-    <PageIn k={`event-planning-${eventId}`}>
-      <EventPlanningPage event={{ id: eventId, eventId }} onBack={onBack} />
-    </PageIn>
-  );
-}
-
-/* ─────────────────────────────────────────────────────
-   Page loading spinner (Suspense fallback)
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-function PageLoadingSpinner() {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '60vh',
-        color: 'var(--t2)',
-        flexDirection: 'column',
-        gap: '16px',
-      }}
-    >
-      <div
-        style={{
-          width: '36px',
-          height: '36px',
-          borderRadius: '50%',
-          border: '3px solid rgba(204,17,17,0.2)',
-          borderTop: '3px solid #CC1111',
-          animation: 'spin 0.8s linear infinite',
-        }}
-      />
-      <span style={{ fontSize: '0.85rem', opacity: 0.6 }}>Loadingâ€¦</span>
-    </div>
+    </SessionRecordingProvider>
   );
 }

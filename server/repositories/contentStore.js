@@ -1,5 +1,10 @@
 import crypto from 'crypto';
-import { supabaseRequest, HAS_SUPABASE, SUPABASE_URL, SUPABASE_SERVICE_KEY } from '../storage/supabaseClient.js';
+import {
+  supabaseRequest,
+  HAS_SUPABASE,
+  SUPABASE_URL,
+  SUPABASE_SERVICE_KEY,
+} from '../storage/supabaseClient.js';
 import { tracedFetch } from '../config/appContext.js';
 import { readContent, writeContent } from '../storage/contentFileStore.js';
 import { runWithFileLock } from '../storage/contentFileStore.js';
@@ -38,7 +43,15 @@ export async function supabasePaginatedRequest(pathname, page, limit) {
     throw new Error(`Supabase error (${res.status}): ${text}`);
   }
   const text = await res.text();
-  const rows = text ? JSON.parse(text) : [];
+  let rows = [];
+  if (text) {
+    try {
+      rows = JSON.parse(text);
+    } catch (e) {
+      console.error('[contentStore] Failed to parse Supabase response:', e);
+      rows = [];
+    }
+  }
   // Content-Range format from PostgREST: "0-19/150" or "*/0" when empty
   const contentRange = res.headers.get('content-range') || '';
   const totalMatch = contentRange.match(/\/(\d+)$/);
@@ -107,20 +120,6 @@ export function normalizePhone(value) {
   return String(value || '').replace(/[^\d]/g, '');
 }
 
-  const n = String(name || '')
-    .trim()
-    .toLowerCase();
-  const e = String(email || '')
-    .trim()
-    .toLowerCase();
-  const p = normalizePhone(phone);
-
-  const members = await listCoreTeamStore();
-  return members.some(
-    (m) =>
-      m.name.toLowerCase() === n && m.email.toLowerCase() === e && normalizePhone(m.whatsapp) === p
-  );
-}
 
 export async function listEventsStore({ page = 1, limit = 20 } = {}) {
   if (HAS_SUPABASE) {

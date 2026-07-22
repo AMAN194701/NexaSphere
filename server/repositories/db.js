@@ -1,4 +1,5 @@
 import pg from 'pg';
+import logger from '../utils/logger.js';
 
 // ---------------------------------------------------------------------------
 // Pool configuration
@@ -130,7 +131,7 @@ export async function withDb(fn) {
           .then(({ recordSlowQuery }) =>
             recordSlowQuery(sqlText, duration, { error: err?.message })
           )
-          .catch(() => {});
+          .catch((importErr) => logger.error('Failed to record slow query', { importErr }));
       }
 
       // Request trace collection (existing behavior)
@@ -145,7 +146,7 @@ export async function withDb(fn) {
             });
           }
         })
-        .catch(() => {});
+        .catch((importErr) => logger.error('Failed to record query trace', { importErr }));
     };
 
     if (typeof cb === 'function') {
@@ -198,6 +199,12 @@ export function _resetPools() {
 
 export function setWithDbOverride(fn) {
   withDbOverride = fn;
+}
+
+export async function query(text, params) {
+  return withDb(async (client) => {
+    return client.query(text, params);
+  });
 }
 
 export { pg };
