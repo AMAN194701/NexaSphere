@@ -4,142 +4,148 @@ import { useAuth } from '../hooks/useAuth';
 import { AdminIcon } from './AdminIcon';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { PermissionGuard } from './PermissionGuard';
+import { useTranslation } from 'react-i18next';
+import LanguageSelector from './LanguageSelector';
 
 /* Public website URL */
 const WEBSITE_URL = import.meta.env.VITE_WEBSITE_URL || 'http://localhost:5175';
 
 const links = [
-  { to: '/dashboard', label: 'Dashboard', icon: 'Dashboard' },
-  { to: '/dashboard/project-health', label: 'Project Health', icon: 'Shield' },
-  { to: '/dashboard/analytics', label: 'Analytics', icon: 'BarChart' },
-  { to: '/dashboard/analytics/funnel', label: 'Funnel Analysis', icon: 'TrendingDown' },
-  { to: '/dashboard/analytics/custom-events', label: 'Custom Events', icon: 'Target' },
-  { to: '/dashboard/events', label: 'Events', icon: 'Calendar', requiredScope: 'events:read' },
+  { to: '/dashboard', label: 'admin.dashboard', icon: 'Dashboard' },
+  { to: '/dashboard/project-health', label: 'admin.projectHealth', icon: 'Shield' },
+  { to: '/dashboard/analytics', label: 'admin.analytics', icon: 'BarChart' },
+  { to: '/dashboard/analytics/funnel', label: 'admin.funnelAnalysis', icon: 'TrendingDown' },
+  { to: '/dashboard/analytics/custom-events', label: 'admin.customEvents', icon: 'Target' },
+  {
+    to: '/dashboard/events',
+    label: 'admin.events',
+    icon: 'Calendar',
+    requiredScope: 'events:read',
+  },
   {
     to: '/dashboard/waiting-room',
-    label: 'Waiting Room',
+    label: 'admin.waitingRoom',
     icon: 'Clock',
     requiredScope: 'events:read',
   },
   {
     to: '/dashboard/event-registrations',
-    label: 'Registrations',
+    label: 'admin.registrations',
     icon: 'FileText',
     requiredScope: 'events:read',
   },
   {
     to: '/dashboard/event-scanner',
-    label: 'Scanner',
+    label: 'admin.scanner',
     icon: 'Camera',
     requiredScope: 'events:write',
   },
   {
     to: '/dashboard/event-analytics',
-    label: 'Analytics',
+    label: 'admin.eventAnalytics',
     icon: 'BarChart',
     requiredScope: 'events:read',
   },
   {
     to: '/dashboard/activity-events',
-    label: 'Activity Events',
+    label: 'admin.activityEvents',
     icon: 'Target',
     requiredScope: 'events:read',
   },
   {
     to: '/dashboard/core-team',
-    label: 'Core Team',
+    label: 'admin.coreTeam',
     icon: 'Users',
     requiredScope: 'settings:admin',
   },
   {
     to: '/dashboard/roles',
-    label: 'User Roles',
+    label: 'admin.userRoles',
     icon: 'Shield',
     requiredScope: 'settings:admin',
   },
   {
     to: '/dashboard/users',
-    label: 'Users',
+    label: 'admin.users',
     icon: 'Users',
     requiredScope: 'settings:admin',
   },
-  { to: '/dashboard/membership', label: 'Membership', icon: 'FileText' },
-  { to: '/dashboard/sync-monitor', label: 'Sync Monitor', icon: 'Database' },
-  { to: '/dashboard/recruitment', label: 'Recruitment', icon: 'UserPlus' },
-  { to: '/dashboard/certificates', label: 'Certificates', icon: 'Award' },
-  { to: '/dashboard/announcements', label: 'Announcements', icon: 'Megaphone' },
+  { to: '/dashboard/membership', label: 'admin.membership', icon: 'FileText' },
+  { to: '/dashboard/sync-monitor', label: 'admin.syncMonitor', icon: 'Database' },
+  { to: '/dashboard/recruitment', label: 'admin.recruitment', icon: 'UserPlus' },
+  { to: '/dashboard/certificates', label: 'admin.certificates', icon: 'Award' },
+  { to: '/dashboard/announcements', label: 'admin.announcements', icon: 'Megaphone' },
   {
     to: '/dashboard/banners',
-    label: 'Banners (Hero)',
+    label: 'admin.banners',
     icon: 'Image',
     requiredScope: 'settings:admin',
   },
   {
     to: '/dashboard/portfolios',
-    label: 'Portfolios',
+    label: 'admin.portfolios',
     icon: 'FileText',
     requiredScope: 'events:read',
   },
   {
     to: '/dashboard/forum',
-    label: 'Forum',
+    label: 'admin.forum',
     icon: 'FileText',
     requiredScope: 'events:read',
   },
   {
     to: '/dashboard/mentorship',
-    label: 'Mentorship',
+    label: 'admin.mentorship',
     icon: 'Users',
   },
   {
     to: '/dashboard/streams',
-    label: 'Live Streams',
+    label: 'admin.liveStreams',
     icon: 'Camera',
   },
   {
     to: '/dashboard/circuit-breaker',
-    label: 'Circuit Breaker',
+    label: 'admin.circuitBreaker',
     icon: 'Activity',
   },
   {
     to: '/dashboard/qa-poll',
-    label: 'Q&A / Polling',
+    label: 'admin.qaPolling',
     icon: 'MessageSquare',
     requiredScope: 'events:read',
   },
   {
     to: '/dashboard/tasks',
-    label: 'Scheduled Tasks',
+    label: 'admin.scheduledTasks',
     icon: 'Clock',
     requiredScope: 'settings:admin',
   },
   {
     to: '/dashboard/audit-logs',
-    label: 'Audit Logs',
-    icon: 'FileText',
-    to: '/dashboard/audit-logs',
-    label: 'Audit Logs',
+    label: 'admin.auditLogs',
     icon: 'FileText',
     requiredScope: 'settings:admin',
   },
   {
     to: '/dashboard/scheduled-tasks',
-    label: 'Scheduled Tasks',
+    label: 'admin.scheduledTasks',
     icon: 'Clock',
     requiredScope: 'settings:admin',
   },
   {
     to: '/dashboard/backups',
-    label: 'Backups / Restore',
+    label: 'admin.backups',
     icon: 'Database',
     requiredScope: 'settings:admin',
   },
   {
     to: '/dashboard/reports',
-    label: 'Reports',
+    label: 'admin.reports',
     icon: 'Target',
+  },
+  {
     to: '/dashboard/settings',
-    label: 'Platform Settings',
+    label: 'admin.platformSettings',
     icon: 'Settings',
     requiredScope: 'settings:admin',
   },
@@ -147,6 +153,7 @@ const links = [
 
 export function Sidebar() {
   const { email, logout } = useAuth();
+  const { t } = useTranslation();
 
   const location = useLocation();
 
@@ -295,7 +302,7 @@ export function Sidebar() {
           onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--admin-text-muted, #888)')}
         >
           <AdminIcon name="ArrowLeft" size={12} aria-hidden="true" />
-          Back to Website
+          {t('admin.backToWebsite')}
         </a>
 
         {/* Navigation */}
@@ -327,10 +334,10 @@ export function Sidebar() {
                 className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
                 aria-current={({ isActive }) => (isActive ? 'page' : undefined)}
                 onClick={close}
-                data-tour={label.toLowerCase()}
+                data-tour={t(label).toLowerCase()}
               >
                 <AdminIcon name={icon} size={16} aria-hidden="true" />
-                {label}
+                {t(label)}
               </NavLink>
             );
 
@@ -348,6 +355,9 @@ export function Sidebar() {
         {/* Footer */}
 
         <div className="sidebar-footer">
+          <div style={{ padding: '0 20px', marginBottom: '15px' }}>
+            <LanguageSelector />
+          </div>
           <span className="sidebar-email" aria-label={`Logged in as ${email}`}>
             {email}
           </span>
@@ -357,7 +367,7 @@ export function Sidebar() {
             aria-label="Toggle theme"
             style={{ marginBottom: '10px' }}
           >
-            Switch to {theme === 'dark' ? 'Light' : 'Dark'} Mode
+            {theme === 'dark' ? t('admin.switchToLightMode') : t('admin.switchToDarkMode')}
           </button>
 
           <button
@@ -367,7 +377,7 @@ export function Sidebar() {
             aria-label={`Logout ${email}`}
             style={{ marginTop: '10px' }}
           >
-            Logout
+            {t('admin.logout')}
           </button>
         </div>
       </aside>
