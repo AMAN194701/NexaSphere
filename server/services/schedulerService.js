@@ -13,12 +13,13 @@ import notificationsService from './notificationsService.js';
 import { withDb } from '../repositories/db.js';
 import { HAS_SUPABASE } from '../storage/supabaseClient.js';
 import { backupService } from './backupService.js';
-import { sendEmail } from './emailService.js';
+import { segmentationService } from './segmentationService.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const HISTORY_CAP = 50; // keep last N execution records per task
 const MS_PER_MINUTE = 60_000;
+import cron from 'node-cron';
 
 // ─── Cron helpers ─────────────────────────────────────────────────────────────
 
@@ -110,7 +111,7 @@ const TASK_DEFINITIONS = [
     id: 'database-backup',
     name: 'Database Backup (Full)',
     description: 'Creates and uploads a full compressed database backup to S3',
-    cron: '0 2 * * *', // Daily at 02:00
+    cron: '0 3 * * *', // Daily at 03:00
     category: 'system',
     enabled: true,
   },
@@ -196,14 +197,6 @@ const TASK_DEFINITIONS = [
     enabled: true,
   },
   {
-    id: 'evaluate-segments',
-    name: 'Evaluate Analytics Segments',
-    description: 'Periodically evaluate rules and assign users to segments',
-    cron: '0 */6 * * *', // Every 6 hours
-    category: 'analytics',
-    enabled: true,
-  },
-  {
     id: 'overdue-task-reminder',
     name: 'Overdue Task Reminder',
     description: 'Scans Kanban boards for overdue tasks and notifies assignees',
@@ -227,7 +220,6 @@ const TASK_DEFINITIONS = [
     category: 'email',
     enabled: true,
   },
-
 ];
 
 // ─── In-memory state ──────────────────────────────────────────────────────────
@@ -268,28 +260,27 @@ class SchedulerService extends EventEmitter {
     const task = this._tasks.get(taskId);
     if (!task || !task.enabled) return;
 
-    const next = nextCronDate(task.cron);
-    if (!next) return;
-
-    task.nextRun = next;
-    const MAX_DELAY = 2147483647; // max 32-bit signed int (~24.8 days)
-    const rawDelay = next.getTime() - Date.now();
-    const delay = Math.min(Math.max(rawDelay, 0), MAX_DELAY);
-    const needsRecheck = rawDelay > MAX_DELAY;
+    try {
+      const next = nextCronDate(task.cron);
+      if (next) task.nextRun = next;
+    } catch (err) {
+      // Ignore parse errors as node-cron might support broader syntax
+    }
 
     const existing = this._timers.get(taskId);
-    if (existing) clearTimeout(existing);
+    if (existing) {
+      if (existing.stop) existing.stop();
+      else clearTimeout(existing);
+    }
 
-    const handle = setTimeout(() => {
-      if (needsRecheck) {
-        this._scheduleNext(taskId);
-      } else {
-        this._runTask(taskId);
-      }
-    }, delay);
-    // Allow the process to exit even if a timer is pending
-    if (handle.unref) handle.unref();
-    this._timers.set(taskId, handle);
+    const job = cron.schedule(task.cron, () => {
+      this._runTask(taskId);
+      try {
+        task.nextRun = nextCronDate(task.cron);
+      } catch (err) {}
+    });
+
+    this._timers.set(taskId, job);
   }
 
   async _runTask(taskId) {
@@ -358,7 +349,9 @@ class SchedulerService extends EventEmitter {
         break;
       case 'weekly-analytics-report':
         await this._generateWeeklyAnalyticsReport();
-
+        break;
+      case 'auto-user-segmentation':
+        await segmentationService.runAutoSegmentation();
         break;
       case 'inactive-user-check':
         await this._flagInactiveUsers();
@@ -368,9 +361,6 @@ class SchedulerService extends EventEmitter {
         break;
       case 'analytics-aggregation':
         await this._aggregateAnalytics();
-        break;
-      case 'evaluate-segments':
-        await this._evaluateSegments();
         break;
       case 'overdue-task-reminder':
         console.log('[SchedulerService] Processing overdue task notifications...');
@@ -382,16 +372,9 @@ class SchedulerService extends EventEmitter {
       case 'email-queue-processor':
         await this._processEmailQueue();
         break;
-
       default:
         throw new Error(`No implementation for task "${task.id}"`);
     }
-  }
-
-  async _evaluateSegments() {
-    logger.info('[Scheduler] Evaluating analytics segments');
-    const { analyticsService } = await import('./analyticsService.js');
-    await analyticsService.evaluateSegments();
   }
 
   async _sendEmailDigest() {
@@ -455,31 +438,6 @@ class SchedulerService extends EventEmitter {
 
   async _backupDatabase() {
     logger.info('[Scheduler] Starting database full backup');
-    if (!HAS_SUPABASE) {
-      logger.info('[Scheduler] No database configured, skipping backup');
-      return;
-    }
-    const tables = [
-      'events',
-      'student_users',
-      'core_team_members',
-      'resources',
-      'push_subscriptions',
-    ];
-    let totalRows = 0;
-    await withDb(async (client) => {
-      for (const table of tables) {
-        try {
-          const { rows } = await client.query(`SELECT COUNT(*) as count FROM ${table}`);
-          totalRows += parseInt(rows[0]?.count || '0', 10);
-        } catch {
-          logger.warn(`[Scheduler] Backup: table ${table} not found, skipping`);
-        }
-      }
-    });
-    logger.info(`[Scheduler] Backup summary: ${tables.length} tables, ${totalRows} total rows`);
-
-    // Run the actual daily backup service
     await backupService.runDailyBackup();
   }
 
@@ -679,7 +637,6 @@ class SchedulerService extends EventEmitter {
     }
   }
 
-
   // ── Public API ───────────────────────────────────────────────────────────────
 
   /** Return snapshot of all tasks (safe to serialise). */
@@ -705,7 +662,8 @@ class SchedulerService extends EventEmitter {
       task.nextRun = null;
       const h = this._timers.get(taskId);
       if (h) {
-        clearTimeout(h);
+        if (h.stop) h.stop();
+        else clearTimeout(h);
         this._timers.delete(taskId);
       }
     }
@@ -776,7 +734,8 @@ class SchedulerService extends EventEmitter {
   /** Shutdown scheduler and clear all active timers. */
   shutdown() {
     for (const handle of this._timers.values()) {
-      clearTimeout(handle);
+      if (handle.stop) handle.stop();
+      else clearTimeout(handle);
     }
     this._timers.clear();
     this._tasks.clear();
