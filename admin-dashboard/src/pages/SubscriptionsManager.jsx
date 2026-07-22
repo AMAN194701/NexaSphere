@@ -5,6 +5,7 @@ export function SubscriptionsManager() {
   const [subscriptions, setSubscriptions] = useState([]);
   const [stats, setStats] = useState({ total: 0, premium: 0, pro: 0, revenue: 0 });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
 
   useEffect(() => {
@@ -13,6 +14,7 @@ export function SubscriptionsManager() {
 
   const loadData = async () => {
     setLoading(true);
+    setError(null);
 
     try {
       const data = await api.subscriptions.getAll();
@@ -26,7 +28,7 @@ export function SubscriptionsManager() {
       });
     } catch (e) {
       console.error('Failed to load subscriptions', e);
-
+      setError(e.message || 'Failed to load subscriptions. Please try again.');
     }
     setLoading(false);
   };
@@ -45,6 +47,13 @@ export function SubscriptionsManager() {
           Refresh
         </button>
       </div>
+
+      {error && (
+        <div style={{ color: '#ef4444', padding: '12px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '6px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>{error}</span>
+          <button className="btn btn-secondary" style={{ fontSize: '0.8rem', padding: '4px 8px' }} onClick={loadData}>Retry</button>
+        </div>
+      )}
 
       <div
         style={{
