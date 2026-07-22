@@ -38,12 +38,16 @@ export function ForumManager() {
   }, [statusFilter]);
 
   const filteredThreads = useMemo(() => {
-    if (!searchQuery.trim()) return threads;
+    let result = threads;
+    if (statusFilter) {
+      result = result.filter((t) => t.status === statusFilter);
+    }
+    if (!searchQuery.trim()) return result;
     const q = searchQuery.toLowerCase();
-    return threads.filter(
+    return result.filter(
       (t) => t.title?.toLowerCase().includes(q) || t.content?.toLowerCase().includes(q)
     );
-  }, [threads, searchQuery]);
+  }, [threads, searchQuery, statusFilter]);
 
   const handleModerate = async (id, status) => {
     setModerating(id);
