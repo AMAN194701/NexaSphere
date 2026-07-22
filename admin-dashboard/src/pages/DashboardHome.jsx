@@ -60,14 +60,14 @@ export function DashboardHome() {
       )}
 
       {loading ? (
-        <div className="stats-grid">
+        <div className="stats-grid tour-analytics-overview">
           <DashboardCardSkeleton />
           <DashboardCardSkeleton />
           <DashboardCardSkeleton />
           <DashboardCardSkeleton />
         </div>
       ) : (
-        <div className="stats-grid">
+        <div className="stats-grid tour-analytics-overview">
           <div className="stat-card">
             <span className="stat-icon">
               <AdminIcon name="Calendar" size={28} aria-hidden="true" />
@@ -124,7 +124,11 @@ export function DashboardHome() {
         <h3>Quick Actions</h3>
         <div className="quick-grid">
           <PermissionGuard requiredScope="events:read">
-            <a href="/dashboard/events" className="quick-card" aria-label="Manage events">
+            <a
+              href="/dashboard/events"
+              className="quick-card tour-event-creation"
+              aria-label="Manage events"
+            >
               <AdminIcon name="Calendar" size={18} aria-hidden="true" /> Events
             </a>
           </PermissionGuard>

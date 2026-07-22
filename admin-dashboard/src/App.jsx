@@ -5,6 +5,7 @@ import { useAuth } from './hooks/useAuth';
 import { Sidebar } from './components/Sidebar';
 import { Toast } from './components/Toast';
 import { OfflineBanner } from './components/OfflineBanner';
+import { OnboardingTour } from './components/OnboardingTour';
 import ErrorBoundary from './components/ErrorBoundary';
 import { LoginPage } from './pages/LoginPage';
 import { UnauthorizedPage } from './pages/UnauthorizedPage';
@@ -28,7 +29,6 @@ import { StreamManager } from './pages/StreamManager';
 import { CircuitBreakerManager } from './pages/CircuitBreakerManager';
 import { WaitingRoomManager } from './pages/WaitingRoomManager';
 import { SponsorshipsManager } from './pages/SponsorshipsManager';
-import { ComprehensiveAnalytics } from './pages/ComprehensiveAnalytics';
 import { UserSegmentation } from './pages/UserSegmentation';
 import './styles/admin.css';
 
@@ -61,6 +61,7 @@ function DashboardLayout() {
         </ErrorBoundary>
       </main>
       <Toast />
+      <OnboardingTour />
     </div>
   );
 }
@@ -104,4 +105,3 @@ export default function App() {
     </BrowserRouter>
   );
 }
-
