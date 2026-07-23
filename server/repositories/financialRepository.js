@@ -54,6 +54,7 @@ function mapRevenueRow(row) {
     isRefunded: row.is_refunded,
     refundAmount: Number(row.refund_amount || 0),
     taxAmount: Number(row.tax_amount || 0),
+    idempotencyKey: row.idempotency_key || null,
   };
 }
 
@@ -216,10 +217,58 @@ export const financialRepository = {
   },
 
   // --- Revenue ---
+  /**
+   * Creates a revenue entry in an idempotent manner.
+   *
+   * When `revenue.idempotencyKey` is provided the INSERT uses an ON CONFLICT
+   * DO NOTHING clause on the unique `idempotency_key` column.  If a row with
+   * that key already exists (i.e. a concurrent or retried webhook already
+   * committed it) the INSERT is a no-op and we fetch and return the existing
+   * record instead of creating a duplicate — preventing double-crediting.
+   */
   async createRevenue(revenue) {
     return withDb(async (client) => {
+      const idempotencyKey = revenue.idempotencyKey || null;
+
+      if (idempotencyKey) {
+        // Idempotent path: attempt insert; silently skip on duplicate key.
+        const { rows } = await client.query(
+          `INSERT INTO revenue_entries
+             (budget_id, event_id, source, amount, description, received_at,
+              created_by, payment_method, is_refunded, refund_amount, tax_amount,
+              idempotency_key)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+           ON CONFLICT (idempotency_key) DO NOTHING
+           RETURNING *`,
+          [
+            revenue.budgetId || null,
+            revenue.eventId || null,
+            revenue.source,
+            revenue.amount,
+            revenue.description || null,
+            revenue.receivedAt || new Date(),
+            revenue.createdBy,
+            revenue.paymentMethod || 'card',
+            revenue.isRefunded !== undefined ? revenue.isRefunded : false,
+            revenue.refundAmount || 0,
+            revenue.taxAmount || 0,
+            idempotencyKey,
+          ]
+        );
+
+        if (rows.length > 0) {
+          return mapRevenueRow(rows[0]);
+        }
+
+        // Row already existed — return the existing record.
+        return this.findRevenueByIdempotencyKey(idempotencyKey, client);
+      }
+
+      // Non-idempotent path (no key supplied): plain insert.
       const { rows } = await client.query(
-        `INSERT INTO revenue_entries (budget_id, event_id, source, amount, description, received_at, created_by, payment_method, is_refunded, refund_amount, tax_amount)
+        `INSERT INTO revenue_entries
+           (budget_id, event_id, source, amount, description, received_at,
+            created_by, payment_method, is_refunded, refund_amount, tax_amount)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
          RETURNING *`,
         [
@@ -238,6 +287,22 @@ export const financialRepository = {
       );
       return mapRevenueRow(rows[0]);
     });
+  },
+
+  /**
+   * Looks up an existing revenue entry by its idempotency key.
+   * Accepts an optional already-open `client` to participate in the same
+   * transaction when called from createRevenue.
+   */
+  async findRevenueByIdempotencyKey(idempotencyKey, existingClient = null) {
+    const run = async (client) => {
+      const { rows } = await client.query(
+        'SELECT * FROM revenue_entries WHERE idempotency_key = $1',
+        [idempotencyKey]
+      );
+      return rows.length ? mapRevenueRow(rows[0]) : null;
+    };
+    return existingClient ? run(existingClient) : withDb(run);
   },
 
   async getRevenueById(id) {

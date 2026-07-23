@@ -538,3 +538,122 @@ test('Financial API Endpoints Integration', async (t) => {
 
   server.close();
 });
+
+// --- Idempotency Tests (issue #3844) ---
+
+test('createRevenue with idempotencyKey deduplicates concurrent webhook deliveries', async () => {
+  let insertCallCount = 0;
+
+  const existingRevenueRow = {
+    id: 'rev_idem_1',
+    budget_id: 'b_1',
+    event_id: 'evt_1',
+    source: 'Ticket Sales',
+    amount: '500',
+    description: 'Webhook payment',
+    received_at: new Date().toISOString(),
+    created_by: 'usr_admin',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    payment_method: 'card',
+    is_refunded: false,
+    refund_amount: '0',
+    tax_amount: '0',
+    idempotency_key: 'txn_abc123',
+  };
+
+  setWithDbOverride(async (fn) => {
+    const mockClient = {
+      query: async (sql, params) => {
+        const sqlLower = sql.toLowerCase();
+
+        if (sqlLower.includes('insert into revenue_entries') && sqlLower.includes('on conflict')) {
+          insertCallCount++;
+          // First call inserts successfully; second simulates ON CONFLICT DO NOTHING (empty rows).
+          return { rows: insertCallCount === 1 ? [existingRevenueRow] : [], rowCount: 0 };
+        }
+
+        if (sqlLower.includes('where idempotency_key = $1')) {
+          return { rows: [existingRevenueRow], rowCount: 1 };
+        }
+
+        if (sqlLower.includes('insert into financial_audit_trail')) {
+          return { rows: [], rowCount: 1 };
+        }
+
+        return { rows: [], rowCount: 0 };
+      },
+    };
+    return fn(mockClient);
+  });
+
+  const revenueData = {
+    budgetId: 'b_1',
+    eventId: 'evt_1',
+    source: 'Ticket Sales',
+    amount: 500,
+    idempotencyKey: 'txn_abc123',
+  };
+
+  // First webhook delivery — should succeed.
+  const first = await financialService.createRevenue(revenueData, mockAdminUser);
+  assert.equal(first.id, 'rev_idem_1');
+  assert.equal(first.idempotencyKey, 'txn_abc123');
+
+  // Concurrent / retried delivery with the SAME key — must return the same record.
+  const second = await financialService.createRevenue(revenueData, mockAdminUser);
+  assert.equal(second.id, 'rev_idem_1', 'Duplicate webhook must return the existing record');
+  assert.equal(second.idempotencyKey, 'txn_abc123');
+});
+
+test('createRevenue without idempotencyKey creates independent records', async () => {
+  let insertCount = 0;
+
+  setWithDbOverride(async (fn) => {
+    const mockClient = {
+      query: async (sql, params) => {
+        const sqlLower = sql.toLowerCase();
+
+        if (sqlLower.includes('insert into revenue_entries')) {
+          insertCount++;
+          return {
+            rows: [
+              {
+                id: `rev_plain_${insertCount}`,
+                budget_id: 'b_1',
+                event_id: 'evt_1',
+                source: 'Merchandise',
+                amount: '100',
+                description: null,
+                received_at: new Date().toISOString(),
+                created_by: 'usr_admin',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                payment_method: 'card',
+                is_refunded: false,
+                refund_amount: '0',
+                tax_amount: '0',
+                idempotency_key: null,
+              },
+            ],
+            rowCount: 1,
+          };
+        }
+
+        if (sqlLower.includes('insert into financial_audit_trail')) {
+          return { rows: [], rowCount: 1 };
+        }
+
+        return { rows: [], rowCount: 0 };
+      },
+    };
+    return fn(mockClient);
+  });
+
+  const base = { budgetId: 'b_1', eventId: 'evt_1', source: 'Merchandise', amount: 100 };
+  const r1 = await financialService.createRevenue(base, mockAdminUser);
+  const r2 = await financialService.createRevenue(base, mockAdminUser);
+
+  assert.notEqual(r1.id, r2.id, 'Without idempotency key each call must produce a distinct record');
+  assert.equal(insertCount, 2);
+});

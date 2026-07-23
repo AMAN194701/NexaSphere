@@ -224,12 +224,23 @@ export class FinancialService {
   }
 
   // --- Revenue ---
+  /**
+   * Creates a new revenue entry.
+   *
+   * Accepts an optional `idempotencyKey` inside `revenueData` (typically the
+   * payment-provider transaction or webhook event ID).  When present, the
+   * underlying INSERT is idempotent: concurrent or retried webhook deliveries
+   * carrying the same key are deduplicated at the database level and return
+   * the existing record rather than creating a duplicate.
+   */
   async createRevenue(revenueData, user) {
     this.checkAccess(user, 'create_revenue');
 
     const revenue = {
       ...revenueData,
       createdBy: user.id,
+      // Forward the idempotency key to the repository layer unchanged.
+      idempotencyKey: revenueData.idempotencyKey || null,
     };
 
     const newRevenue = await financialRepository.createRevenue(revenue);
