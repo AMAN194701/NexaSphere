@@ -11,7 +11,6 @@ import {
 } from 'recharts';
 import { CustomReportBuilder } from '../components/analytics/CustomReportBuilder';
 
-
 export function ComprehensiveAnalytics() {
   const [summary, setSummary] = useState(null);
   const [userAnalytics, setUserAnalytics] = useState(null);
@@ -148,7 +147,11 @@ export function ComprehensiveAnalytics() {
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={userAnalytics?.signupsByDay || []}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      vertical={false}
+                      stroke="var(--chart-grid)"
+                    />
                     <XAxis dataKey="date" tick={{ fontSize: 12 }} tickMargin={10} minTickGap={30} />
                     <YAxis tick={{ fontSize: 12 }} />
                     <Tooltip
@@ -161,7 +164,7 @@ export function ComprehensiveAnalytics() {
                     <Line
                       type="monotone"
                       dataKey="count"
-                      stroke="#3b82f6"
+                      stroke="var(--chart-primary)"
                       strokeWidth={3}
                       dot={{ r: 4 }}
                       activeDot={{ r: 6 }}
