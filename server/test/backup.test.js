@@ -1,3 +1,4 @@
+import './setupEnv.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import path from 'path';
@@ -8,6 +9,7 @@ import { fileURLToPath } from 'url';
 process.env.DATABASE_URL = 'postgresql://localhost/dummy_test_db';
 process.env.SUPABASE_URL = 'https://supabase.co';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-key';
+process.env.ENCRYPTION_KEY = '12345678901234567890123456789012';
 
 // 2. Mock PG Pool to prevent actual database connections in CI/test environments
 import pg from 'pg';
