@@ -1,4 +1,4 @@
-﻿import passport from 'passport';
+import passport from 'passport';
 import { studentUsersRepository } from '../repositories/studentUsersRepository.js';
 import { studentAuthService } from '../services/studentAuthService.js';
 import { withDb } from '../repositories/db.js';
@@ -256,6 +256,14 @@ export const updateProfile = async (req, res) => {
   }
   try {
     const userId = req.studentUser.sub || req.studentUser.id;
+    
+    // SECURITY: explicitly delete immutable fields to prevent privilege escalation
+    delete req.body.roleId;
+    delete req.body.permissions;
+    delete req.body.status;
+    delete req.body.role;
+    delete req.body.admin_roles;
+
     const allowed = ['fullName', 'bio', 'socialLinks'];
     const updates = {};
     for (const key of allowed) {

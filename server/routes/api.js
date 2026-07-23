@@ -60,6 +60,7 @@ import {
   markAttendanceSchema,
   adminCreateUserSchema,
   adminUpdateUserSchema,
+  adminUpdateUserRoleSchema,
   adminLoginSchema,
   localLoginSchema,
   verifyTwoFactorSchema,
@@ -274,6 +275,15 @@ router.put(
   adminAuditMiddleware,
   validate(adminUpdateUserSchema),
   usersController.adminUpdateUser
+);
+router.put(
+  '/api/admin/users/:id/role',
+  adminAuthMiddleware.requireAdmin,
+  adminAuthMiddleware.requireScope('users:write'),
+  attachOldState((req) => usersRepository.getUserById(req.params.id)),
+  adminAuditMiddleware,
+  validate(adminUpdateUserRoleSchema),
+  usersController.adminUpdateUserRole
 );
 router.delete(
   '/api/admin/users/:id',

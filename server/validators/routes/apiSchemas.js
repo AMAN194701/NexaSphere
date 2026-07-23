@@ -142,6 +142,11 @@ export const adminUpdateUserSchema = z
     display_name: z.string().trim().max(200).optional(),
     email: z.string().trim().email().max(254).optional(),
     phone_number: z.string().trim().max(30).optional(),
+  })
+  .strict();
+
+export const adminUpdateUserRoleSchema = z
+  .object({
     admin_roles: z.array(z.string()).optional(),
   })
   .strict();
