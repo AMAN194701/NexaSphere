@@ -318,6 +318,12 @@ router.post(
   validate(verifyTwoFactorSetupSchema),
   adminAuthMiddleware.verifyTwoFactorSetup
 );
+
+router.get('/api/admin/2fa/settings/status', adminAuthMiddleware.requireAdmin, adminAuthMiddleware.getTwoFactorStatus);
+router.post('/api/admin/2fa/settings/setup/init', adminAuthMiddleware.requireAdmin, adminAuthMiddleware.initTwoFactorSetup);
+router.post('/api/admin/2fa/settings/setup/verify', adminAuthMiddleware.requireAdmin, adminAuthMiddleware.verifySettingsTwoFactorSetup);
+router.post('/api/admin/2fa/settings/disable', adminAuthMiddleware.requireAdmin, adminAuthMiddleware.disableTwoFactor);
+
 router.post('/api/admin/logout', adminAuthMiddleware.requireAdmin, adminAuthMiddleware.logout);
 router.get(
   '/api/admin/security',
