@@ -2,7 +2,15 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { DynamicIcon } from '../../shared/Icons';
 import { getApiBase } from '../../utils/runtimeConfig';
 import apiClient from '../../utils/apiClient';
-import { downloadICS } from '../../utils/icsExport';
+import {
+  downloadICS,
+  generateGoogleCalendarUrl,
+  generateOutlookCalendarUrl,
+} from '../../utils/icsExport';
+import {
+  showNotification,
+  requestNotificationPermission,
+} from '../../utils/pushNotificationClient';
 
 function hexToRgb(hex) {
   if (!hex || !hex.startsWith('#')) return '0,212,255';
@@ -472,6 +480,9 @@ function MediaBtn({ href, icon, label, color }) {
 function QRTicketCard({ event, ticket, color, rgb, onCalendarDownload }) {
   const canvasRef = useRef(null);
   const ticketRef = useRef(null);
+  const [showCalendarMenu, setShowCalendarMenu] = useState(false);
+  const [showReminderMenu, setShowReminderMenu] = useState(false);
+  const [reminderSet, setReminderSet] = useState('');
   const [downloading, setDownloading] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -1172,33 +1183,133 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
                 {status === 'completed' ? 'Completed' : 'Upcoming'}
               </span>
               {isUpcoming && (
-                <button
-                  onClick={() => downloadICS(event)}
-                  title="Download Calendar Event"
-                  style={{
-                    background: `rgba(${rgb},0.1)`,
-                    border: `1px solid rgba(${rgb},0.3)`,
-                    color: color,
-                    borderRadius: '50%',
-                    width: '28px',
-                    height: '28px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = `rgba(${rgb},0.2)`;
-                    e.currentTarget.style.transform = 'scale(1.1)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = `rgba(${rgb},0.1)`;
-                    e.currentTarget.style.transform = '';
-                  }}
-                >
-                  <DynamicIcon name="CalendarPlus" size={14} />
-                </button>
+                <div style={{ position: 'relative' }}>
+                  <button
+                    onClick={() => setShowCalendarMenu(!showCalendarMenu)}
+                    title="Export to Calendar"
+                    style={{
+                      background: `rgba(${rgb},0.1)`,
+                      border: `1px solid rgba(${rgb},0.3)`,
+                      color: color,
+                      borderRadius: '50%',
+                      width: '28px',
+                      height: '28px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = `rgba(${rgb},0.2)`;
+                      e.currentTarget.style.transform = 'scale(1.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = `rgba(${rgb},0.1)`;
+                      e.currentTarget.style.transform = '';
+                    }}
+                  >
+                    <DynamicIcon name="CalendarPlus" size={14} />
+                  </button>
+                  {showCalendarMenu && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '36px',
+                        right: 0,
+                        background: 'var(--bg-card)',
+                        border: '1px solid var(--border-subtle)',
+                        borderRadius: '8px',
+                        padding: '8px 0',
+                        zIndex: 10,
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                        minWidth: '200px',
+                      }}
+                    >
+                      <div
+                        style={{
+                          padding: '4px 16px',
+                          fontSize: '0.75rem',
+                          color: 'var(--text-muted)',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
+                          marginBottom: '4px',
+                        }}
+                      >
+                        Add to Calendar
+                      </div>
+                      <button
+                        onClick={() => {
+                          setShowCalendarMenu(false);
+                          window.open(generateGoogleCalendarUrl(event), '_blank');
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          width: '100%',
+                          textAlign: 'left',
+                          padding: '8px 16px',
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--text-primary)',
+                          fontSize: '0.85rem',
+                          cursor: 'pointer',
+                        }}
+                        onMouseEnter={(e) => (e.target.style.background = 'var(--bg-card-hover)')}
+                        onMouseLeave={(e) => (e.target.style.background = 'none')}
+                      >
+                        <DynamicIcon name="Chrome" size={14} /> Google Calendar
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowCalendarMenu(false);
+                          window.open(generateOutlookCalendarUrl(event), '_blank');
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          width: '100%',
+                          textAlign: 'left',
+                          padding: '8px 16px',
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--text-primary)',
+                          fontSize: '0.85rem',
+                          cursor: 'pointer',
+                        }}
+                        onMouseEnter={(e) => (e.target.style.background = 'var(--bg-card-hover)')}
+                        onMouseLeave={(e) => (e.target.style.background = 'none')}
+                      >
+                        <DynamicIcon name="Mail" size={14} /> Outlook
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowCalendarMenu(false);
+                          downloadICS(event);
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          width: '100%',
+                          textAlign: 'left',
+                          padding: '8px 16px',
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--text-primary)',
+                          fontSize: '0.85rem',
+                          cursor: 'pointer',
+                        }}
+                        onMouseEnter={(e) => (e.target.style.background = 'var(--bg-card-hover)')}
+                        onMouseLeave={(e) => (e.target.style.background = 'none')}
+                      >
+                        <DynamicIcon name="Download" size={14} /> Apple / ICS
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 
