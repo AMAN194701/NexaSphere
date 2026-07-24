@@ -13,6 +13,8 @@ import {
   adminVerifyCertificate,
   adminRevokeCertificate,
   adminGetCertificateById,
+  adminGetTemplates,
+  adminSaveTemplate,
 } from '../controllers/certificatesAdminController.js';
 
 import { requireStudentAuth } from '../middleware/studentAuthMiddleware.js';
@@ -50,5 +52,9 @@ router.post(
   adminAuthMiddleware.requireAdmin,
   adminRevokeCertificate
 );
+
+// Templates
+router.get('/admin/certificates/templates', adminAuthMiddleware.requireAdmin, adminGetTemplates);
+router.post('/admin/certificates/templates', adminAuthMiddleware.requireAdmin, adminSaveTemplate);
 
 export default router;

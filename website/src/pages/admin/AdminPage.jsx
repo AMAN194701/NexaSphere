@@ -8,6 +8,9 @@ import '../../components/admin/analytics/analytics.css';
 import HeatmapView from './analytics/HeatmapView';
 import SessionPlayer from './analytics/SessionPlayer';
 import SegmentationDashboard from './analytics/SegmentationDashboard';
+import SegmentationDashboard from './analytics/SegmentationDashboard';
+import CertificateTemplateEditor from './CertificateTemplateEditor';
+import CertificateTemplateEditor from './CertificateTemplateEditor';
 
 export default function AdminPage({ onBack }) {
   const [loading, setLoading] = useState(false);
@@ -207,7 +210,7 @@ export default function AdminPage({ onBack }) {
           borderBottom: '1px solid rgba(255,255,255,0.1)',
         }}
       >
-        {['overview', 'heatmaps', 'recordings', 'segments'].map((tab) => (
+        {['overview', 'heatmaps', 'recordings', 'segments', 'certificates'].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -241,6 +244,7 @@ export default function AdminPage({ onBack }) {
       {activeTab === 'heatmaps' && <HeatmapView />}
       {activeTab === 'recordings' && <SessionPlayer />}
       {activeTab === 'segments' && <SegmentationDashboard />}
+      {activeTab === 'certificates' && <CertificateTemplateEditor token={token} />}
     </div>
   );
 }
