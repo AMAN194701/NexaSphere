@@ -3,7 +3,10 @@ import { DynamicIcon } from '../../shared/Icons';
 import { getApiBase } from '../../utils/runtimeConfig';
 import apiClient from '../../utils/apiClient';
 import { downloadICS } from '../../utils/icsExport';
-
+import {
+  showNotification,
+  requestNotificationPermission,
+} from '../../utils/pushNotificationClient';
 function hexToRgb(hex) {
   if (!hex || !hex.startsWith('#')) return '0,212,255';
   return `${parseInt(hex.slice(1, 3), 16)},${parseInt(hex.slice(3, 5), 16)},${parseInt(hex.slice(5, 7), 16)}`;
@@ -914,7 +917,44 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
     };
   }, []);
 
-  const isUpcoming = event.status === 'upcoming';
+  const handleCalendarDownload = () => {
+    const base = getApiBase();
+    const url = `${base}/api/content/events/${event.id}/calendar`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const color = activityColor || '#a855f7';
+  const rgb = hexToRgb(color);
+
+  const [showReminderMenu, setShowReminderMenu] = useState(false);
+  const [reminderSet, setReminderSet] = useState('');
+
+  const handleSetReminder = async (minutes, label) => {
+    const permission = await requestNotificationPermission();
+    if (permission === 'granted') {
+      const eventTime = new Date(event.date).getTime();
+      const reminderTime = eventTime - minutes * 60 * 1000;
+      const delay = reminderTime - Date.now();
+
+      if (delay > 0) {
+        setTimeout(() => {
+          showNotification(`Reminder: ${event.name}`, {
+            body: `Starting in ${label} at ${event.location || 'TBA'}`,
+            icon: '/pwa-192x192.png',
+          });
+        }, delay);
+        setReminderSet(label);
+        setShowReminderMenu(false);
+        alert(`Reminder set for ${label} before the event!`);
+      } else {
+        alert('This event is too close or has already started.');
+      }
+    } else {
+      alert('Please enable notifications in your browser settings to use reminders.');
+    }
+  };
+
+  const isUpcoming = event.status === 'upcoming' || event.status === 'registration_open';
   const eventEnd = event.endDate ?? event.startDate ?? event.date;
   const isInFuture = eventEnd ? new Date(eventEnd) > new Date() : isUpcoming;
   const canRegister = isUpcoming && isInFuture && event.capacity > 0;
@@ -964,14 +1004,6 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
     }
   };
 
-  const handleCalendarDownload = () => {
-    const base = getApiBase();
-    const url = `${base}/api/content/events/${event.id}/calendar`;
-    window.open(url, '_blank', 'noopener,noreferrer');
-  };
-
-  const color = activityColor || '#a855f7';
-  const rgb = hexToRgb(color);
   const status = event.status === 'upcoming' ? 'upcoming' : 'completed';
   const overview =
     event.overview || event.description || 'More details for this event will be shared soon.';
@@ -1171,6 +1203,118 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
                 <DynamicIcon name={status === 'completed' ? 'CheckCircle' : 'Calendar'} size={12} />{' '}
                 {status === 'completed' ? 'Completed' : 'Upcoming'}
               </span>
+              {isUpcoming && (
+                <div style={{ position: 'relative' }}>
+                  <button
+                    onClick={() => setShowReminderMenu(!showReminderMenu)}
+                    title="Set Reminder"
+                    style={{
+                      background: reminderSet ? `rgba(34,197,94,0.15)` : `rgba(${rgb},0.1)`,
+                      border: reminderSet ? `1px solid #22c55e` : `1px solid rgba(${rgb},0.3)`,
+                      color: reminderSet ? '#22c55e' : color,
+                      borderRadius: '50%',
+                      width: '28px',
+                      height: '28px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'scale(1.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = '';
+                    }}
+                  >
+                    <DynamicIcon name="Bell" size={14} />
+                  </button>
+                  {showReminderMenu && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '36px',
+                        left: 0,
+                        background: 'var(--bg-card)',
+                        border: '1px solid var(--border-subtle)',
+                        borderRadius: '8px',
+                        padding: '8px 0',
+                        zIndex: 10,
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                        minWidth: '160px',
+                      }}
+                    >
+                      <div
+                        style={{
+                          padding: '4px 16px',
+                          fontSize: '0.75rem',
+                          color: 'var(--text-muted)',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
+                          marginBottom: '4px',
+                        }}
+                      >
+                        Set Reminder
+                      </div>
+                      <button
+                        onClick={() => handleSetReminder(15, '15 minutes')}
+                        style={{
+                          display: 'block',
+                          width: '100%',
+                          textAlign: 'left',
+                          padding: '8px 16px',
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--text-primary)',
+                          fontSize: '0.85rem',
+                          cursor: 'pointer',
+                        }}
+                        onMouseEnter={(e) => (e.target.style.background = 'var(--bg-card-hover)')}
+                        onMouseLeave={(e) => (e.target.style.background = 'none')}
+                      >
+                        15 minutes before
+                      </button>
+                      <button
+                        onClick={() => handleSetReminder(60, '1 hour')}
+                        style={{
+                          display: 'block',
+                          width: '100%',
+                          textAlign: 'left',
+                          padding: '8px 16px',
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--text-primary)',
+                          fontSize: '0.85rem',
+                          cursor: 'pointer',
+                        }}
+                        onMouseEnter={(e) => (e.target.style.background = 'var(--bg-card-hover)')}
+                        onMouseLeave={(e) => (e.target.style.background = 'none')}
+                      >
+                        1 hour before
+                      </button>
+                      <button
+                        onClick={() => handleSetReminder(24 * 60, '1 day')}
+                        style={{
+                          display: 'block',
+                          width: '100%',
+                          textAlign: 'left',
+                          padding: '8px 16px',
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--text-primary)',
+                          fontSize: '0.85rem',
+                          cursor: 'pointer',
+                        }}
+                        onMouseEnter={(e) => (e.target.style.background = 'var(--bg-card-hover)')}
+                        onMouseLeave={(e) => (e.target.style.background = 'none')}
+                      >
+                        1 day before
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
               {isUpcoming && (
                 <button
                   onClick={() => downloadICS(event)}
