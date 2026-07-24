@@ -57,6 +57,7 @@ export const eventSchema = z
     recurrencePattern: z.enum(['daily', 'weekly', 'monthly', 'custom']).optional().nullable(),
     recurrenceEndDate: z.string().optional().nullable(),
     occurrenceIndex: z.number().int().optional().nullable(),
+    capacity: z.coerce.number().int().min(1).optional().nullable(),
   })
   .transform((data) => {
     // Normalize fields to match DB expectations used previously.
@@ -83,5 +84,6 @@ export const eventSchema = z
       recurrencePattern: data.recurrencePattern || null,
       recurrenceEndDate: data.recurrenceEndDate || null,
       occurrenceIndex: data.occurrenceIndex || null,
+      capacity: data.capacity || null,
     };
   });
