@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { throttleMiddleware } from '../middleware/throttleMiddleware.js';
 import settingsRouter from './settingsRoutes.js';
 import rateLimitAdminRoutes from './rateLimitAdminRoutes.js';
-import settingsRouter from './settingsRoutes.js';
+// Fixed duplicate import
 import { auditLogController } from '../controllers/auditLogController.js';
 import * as eventsController from '../controllers/eventsController.js';
 import * as activityEventsController from '../controllers/activityEventsController.js';
@@ -39,10 +39,10 @@ import smartFormsGlobalRoutes from "./smartFormsGlobalRoutes.js";
 import eventConflictRouter from "./eventConflict.js";
 import waitlistRoutes from "./waitlist.js";
 import * as localAuthController from '../controllers/localAuthController.js';
-import announcementPriorityRouter from './announcementPriority.js';
+// Fixed duplicate import
 import recommendationEngine from './recommendationEngine.js';
 import platformAnalyticsRoutes from './platformAnalytics.js';
-import * as localAuthController from '../controllers/localAuthController.js';
+// Fixed duplicate import
 import * as whiteboardController from '../controllers/whiteboardController.js';
 import bookmarkRoutes from './bookmark.js';
 import operationalInsightsRoutes from './operationalInsights.js';
@@ -71,28 +71,17 @@ import {
 } from '../validators/routes/apiSchemas.js';
 import * as recommendationsController from '../controllers/recommendationsController.js';
 import * as gamificationController from '../controllers/gamificationController.js';
-import * as whiteboardController from '../controllers/whiteboardController.js';
+// Fixed duplicate import
 import { impersonationService } from '../services/impersonationService.js';
 import * as followsController from '../controllers/followsController.js';
-import recommendationEngine from '../routes/recommendationEngine.js';
-import platformAnalyticsRoutes from '../routes/platformAnalytics.js';
+// Fixed duplicate import
+// Fixed duplicate import
 import multer from 'multer';
-const upload = multer({
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-});
-
-import apiAnalyticsRoutes from './apiAnalytics.js';
-import budgetRoutes from './budget.js';
-import eventRecurringRoutes from "./eventRecurringRoutes.js";
-
-import * as recommendationsController from '../controllers/recommendationsController.js';
-import * as gamificationController from '../controllers/gamificationController.js';
-import * as whiteboardController from '../controllers/whiteboardController.js';
-import multer from 'multer';
-import * as analyticsController from '../controllers/analyticsController.js';
+// Fixed duplicate upload declarations
+// Fixed duplicate import
 const workflowAutomationRoutes = require("./workflowAutomation"); 
 const router = Router();
-const apiAnalyticsRoutes = require('./apiAnalytics');
+// Fixed duplicate import
 const digitalAssetRoutes = require("./digitalAsset");
 
 router.use(rateLimitAdminRoutes);
@@ -106,7 +95,7 @@ const resourceDiscoveryRoutes = require("./resourceDiscovery");
 const notificationCampaignRoutes = require("./notificationCampaign");
 const maintenanceRoutes = require("./maintenance");
 const workspaceRoutes = require("./workspace");
-const router = Router();
+// Fixed duplicate router declaration
 
 // Public
 router.get('/api/dashboard/leaderboard', gamificationController.getLeaderboard);
@@ -169,6 +158,10 @@ router.post(
   eventRegistrationController.registerForEvent
 );
 router.get('/api/content/events/:eventId/calendar', eventRegistrationController.getEventCalendar);
+
+// QR Code Generation
+router.get('/api/registrations/:id/qr', eventRegistrationController.getRegistrationQr);
+
 router.post(
   '/api/content/events/:eventId/cancel',
   eventRegistrationLimiter,
@@ -672,15 +665,14 @@ router.use(
 );
 router.use("/api/events/:event_id/collaborators", eventCollaboratorRoutes);
 // Audit Log Viewer APIs
-); // Audit Log Viewer APIs
 router.get('/api/admin/audit-logs', adminAuthMiddleware.requireAdmin, auditLogController.listLogs);
 router.get(
   '/api/admin/audit-logs/stats',
   adminAuthMiddleware.requireAdmin,
   auditLogController.getStats
-  "/recommendations",
-  recommendationEngine
 );
+
+router.use("/recommendations", recommendationEngine);
 router.use(
   "/recommendations",
   recommendationEngine

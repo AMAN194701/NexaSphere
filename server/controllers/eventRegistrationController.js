@@ -1,6 +1,7 @@
 import { capacityLockingService } from '../services/capacityLockingService.js';
 import { ticketService } from '../services/ticketService.js';
 import { calendarService } from '../services/calendarService.js';
+import QRCode from 'qrcode';
 import { registrationsRepository } from '../repositories/registrationsRepository.js';
 import { eventsRepository } from '../repositories/eventsRepository.js';
 import { emitToRole } from '../config/socket.js';
@@ -250,7 +251,6 @@ export const cancelRegistration = wrapAsync(async (req, res) => {
 
   if (promoted) {
     try {
-
       emitToRole('events_admin', 'admin:waitlist-promoted', {
         eventId,
         userName: promoted.full_name,
@@ -297,6 +297,19 @@ export const getWaitlistPosition = wrapAsync(async (req, res) => {
   }
 
   return sendSuccess(res, { position, totalWaitlisted });
+});
+
+export const getRegistrationQr = wrapAsync(async (req, res) => {
+  const { id } = req.params;
+  const registration = await registrationsRepository.findById(id);
+  
+  if (!registration) {
+    return sendError(req, res, 'Registration not found', 404, 'NOT_FOUND');
+  }
+
+  // Generate QR code data URL containing the ticket token
+  const qrDataUrl = await QRCode.toDataURL(registration.ticket_token || registration.id);
+  return sendSuccess(res, { qrCode: qrDataUrl });
 });
 
 export const leaveWaitlist = wrapAsync(async (req, res) => {

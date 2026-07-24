@@ -14,7 +14,13 @@ function wrapAsync(fn) {
 export const markAttendance = wrapAsync(async (req, res) => {
   const { eventId, token, email } = req.body;
   if (!eventId && !token && !email) {
-    return sendError(req, res, 'Provide eventId and either token or email', 400, 'VALIDATION_ERROR');
+    return sendError(
+      req,
+      res,
+      'Provide eventId and either token or email',
+      400,
+      'VALIDATION_ERROR'
+    );
   }
 
   let registration;
@@ -52,10 +58,25 @@ export const markAttendance = wrapAsync(async (req, res) => {
 });
 
 export const getAttendanceList = wrapAsync(async (req, res) => {
-  const eventId = String(req.params.eventId || '').trim();
+  const eventId = String(req.query.eventId || req.params.eventId || '').trim();
+  const exportFormat = String(req.query.export || '').trim();
+  
   if (!eventId) {
     return sendError(req, res, 'Event ID required', 400, 'VALIDATION_ERROR');
   }
+  
   const registrations = await registrationsRepository.findByEventId(eventId);
+  
+  if (exportFormat === 'csv') {
+      const csvHeader = 'Name,Email,Attended,Registered At\n';
+      const csvRows = registrations.map(r => 
+          `"${r.full_name}","${r.email}",${r.attended},"${r.created_at}"`
+      ).join('\n');
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="attendance_${eventId}.csv"`);
+      return res.send(csvHeader + csvRows);
+  }
+  
   return sendSuccess(res, { registrations });
 });
