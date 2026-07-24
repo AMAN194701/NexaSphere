@@ -6,13 +6,13 @@ import { roadmapData } from '../../data/roadmapData';
 import { RepoCardSkeleton } from '../ui/skeleton/RepoCardSkeleton';
 import AdvancedCustomizer from './AdvancedCustomizer';
 
-
 export default function PortfolioBuilder() {
   const [username, setUsername] = useState('');
   const [passkey, setPasskey] = useState('');
   const [title, setTitle] = useState('');
   const [bio, setBio] = useState('');
   const [theme, setTheme] = useState('glassmorphic');
+  const [isPublic, setIsPublic] = useState(true);
   const [customization, setCustomization] = useState({
     colors: { accent: '#cc1111' },
     typography: { header: 'Orbitron' },
@@ -103,12 +103,16 @@ export default function PortfolioBuilder() {
 
     try {
       const base = getApiBase();
-      const url = base ? `${base}/api/portfolio/${username}` : `/api/portfolio/${username}`;
+      const query = passkey ? `?passkey=${encodeURIComponent(passkey)}` : '';
+      const url = base
+        ? `${base}/api/portfolio/${username}${query}`
+        : `/api/portfolio/${username}${query}`;
       const data = await apiClient(url, { signal: controller.signal });
       if (data) {
         setTitle(data.title || '');
         setBio(data.bio || '');
         setTheme(data.theme || 'glassmorphic');
+        setIsPublic(data.isPublic !== false);
         setCustomization(data.customization || customization);
         setCustomDomain(data.customDomain || '');
         setVisibleSections(
@@ -163,6 +167,7 @@ export default function PortfolioBuilder() {
         passkey,
         title,
         bio,
+        isPublic,
         theme,
         customization,
         customDomain,
@@ -343,12 +348,14 @@ export default function PortfolioBuilder() {
       setErrorMsg('Unable to copy link. Please copy it manually from the address bar.');
     }
     document.body.removeChild(textarea);
-
   };
 
   return (
     <div className="portfolio-builder-container">
-      <div className="builder-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div
+        className="builder-header"
+        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}
+      >
         <div>
           <h1 className="builder-title">Portfolio Builder</h1>
           <p className="builder-subtitle">
@@ -375,19 +382,40 @@ export default function PortfolioBuilder() {
               alignItems: 'center',
               gap: '8px',
               fontSize: '0.9rem',
-              whiteSpace: 'nowrap'
+              whiteSpace: 'nowrap',
             }}
           >
             {isParsing ? (
               <>
-                <svg className="spinner" viewBox="0 0 50 50" style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }}>
-                  <circle className="path" cx="25" cy="25" r="20" fill="none" strokeWidth="5" stroke="currentColor" strokeDasharray="31.4 31.4" strokeLinecap="round" />
+                <svg
+                  className="spinner"
+                  viewBox="0 0 50 50"
+                  style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }}
+                >
+                  <circle
+                    className="path"
+                    cx="25"
+                    cy="25"
+                    r="20"
+                    fill="none"
+                    strokeWidth="5"
+                    stroke="currentColor"
+                    strokeDasharray="31.4 31.4"
+                    strokeLinecap="round"
+                  />
                 </svg>
                 Parsing...
               </>
             ) : (
               <>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                   <polyline points="17 8 12 3 7 8" />
                   <line x1="12" y1="3" x2="12" y2="15" />
@@ -450,11 +478,31 @@ export default function PortfolioBuilder() {
                 className="form-input"
                 value={passkey}
                 onChange={(e) => setPasskey(e.target.value)}
+                onBlur={handleLoadConfig}
                 required
               />
               <span className="switch-subtext">
                 Required to update this portfolio in the future. Keep it safe.
               </span>
+            </div>
+
+            <div className="switch-group" style={{ marginTop: '16px' }}>
+              <div className="switch-label-container">
+                <span className="form-label" style={{ fontSize: '0.85rem' }}>
+                  Public Visibility
+                </span>
+                <span className="switch-subtext">
+                  Make portfolio visible to anyone with the link
+                </span>
+              </div>
+              <label className="switch">
+                <input
+                  type="checkbox"
+                  checked={isPublic}
+                  onChange={(e) => setIsPublic(e.target.checked)}
+                />
+                <span className="slider"></span>
+              </label>
             </div>
           </div>
 
@@ -1061,7 +1109,8 @@ export default function PortfolioBuilder() {
                 className="portfolio-intro"
                 style={{ flexDirection: 'column', textAlign: 'center', gap: '12px' }}
               >
-                <img loading="lazy"
+                <img
+                  loading="lazy"
                   src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${username || 'preview'}`}
                   alt="avatar"
                   className="portfolio-avatar"

@@ -323,6 +323,9 @@ export function sanitizePortfolioRecord(data = {}) {
     const theme = stripHtmlTruncated(data.theme, 50);
     if (theme) out.theme = theme;
   }
+  if (data.isPublic !== undefined) {
+    out.isPublic = Boolean(data.isPublic);
+  }
   out.visibleSections = sanitizeVisibleSections(data.visibleSections);
   out.socialLinks = sanitizeSocialLinks(data.socialLinks);
   if (data.customDomain != null) {
