@@ -63,6 +63,8 @@ async function ensureSchema(client) {
       education JSONB DEFAULT '[]'::jsonb,
       work_experience JSONB DEFAULT '[]'::jsonb,
       github_username VARCHAR(39),
+      moderation_status VARCHAR(20) DEFAULT 'approved',
+      flag_reason TEXT,
       created_at TIMESTAMPTZ DEFAULT NOW(),
       updated_at TIMESTAMPTZ DEFAULT NOW()
     )
@@ -70,6 +72,11 @@ async function ensureSchema(client) {
 
   await client.query(`
     ALTER TABLE portfolios ADD COLUMN IF NOT EXISTS github_username VARCHAR(39)
+  `);
+
+  await client.query(`
+    ALTER TABLE portfolios ADD COLUMN IF NOT EXISTS moderation_status VARCHAR(20) DEFAULT 'approved',
+                           ADD COLUMN IF NOT EXISTS flag_reason TEXT
   `);
 
   await client.query(`
@@ -512,6 +519,31 @@ export const portfolioRepository = {
       }
     }
     return [];
+  },
+
+  async getFlaggedPortfolios() {
+    await ensureReady();
+    return withDb(async (client) => {
+      const { rows } = await client.query(`
+        SELECT username, title, bio, moderation_status, flag_reason, updated_at
+        FROM portfolios
+        WHERE moderation_status = 'flagged'
+        ORDER BY updated_at ASC
+      `);
+      return rows;
+    });
+  },
+
+  async updatePortfolioModerationStatus(username, status, reason = null) {
+    await ensureReady();
+    return withDb(async (client) => {
+      const { rowCount } = await client.query(`
+        UPDATE portfolios
+        SET moderation_status = $1, flag_reason = $2
+        WHERE username = $3
+      `, [status, reason, username]);
+      return rowCount > 0;
+    });
   },
 
   async delete(username) {
