@@ -2,7 +2,6 @@ import { Router } from 'express';
 import { throttleMiddleware } from '../middleware/throttleMiddleware.js';
 import settingsRouter from './settingsRoutes.js';
 import rateLimitAdminRoutes from './rateLimitAdminRoutes.js';
-import settingsRouter from './settingsRoutes.js';
 import { auditLogController } from '../controllers/auditLogController.js';
 import * as eventsController from '../controllers/eventsController.js';
 import * as activityEventsController from '../controllers/activityEventsController.js';
@@ -18,7 +17,7 @@ import { healthRepository } from '../repositories/healthRepository.js';
 import eventCollaboratorRoutes from './eventCollaboratorRoutes.js';
 import { eventsRepository } from '../repositories/eventsRepository.js';
 import { authRateLimiter, protectedActionRateLimiter } from '../middleware/authRateLimiter.js';
-import { eventRegistrationLimiter } from '../middleware/rateLimiter.js';
+import { eventRegistrationIpLimiter, eventRegistrationUserLimiter } from '../middleware/rateLimiter.js';
 import { portfolioRepository } from '../repositories/portfolioRepository.js';
 import { achievementsRepository } from '../repositories/achievementsRepository.js';
 import { portfolioService } from '../services/portfolioService.js';
@@ -164,14 +163,16 @@ router.get('/api/content/events', eventsController.listEvents);
 router.get('/api/content/banners', bannersController.listActiveBanners);
 router.post(
   '/api/content/events/:eventId/register',
-  eventRegistrationLimiter,
+  eventRegistrationIpLimiter,
+  eventRegistrationUserLimiter,
   validate(eventRegistrationSchema),
   eventRegistrationController.registerForEvent
 );
 router.get('/api/content/events/:eventId/calendar', eventRegistrationController.getEventCalendar);
 router.post(
   '/api/content/events/:eventId/cancel',
-  eventRegistrationLimiter,
+  eventRegistrationIpLimiter,
+  eventRegistrationUserLimiter,
   requireStudentAuth,
   validate(emailSchema),
   eventRegistrationController.cancelRegistration
@@ -187,7 +188,8 @@ router.post(
 );
 router.delete(
   '/api/content/events/:eventId/waitlist',
-  eventRegistrationLimiter,
+  eventRegistrationIpLimiter,
+  eventRegistrationUserLimiter,
   validate(emailSchema),
   eventRegistrationController.leaveWaitlist
 );
