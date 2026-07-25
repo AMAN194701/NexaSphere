@@ -93,12 +93,24 @@ const PinnedChats = ({
 
       <div className="pinned-list">
         {pinnedPrompts.map((prompt) => (
-          <div key={prompt.id} className="pinned-item" onClick={() => handleSelectPrompt(prompt)}>
+          <div
+            key={prompt.id}
+            className="pinned-item"
+            role="button"
+            tabIndex={0}
+            onClick={() => handleSelectPrompt(prompt)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleSelectPrompt(prompt);
+              }
+            }}
+          >
             <div className="pinned-content">
               <p className="pinned-text">{prompt.userPrompt.substring(0, 45)}...</p>
               <span className="pinned-icon">📌</span>
             </div>
-            <button className="unpin-btn" title="Unpin" onClick={(e) => handleUnpin(e, prompt.id)}>
+            <button className="unpin-btn" title="Unpin" aria-label="Unpin conversation" onClick={(e) => handleUnpin(e, prompt.id)}>
               ✕
             </button>
           </div>

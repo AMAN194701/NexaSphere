@@ -348,7 +348,19 @@ export default function CalendarView({ events: initialEvents, onEventClick, isAd
       {filteredEvents
         .sort((a, b) => new Date(a.date) - new Date(b.date))
         .map((ev) => (
-          <div key={ev.id} className="agenda-item" onClick={() => onEventClick(ev)}>
+          <div
+            key={ev.id}
+            className="agenda-item"
+            role="button"
+            tabIndex={0}
+            onClick={() => onEventClick(ev)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onEventClick(ev);
+              }
+            }}
+          >
             <div className="agenda-date">{new Date(ev.date).toLocaleDateString()}</div>
             <div className={`agenda-type-tag ${ev.category?.toLowerCase()}`}>{ev.category}</div>
             <div className="agenda-info">

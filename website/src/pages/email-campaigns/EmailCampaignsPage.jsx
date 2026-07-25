@@ -672,9 +672,19 @@ export default function EmailCampaignsPage() {
 
       {/* Create Campaign Modal */}
       {showCreateModal && (
-        <div style={modalOverlayStyle} onClick={() => setShowCreateModal(false)}>
-          <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ margin: '0 0 24px 0', fontSize: '20px', fontWeight: '600' }}>
+        <div
+          style={modalOverlayStyle}
+          onClick={() => setShowCreateModal(false)}
+          onKeyDown={(e) => e.key === 'Escape' && setShowCreateModal(false)}
+        >
+          <div
+            style={modalStyle}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="create-campaign-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="create-campaign-title" style={{ margin: '0 0 24px 0', fontSize: '20px', fontWeight: '600' }}>
               Create Campaign
             </h3>
 
@@ -758,9 +768,19 @@ export default function EmailCampaignsPage() {
 
       {/* Create Template Modal */}
       {showTemplateModal && (
-        <div style={modalOverlayStyle} onClick={() => setShowTemplateModal(false)}>
-          <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ margin: '0 0 24px 0', fontSize: '20px', fontWeight: '600' }}>
+        <div
+          style={modalOverlayStyle}
+          onClick={() => setShowTemplateModal(false)}
+          onKeyDown={(e) => e.key === 'Escape' && setShowTemplateModal(false)}
+        >
+          <div
+            style={modalStyle}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="create-template-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="create-template-title" style={{ margin: '0 0 24px 0', fontSize: '20px', fontWeight: '600' }}>
               Create Template
             </h3>
 
@@ -830,9 +850,19 @@ export default function EmailCampaignsPage() {
 
       {/* Create Trigger Modal */}
       {showTriggerModal && (
-        <div style={modalOverlayStyle} onClick={() => setShowTriggerModal(false)}>
-          <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ margin: '0 0 24px 0', fontSize: '20px', fontWeight: '600' }}>
+        <div
+          style={modalOverlayStyle}
+          onClick={() => setShowTriggerModal(false)}
+          onKeyDown={(e) => e.key === 'Escape' && setShowTriggerModal(false)}
+        >
+          <div
+            style={modalStyle}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="create-trigger-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="create-trigger-title" style={{ margin: '0 0 24px 0', fontSize: '20px', fontWeight: '600' }}>
               Create Automation Trigger
             </h3>
 
@@ -878,9 +908,19 @@ export default function EmailCampaignsPage() {
       )}
 
       {showStatsModal && (
-        <div style={modalOverlayStyle} onClick={() => setShowStatsModal(false)}>
-          <div style={{ ...modalStyle, maxWidth: '720px' }} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ margin: '0 0 12px 0', fontSize: '20px', fontWeight: '600' }}>
+        <div
+          style={modalOverlayStyle}
+          onClick={() => setShowStatsModal(false)}
+          onKeyDown={(e) => e.key === 'Escape' && setShowStatsModal(false)}
+        >
+          <div
+            style={{ ...modalStyle, maxWidth: '720px' }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="campaign-performance-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="campaign-performance-title" style={{ margin: '0 0 12px 0', fontSize: '20px', fontWeight: '600' }}>
               Campaign Performance
             </h3>
             <p style={{ margin: '0 0 20px 0', color: 'var(--text-secondary, #94a3b8)' }}>

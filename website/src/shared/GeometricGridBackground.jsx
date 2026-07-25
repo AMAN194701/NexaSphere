@@ -91,7 +91,6 @@ export default function GeometricGridBackground({ theme = 'dark' }) {
     <canvas
       ref={canvasRef}
       aria-hidden="true"
-      role="presentation"
       style={{
         position: 'fixed',
         top: 0,

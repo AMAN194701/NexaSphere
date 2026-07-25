@@ -81,18 +81,26 @@ export function SponsorshipForm({ sponsor, onClose }) {
       className="modal-overlay"
       ref={modalRef}
       onClick={(e) => e.target === e.currentTarget && onClose()}
+      onKeyDown={(e) => e.key === 'Escape' && onClose()}
     >
-      <div className="modal" style={{ maxWidth: 600, maxHeight: '90vh', overflowY: 'auto' }}>
+      <div
+        className="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="sponsorship-form-title"
+        style={{ maxWidth: 600, maxHeight: '90vh', overflowY: 'auto' }}
+      >
         <div className="modal-header">
-          <h3>{sponsor?.id ? 'Edit Sponsor' : 'Add Sponsor'}</h3>
-          <button className="modal-close" onClick={onClose} aria-label="Close">
+          <h3 id="sponsorship-form-title">{sponsor?.id ? 'Edit Sponsor' : 'Add Sponsor'}</h3>
+          <button className="modal-close" onClick={onClose} aria-label="Close modal">
             <AdminIcon name="X" size={18} />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="form">
           <div className="form-row">
-            <label>Company Name *</label>
+            <label htmlFor="sponsor-company-name">Company Name *</label>
             <input
+              id="sponsor-company-name"
               value={form.companyName}
               onChange={(e) => set('companyName', e.target.value)}
               placeholder="e.g. TechCorp India"
@@ -102,8 +110,8 @@ export function SponsorshipForm({ sponsor, onClose }) {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div className="form-row">
-              <label>Sponsorship Tier</label>
-              <select value={form.tier} onChange={(e) => set('tier', e.target.value)}>
+              <label htmlFor="sponsor-tier">Sponsorship Tier</label>
+              <select id="sponsor-tier" value={form.tier} onChange={(e) => set('tier', e.target.value)}>
                 {TIERS.map((t) => (
                   <option key={t} value={t}>
                     {t.charAt(0).toUpperCase() + t.slice(1)}
@@ -112,8 +120,8 @@ export function SponsorshipForm({ sponsor, onClose }) {
               </select>
             </div>
             <div className="form-row">
-              <label>Status</label>
-              <select value={form.status} onChange={(e) => set('status', e.target.value)}>
+              <label htmlFor="sponsor-status">Status</label>
+              <select id="sponsor-status" value={form.status} onChange={(e) => set('status', e.target.value)}>
                 {STATUSES.map((s) => (
                   <option key={s} value={s}>
                     {s.charAt(0).toUpperCase() + s.slice(1)}
@@ -124,8 +132,9 @@ export function SponsorshipForm({ sponsor, onClose }) {
           </div>
 
           <div className="form-row">
-            <label>Description</label>
+            <label htmlFor="sponsor-description">Description</label>
             <textarea
+              id="sponsor-description"
               value={form.description}
               onChange={(e) => set('description', e.target.value)}
               rows={3}
@@ -135,16 +144,18 @@ export function SponsorshipForm({ sponsor, onClose }) {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div className="form-row">
-              <label>Logo URL</label>
+              <label htmlFor="sponsor-logo-url">Logo URL</label>
               <input
+                id="sponsor-logo-url"
                 value={form.logoUrl}
                 onChange={(e) => set('logoUrl', e.target.value)}
                 placeholder="https://example.com/logo.png"
               />
             </div>
             <div className="form-row">
-              <label>Website URL</label>
+              <label htmlFor="sponsor-website-url">Website URL</label>
               <input
+                id="sponsor-website-url"
                 value={form.websiteUrl}
                 onChange={(e) => set('websiteUrl', e.target.value)}
                 placeholder="https://example.com"
@@ -154,16 +165,18 @@ export function SponsorshipForm({ sponsor, onClose }) {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div className="form-row">
-              <label>Contact Person</label>
+              <label htmlFor="sponsor-contact-person">Contact Person</label>
               <input
+                id="sponsor-contact-person"
                 value={form.contactPerson}
                 onChange={(e) => set('contactPerson', e.target.value)}
                 placeholder="Rahul Sharma"
               />
             </div>
             <div className="form-row">
-              <label>Contact Email</label>
+              <label htmlFor="sponsor-contact-email">Contact Email</label>
               <input
+                id="sponsor-contact-email"
                 type="email"
                 value={form.contactEmail}
                 onChange={(e) => set('contactEmail', e.target.value)}
@@ -174,8 +187,9 @@ export function SponsorshipForm({ sponsor, onClose }) {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div className="form-row">
-              <label>Agreement Start</label>
+              <label htmlFor="sponsor-agreement-start">Agreement Start</label>
               <input
+                id="sponsor-agreement-start"
                 type="date"
                 value={form.agreementStart}
                 onChange={(e) => set('agreementStart', e.target.value)}
@@ -183,8 +197,9 @@ export function SponsorshipForm({ sponsor, onClose }) {
               />
             </div>
             <div className="form-row">
-              <label>Agreement End</label>
+              <label htmlFor="sponsor-agreement-end">Agreement End</label>
               <input
+                id="sponsor-agreement-end"
                 type="date"
                 value={form.agreementEnd}
                 onChange={(e) => set('agreementEnd', e.target.value)}

@@ -257,13 +257,21 @@ export function ResourcesManager() {
       {deleteTarget && (
         <div
           className="modal-overlay"
-          onClick={() => {
-            setDeleteTarget(null);
-            setDeleteError(null);
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              setDeleteTarget(null);
+              setDeleteError(null);
+            }
           }}
         >
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3>Delete Resource</h3>
+          <div
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-resource-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="delete-resource-title">Delete Resource</h3>
             <p>Are you sure you want to delete "{deleteTarget.title}"?</p>
             {deleteError && <p className="page-error">{deleteError}</p>}
             <div className="modal-actions">

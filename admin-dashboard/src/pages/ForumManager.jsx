@@ -242,9 +242,19 @@ export function ForumManager() {
       )}
 
       {deleteTarget && (
-        <div className="modal-overlay" onClick={() => setDeleteTarget(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3>Delete Thread</h3>
+        <div
+          className="modal-overlay"
+          onClick={() => setDeleteTarget(null)}
+          onKeyDown={(e) => e.key === 'Escape' && setDeleteTarget(null)}
+        >
+          <div
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-thread-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="delete-thread-title">Delete Thread</h3>
             <p>
               Are you sure you want to delete "{deleteTarget.title}"? This action cannot be undone.
             </p>

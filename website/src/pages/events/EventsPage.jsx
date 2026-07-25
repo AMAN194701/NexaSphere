@@ -129,6 +129,8 @@ export default function EventsPage({
         return da - db;
       });
   }, [filteredEvents]);
+  const totalPages = Math.ceil(sortedEvents.length / 10) || 1;
+
 
   const { recommendations, loading: recsLoading } = useRecommendations(user?.sub || user?.id || '');
 

@@ -101,6 +101,18 @@ const SearchBar = ({ onSelectPrompt, workspace = 'default' }) => {
               onClick={() => handleSelectResult(prompt)}
               role="option"
               aria-selected="false"
+            <div
+              key={prompt.id}
+              className="result-item"
+              role="button"
+              tabIndex={0}
+              onClick={() => handleSelectResult(prompt)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleSelectResult(prompt);
+                }
+              }}
             >
               <div className="result-content">
                 <p className="result-query">{formatPreview(prompt.userPrompt)}</p>
