@@ -271,6 +271,23 @@ self.addEventListener('push', (event) => {
       actions: notificationData.actions,
     })
   );
+    let error = null;
+    try {
+      await queue.replayRequests();
+    } catch (err) {
+      error = err;
+      throw err;
+    } finally {
+      if (!error && self.registration && self.registration.showNotification) {
+        self.registration.showNotification('Sync Completed', {
+          body: 'Your offline actions have been synced successfully.',
+          icon: '/pwa-192x192.png',
+          badge: '/pwa-192x192.png',
+          tag: 'sync-completed',
+        });
+      }
+    }
+  },
 });
 
 // Intercept mutating requests to our API — queue them when offline
