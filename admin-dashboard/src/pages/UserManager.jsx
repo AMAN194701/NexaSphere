@@ -43,6 +43,12 @@ export default function UserManager() {
     admin_roles: 'member',
   });
 
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [csvText, setCsvText] = useState('');
+  const [importPreview, setImportPreview] = useState(null);
+  const [importJobId, setImportJobId] = useState(null);
+  const [importProgress, setImportProgress] = useState(null);
+  const [importErrors, setImportErrors] = useState([]);
 
   async function fetchUsers() {
     setLoading(true);
