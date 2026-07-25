@@ -13,6 +13,10 @@ function hasSqliPattern(value) {
   }
   if (typeof value === 'object' && value !== null) {
     return Object.values(value).some((v) => hasSqliPattern(v));
+    return SQL_INJECTION_PATTERNS.some(pattern => pattern.test(value));
+  }
+  if (typeof value === 'object' && value !== null) {
+    return Object.values(value).some(v => hasSqliPattern(v));
   }
   return false;
 }
@@ -39,6 +43,7 @@ export function sqlInjectionGuard(req, res, next) {
     console.warn(
       `[SQLI-GUARD] Blocked request from ${req.ip} - suspicious patterns in: ${suspicious.join(', ')}`
     );
+    console.warn(`[SQLI-GUARD] Blocked request from ${req.ip} - suspicious patterns in: ${suspicious.join(', ')}`);
     return res.status(400).json({ error: 'Request contains invalid patterns' });
   }
 

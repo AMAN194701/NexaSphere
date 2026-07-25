@@ -919,6 +919,7 @@ app.use(xssSanitizer);
 app.use(sqlInjectionGuard);
 const useStructuredHttpLog = process.env.STRUCTURED_HTTP_LOG === 'true';
 if (!useStructuredHttpLog && process.env.NODE_ENV !== 'test') {
+if (!useStructuredHttpLog) {
   app.use(morgan('combined'));
 }
 app.use(apiLogger);
