@@ -249,6 +249,49 @@ router.delete(
   usersController.adminDeactivateUser
 );
 router.post('/api/admin/login', authRateLimiter, adminAuthMiddleware.login);
+router.post(
+  '/api/admin/login',
+  authRateLimiter,
+  validate(adminLoginSchema),
+  adminAuthMiddleware.login
+);
+
+// Local User Auth (legacy — no refresh token rotation)
+router.post('/api/auth/local/login', authRateLimiter, localAuthController.localLogin);
+// ── Secure JWT Refresh Token Rotation (issue #3292) ───────────────────────────
+// Enhanced local login that issues both access and refresh tokens
+router.post('/api/auth/login', authRateLimiter, authRefreshController.localLogin);
+// Rotate a refresh token → new access token + new refresh token
+router.post('/api/auth/refresh', authRateLimiter, authRefreshController.refreshTokens);
+// Revoke the current device's refresh token (single logout)
+router.post('/api/auth/logout', authRefreshController.logout);
+// Revoke ALL refresh tokens for the authenticated user (logout everywhere)
+router.post('/api/auth/logout-all', requireStudentAuth, authRefreshController.logoutAll);
+// List active sessions for device management UI
+router.get('/api/auth/sessions', requireStudentAuth, authRefreshController.listSessions);
+router.post('/api/admin/2fa/verify', authRateLimiter, adminAuthMiddleware.verifyTwoFactor);
+// Local User Auth
+router.post(
+  '/api/auth/local/login',
+  authRateLimiter,
+  validate(localLoginSchema),
+  localAuthController.localLogin
+);
+  '/api/admin/2fa/verify',
+  validate(verifyTwoFactorSchema),
+  adminAuthMiddleware.verifyTwoFactor
+router.post(
+  '/api/admin/2fa/setup/verify',
+  authRateLimiter,
+  validate(verifyTwoFactorSetupSchema),
+  adminAuthMiddleware.verifyTwoFactorSetup
+);
+
+router.get('/api/admin/2fa/settings/status', adminAuthMiddleware.requireAdmin, adminAuthMiddleware.getTwoFactorStatus);
+router.post('/api/admin/2fa/settings/setup/init', adminAuthMiddleware.requireAdmin, adminAuthMiddleware.initTwoFactorSetup);
+router.post('/api/admin/2fa/settings/setup/verify', adminAuthMiddleware.requireAdmin, adminAuthMiddleware.verifySettingsTwoFactorSetup);
+router.post('/api/admin/2fa/settings/disable', adminAuthMiddleware.requireAdmin, adminAuthMiddleware.disableTwoFactor);
+
 router.post('/api/admin/logout', adminAuthMiddleware.requireAdmin, adminAuthMiddleware.logout);
 
 router.get(
