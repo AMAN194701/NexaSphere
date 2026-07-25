@@ -46,6 +46,13 @@ export const activityEventsService = {
 
   async assertCanManage(body) {
     await coreTeamService.assertCanManageActivityEvent(body);
+import { activityEventsRepository } from '../repositories/activityEventsRepository.js';
+import { coreTeamService } from './coreTeamService.js';
+import { activityEventSchema } from '../validators/activityEventSchemas.js';
+
+export const activityEventsService = {
+  async listActivityEvents(activityKey, { page = 1, limit = 20 } = {}) {
+    return activityEventsRepository.listByActivityKey(activityKey, { page, limit });
   },
 
   async assertCanManage(body) {
@@ -88,15 +95,17 @@ export const activityEventsService = {
       await cacheService.invalidateCache("activity_events");
     }
     return deleted;
+    const parsed = activityEventSchema.parse(input);
+    return activityEventsRepository.create(activityKey, parsed);
+  },
+
+  async deleteActivityEvent(activityKey, eventId) {
+    // Authorization is handled upstream by the requireAdmin middleware
+    // via req.adminSession. No request body is needed for deletion.
+    return activityEventsRepository.delete(activityKey, eventId);
   },
 
   async listAllActivities() {
-    try {
-      const raw = await fs.readFile(CONTENT_FILE, 'utf8');
-      const data = JSON.parse(raw);
-      return data.activityEvents || {};
-    } catch {
-      return {};
-    }
+    return activityEventsRepository.listAll();
   },
 };
