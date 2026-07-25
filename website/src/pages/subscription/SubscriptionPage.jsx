@@ -60,10 +60,14 @@ export default function SubscriptionPage({ onBack }) {
   const isMountedRef = useRef(true);
   useEffect(() => {
     isMountedRef.current = true;
+  const subscribeDelayRef = useRef(null);
 
   useEffect(() => {
     return () => {
       isMountedRef.current = false;
+      if (subscribeDelayRef.current) {
+        clearTimeout(subscribeDelayRef.current);
+      }
     };
   }, []);
 
@@ -74,7 +78,13 @@ export default function SubscriptionPage({ onBack }) {
       return;
     }
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 1000));
+    if (subscribeDelayRef.current) {
+      clearTimeout(subscribeDelayRef.current);
+    }
+    await new Promise((resolve) => {
+      subscribeDelayRef.current = setTimeout(resolve, 1000);
+    });
+    subscribeDelayRef.current = null;
     if (!isMountedRef.current) return;
     setCurrentTier(tierId);
     setLastInvoice({
