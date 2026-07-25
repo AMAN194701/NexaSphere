@@ -31,6 +31,9 @@ function RippleBtn({ cls, children, href, onClick }) {
     timeoutsRef.current.push(t);
     onClick && onClick(e);
   };
+  useEffect(() => {
+    return () => timeoutsRef.current.forEach(clearTimeout);
+  }, []);
   if (href)
     return (
       <a
