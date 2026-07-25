@@ -1485,6 +1485,9 @@ const ALLOWED_EVENT_FIELDS = [
   'price',
   'created_at',
   'updated_at',
+  'id', 'name', 'description', 'date_text', 'time', 'location',
+  'type', 'mode', 'category', 'tags', 'image_url', 'registration_link',
+  'capacity', 'registered_count', 'price', 'created_at', 'updated_at',
 ];
 
 function sanitizeEventRecord(event) {
@@ -1772,6 +1775,8 @@ const ALLOWED_TEAM_MEMBER_FIELDS = [
   'email',
   'joined_at',
   'order',
+  'id', 'name', 'role', 'position', 'bio', 'avatar_url',
+  'github_url', 'linkedin_url', 'email', 'joined_at', 'order',
 ];
 
 function sanitizeCoreTeamMemberRecord(member) {
