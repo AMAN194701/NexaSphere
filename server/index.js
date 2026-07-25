@@ -1132,6 +1132,10 @@ const MAGIC_BYTES = {
   'application/vnd.openxmlformats-officedocument.presentationml.presentation': [
     [0x50, 0x4b, 0x03, 0x04],
   ],
+  'application/zip': [[0x50, 0x4b, 0x03, 0x04], [0x50, 0x4b, 0x05, 0x06], [0x50, 0x4b, 0x07, 0x08]],
+  'application/x-zip-compressed': [[0x50, 0x4b, 0x03, 0x04]],
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': [[0x50, 0x4b, 0x03, 0x04]],
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': [[0x50, 0x4b, 0x03, 0x04]],
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': [[0x50, 0x4b, 0x03, 0x04]],
   'text/plain': [],
   'text/markdown': [],
@@ -1185,10 +1189,20 @@ const uploadWithMagicCheck = (req, res, next) => {
         400,
         'VALIDATION_ERROR'
       );
+        return res.status(413).json({ error: 'File too large. Maximum size is 10MB.' });
+      }
+      return res.status(400).json({ error: err.message });
+    }
+    if (req.file && !validateMagicBytes(req.file.path, req.file.mimetype)) {
+      fs.unlink(req.file.path, () => {});
+      return res.status(400).json({ error: 'File content does not match its declared type.' });
     }
     next();
   });
 };
+
+// Serve uploaded files statically
+app.use('/uploads', express.static(UPLOADS_DIR));
 
 // Serve uploaded files statically
 function requiredStrongPassword(name) {
