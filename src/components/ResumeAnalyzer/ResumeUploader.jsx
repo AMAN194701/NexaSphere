@@ -7,8 +7,11 @@ export default function ResumeUploader({ onUpload }) {
 
   const handleFile = (f) => {
     if (!f) return;
-    const allowed = ["application/pdf", "application/msword",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
+    const allowed = [
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ];
     if (!allowed.includes(f.type)) {
       alert("Please upload a PDF or DOC/DOCX file.");
       return;
@@ -19,14 +22,34 @@ export default function ResumeUploader({ onUpload }) {
 
   return (
     <div
+      role="button"
+      tabIndex={0}
       className={`uploader-zone ${dragging ? "dragging" : ""}`}
-      onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        setDragging(true);
+      }}
       onDragLeave={() => setDragging(false)}
-      onDrop={(e) => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files[0]); }}
+      onDrop={(e) => {
+        e.preventDefault();
+        setDragging(false);
+        handleFile(e.dataTransfer.files[0]);
+      }}
       onClick={() => inputRef.current.click()}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          inputRef.current.click();
+        }
+      }}
     >
-      <input ref={inputRef} type="file" accept=".pdf,.doc,.docx"
-        style={{ display: "none" }} onChange={(e) => handleFile(e.target.files[0])} />
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".pdf,.doc,.docx"
+        style={{ display: "none" }}
+        onChange={(e) => handleFile(e.target.files[0])}
+      />
       {file ? (
         <div className="file-selected">
           <span className="file-icon">📄</span>
