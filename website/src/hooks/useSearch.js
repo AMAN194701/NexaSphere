@@ -1,7 +1,6 @@
 /**
  * useSearch
- * ==========
- * Minimal client-side search hook used by SearchBar.
+ * === * Minimal client-side search hook used by SearchBar.
  *
  * Provides:
  *  - local filtering over provided `activities` and `events`
@@ -193,3 +192,5 @@ export function useSearch(activities = {}, events = []) {
     removeRecentSearch,
   };
 }
+=======
+return { query, setQuery, filter, setFilter, results, loading, clearSearch, apiError };
