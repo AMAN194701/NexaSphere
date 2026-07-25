@@ -8,6 +8,8 @@ import { getActiveTraceId } from './observability/tracing.js';
 import helmet from 'helmet';
 import express from 'express';
 import morgan from 'morgan';
+import compression from 'compression';
+import { EventEmitter } from 'events';
 import cors from 'cors';
 import csrf from 'csurf';
 import swaggerUi from 'swagger-ui-express';
@@ -228,6 +230,7 @@ const SESSION_SECRET = requiredStrongPassword('SESSION_SECRET');
 const ADMIN_PASSWORD = requiredStrongPassword('ADMIN_PASSWORD');
 
 const app = express();
+app.use(compression());
 
 const useStructuredHttpLog = (process.env.LOG_FORMAT || '').toLowerCase() === 'json';
 // RECTIFIED: Enable 'trust proxy' to correctly extract client IPs from X-Forwarded-For headers when behind ALBs/Serverless layers
