@@ -81,11 +81,26 @@ export function initializeSocket(serverUrl = getSocketServerUrl()) {
   socket.on("connect_error", (error) => {
     console.error("[Socket.IO] Connection Error:", error);
     captureHandledException(error, "Socket.IO connect_error:");
+  socket.on("connect", () => {
+    identifyUser(); // try to identify if user info is available locally
   });
 
-  socket.on('error', (error) => {
-    console.error('[Socket.IO] Error:', error);
-    captureHandledException(error, 'Socket.IO error:');
+  socket.on("reconnect_failed", () => {
+    console.error("[Socket.IO] Reconnection failed");
+    captureHandledException(
+      new Error("Socket.IO reconnect attempts exhausted"),
+      "Socket.IO reconnect failed:"
+    );
+  });
+
+  socket.on("connect_error", (error) => {
+    console.error("[Socket.IO] Connection Error:", error);
+    captureHandledException(error, "Socket.IO connection error:");
+  });
+
+  socket.on("error", (error) => {
+    console.error("[Socket.IO] Error:", error);
+    captureHandledException(error, "Socket.IO error:");
   });
 
   socket.on('connect_error', (error) => {
