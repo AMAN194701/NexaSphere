@@ -1,4 +1,5 @@
 
+import crypto from 'node:crypto';
 import { webhooksRepository } from '../repositories/webhooksRepository.js';
 import { webhookDeliveryService } from './webhookDeliveryService.js';
 import logger from '../utils/logger.js';
@@ -131,6 +132,6 @@ export const webhookService = {
   },
 
   generateSecret() {
-    return `whsec_${require('crypto').randomBytes(32).toString('hex')}`;
+    return `whsec_${crypto.randomBytes(32).toString('hex')}`;
   },
 };
