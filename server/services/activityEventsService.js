@@ -15,16 +15,6 @@ import { activityEventSchema } from "../validators/activityEventSchemas.js";
 import cacheService from "./cacheService.js";
 
 export const activityEventsService = {
-  async listAllActivities() {
-    try {
-      const raw = await fs.readFile(CONTENT_FILE, 'utf8');
-      const data = JSON.parse(raw);
-      return data.activityEvents || {};
-    } catch {
-      return {};
-    }
-  },
-
   async listActivityEvents(activityKey, { page = 1, limit = 20 } = {}) {
     const { rows, total } = await activityEventsRepository.listByActivityKey(activityKey, {
       page,
@@ -52,6 +42,10 @@ export const activityEventsService = {
     );
     cacheService.set(cacheKey, result);
     return result;
+  },
+
+  async assertCanManage(body) {
+    await coreTeamService.assertCanManageActivityEvent(body);
   },
 
   async assertCanManage(body) {
@@ -94,5 +88,15 @@ export const activityEventsService = {
       await cacheService.invalidateCache("activity_events");
     }
     return deleted;
+  },
+
+  async listAllActivities() {
+    try {
+      const raw = await fs.readFile(CONTENT_FILE, 'utf8');
+      const data = JSON.parse(raw);
+      return data.activityEvents || {};
+    } catch {
+      return {};
+    }
   },
 };

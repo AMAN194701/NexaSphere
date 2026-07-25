@@ -3156,6 +3156,30 @@ app.get("/healthz", async (req, res) => {
     });
   }
 });
+
+// Event channels/content
+app.get('/api/content/events', eventsController.listEvents);
+app.get('/api/content/activity-events/:activityKey', activityEventsController.listActivityEvents);
+app.post(
+  '/api/content/activity-events/:activityKey',
+  adminAuth,
+  protectedActionRateLimiter,
+  activityEventsController.addActivityEvent
+);
+app.delete(
+  '/api/content/activity-events/:activityKey/:eventId',
+  adminAuth,
+  protectedActionRateLimiter,
+  activityEventsController.deleteActivityEvent
+);
+
+// Admin Auth Endpoints
+app.post('/api/admin/login', authRateLimiter, adminAuthMiddleware.login);
+app.post('/api/admin/logout', adminAuth, adminAuthMiddleware.logout);
+app.use('/api/admin/analytics', adminAuth, analyticsRouter);
+app.use('/api/admin/metrics', adminAuth, adminStreamRouter);
+
+// OAuth / SSO Student Auth Endpoints
 app.get('/api/auth/google', studentAuthController.googleAuth);
 app.get('/api/auth/google/callback', studentAuthController.googleCallback);
 app.get('/api/auth/github', studentAuthController.githubAuth);
@@ -5889,6 +5913,25 @@ if (process.env.NODE_ENV !== 'test') {
       });
       initializeSocketIO(server);
     });
+    const boot = HAS_SUPABASE ? studentUsersRepository.ensureSchema() : ensureContentFile();
+    boot
+      .then(() => {
+        server = app.listen(port, () => {
+          console.log(`NexaSphere server listening on http://localhost:${port}`);
+        });
+        initializeSocketIO(server);
+      })
+      .catch((err) => {
+        console.warn(
+          `[Server Startup] Database schema check failed: ${err.message}. Starting server anyway in offline fallback mode.`
+        );
+        server = app.listen(port, () => {
+          console.log(
+            `NexaSphere server listening on http://localhost:${port} (offline fallback mode)`
+          );
+        });
+        initializeSocketIO(server);
+      });
   } else {
     loadPersistedPushSubscriptions();
     slackIntegrationService.init();

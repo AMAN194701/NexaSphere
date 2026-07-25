@@ -267,6 +267,7 @@ const transports = [
 
 if (isStorageWritable) {
   activeTransports.push(
+    // Error logs
     new winston.transports.File({
       filename: path.join(logsDir, 'error.log'),
       level: 'error',
@@ -279,6 +280,18 @@ if (isStorageWritable) {
     new DailyRotateFile({
       filename: path.join(logsDir, 'application-%DATE%.log'),
       datePattern: 'YYYY-MM-DD',
+
+    new winston.transports.File({
+      filename: path.join(logsDir, 'combined.log'),
+      level: fileBaselineLevel,
+      format: winston.format.uncolorize(),
+    }),
+
+    // Daily rotate logs (requires winston-daily-rotate-file)
+    new DailyRotateFile({
+      filename: path.join(logsDir, 'application-%DATE%.log'),
+      datePattern: 'YYYY-MM-DD',
+      level: fileBaselineLevel,
       maxSize: '20m',
       maxFiles: '14d',
       format: winston.format.uncolorize(),

@@ -1401,6 +1401,29 @@ export function getRoom(roomType) {
 
 export function setEmitToRoomOverride(fn) {
   emitToRoomOverride = fn;
+/**
+ * Emit event to specific role
+ */
+export function emitToRole(roles, eventName, data) {
+  if (!io) return;
+  const list = Array.isArray(roles) ? roles : [roles];
+  const targets = new Set();
+  for (const role of list) {
+    if (role === 'admin' || role === 'super_admin' || role === 'SuperAdmin') {
+      targets.add('admin-room');
+      continue;
+    }
+    if (typeof role === 'string' && role.length > 0) {
+      targets.add(`admin-room:${role}`);
+    }
+  }
+  targets.add('admin-room:SuperAdmin');
+  targets.add('admin-room:super_admin');
+
+  for (const room of targets) {
+    io.to(room).emit(eventName, data);
+  }
+  logger.debug('Emit to role rooms', { rooms: [...targets], event: eventName });
 }
 
 export function _clearConnectedUsers() {
