@@ -570,6 +570,7 @@ For full deployment instructions see [docs/deployment.md](docs/deployment.md).
 ## 🤝 Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for full guidelines.
+See [CONTRIBUTING.md](docs/community/CONTRIBUTING.md) for guidelines.
 
 This project is part of **GSSoC 2026** — check the open issues for tasks labelled `good first issue`.
 
