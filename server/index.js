@@ -328,6 +328,9 @@ import { initCacheListener } from './services/cacheService.js';
 } from "./middleware/rateLimiter.js";
 import { getPublicAppUrl } from "./utils/publicAppUrl.js";
 
+import circuitBreakerRouter from './routes/circuitBreaker.js';
+import { recordCompressionRatio } from './observability/metrics.js';
+
 // Import required controllers and services
 import * as eventsController from "./controllers/eventsController.js";
 import * as activityEventsController from "./controllers/activityEventsController.js";
@@ -520,6 +523,52 @@ app.set(
 initializeSentry(app);
 app.use(compression());
 app.use('/api/notification-preferences', notificationPreferenceRoutes);
+
+// Use compression with fallback (Brotli supported by default in compression v1.8 if zlib supports it)
+// Skip compression for responses smaller than 1KB (1024 bytes)
+app.use(
+  compression({
+    threshold: 1024,
+  })
+);
+
+// Middleware to monitor compression ratio
+app.use((req, res, next) => {
+  const originalWrite = res.write;
+  const originalEnd = res.end;
+  let originalSize = 0;
+
+  res.write = function (chunk, encoding, callback) {
+    if (chunk) {
+      originalSize += Buffer.isBuffer(chunk)
+        ? chunk.length
+        : Buffer.byteLength(chunk, typeof encoding === 'string' ? encoding : 'utf8');
+    }
+    return originalWrite.call(this, chunk, encoding, callback);
+  };
+
+  res.end = function (chunk, encoding, callback) {
+    if (chunk && typeof chunk !== 'function') {
+      originalSize += Buffer.isBuffer(chunk)
+        ? chunk.length
+        : Buffer.byteLength(chunk, typeof encoding === 'string' ? encoding : 'utf8');
+    }
+    return originalEnd.apply(this, arguments);
+  };
+
+  res.on('finish', () => {
+    const contentEncoding = res.get('Content-Encoding');
+    if (contentEncoding && ['gzip', 'br', 'deflate'].includes(contentEncoding)) {
+      const compressedSize = parseInt(res.get('Content-Length') || '0', 10);
+      if (originalSize > 0 && compressedSize > 0) {
+        const ratio = compressedSize / originalSize;
+        recordCompressionRatio(contentEncoding, ratio);
+      }
+    }
+  });
+
+  next();
+});
 
 // Use compression with fallback (Brotli supported by default in compression v1.8 if zlib supports it)
 // Skip compression for responses smaller than 1KB (1024 bytes)
@@ -980,6 +1029,75 @@ if (redisSessionUrl) {
 if (!useStructuredHttpLog) {
   app.use(requestLogger);
 }
+app.use(
+  session({
+    store: new RedisStore({ client: sessionClient, prefix: 'session:express:' }),
+    secret: SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    name: 'ns_session',
+    cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+      sameSite: 'strict',
+      maxAge: process.env.NODE_ENV === 'production' ? 8 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000,
+    },
+  })
+);
+
+// Session logging middleware
+app.use((req, res, next) => {
+  if (req.session && !req.session.created_at) {
+    req.session.created_at = Date.now();
+    req.session.ip = req.ip || req.connection?.remoteAddress || 'unknown';
+    console.log('[Session] New session created:', req.sessionID, 'IP:', req.session.ip);
+  } else if (
+    req.session &&
+    req.session.ip &&
+    req.session.ip !== (req.ip || req.connection?.remoteAddress)
+  ) {
+    console.warn(
+      '[Session] Suspicious activity: Session accessed from different IP. Original:',
+      req.session.ip,
+      'New:',
+      req.ip || req.connection?.remoteAddress
+    );
+  }
+  next();
+});
+
+// Idle timeout middleware (30 mins)
+app.use((req, res, next) => {
+  if (req.session) {
+    const now = Date.now();
+    if (req.session.lastActive && now - req.session.lastActive > 30 * 60 * 1000) {
+      console.log('[Session] Destroying idle session:', req.sessionID);
+      req.session.destroy((err) => {
+        if (err) console.error('[Session] Error destroying idle session:', err);
+        return res.status(401).json({ error: 'Session expired due to inactivity' });
+      });
+      return;
+    }
+    req.session.lastActive = now;
+  }
+  next();
+});
+
+// Track app activity for smart notification frequency adjustment
+app.use((req, res, next) => {
+  if (req.studentUser || req.adminSession) {
+    const userId = req.studentUser?.id || req.adminSession?.userId;
+    if (userId) notificationAnalyticsRepository.trackAppActivity(userId);
+  }
+  next();
+});
+
+// CSRF protection — double-submit cookie pattern for all state-changing endpoints
+app.use(csrfProtection);
+
+// Global API rate limiter — protects all /api routes from request flooding
+app.use('/api', apiRateLimiter);
+app.use('/api', tierRateLimiter());
 
 // Mount route modules
 app.post('/api/analytics/track', logEvent);
