@@ -369,6 +369,12 @@ setCatchHandler(async ({ request }) => {
            (await matchPrecache('/offline.html')) || 
            (await caches.match('/offline.html')) || 
            Response.error();
+// ── 5. Offline Fallback ───────────────────────────────────────────────────────
+// Provide a fallback response when a navigation request fails because the app
+// is offline and the requested route isn't cached.
+setCatchHandler(async ({ request }) => {
+  if (request.destination === 'document') {
+    return (await matchPrecache('/offline.html')) || Response.error();
   }
   return Response.error();
 });
