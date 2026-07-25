@@ -249,6 +249,8 @@ export function DynamicIcon({ name, size = 24, ...props }) {
     // Check if the name looks like an emoji or is not a standard word (e.g. contains non-ASCII characters / emojis / native symbols)
     const isEmoji =
       typeof name === 'string' && /\p{Emoji}/u.test(name) && !/^[a-zA-Z0-9]+$/.test(name);
+    // Check if the name looks like an emoji or is not a standard word (e.g. contains non-ASCII characters / emojis)
+    const isEmoji = typeof name === 'string' && (/\p{Emoji}/u.test(name) && !/^[a-zA-Z0-9]+$/.test(name));
     if (isEmoji) {
       return (
         <span
