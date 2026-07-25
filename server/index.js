@@ -3526,6 +3526,36 @@ app.post(
 
 // Admin membership responses
 app.get("/api/admin/membership", adminAuth, async (req, res) => {
+// Admin membership responses — reads from Supabase as primary source,
+// falls back to Google Sheets for backwards compatibility
+app.get('/api/admin/membership', adminAuth, async (req, res) => {
+  if (HAS_SUPABASE) {
+    try {
+      const rows = await supabaseRequest(
+        'form_submissions?form_type=eq.membership&select=*&order=created_at.desc'
+      );
+      const responses = (rows || []).map((row) => {
+        const p = row.payload || {};
+        return {
+          id: row.id,
+          timestamp: row.created_at || p.submittedAt || '',
+          fullName: row.full_name || p.fullName || '',
+          collegeEmail: row.college_email || p.collegeEmail || '',
+          rollNumber: p.rollNumber || '',
+          course: p.course || '',
+          branch: p.branch || '',
+          section: p.section || '',
+          semester: p.semester || '',
+          groupsSelected: Array.isArray(p.groups) ? p.groups.join(', ') : p.groups || '',
+          submittedAt: p.submittedAt || row.created_at || '',
+        };
+      });
+      return res.json({ responses });
+    } catch (err) {
+      console.error('[Membership] Supabase query failed, falling back to Sheets:', err.message);
+    }
+  }
+
   const scriptUrl = process.env.MEMBERSHIP_SCRIPT_URL;
   const secret = process.env.MEMBERSHIP_SECRET;
 
