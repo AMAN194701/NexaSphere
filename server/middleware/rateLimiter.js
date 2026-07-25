@@ -339,6 +339,17 @@ export const portfolioRateLimiter = rateLimit({
     });
   },
 });
+// Sync rate limiter — 10 requests per IP per 15 minutes
+export const syncRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: true,
+  handler: createLimiterHandler(
+    'Sync rate limit exceeded',
+    'Too many sync requests from this IP, please try again later.'
+  ),
+});
 
 // Sync rate limiter — 100 requests per IP per 5 minutes
 export const syncRateLimiter = rateLimit({
