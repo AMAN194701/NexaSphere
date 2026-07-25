@@ -88,6 +88,26 @@ import { studentAuthService } from './services/studentAuthService.js';
 import { slackIntegrationService } from './services/slackIntegrationService.js';
 import { initializeSentry, addSentryErrorHandler } from './utils/sentry.js';
 import { recordCompressionRatio } from './observability/metrics.js';
+import "dotenv/config";
+import helmet from "helmet";
+import express from "express";
+import { EventEmitter } from "events";
+import cors from "cors";
+import { google } from "googleapis";
+import { promises as fs } from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import crypto from "crypto";
+import { sendWelcomeVerificationEmail } from "./services/emailService.js";
+import { ZodError } from "zod";
+import { normalizeFormSubmission } from "./validators/formSchemas.js";
+import { adminAuthMiddleware } from "./middleware/adminAuthMiddleware.js";
+import analyticsRouter from "./routes/analytics.js";
+import { initializeSocketIO, emitToRoom, getRoom } from "./config/socket.js";
+import adminStreamRouter from "./routes/adminStream.js";
+import mentorshipRouter from "./routes/mentorship.js";
+import { broadcastSSEEvent } from "./services/sseService.js";
+import rateLimit from "express-rate-limit";
 import {
   apiRateLimiter,
   formRateLimiter,
@@ -272,6 +292,13 @@ app.use(
     swaggerOptions: {
       persistAuthorization: true,
     },
+  cors({
+    origin: process.env.CORS_ORIGIN
+      ? process.env.CORS_ORIGIN.split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : true,
+    credentials: false,
   })
 );
 
@@ -493,6 +520,16 @@ app.use(
     optionsSuccessStatus: 204,
     maxAge: 86400,
   })
+app.use("/api", apiRateLimiter);
+app.use("/api/mentorship", mentorshipRouter);
+
+const adminAuth = adminAuthMiddleware.requireAdmin;
+const adminEvents = new EventEmitter();
+adminEvents.on("CORE_TEAM_MEMBER_ADDED", (event) =>
+  console.log(`[EVENT] CORE_TEAM_MEMBER_ADDED:`, event)
+);
+adminEvents.on("CORE_TEAM_MEMBER_REMOVED", (event) =>
+  console.log(`[EVENT] CORE_TEAM_MEMBER_REMOVED:`, event)
 );
 
 app.options('*', cors());
@@ -788,6 +825,37 @@ app.use('/api/compliance', complianceRouter);
 // Compliance & Accessibility Audit Tools (#1801)
 app.use('/api', auditToolsRouter);
 
+function normalizePrivateKey(k) {
+  return k.includes("\\n") ? k.replace(/\\n/g, "\n") : k;
+}
+
+async function ensureContentFile() {
+  const dir = path.dirname(CONTENT_FILE);
+  await fs.mkdir(dir, { recursive: true });
+  try {
+    await fs.access(CONTENT_FILE);
+  } catch {
+    await fs.writeFile(
+      CONTENT_FILE,
+      JSON.stringify(defaultContent, null, 2),
+      "utf8"
+    );
+  }
+}
+const fileMutex = new Mutex();
+
+async function readContent() {
+  await ensureContentFile();
+  const raw = await fs.readFile(CONTENT_FILE, "utf8");
+  return JSON.parse(raw);
+}
+
+async function writeContent(content) {
+  await ensureContentFile();
+  await fs.writeFile(CONTENT_FILE, JSON.stringify(content, null, 2), "utf8");
+}
+
+// Helper to safely run file operations atomically
 export async function runWithFileLock(callback) {
   return await fileMutex.runExclusive(callback);
 }
@@ -961,6 +1029,9 @@ async function canManageActivityEvent({ name, email, phone, password }) {
   return members.some(
     (m) =>
       m.name.toLowerCase() === n && m.email.toLowerCase() === e && normalizePhone(m.whatsapp) === p
+      m.name.toLowerCase() === n &&
+      m.email.toLowerCase() === e &&
+      normalizePhone(m.whatsapp) === p
   );
 }
 
@@ -1093,6 +1164,22 @@ async function updateEventStore(id, patch) {
         updated_at: new Date().toISOString(),
       },
     });
+    const [row] = await supabaseRequest(
+      `events?id=eq.${encodeURIComponent(id)}`,
+      {
+        method: "PATCH",
+        body: {
+          name: patch.name,
+          short_name: patch.shortName,
+          date_text: patch.date,
+          description: patch.description,
+          status: patch.status,
+          icon: patch.icon,
+          tags: patch.tags,
+          updated_at: new Date().toISOString(),
+        },
+      }
+    );
     if (!row) return null;
     return sanitizeEventRecord({
       id: row.id,
@@ -1127,6 +1214,10 @@ async function deleteEventStore(id) {
     const rows = await supabaseRequest(`events?id=eq.${encodeURIComponent(id)}`, {
       method: 'DELETE',
     });
+    const rows = await supabaseRequest(
+      `events?id=eq.${encodeURIComponent(id)}`,
+      { method: "DELETE" }
+    );
     return Array.isArray(rows) && rows.length > 0;
   }
   return withContentLock(async () => {
@@ -1139,7 +1230,10 @@ async function deleteEventStore(id) {
   });
 }
 
-async function listActivityEventsStore(activityKey, { page = 1, limit = 20 } = {}) {
+async function listActivityEventsStore(
+  activityKey,
+  { page = 1, limit = 20 } = {}
+) {
   if (HAS_SUPABASE) {
     const { rows, total } = await supabasePaginatedRequest(
       `activity_events?activity_key=eq.${encodeURIComponent(activityKey)}&select=*&order=created_at.desc`,
@@ -1220,6 +1314,7 @@ async function deleteActivityEventStore(activityKey, eventId) {
     const rows = await supabaseRequest(
       `activity_events?activity_key=eq.${encodeURIComponent(activityKey)}&id=eq.${encodeURIComponent(eventId)}`,
       { method: 'DELETE' }
+      { method: "DELETE" }
     );
     return Array.isArray(rows) && rows.length > 0;
   }
@@ -1238,6 +1333,9 @@ async function deleteActivityEventStore(activityKey, eventId) {
 async function listCoreTeamStore() {
   if (HAS_SUPABASE) {
     const rows = await supabaseRequest('core_team_members?select=*&order=created_at.asc');
+    const rows = await supabaseRequest(
+      "core_team_members?select=*&order=created_at.asc"
+    );
     return rows.map((r) =>
       sanitizeCoreTeamMemberRecord({
         id: r.id,
@@ -1257,6 +1355,9 @@ async function listCoreTeamStore() {
   }
   const content = await readContent();
   return (content.coreTeam || []).map((member) => sanitizeCoreTeamMemberRecord(member));
+  return (content.coreTeam || []).map((member) =>
+    sanitizeCoreTeamMemberRecord(member)
+  );
 }
 
 const ALLOWED_TEAM_MEMBER_FIELDS = [
@@ -1335,6 +1436,10 @@ async function deleteCoreTeamStore(id) {
     const rows = await supabaseRequest(`core_team_members?id=eq.${encodeURIComponent(id)}`, {
       method: 'DELETE',
     });
+    const rows = await supabaseRequest(
+      `core_team_members?id=eq.${encodeURIComponent(id)}`,
+      { method: "DELETE" }
+    );
     return Array.isArray(rows) && rows.length > 0;
   }
   return withContentLock(async () => {
@@ -1342,6 +1447,9 @@ async function deleteCoreTeamStore(id) {
     content.coreTeam = content.coreTeam || [];
     const before = content.coreTeam.length;
     content.coreTeam = content.coreTeam.filter((m) => String(m.id) !== String(id));
+    content.coreTeam = content.coreTeam.filter(
+      (m) => String(m.id) !== String(id)
+    );
     if (content.coreTeam.length === before) return false;
     await writeContent(content);
     return true;
@@ -1484,6 +1592,12 @@ app.get('/api/auth/mock-login', async (req, res, next) => {
     return res.redirect('/dashboard');
   } catch (err) {
     next(err);
+  } catch (e) {
+    res.status(503).json({
+      ok: false,
+      error: e?.message || "Health check failed",
+      storage: HAS_SUPABASE ? "supabase" : "file",
+    });
   }
 });
 app.get('/api/auth/google', studentAuthController.googleAuth);
@@ -1637,6 +1751,27 @@ app.post('/api/admin/circuit-breaker/reset/:name', adminAuth, async (req, res) =
   const ok = circuitBreakerRegistry.reset(name);
   if (!ok) {
     return sendError(req, res, `No circuit breaker found: "${name}"`, 404, 'NOT_FOUND');
+app.get("/api/content/activity-events/:activityKey", async (req, res) => {
+  try {
+    const activityKey = toSafeString(req.params.activityKey, 80);
+    const { page, limit } = parsePagination(req.query);
+    const { events, total } = await listActivityEventsStore(activityKey, {
+      page,
+      limit,
+    });
+    return res.json({
+      events,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
+    });
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ error: e?.message || "Failed to load activity events" });
   }
   return sendSuccess(res, { ok: true, message: `Circuit breaker "${name}" reset to CLOSED` });
 });
@@ -1647,6 +1782,18 @@ app.post('/api/admin/circuit-breaker/retry/:name', adminAuth, async (req, res) =
     const breaker = circuitBreakerRegistry.get(name);
     if (!breaker) {
       return sendError(req, res, `No circuit breaker found: "${name}"`, 404, 'NOT_FOUND');
+    const activityKey = toSafeString(req.params.activityKey, 80);
+    const body = req.body || {};
+    const auth = {
+      name: body.name,
+      email: body.email,
+      phone: body.phone,
+      password: body.password,
+    };
+    if (!(await canManageActivityEvent(auth))) {
+      return res.status(401).json({
+        error: "Unauthorized. Core team details or password did not match.",
+      });
     }
     const result = await breaker.manualRetry();
     return sendSuccess(res, { ok: true, state: breaker.state, result });
@@ -1677,11 +1824,30 @@ setInterval(
     for (const [key, entry] of failedPasskeyAttemptsByUsername) {
       if (now > entry.lockoutUntil) {
         failedPasskeyAttemptsByUsername.delete(key);
+app.delete(
+  "/api/content/activity-events/:activityKey/:eventId",
+  async (req, res) => {
+    try {
+      const activityKey = toSafeString(req.params.activityKey, 80);
+      const eventId = toSafeString(req.params.eventId, 120);
+      const body = req.body || {};
+      const auth = {
+        name: body.name,
+        email: body.email,
+        phone: body.phone,
+        password: body.password,
+      };
+      if (!(await canManageActivityEvent(auth))) {
+        return res.status(401).json({
+          error: "Unauthorized. Core team details or password did not match.",
+        });
       }
     }
   },
   30 * 60 * 1000
 ).unref();
+  }
+);
 
 function checkPasskeyLockout(username, ip) {
   const ipKey = String(ip || 'unknown');
@@ -1756,6 +1922,12 @@ async function handleForm(formType, req, res) {
     try {
       const verifyUrl = `${process.env.CORS_ORIGIN || 'http://localhost:5173'}/verify?email=${encodeURIComponent(req.body.collegeEmail)}`;
       await withRetry(() => sendWelcomeVerificationEmail(req.body.collegeEmail, req.body.fullName, verifyUrl));
+      const verifyUrl = `${getPublicAppUrl()}/verify?email=${encodeURIComponent(req.body.collegeEmail)}`;
+      await sendWelcomeVerificationEmail(
+        req.body.collegeEmail,
+        req.body.fullName,
+        verifyUrl
+      );
     } catch (emailErr) {
       console.error('[Form Handler] Failed to send welcome email after retries:', emailErr);
     }
@@ -1766,6 +1938,10 @@ async function handleForm(formType, req, res) {
       emitToRoom(getRoom('admin'), 'admin:new-registration', { formType, userName: payload.fullName, timestamp: new Date() });
     } catch (realtimeErr) {
       console.error('[Form Handler] Failed to broadcast real-time updates:', realtimeErr);
+      console.error(
+        "[Form Handler] Failed to broadcast real-time updates:",
+        realtimeErr
+      );
     }
 
     return res.json({ ok: true });
@@ -1847,6 +2023,18 @@ function clearPasskeyAttempts(username, ip) {
 }
 
 app.get('/api/notifications', adminAuth, async (req, res) => {
+app.post("/api/forms/membership", formRateLimiter, (req, res) =>
+  handleForm("membership", req, res)
+);
+app.post("/api/forms/recruitment", formRateLimiter, (req, res) =>
+  handleForm("recruitment", req, res)
+);
+app.post("/api/core-team/apply", formRateLimiter, (req, res) =>
+  handleForm("core_team", req, res)
+);
+// Real-time notification subscriber channels
+const pushSubscriptions = new Set();
+app.post("/api/notifications/subscribe", (req, res) => {
   try {
     const userId = req.query.userId || 'global';
     const offset = parseInt(req.query.offset, 10) || 0;
@@ -1887,6 +2075,83 @@ app.put(
         quiet_start,
         quiet_end,
         dnd,
+      const { id, userId } = req.body || {};
+      if (!id) return res.status(400).json({ error: "id required" });
+      const uid = userId || "global";
+      const ok = notificationsService.markAsRead(uid, id);
+      return res.json({ success: ok });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+app.post(
+  "/api/notifications/mark-all-read",
+  adminAuth,
+  notificationRateLimiter,
+  (req, res) => {
+    try {
+      const { userId } = req.body || {};
+      notificationsService.markAllAsRead(userId || "global");
+      return res.json({ success: true });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+app.delete(
+  "/api/notifications/:id",
+  adminAuth,
+  notificationRateLimiter,
+  (req, res) => {
+    try {
+      const id = req.params.id;
+      const userId = req.query.userId || "global";
+      const removed = notificationsService.removeNotification(userId, id);
+      if (!removed)
+        return res.status(404).json({ error: "Notification not found" });
+      return res.json({ success: true });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+// Delete all notifications for a user (or global)
+app.delete(
+  "/api/notifications",
+  adminAuth,
+  notificationRateLimiter,
+  (req, res) => {
+    try {
+      const userId = req.query.userId || "global";
+      notificationsService.clearAll(userId);
+      return res.json({ success: true });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+// Create notification (admin/testing)
+app.post(
+  "/api/notifications",
+  adminAuth,
+  notificationRateLimiter,
+  (req, res) => {
+    try {
+      const { userId, title, message, type, link } = req.body || {};
+      if (!title || !message)
+        return res
+          .status(400)
+          .json({ error: "title and message are required" });
+      const note = notificationsService.addNotification(userId || "global", {
+        title,
+        message,
+        type,
+        link,
       });
       return sendSuccess(res, { preference: pref });
     } catch (err) {
@@ -1973,6 +2238,16 @@ app.put('/api/portfolio', portfolioRateLimiter, async (req, res) => {
         400,
         'VALIDATION_ERROR'
       );
+    if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+      return res.status(400).json({
+        error:
+          "Username can only contain alphanumeric characters, underscores, and hyphens",
+      });
+    }
+    if (!passkey || passkey.length < 12) {
+      return res
+        .status(400)
+        .json({ error: "Passkey must be at least 12 characters long" });
     }
 
     const existingPortfolio = await portfolioRepository.getByUsername(username);
@@ -1992,6 +2267,16 @@ app.put('/api/portfolio', portfolioRateLimiter, async (req, res) => {
     const isAuthorized = await portfolioRepository.verifyPasskey(username, passkey, {
       allowNew: isNewRegistration,
     });
+      return res.status(429).json({
+        error: "Too many failed passkey attempts. Please try again later.",
+      });
+    }
+
+    // Verify ownership/passkey
+    const isAuthorized = await portfolioRepository.verifyPasskey(
+      username,
+      passkey
+    );
     if (!isAuthorized) {
       recordFailedPasskeyAttempt(username, ip);
       return sendError(req, res, 'Incorrect passkey for this username', 401, 'UNAUTHORIZED');
@@ -2190,6 +2475,18 @@ initializeSocketIO(server);
 
 process.on('uncaughtException', (err) => {
   console.error('[Process] Uncaught exception:', err instanceof Error ? err.message : err);
+process.on("unhandledRejection", (reason) => {
+  console.error(
+    "[Process] Unhandled rejection:",
+    reason instanceof Error ? reason.message : reason
+  );
+});
+
+process.on("uncaughtException", (err) => {
+  console.error(
+    "[Process] Uncaught exception:",
+    err instanceof Error ? err.message : err
+  );
   if (err && err.stack) console.error(err.stack);
 });
 
