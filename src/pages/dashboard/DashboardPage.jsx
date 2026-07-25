@@ -185,6 +185,20 @@ export default function DashboardPage({ onBack }) {
         },
       ].sort((a, b) => b.xp - a.xp)
     );
+    const fetchDashboardData = async () => {
+      try {
+        const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+        const [questsData, leaderboardData] = await Promise.all([
+          apiClient(`${baseUrl}/api/dashboard/quests/${currentUser.id}`),
+          apiClient(`${baseUrl}/api/dashboard/leaderboard`)
+        ]);
+        setQuests(questsData);
+        setLeaderboard(leaderboardData);
+      } catch (error) {
+        console.error('Failed to fetch dashboard data:', error);
+      }
+    };
+    fetchDashboardData();
   }, [currentUser]);
 
   const toggleInterest = (domain) => {
@@ -206,6 +220,14 @@ export default function DashboardPage({ onBack }) {
     setQuests((prev) =>
       prev.map((q) => (q.id === questId ? { ...q, completed: true } : q))
     );
+  const completeQuest = async (questId) => {
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+      await apiClient(`${baseUrl}/api/dashboard/quests/${questId}/complete`, { method: 'POST' });
+      setQuests(prev => prev.map(q => q.id === questId ? { ...q, completed: true } : q));
+    } catch (error) {
+      console.error('Failed to complete quest on backend:', error);
+    }
   };
 
   const fetchRecommendations = async () => {

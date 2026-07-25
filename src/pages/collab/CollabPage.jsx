@@ -31,6 +31,7 @@ const mockTeams = [
     techStack: ['Flutter', 'Firebase'],
   },
 ];
+import apiClient from '../../utils/apiClient';
 
 export default function CollabPage({ onBack }) {
   const [activeTab, setActiveTab] = useState('find-team'); // 'find-team', 'skill-swap'
@@ -39,13 +40,30 @@ export default function CollabPage({ onBack }) {
   const [selectedTeam, setSelectedTeam] = useState(null);
 
   useEffect(() => {
-    // In a real scenario, this would fetch from the Java backend API
-    setTeams(mockTeams);
+    const fetchTeams = async () => {
+      try {
+        const data = await apiClient(`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/collab/teams`);
+        setTeams(data);
+      } catch (error) {
+        console.error('Failed to fetch teams:', error);
+      }
+    };
+    fetchTeams();
   }, []);
 
   const handleJoinSubmit = async (requestData) => {
     // Send request to Java backend / Python notification webhook
     return new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      await apiClient(`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/collab/requests`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestData)
+      });
+    } catch (error) {
+      console.error('Failed to submit join request:', error);
+      throw error;
+    }
   };
 
   const filteredTeams = teams.filter(
