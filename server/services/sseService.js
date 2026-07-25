@@ -149,6 +149,9 @@ export function addSSEClient(res, adminSession = null) {
 
   const permissions = resolveAdminPermissions(adminSession);
   const username = adminSession?.username || 'unknown';
+  res._joinedTime = Date.now();
+  adminClients.add(res);
+  logger.info('SSE client connected', { totalClients: adminClients.size });
 
   adminClients.set(res, {
     joinedAt: Date.now(),
@@ -205,7 +208,8 @@ const HEALTH_CHECK_INTERVAL_MS = 60000;
 
 setInterval(() => {
   const now = Date.now();
-  for (const [client, joined] of adminClients) {
+  for (const client of adminClients) {
+    const joined = client._joinedTime || now;
     if (now - joined > HEALTH_CHECK_INTERVAL_MS) {
       try {
         client.write(': ping\n\n');
