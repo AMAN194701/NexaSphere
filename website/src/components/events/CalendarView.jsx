@@ -20,6 +20,7 @@ export default function CalendarView({ events: initialEvents, onEventClick, isAd
   const [draggedEvent, setDraggedEvent] = useState(null);
   const [conflictToast, setConflictToast] = useState(null); // { message, severity }
   const conflictToastTimeoutRef = useRef(null);
+  const conflictToastTimerRef = useRef(null);
 
   const { on: onSocket } = useSocketConnection();
 
@@ -32,6 +33,13 @@ export default function CalendarView({ events: initialEvents, onEventClick, isAd
     });
     return unsubscribe;
   }, [onSocket]);
+
+  useEffect(() => {
+    return () => {
+      if (conflictToastTimerRef.current) clearTimeout(conflictToastTimerRef.current);
+      conflictToastTimerRef.current = null;
+    };
+  }, []);
 
   const parseEventDate = (dateStr) => {
     if (!dateStr) return null;
@@ -71,9 +79,14 @@ export default function CalendarView({ events: initialEvents, onEventClick, isAd
   };
 
   const showConflictToast = (message, severity) => {
+    if (conflictToastTimerRef.current) clearTimeout(conflictToastTimerRef.current);
     setConflictToast({ message, severity });
     if (conflictToastTimeoutRef.current) clearTimeout(conflictToastTimeoutRef.current);
     conflictToastTimeoutRef.current = setTimeout(() => setConflictToast(null), 4000);
+    conflictToastTimerRef.current = setTimeout(() => {
+      setConflictToast(null);
+      conflictToastTimerRef.current = null;
+    }, 4000);
   };
 
   useEffect(() => {
