@@ -1777,6 +1777,10 @@ export default function App() {
 function MainApp() {
   const [cinDone, setCinDone] = useState(false);
   const [activeTab, setActiveTab] = useState("Home");
+  
+  // Use lazy initialization for state derived from the URL
+  const [activeTab, setActiveTab] = useState(() => urlToState(window.location.pathname).activeTab);
+  const [page, setPage] = useState(() => urlToState(window.location.pathname).page);
   const [mobile, setMobile] = useState(window.innerWidth <= 768);
   const [wipeOn, setWipeOn] = useState(false);
   const [wipePh, setWipePh] = useState('out');
@@ -1836,6 +1840,13 @@ function MainApp() {
     document.documentElement.setAttribute('data-fontsize', fontSize);
     localStorage.setItem('nexa-fontsize', fontSize);
   }, [fontSize]);
+  // Sync state changes to browser history
+  useEffect(() => {
+    const url = stateToUrl(page);
+    if (window.location.pathname !== url) {
+      window.history.pushState(null, '', url);
+    }
+  }, [page]);
 
   // Handle browser back/forward buttons
   useEffect(() => {
