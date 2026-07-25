@@ -30,6 +30,7 @@ import {
 } from '../routes/readOnlyMode.js';
 } from '../utils/readOnlyMode.js';
 } from './readOnlyMode.js';
+
 import {
   getServiceStatus,
   getIncidentTimeline,
@@ -48,6 +49,8 @@ import { sendSuccess, sendError, sendNoContent } from '../utils/responseHelper.j
 
 const router = Router();
 const adminAuth = adminAuthMiddleware.requireAdmin;
+router.use(apiRateLimiter);
+const adminAuth = [adminAuthMiddleware.requireAdmin];
 
 /**
  * Raw membership fetch helper, wrapped in a circuit breaker to protect

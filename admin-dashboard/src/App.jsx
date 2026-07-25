@@ -42,6 +42,13 @@ import { RBACManager } from './pages/RBACManager';
 import { BackupsManager } from './pages/BackupsManager';
 import { UserEngagementReport } from './pages/UserEngagementReport';
 import { SecurityCenter } from './pages/SecurityCenter';
+import { ImpersonationBanner } from './components/ImpersonationBanner';
+import { ComprehensiveAnalytics } from './pages/ComprehensiveAnalytics';
+import { EventAnalytics } from './pages/EventAnalytics';
+import { EventRegistrations } from './pages/EventRegistrations';
+import { EventScanner } from './pages/EventScanner';
+import { EventAttendanceReport } from './pages/EventAttendanceReport';
+import { FunnelAnalysis } from './pages/FunnelAnalysis';
 import './styles/admin.css';
 
 import ScheduledReports from './pages/dashboard/ScheduledReports';
@@ -99,6 +106,10 @@ export default function App() {
             <Route path="/dashboard/analytics/funnel" element={<FunnelAnalysis />} />
             <Route path="/dashboard/analytics/custom-events" element={<CustomEventTracking />} />
             <Route path="/dashboard/events" element={<EventsManager />} />
+            <Route path="/dashboard/event-registrations" element={<EventRegistrations />} />
+            <Route path="/dashboard/event-scanner" element={<EventScanner />} />
+            <Route path="/dashboard/event-analytics" element={<EventAnalytics />} />
+            <Route path="/dashboard/reports/attendance" element={<EventAttendanceReport />} />
             <Route path="/dashboard/activity-events" element={<ActivityEventsManager />} />
             <Route path="/dashboard/core-team" element={<CoreTeamManager />} />
             <Route path="/dashboard/membership" element={<MembershipResponsesManager />} />

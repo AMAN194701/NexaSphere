@@ -16,6 +16,7 @@ const { tracingMiddleware } = await import('../middleware/tracingMiddleware.js')
 
 describe('API Request Tracing and Distributed Correlation IDs', () => {
   test('generates a new X-Correlation-ID if not provided', async () => {
+  test('generates a new X-Request-ID if not provided', async (t) => {
     const app = express();
     app.use(tracingMiddleware);
     let capturedReqId = null;
@@ -27,13 +28,12 @@ describe('API Request Tracing and Distributed Correlation IDs', () => {
     });
 
     const server = app.listen(0);
+    t.after(() => server.close());
     const port = server.address().port;
 
     const res = await fetch(`http://127.0.0.1:${port}/`);
     assert.equal(res.status, 200);
     const headerReqId = res.headers.get('X-Correlation-ID');
-
-    server.close();
 
     assert.ok(capturedReqId, 'reqId should be generated on the request');
     assert.equal(capturedReqId, headerReqId, 'reqId should be exposed in response headers');
@@ -45,25 +45,27 @@ describe('API Request Tracing and Distributed Correlation IDs', () => {
   });
 
   test('preserves existing X-Correlation-ID if provided', async () => {
+  test('preserves existing X-Request-ID if provided', async (t) => {
     const app = express();
     app.use(tracingMiddleware);
     app.get('/', (req, res) => res.send('ok'));
 
     const server = app.listen(0);
+    t.after(() => server.close());
     const port = server.address().port;
 
     const testId = 'test-correlation-id-123';
     const res = await fetch(`http://127.0.0.1:${port}/`, {
       headers: { 'X-Correlation-ID': testId },
     });
-    server.close();
 
     assert.equal(res.headers.get('X-Correlation-ID'), testId, 'Should preserve incoming request ID');
   });
 
-  test('prepends reqId to pg client queries', async () => {
+  test('prepends reqId to pg client queries', async (t) => {
     // Create a mock client
     const client = new pg.Client({ connectionString: 'postgres://localhost/mock' });
+    t.after(() => client.end());
 
     // We prevent actual execution by throwing inside a mock of the internal method, or just let it fail
     // But since the patch mutates the config object, we can just inspect the object after calling it!
@@ -87,17 +89,22 @@ describe('API Request Tracing and Distributed Correlation IDs', () => {
     assert.ok(capturedPgArgs, 'query should be captured');
     const queryText =
       typeof capturedPgArgs[0] === 'string' ? capturedPgArgs[0] : capturedPgArgs[0]?.text;
-    assert.ok(queryText.includes(`/* reqId: ${testId} */`), 'SQL should include the reqId comment');
-    assert.ok(queryText.includes('SELECT * FROM users'), 'SQL should include the original query');
+    assert.ok(
+      config.text.includes(`/* reqId: ${testId} */`),
+      'SQL should include the reqId comment'
+    );
+    assert.ok(config.text.includes('SELECT * FROM users'), 'SQL should include the original query');
   });
 
   test('injects X-Correlation-ID into downstream fetch calls', async () => {
+  test('injects X-Request-ID into downstream fetch calls', async (t) => {
     const server = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ header: req.headers['X-Correlation-ID'] }));
     });
 
     await new Promise((resolve) => server.listen(0, resolve));
+    t.after(() => server.close());
     const port = server.address().port;
 
     const testId = 'fetch-tracing-test-id';
@@ -110,7 +117,5 @@ describe('API Request Tracing and Distributed Correlation IDs', () => {
         'Downstream fetch should have the X-Correlation-ID header injected'
       );
     });
-
-    server.close();
   });
 });

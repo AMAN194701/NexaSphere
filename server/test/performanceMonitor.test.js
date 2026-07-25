@@ -115,6 +115,9 @@ test('performanceMonitor tracks request duration', async () => {
   // Should have tracked some time (at least 0ms)
   assert.ok(endpointMetrics['5min'].totalTime >= 0);
   assert.ok(endpointMetrics['5min'].avgTime >= 0);
+  // Should have tracked some time (at least 10ms)
+  assert.ok(endpointMetrics['5min'].totalTime >= 1);
+  assert.ok(endpointMetrics['5min'].avgTime >= 1);
 });
 
 test('performanceMonitor handles multiple requests to same endpoint', async () => {

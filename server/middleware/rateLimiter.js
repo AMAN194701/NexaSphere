@@ -2,6 +2,18 @@ import rateLimit from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
 import redisClient from '../utils/redis.js'; // Adjust path if your redis utility is elsewhere
 import logger from '../utils/logger.js';
+
+import logger from '../utils/logger.js';
+import { createRateLimitStore } from '../services/rateLimitService.js';
+import { apiSecurityManager } from '../utils/apiSecurityManager.js';
+import { calculateRiskScore } from '../utils/threatDetection.js';
+
+const suspiciousIPs = new Map();
+
+function parsePositiveInt(value, fallback) {
+  const n = parseInt(value, 10);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
 // ---------------------------------------------------------------------------
 // SECURITY WARNING: Upstream Proxy Dependency
 // These rate limiters rely entirely on `req.ip` mapping to individual clients.
@@ -302,6 +314,7 @@ export const portfolioRateLimiter = rateLimit({
     sendCommand: (...args) => redisClient.call(args[0], ...args.slice(1)),
     prefix: 'rl:activity:',
   }),
+  store: createRateLimitStore('rl:activity:'),
   handler: (req, res, next, options) => {
     logger.warn('Sync batch rate limit exceeded', {
     logger.warn("Portfolio update rate limit exceeded", {
@@ -314,6 +327,20 @@ export const portfolioRateLimiter = rateLimit({
     });
   },
 });
+
+// Sync rate limiter — 100 requests per IP per 5 minutes
+export const syncRateLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: true,
+  store: createRateLimitStore('rate-limit:sync:'),
+  handler: createLimiterHandler(
+    'Sync rate limit exceeded',
+    'Too many sync requests from this IP, please try again later.'
+  ),
+});
+
 // Portfolio update rate limiter — 10 requests per IP per 15 minutes
 export const portfolioRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,

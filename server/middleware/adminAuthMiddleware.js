@@ -165,6 +165,10 @@ function getClientIp(req) {
 // RECTIFIED: Asynchronous Redis key operations with automatic TTL enforcement
 async function recordLoginAttempt(ip) {
   const key = `login_attempts:${ip}`;
+  const redis = getRedisClient();
+  if (!redis) {
+    return { attempts: 1 };
+  }
   try {
     const client = getRedisClient();
     if (client) {
@@ -226,6 +230,8 @@ if (loginAttemptsByIp.size >= LOGIN_MAX_TRACKED_IPS) {
 
 async function getLoginAttemptState(ip) {
   const key = `login_attempts:${ip}`;
+  const redis = getRedisClient();
+  if (!redis) return null;
   try {
     const client = getRedisClient();
     if (client) {
@@ -249,6 +255,8 @@ async function getLoginAttemptState(ip) {
 
 async function clearLoginAttempts(ip) {
   const key = `login_attempts:${ip}`;
+  const redis = getRedisClient();
+  if (!redis) return;
   try {
     const client = getRedisClient();
     if (client) {
@@ -580,7 +588,6 @@ async function login(req, res) {
 
     await clearLoginAttempts(ip);
 
-    const matchedUser = adminUsers.find((user) => safeEqual(user.username, u)) || adminUsers[0];
     const role = matchedUser.role || 'SuperAdmin';
     const scopes = getScopesForRole(role);
     const securityAccount = await getOrCreateAdminSecurityAccount(u, matchedUser.email || u);
@@ -738,6 +745,13 @@ async function completeAdminLogin({ res, username, role, scopes, ip, userAgent, 
   } catch (redisErr) {
     // Log but don't fail the login — PostgreSQL session is the fallback
     console.error('[Admin Login] Failed to write session to Redis:', redisErr);
+  }
+
+  // Regenerate express-session to prevent session fixation
+  if (req && req.session && typeof req.session.regenerate === 'function') {
+    req.session.regenerate((err) => {
+      if (err) console.error('[Session] Error regenerating session:', err);
+    });
   }
 
   res.cookie('ns_admin_token', session.token, {
@@ -1156,3 +1170,4 @@ export {
   requireRole,
   requireScope,
 };
+export default adminAuthMiddleware;

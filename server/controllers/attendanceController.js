@@ -52,7 +52,7 @@ export const markAttendance = wrapAsync(async (req, res) => {
 });
 
 export const getAttendanceList = wrapAsync(async (req, res) => {
-  const eventId = String(req.params.eventId || '').trim();
+  const eventId = String(req.params.eventId || req.query.eventId || '').trim();
   if (!eventId) {
     return sendError(req, res, 'Event ID required', 400, 'VALIDATION_ERROR');
   }

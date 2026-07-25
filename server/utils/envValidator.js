@@ -16,5 +16,7 @@ export function validateEnvironment() {
     } else {
       throw new Error(`Missing environment variables: ${missing.join(', ')}`);
     }
+  if (missing.length && process.env.NODE_ENV !== 'test') {
+    throw new Error(`Missing environment variables: ${missing.join(', ')}`);
   }
 }

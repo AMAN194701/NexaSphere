@@ -90,6 +90,15 @@ import eventRecurringRoutes from "./eventRecurringRoutes.js";
 import * as recommendationsController from '../controllers/recommendationsController.js';
 import * as gamificationController from '../controllers/gamificationController.js';
 import * as whiteboardController from '../controllers/whiteboardController.js';
+import announcementPriorityRouter from './announcementPriority.js';
+import eventConflictRouter from './eventConflict.js';
+import waitlistRoutes from './waitlist.js';
+
+import * as recommendationsController from '../controllers/recommendationsController.js';
+import * as gamificationController from '../controllers/gamificationController.js';
+
+import { impersonationService } from '../services/impersonationService.js';
+
 import multer from 'multer';
 import * as analyticsController from '../controllers/analyticsController.js';
 const workflowAutomationRoutes = require("./workflowAutomation"); 
@@ -124,6 +133,8 @@ router.post(
 import reportingCenterRoutes from "./reportingCenter.js";
 router.post('/api/dashboard/xp', gamificationController.awardXP);
 router.use("/reporting-center", reportingCenterRoutes);
+  gamificationController.awardXP
+);
 router.post(
   '/api/assistant/recommend',
   upload.single('file'),
@@ -416,6 +427,11 @@ router.get(
  *       401:
  *         description: Unauthorized — admin login required
  */
+router.get(
+  '/api/admin/events/:eventId/registrations',
+  adminAuthMiddleware.requireScope('events:read'),
+  attendanceController.getAttendanceList
+);
 router.post(
   '/api/admin/events',
   adminAuthMiddleware.requireScope('events:write'),
@@ -593,6 +609,7 @@ router.post(
   '/api/portfolio/:username/visit',
   portfolioAnalyticsController.recordPortfolioVisit
 );
+router.post('/api/portfolio/:username/visit', portfolioAnalyticsController.recordPortfolioVisit);
 
 router.get(
   '/api/portfolio/:username/monthly-report',
@@ -746,6 +763,12 @@ router.use(
   waitlistRoutes
 );
 router.use("/api/events/:event_id/collaborators", eventCollaboratorRoutes);
+// Removed duplicate /api/announcements route to allow announcementsRouter to handle it
+
+router.use('/api/events', eventConflictRouter);
+
+router.use('/api/admin/waitlist', waitlistRoutes);
+
 // Audit Log Viewer APIs
 ); // Audit Log Viewer APIs
 router.get('/api/admin/audit-logs', adminAuthMiddleware.requireAdmin, auditLogController.listLogs);

@@ -209,6 +209,10 @@ import { getPublicAppUrl } from './utils/publicAppUrl.js';
 import * as eventsController from './controllers/eventsController.js';
 import './workers/bulkWorker.js';
 import './workers/waitlistWorker.js';
+
+import * as eventsController from './controllers/eventsController.js';
+import * as slackController from './controllers/slackController.js';
+import './workers/bulkWorker.js';
 import * as activityEventsController from './controllers/activityEventsController.js';
 import * as streamController from './controllers/streamController.js';
 import * as coreTeamController from './controllers/coreTeamController.js';
@@ -249,6 +253,8 @@ import activityTimelineRoutes from './routes/activityTimeline.js';
 app.use('/api/activity-timeline', activityTimelineRoutes);
 import advancedProfileRoutes from './routes/advancedProfile.js';
 
+import { startStreamingWorkers } from './streaming/startStreamingWorkers.js';
+
 import { initializeTypesenseCollections } from './config/typesense.js';
 
 import moderationRouter from './routes/moderation.js';
@@ -273,10 +279,13 @@ import {
   sanitizeEvent,
   normalizePhone,
 } from './repositories/contentStore.js';
+
+import {
   checkPasskeyLockout,
   recordFailedPasskeyAttempt,
   clearPasskeyAttempts,
 } from './middleware/auth/passkeyLockout.js';
+import {
   checkActivityAuthLockout,
   recordFailedActivityAuth,
   clearActivityAuthAttempts,
@@ -285,6 +294,11 @@ import {
   requireNotificationPrefAuth,
   requireMentorshipAuth,
 } from './middleware/auth/customAuth.js';
+import {
+  requireNotificationPrefAuth,
+  requireMentorshipAuth,
+} from './middleware/auth/customAuth.js';
+import {
   uploadWithMagicCheck,
   validateMagicBytes,
   UPLOADS_DIR,
@@ -903,7 +917,8 @@ app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(xssSanitizer);
 app.use(sqlInjectionGuard);
-if (!useStructuredHttpLog) {
+const useStructuredHttpLog = process.env.STRUCTURED_HTTP_LOG === 'true';
+if (!useStructuredHttpLog && process.env.NODE_ENV !== 'test') {
   app.use(morgan('combined'));
 }
 app.use(apiLogger);
@@ -932,6 +947,43 @@ if (!sessionClient) {
 app.use(
   session({
     store: new RedisStore({ client: sessionClient, prefix: 'session:express:' }),
+let sessionStore = undefined;
+if (redisSessionUrl) {
+  let sessionClient = getRedisClient();
+  if (!sessionClient) {
+    sessionClient = new Redis(redisSessionUrl);
+  }
+  sessionStore = new RedisStore({ client: sessionClient, prefix: 'session:express:' });
+}
+
+function requiredStrongPassword(name) {
+  const value = String(process.env[name] || '').trim();
+  if (process.env.NODE_ENV === 'test') {
+    return value || 'Test@Password123!';
+  }
+  if (!value) {
+    throw new Error(`Missing environment variable: ${name}`);
+  }
+  const hasLower = /[a-z]/.test(value);
+  const hasUpper = /[A-Z]/.test(value);
+  const hasNumber = /\d/.test(value);
+  const hasSymbol = /[^A-Za-z0-9]/.test(value);
+
+  if (value.length < 12 || !hasLower || !hasUpper || !hasNumber || !hasSymbol) {
+    throw new Error(
+      `${name} must be at least 12 characters and include uppercase, lowercase, number, and symbol`
+    );
+  }
+
+  return value;
+}
+
+const ADMIN_EVENT_PASSWORD = requiredStrongPassword('ADMIN_EVENT_PASSWORD');
+const SESSION_SECRET = requiredStrongPassword('SESSION_SECRET');
+
+app.use(
+  session({
+    store: sessionStore,
     secret: SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
@@ -960,6 +1012,8 @@ app.use((req, res, next) => {
       req.session.ip,
       'New:',
       req.ip || req.connection?.remoteAddress
+    );
+  }
   next();
 });
 // Idle timeout middleware (30 mins)
@@ -972,6 +1026,10 @@ app.use((req, res, next) => {
         return res.status(401).json({ error: 'Session expired due to inactivity' });
       return;
     req.session.lastActive = now;
+  }
+  next();
+});
+
 // Track app activity for smart notification frequency adjustment
 app.use((req, res, next) => {
   if (req.studentUser || req.adminSession) {
@@ -994,6 +1052,7 @@ app.use(readOnlyGuard);
 // Global API rate limiter — protects all /api routes from request flooding
 // Mount route modules
 app.post('/api/analytics/track', validate(indexSchemas.analyticsTrackSchema), logEvent);
+
 app.post('/api/analytics/track', logEvent);
 // Advanced user profile endpoints
 app.use('/', advancedProfileRoutes);
@@ -1016,6 +1075,7 @@ app.use('/api', notificationsRouter);
 app.use('/', notificationsRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/admin', projectHealthRouter);
+app.use('/', announcementsRouter);
 app.use('/api', learningPathRouter);
 app.use('/', syncRouter);
 app.use('/api/feedback', feedbackRouter);
@@ -2044,6 +2104,9 @@ function clearActivityAuthAttempts(ip) {
 }
 // Event Certification & Digital Badges (#1787)
 app.use('/api', certificatesRouter);
+
+// ── File Upload Configuration ──
+app.use('/uploads', express.static(UPLOADS_DIR));
 
 // Compliance & Legal Documents (handles both public and admin routes internally)
 app.use('/api/compliance', complianceRouter);
@@ -4931,6 +4994,216 @@ app.put(
   coreTeamController.adminUpdateCoreTeamMember
 app.delete(
   coreTeamController.adminDeleteCoreTeamMember
+);
+
+// Circuit Breaker Admin API
+app.get('/api/admin/circuit-breaker/metrics', adminAuth, async (req, res) => {
+  const metrics = circuitBreakerRegistry.getAllMetrics();
+  return res.json({ circuitBreakers: metrics });
+});
+
+app.post('/api/admin/circuit-breaker/reset/:name', adminAuth, async (req, res) => {
+  const { name } = req.params;
+  const ok = circuitBreakerRegistry.reset(name);
+  if (!ok) {
+    return res.status(404).json({ error: `No circuit breaker found: "${name}"` });
+  }
+  return res.json({ ok: true, message: `Circuit breaker "${name}" reset to CLOSED` });
+});
+
+app.post('/api/admin/circuit-breaker/retry/:name', adminAuth, async (req, res) => {
+  const { name } = req.params;
+  try {
+    const breaker = circuitBreakerRegistry.get(name);
+    if (!breaker) {
+      return res.status(404).json({ error: `No circuit breaker found: "${name}"` });
+    }
+    const result = await breaker.manualRetry();
+    return res.json({ ok: true, state: breaker.state, result });
+  } catch (err) {
+    return res.json({ ok: false, error: err.message });
+  }
+});
+
+app.get('/api/notifications', async (req, res) => {
+  try {
+    const userId = req.query.userId || 'global';
+
+    if (userId !== 'global') {
+      let authenticated = false;
+
+      // 1. Try Student Auth
+      let token = null;
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.slice(7).trim();
+      }
+      if (!token && req.cookies?.ns_student_token) {
+        token = req.cookies.ns_student_token;
+      }
+      if (token) {
+        const payload = studentAuthService.verifyToken(token);
+        if (payload && (payload.sub === userId || payload.id === userId)) {
+          authenticated = true;
+        }
+      }
+
+      // 2. Try Admin Auth
+      if (!authenticated) {
+        let adminToken = null;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+          adminToken = authHeader.slice(7).trim();
+        }
+        if (!adminToken && req.cookies?.ns_admin_token) {
+          adminToken = req.cookies.ns_admin_token;
+        }
+        if (adminToken) {
+          const { getAdminSession } = await import('./repositories/adminSessionsRepository.js');
+          const session = await getAdminSession(adminToken);
+          if (session) {
+            authenticated = true;
+          }
+        }
+      }
+
+      if (!authenticated) {
+        return res.status(401).json({ error: 'Unauthorized to view these notifications' });
+      }
+    }
+
+    const offset = parseInt(req.query.offset, 10) || 0;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 100, 500);
+    const list = await notificationsService.getNotifications(userId, offset, limit);
+    return res.json({ notifications: list });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Notification Preferences
+app.get('/api/notifications/preferences', requireNotificationPrefAuth, async (req, res) => {
+  try {
+    const userId = req.query.userId || 'global';
+    const prefs = await notificationPreferencesRepository.list(userId);
+    return res.json({ preferences: prefs });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/notifications/preferences', requireNotificationPrefAuth, async (req, res) => {
+  try {
+    const userId = req.body.userId || 'global';
+    const { category, email, push, in_app, sms, frequency, quiet_start, quiet_end, dnd } = req.body;
+    if (!category) return res.status(400).json({ error: 'category is required' });
+    const pref = await notificationPreferencesRepository.set(userId, category, {
+      email,
+      push,
+      in_app,
+      sms,
+      frequency,
+      quiet_start,
+      quiet_end,
+      dnd,
+    });
+    return res.json({ preference: pref });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/notifications/preferences/bulk', requireNotificationPrefAuth, async (req, res) => {
+  try {
+    const userId = req.body.userId || 'global';
+    const { preferences } = req.body;
+    if (!Array.isArray(preferences) || !preferences.length) {
+      return res.status(400).json({ error: 'preferences array is required' });
+    }
+    const results = await notificationPreferencesRepository.setBulk(userId, preferences);
+    return res.json({ preferences: results });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Notification analytics (lightweight collector)
+app.post('/api/notifications/analytics', async (req, res) => {
+  try {
+    const event = req.body || {};
+    // Minimal validation — in future route can forward to analytics pipeline
+    console.log('[notification-analytics]', event.type || 'unknown', event);
+    return res.json({ ok: true });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/portfolio', portfolioRateLimiter, async (req, res) => {
+  try {
+    const reqBody = req.body || {};
+    const ip = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+
+    // 1. Validate credentials up front.  Anything below this point
+    //    trusts the username + passkey pair.
+    const credentials = portfolioPutSchema.safeParse({
+      username: reqBody.username,
+      passkey: reqBody.passkey,
+    });
+    if (!credentials.success) {
+      const firstIssue = credentials.error.issues[0];
+      return res.status(400).json({ error: firstIssue?.message || 'Invalid request body' });
+    }
+    const { username, passkey } = credentials.data;
+
+    // 2. Validate the content body.  This rejects XSS payloads such
+    //    as javascript: URLs and unknown protocol schemes before
+    //    the data ever reaches the repository.  The repository
+    //    re-sanitizes as defense-in-depth.
+    const content = portfolioContentSchema.safeParse(reqBody);
+    if (!content.success) {
+      const firstIssue = content.error.issues[0];
+      return res.status(400).json({
+        error:
+          `Invalid portfolio content: ${firstIssue?.path?.join('.') || ''} ${firstIssue?.message || ''}`.trim(),
+      });
+    }
+
+    const existingPortfolio = await portfolioRepository.getByUsername(username);
+    const isNewRegistration = !existingPortfolio;
+
+    const lockout = checkPasskeyLockout(username, ip);
+    if (lockout) {
+      return res.status(429).json({
+        error: 'Too many failed passkey attempts. Please try again later.',
+      });
+    }
+
+    const isAuthorized = await portfolioRepository.verifyPasskey(username, passkey, {
+      allowNew: isNewRegistration,
+    });
+    if (!isAuthorized) {
+      recordFailedPasskeyAttempt(username, ip);
+      return res.status(401).json({ error: 'Incorrect passkey for this username' });
+    }
+
+    clearPasskeyAttempts(username, ip);
+
+    const saved = await portfolioRepository.createOrUpdate({
+      ...content.data,
+      username,
+      passkey,
+    });
+    return res.json({ ok: true, portfolio: saved });
+  } catch (err) {
+    if (err.code === '23505') {
+      return res
+        .status(409)
+        .json({ error: 'Username already exists. Another request may have just created it.' });
+    }
+    console.error('Error saving portfolio:', err);
+    return res.status(500).json({ error: err.message || 'Internal server error' });
+  }
+});
 app.use('/api/admin/circuit-breaker', circuitBreakerRouter);
   '/api/notifications/preferences/bulk',
   validate(indexSchemas.bulkNotificationPreferencesSchema),
@@ -6170,6 +6443,7 @@ if (process.env.NODE_ENV !== "test") {
 }
 
 // â”€â”€ Mentorship & Buddy System â”€â”€
+// ── Mentorship & Buddy System ──
 app.get('/api/mentorship/mentors', mentorshipController.listMentors);
 app.get('/api/mentorship/mentors/:id', mentorshipController.getMentor);
 app.post('/api/mentorship/mentors', requireStudentAuth, mentorshipController.registerMentor);

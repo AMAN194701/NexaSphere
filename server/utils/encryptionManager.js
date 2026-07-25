@@ -7,8 +7,10 @@ if (!process.env.ENCRYPTION_KEY) {
   } else {
     throw new Error('FATAL: ENCRYPTION_KEY environment variable is not set.');
   }
+if (!process.env.ENCRYPTION_KEY && process.env.NODE_ENV !== 'test') {
+  throw new Error('FATAL: ENCRYPTION_KEY environment variable is not set.');
 }
-let ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
+let ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'test-encryption-key-123456789012';
 
 let auditLogs = [];
 

@@ -97,6 +97,7 @@ export default function EventsPage({
   }, [events, now]);
 
         return da - db;
+        return aIsUpcoming ? da - db : db - da;
       });
   }, [filteredEvents]);
 

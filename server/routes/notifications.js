@@ -31,7 +31,6 @@ const requireNotificationPrefAuth = (req, res, next) => {
   return res.status(401).json({ error: 'Unauthorized' });
 };
 
-import { body, validationResult } from 'express-validator';
 const router = Router();
 
 // ── Constants ───────────────────────────────────────────────────────────────
@@ -375,6 +374,7 @@ router.get('/notifications', async (req, res) => {
 });
 
 router.get('/notifications/preferences', requireNotificationPrefAuth, async (req, res) => {
+router.get('/notifications/preferences', requireNotificationAuth, async (req, res) => {
   try {
     const userId = req.query.userId || 'global';
     const prefs = await notificationPreferencesRepository.list(userId);
@@ -385,6 +385,7 @@ router.get('/notifications/preferences', requireNotificationPrefAuth, async (req
 });
 
 router.put('/notifications/preferences', validate(updatePreferencesSchema), requireNotificationPrefAuth, async (req, res) => {
+router.put('/notifications/preferences', requireNotificationAuth, async (req, res) => {
   try {
     const userId = req.body.userId || 'global';
     const { category, email, push, in_app, sms, frequency, quiet_start, quiet_end, dnd } = req.body;
@@ -406,6 +407,7 @@ router.put('/notifications/preferences', validate(updatePreferencesSchema), requ
 });
 
 router.put('/notifications/preferences/bulk', validate(bulkPreferencesSchema), requireNotificationPrefAuth, async (req, res) => {
+router.put('/notifications/preferences/bulk', requireNotificationAuth, async (req, res) => {
   try {
     const userId = req.body.userId || 'global';
     const { preferences } = req.body;
