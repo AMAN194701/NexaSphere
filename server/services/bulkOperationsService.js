@@ -1104,6 +1104,10 @@ class BulkOperationsService {
       for (let j = operations.length - 1; j >= 0; j--) {
         const op = operations[j];
 
+        if (!/^[a-zA-Z0-9_]+$/.test(op.table)) {
+          throw new Error(`Invalid table name detected in rollback log: ${op.table}`);
+        }
+
         if (op.type === 'insert') {
           // A insert rollback deletes the created row
           await client.query(`DELETE FROM ${validateTableName(op.table)} WHERE id = $1`, [op.key]);
@@ -1117,6 +1121,9 @@ class BulkOperationsService {
 
           Object.keys(oldData).forEach((field) => {
             if (field === 'id' || field === 'created_at') return;
+            if (!/^[a-zA-Z0-9_]+$/.test(field)) {
+              throw new Error(`Invalid column name detected in rollback log: ${field}`);
+            }
             fields.push(`${field} = $${index++}`);
             let val = oldData[field];
             if (val !== null && typeof val === 'object') {
