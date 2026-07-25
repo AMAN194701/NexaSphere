@@ -9,6 +9,8 @@ export default function ShareHub({ isOpen, onClose, data }) {
   const [copyError, setCopyError] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const copiedTimeoutRef = useRef(null);
+  const copyResetRef = useRef(null);
+
   useEffect(() => {
     return () => {
       if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
@@ -20,6 +22,8 @@ export default function ShareHub({ isOpen, onClose, data }) {
   useEffect(() => {
     document.body.style.overflow = isOpen ? 'hidden' : '';
     return () => {
+      if (copyResetRef.current) clearTimeout(copyResetRef.current);
+      copyResetRef.current = null;
       document.body.style.overflow = '';
     };
   }, [isOpen]);
@@ -28,12 +32,17 @@ export default function ShareHub({ isOpen, onClose, data }) {
   const shareTitle = data?.title || 'Check this out on NexaSphere!';
 
   const handleCopy = useCallback(async () => {
+    if (copyResetRef.current) clearTimeout(copyResetRef.current);
     const ok = await copyToClipboard(shareUrl);
     if (ok) {
       setCopied(true);
       if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
       copiedTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
       setTimeout(() => setCopied(false), 2000);
+      copyResetRef.current = setTimeout(() => {
+        setCopied(false);
+        copyResetRef.current = null;
+      }, 2000);
     }
   }, [shareUrl]);
 
