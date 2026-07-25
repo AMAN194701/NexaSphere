@@ -983,6 +983,7 @@ app.post('/api/analytics/track', logEvent);
 app.use('/api/monitoring', monitoringRouter);
 app.use('/api/health-dashboard', healthDashboardRouter);
 app.use('/api', documentationRouter);
+app.use('/', dashboardRouter);
 app.use('/', apiRouter);
 app.use('/', healthRouter);
 app.use('/', coreTeamRouter);
