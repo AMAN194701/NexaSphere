@@ -133,7 +133,11 @@ function startScheduler() {
       .where({ first_sent: false })
       .where('first_email_at', '<=', now);
     for (const row of firstDue) {
-      await sendFeedbackRequest(row.event_id).catch(console.error);
+      try {
+        await sendFeedbackRequest(row.event_id);
+      } catch (error) {
+        console.error(`[FeedbackScheduler] Failed to send initial feedback for event ${row.event_id}. Will retry in 5 minutes. Error:`, error.message);
+      }
     }
 
     // Reminders due
@@ -141,7 +145,11 @@ function startScheduler() {
       .where({ first_sent: true, reminder_sent: false })
       .where('reminder_at', '<=', now);
     for (const row of reminderDue) {
-      await sendFeedbackReminder(row.event_id).catch(console.error);
+      try {
+        await sendFeedbackReminder(row.event_id);
+      } catch (error) {
+        console.error(`[FeedbackScheduler] Failed to send feedback reminders for event ${row.event_id}. Will retry in 5 minutes. Error:`, error.message);
+      }
     }
   });
 
