@@ -21,6 +21,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X, ArrowRight, Calendar, Zap, Users, BookOpen } from 'lucide-react';
 import { useSearch } from '../hooks/useSearch';
+import { useEventSearch } from '../hooks/useEventSearch';
 
 function Highlight({ text, query }) {
   if (!text) return null;
@@ -186,6 +187,20 @@ export default function SearchBar({ open, onClose, activities, events, onNavigat
     events,
     apiBase
   );
+  const {
+    query,
+    setQuery,
+    filter,
+    setFilter,
+    results,
+    groupedResults,
+    loading,
+    error,
+    clearSearch,
+    recentSearches,
+    addRecentSearch,
+    removeRecentSearch,
+  } = useEventSearch(activities, events);
 
   const [localQuery, setLocalQuery] = useState('');
   const timeoutRef = useRef(null);
