@@ -150,8 +150,7 @@ mvn spring-boot:run
 Create `src/main/resources/application.properties`:
 
 ```properties
-# ========== Server Configuration ==========
-server.port=8080
+# ========== Server Configuration ===server.port=8080
 spring.profiles.active=dev
 
 # ========== Database (H2 - Development) ==========
@@ -564,3 +563,6 @@ server.port=9090
 **Backend Version:** 1.0 | **Last Updated:** May 2026
 
 </div>
+=======
+ADMIN_EMAIL=nexasphere@glbajajgroup.org
+ADMIN_PASSWORD=Admin@123

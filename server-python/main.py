@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import json
 import logging
 import os
@@ -21,9 +22,14 @@ from prompts.system_prompt import SYSTEM_PROMPT
 from routers import certificates, forms, health, notifications, portfolio, recommend, review, webhooks, sync
 from services.sync_worker import periodic_sync_worker
 from utils.security import limiter
+=======
+from fastapi import FastAPI
+from slowapi.middleware import SlowAPIMiddleware
+>>>>>>> origin/pr/116
 
-load_dotenv()
+from routers.membership import router, limiter
 
+<<<<<<< HEAD
 # --- Logging Standardization with Trace ID ---
 request_id_context = contextvars.ContextVar("request_id", default="system")
 SERVICE_NAME = os.getenv("OTEL_SERVICE_NAME", "nexasphere-python")
@@ -193,3 +199,11 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(app, host="0.0.0.0", port=8000)
+=======
+app = FastAPI()
+
+app.state.limiter = limiter
+app.add_middleware(SlowAPIMiddleware)
+
+app.include_router(router)
+>>>>>>> origin/pr/116
