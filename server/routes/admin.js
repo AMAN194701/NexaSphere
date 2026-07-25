@@ -28,6 +28,7 @@ import {
   getReadOnlyStatus,
   createIncidentLog,
 } from '../routes/readOnlyMode.js';
+} from '../utils/readOnlyMode.js';
 import {
   getServiceStatus,
   getIncidentTimeline,
@@ -189,6 +190,12 @@ router.post('/api/admin/read-only-disable', adminAuth, (req, res) => {
 
 router.get('/api/admin/read-only-log', adminAuth, (req, res) => {
   sendSuccess(res, createIncidentLog());
+router.get('/api/admin/read-only-status', adminAuth, (req, res) => {
+  res.json(getReadOnlyStatus());
+});
+
+router.get('/api/admin/read-only-log', adminAuth, (req, res) => {
+  res.json(createIncidentLog());
 });
 
 router.get('/api/admin/service-status', adminAuth, (req, res) => {
