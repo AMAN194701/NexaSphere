@@ -3013,6 +3013,19 @@ app.delete(
 );
 
 // â”€â”€ Event Admin Management â”€â”€
+// Admin Auth Endpoints
+app.post('/api/admin/login', authRateLimiter, adminAuthMiddleware.login);
+app.post('/api/admin/logout', adminAuthMiddleware.logout);
+app.get('/api/admin/me', adminAuth, (req, res) => {
+  res.json({
+    username: req.adminSession.username,
+    expiresAt: req.adminSession.expiresAt,
+  });
+});
+app.use('/api/admin/analytics', adminAuth, analyticsRouter);
+app.use('/api/admin/metrics', adminAuth, adminStreamRouter);
+
+// Event Admin Management
 app.get('/api/admin/events', adminAuth, eventsController.adminListEvents);
 app.post('/api/admin/events', adminAuth, eventsController.adminCreateEvent);
 app.put('/api/admin/events/:id', adminAuth, eventsController.adminUpdateEvent);

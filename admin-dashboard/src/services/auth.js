@@ -1,3 +1,5 @@
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8787';
+const TOKEN_KEY = 'ns_admin_token';
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
 
 let _email = null;
@@ -9,11 +11,17 @@ let refreshPromise = null;
 import { API_BASE_URL } from "../config";
 
 export const adminLogin = async (email, password) => {
+export const auth = {
+  async login(username, password) {
+    const cleanUsername = username.trim();
+    const cleanPassword = password.trim();
 
     const res = await fetch(`${API_BASE}/api/admin/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: cleanEmail, password: cleanPassword }),
+      body: JSON.stringify({ username: cleanUsername, password: cleanPassword }),
+      body: JSON.stringify({ username: cleanEmail, email: cleanEmail, password: cleanPassword }),
       credentials: 'include',
     });
 
@@ -26,6 +34,11 @@ export const adminLogin = async (email, password) => {
 
     if (data.requiresTwoFactor || data.requiresTwoFactorSetup) {
       return data;
+    localStorage.setItem(TOKEN_KEY, data.token);
+    localStorage.setItem(EMAIL_KEY, cleanUsername);
+    localStorage.setItem(EMAIL_KEY, cleanEmail);
+    if (data.expiresAt) {
+      localStorage.setItem(EXPIRY_KEY, data.expiresAt);
     }
 
     _email = cleanEmail;

@@ -24,6 +24,8 @@ export default function Login() {
 
   const navigate = useNavigate();
 
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -53,6 +55,8 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
+      await auth.login(username, password);
+      navigate('/dashboard');
       await auth.login(email, password);
       navigate(adminPath('/dashboard'));
     } catch (err) {
@@ -226,8 +230,11 @@ export default function Login() {
         )}
         <form onSubmit={handleSubmit} className="form">
           <div className="form-row">
-            <label>Email</label>
+            <label>Username / Email</label>
             <input
+              type="text"
+              value={username}
+              onChange={e => setUsername(e.target.value)}
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
