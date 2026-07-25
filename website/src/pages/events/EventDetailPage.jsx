@@ -967,6 +967,9 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
         } catch (error) {
           if (import.meta.env.DEV) {
             console.warn('[EventDetailPage] Failed to persist local registration:', error);
+        } catch (err) {
+          if (import.meta.env.DEV) {
+            console.warn('Failed to persist event registration ticket locally:', err);
           }
         }
       }
