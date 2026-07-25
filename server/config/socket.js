@@ -9,6 +9,9 @@ import { getAdminSession } from '../repositories/adminSessionsRepository.js';
 import { resolveAdminPermissions, getRoomsForPermissions } from './eventPermissions.js';
 import { createAdapter } from '@socket.io/redis-adapter';
 import { liveQaService } from '../services/liveQaService.js';
+import { validationMiddleware } from '../sockets/validationMiddleware.js';
+import { handleYjsUpdate, getOrCreateDoc } from '../utils/yjsSyncHandler.js';
+import * as Y from 'yjs';
 import { getRedisClient } from '../utils/redis.js';
 import { waitingRoomService } from '../services/waitingRoomService.js';
 import { Server } from "socket.io";
@@ -319,6 +322,28 @@ export function initializeSocketIO(httpServer) {
     }
   } else {
     logger.info('Socket.IO using in-memory adapter (REDIS_URL not set).');
+  if (process.env.NODE_ENV !== 'test') {
+    const pubClient = getRedisClient();
+    const subClient = pubClient.duplicate();
+    subClient.on('error', (err) => {
+      logger.error('Redis subscription client connection error:', err);
+    });
+    // Ensure both pub/sub clients are connected before wiring the adapter
+    const connectIfNeeded = async (client) => {
+      if (client && client.status === 'wait') {
+        try {
+          await client.connect();
+        } catch (err) {
+          if (err.message !== 'Redis is already connecting/connected') {
+            throw err;
+          }
+        }
+      }
+    };
+    await Promise.all([connectIfNeeded(pubClient), connectIfNeeded(subClient)]);
+    io.adapter(createAdapter(pubClient, subClient));
+  } else {
+    logger.info('Skipping Redis adapter in test environment');
   }
 
   io.use(async (socket, next) => {
@@ -1034,6 +1059,92 @@ export function _onConnection(socket) {
     const result = waitingRoomService.joinQueue(eventId, { userId, fullName, email, isPriority });
     socket.join(`waiting:${eventId}`);
     socket.emit('waiting:joined', { eventId, ...result });
+  /**
+   * Yjs real-time CRDT synchronization handlers
+   * Manages binary document updates, syncing state, and user awareness protocols.
+   */
+
+  /**
+   * Receives binary CRDT state updates from clients, applies them to the in-memory
+   * server-side document, and relays them to all other sockets joined to that room.
+   */
+  socket.on('yjs_update', (roomId, update) => {
+    if (typeof roomId !== 'string' || !/^[a-zA-Z0-9\-_]{1,100}$/.test(roomId)) {
+      logger.warn('Malformed workspace roomId join attempt rejected', {
+        socketId: socket.id,
+        roomId,
+      });
+      return;
+    }
+
+    if (!socket.rooms.has(roomId)) {
+      logger.warn('Unauthorized yjs_update attempt: socket not in room', {
+        socketId: socket.id,
+        roomId,
+      });
+      return;
+    }
+
+    try {
+      const updateBuffer = Buffer.isBuffer(update) ? update : Buffer.from(update);
+      handleYjsUpdate(roomId, updateBuffer);
+      socket.to(roomId).emit('yjs_update', updateBuffer);
+    } catch (err) {
+      logger.error('Error handling yjs_update', {
+        error: err.message,
+        socketId: socket.id,
+      });
+    }
+  });
+
+  /**
+   * Generates and transmits the full in-memory document state to a newly joined client
+   * upon their synchronization request.
+   */
+  socket.on('yjs_sync_request', ({ roomId }) => {
+    if (typeof roomId !== 'string' || !/^[a-zA-Z0-9\-_]{1,100}$/.test(roomId)) {
+      return;
+    }
+
+    if (!socket.rooms.has(roomId)) {
+      return;
+    }
+
+    try {
+      const doc = getOrCreateDoc(roomId);
+      const stateVector = Y.encodeStateAsUpdate(doc);
+      socket.emit('yjs_update', Buffer.from(stateVector));
+    } catch (err) {
+      logger.error('Error handling yjs_sync_request', {
+        error: err.message,
+        socketId: socket.id,
+      });
+    }
+  });
+
+  /**
+   * Relays awareness/presence protocol updates (e.g. cursor positions, user colors)
+   * to all other connected clients in the corresponding workspace.
+   */
+  socket.on('yjs_awareness', (roomId, update) => {
+    if (typeof roomId !== 'string' || !/^[a-zA-Z0-9\-_]{1,100}$/.test(roomId)) {
+      return;
+    }
+
+    if (!socket.rooms.has(roomId)) {
+      return;
+    }
+
+    const updateBuffer = Buffer.isBuffer(update) ? update : Buffer.from(update);
+    socket.to(roomId).emit('yjs_awareness', updateBuffer);
+  });
+
+  // Handles abrupt disconnects (crash, sleep, network drop)
+  socket.on('disconnecting', (reason) => {
+    logger.info('Socket disconnecting', { socketId: socket.id, reason });
+    connectedUsers.delete(socket.id);
+    joinRoomAttempts.delete(socket.id);
+    _cleanupWorkspaceMembership(socket.id);
   });
 
   // Waiting room — get current queue status

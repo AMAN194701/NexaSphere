@@ -76,6 +76,9 @@ function AppShell() {
   const location = useLocation();
   const [cinDone, setCinDone] = useState(() => isPlaywright);
   const { resolvedTheme: theme } = useTheme();
+  const [cinDone, setCinDone] = useState(false);
+  const [eventsData, setEventsData] = useState(() => getLocalEvents(fallbackEvents));
+  const { resolvedTheme: theme, setTheme } = useTheme();
   const { isOpen: isTerminalOpen, closeTerminal } = useDeveloperMode();
 
   const { eventsData, swUpdateFn } = useAppBootstrap(cinDone);
@@ -850,7 +853,7 @@ function MainRouter({
         isOpen={isTerminalOpen}
         onClose={closeTerminal}
         theme={theme}
-        setTheme={() => {}}
+        setTheme={setTheme}
         onNavigate={onTab}
       />
 

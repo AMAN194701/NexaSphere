@@ -30,6 +30,8 @@ window.addEventListener('error', (event) => {
   Sentry.captureException(event.error, { tags: { type: 'uncaughterror' } });
 });
 
+import { SocketProvider } from './context/SocketContext';
+
 // Apply saved theme before React renders — prevents flash of wrong theme
 try {
   const savedTheme = localStorage.getItem('ns-theme');
@@ -91,6 +93,11 @@ createRoot(document.getElementById('root')).render(
         <ErrorBoundary>
           <App />
         </ErrorBoundary>
+        <SocketProvider>
+          <GlobalErrorBoundary>
+            <App />
+          </GlobalErrorBoundary>
+        </SocketProvider>
       </ThemeProvider>
     </HelmetProvider>
   </StrictMode>

@@ -37,6 +37,14 @@ function safeEqual(a, b) {
   if (!a || !b) return false;
   const hashA = crypto.createHash('sha256').update(String(a)).digest();
   const hashB = crypto.createHash('sha256').update(String(b)).digest();
+  const bufA = Buffer.from(String(a));
+  const bufB = Buffer.from(String(b));
+
+  // Pad both buffers to constant length to prevent timing attacks based on input length
+  const paddedA = Buffer.alloc(CONSTANT_AUTH_LENGTH);
+  const paddedB = Buffer.alloc(CONSTANT_AUTH_LENGTH);
+  bufA.copy(paddedA);
+  bufB.copy(paddedB);
 
   return crypto.timingSafeEqual(hashA, hashB);
 }

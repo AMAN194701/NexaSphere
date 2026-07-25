@@ -33,6 +33,9 @@ export async function getPublicUsers(req, res) {
 
     res.setHeader('X-Cache', hit ? 'HIT' : 'MISS');
     return sendSuccess(res, data);
+    const rawUsers = await usersRepository.getAllPublicUsers({ page, limit, role });
+    const safeUsers = rawUsers.map(toPublicUserDTO);
+    return res.json({ users: safeUsers, page, limit });
   } catch (error) {
     console.error('[Security] Error in public users endpoint serialization:', error.message);
     return sendError(req, res, 'Internal server error', 500, 'INTERNAL_ERROR');

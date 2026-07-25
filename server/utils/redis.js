@@ -23,6 +23,8 @@ export function getRedisClient() {
       enableReadyCheck: true,
       lazyConnect: false,
     });
+    const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+    redisClient = new Redis(redisUrl);
 
     redisClient.on('error', (err) => {
       logger.error('Redis connection error:', err);
@@ -63,6 +65,7 @@ export async function getCachedQuery(key, queryFn, ttlSeconds = 300) {
     }
   }
 
+  // Try to read from cache first
   let cached = null;
   try {
     cached = await client.get(key);
@@ -104,6 +107,19 @@ export async function getCachedQuery(key, queryFn, ttlSeconds = 300) {
       inFlightQueries.delete(key);
     }
   }
+  // Cache miss or Redis error — run queryFn exactly once
+  const result = await queryFn();
+
+  // Best-effort cache write
+  try {
+    client.set(key, JSON.stringify(result), 'EX', ttlSeconds).catch((err) => {
+      logger.error('Error setting Redis cache:', err);
+    });
+  } catch (err) {
+    logger.warn('Redis cache write error:', err);
+  }
+
+  return result;
 }
 
 export function clearCache(keyPattern) {
@@ -124,6 +140,7 @@ export function clearCache(keyPattern) {
 
     stream.on('data', (resultKeys) => {
       if (resultKeys.length > 0) {
+        // Delete in batches as they arrive to avoid unbounded memory usage
         const promise = client
           .del(...resultKeys)
           .then((count) => {
