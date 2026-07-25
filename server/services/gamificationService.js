@@ -85,6 +85,10 @@ class GamificationService {
     }
   }
 
+        logger.error(`[GamificationService] Failed to award "${badge.name}" to ${username}:`, { error: e.message });
+      }
+    }
+  }
 }
 
 const gamificationService = new GamificationService();

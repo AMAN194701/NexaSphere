@@ -102,6 +102,8 @@ export const portfolioService = {
         );
       }
     }
+      portfolioData: { ...saved, ...data }
+    });
 
     const achievements = await achievementsRepository.getByUsername(username);
     return { ...saved, achievements };
