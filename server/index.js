@@ -109,6 +109,12 @@ import mentorshipRouter from "./routes/mentorship.js";
 import adaptiveRoadmapRouter from "./routes/adaptiveRoadmap.js";
 import { broadcastSSEEvent } from "./services/sseService.js";
 import rateLimit from "express-rate-limit";
+import analyticsRouter, { invalidateAnalyticsCache } from "./routes/analytics.js";
+import { initializeSocketIO, emitToRoom, getRoom } from "./config/socket.js";
+import adminStreamRouter from "./routes/adminStream.js";
+import { broadcastSSEEvent } from "./services/sseService.js";
+import rateLimit from "express-rate-limit";
+import { formRateLimiter } from "./middleware/rateLimiter.js";
 import 'dotenv/config';
 import helmet from 'helmet';
 import express from 'express';
@@ -3159,6 +3165,15 @@ app.post(
   formRateLimiter,
   formsController.makeHandleForm('recruitment')
 );
+    await createActivityEventStore(activityKey, event);
+    invalidateAnalyticsCache();
+    return res.status(201).json({ ok: true, event });
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ error: e?.message || "Unable to add activity event" });
+app.post('/api/submissions/membership', formRateLimiter, formsController.makeHandleForm('membership'));
+app.post('/api/submissions/recruitment', formRateLimiter, formsController.makeHandleForm('recruitment'));
 
 // Admin membership responses
 app.get('/api/admin/membership', adminAuth, async (req, res) => {
@@ -3633,6 +3648,19 @@ app.get("/api/admin/membership", adminAuth, async (req, res) => {
     if (membershipCache) {
       res.setHeader("X-Cache", "STALE");
       return res.json({ responses: membershipCache });
+      const deleted = await deleteActivityEventStore(activityKey, eventId);
+      if (!deleted)
+        return res
+          .status(404)
+          .json({ error: "Event not found in manual activity events." });
+      invalidateAnalyticsCache();
+      return res.json({ ok: true });
+    } catch (e) {
+      return res
+        .status(500)
+        .json({ error: e?.message || "Unable to delete activity event" });
+    if (!response.ok) {
+      throw new Error(`Google Apps Script returned ${response.status}`);
     }
 
     return res
@@ -3742,6 +3770,13 @@ app.post('/api/notifications/subscribe', notificationRateLimiter, (req, res) => 
         pushSubscriptions.delete(oldest);
       }
     }
+    const saved = await createEventStore(event);
+    invalidateAnalyticsCache();
+    return res.status(201).json({ ok: true, event: saved });
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ error: e?.message || "Unable to create event" });
     return res.json({ success: true });
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -4317,6 +4352,16 @@ app.get('/api/portfolio/:username', async (req, res) => {
 
 app.post('/api/notifications/unsubscribe', notificationRateLimiter, (req, res) => {
   try {
+    const id = String(req.params.id || "").trim();
+    const patch = sanitizeEvent({ ...req.body, id });
+    const updated = await updateEventStore(id, patch);
+    if (!updated) return res.status(404).json({ error: "Event not found" });
+    invalidateAnalyticsCache();
+    return res.json({ ok: true, event: updated });
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ error: e?.message || "Unable to update event" });
     const { subscription } = req.body;
     if (subscription) pushSubscriptions.delete(JSON.stringify(subscription));
     return res.json({ success: true });
@@ -4329,6 +4374,16 @@ app.post('/api/notifications/unsubscribe', notificationRateLimiter, (req, res) =
 app.get('/api/notifications', adminAuth, notificationRateLimiter, (req, res) => {
   try {
     const userId = req.adminSession?.username || 'global';
+    const id = String(req.params.id || "").trim();
+    const deleted = await deleteEventStore(id);
+    if (!deleted) return res.status(404).json({ error: "Event not found" });
+    invalidateAnalyticsCache();
+    return res.json({ ok: true });
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ error: e?.message || "Unable to delete event" });
+    const userId = req.query.userId || 'global';
     const list = notificationsService.getNotifications(userId);
     return res.json({ notifications: list });
   } catch (err) {
@@ -4395,6 +4450,46 @@ app.post('/api/notifications/mark-all-read', adminAuth, notificationRateLimiter,
 
 app.delete('/api/notifications/:id', adminAuth, notificationRateLimiter, (req, res) => {
   try {
+    const body = req.body || {};
+    const adminEmail = req.adminSession?.username || "admin";
+
+    const member = {
+      name: toSafeString(body.name, 100),
+      role: toSafeString(body.role, 100),
+      year: toSafeString(body.year, 20),
+      branch: toSafeString(body.branch, 100),
+      section: validateSection(body.section),
+      email: toSafeString(body.email, 140),
+      whatsapp: validateWhatsApp(body.whatsapp),
+      linkedin: toSafeString(body.linkedin, 255) || null,
+      instagram: toSafeString(body.instagram, 255) || null,
+      photoUrl: toSafeString(body.photoUrl, 500) || null,
+    };
+
+    if (
+      !member.name ||
+      !member.role ||
+      !member.year ||
+      !member.branch ||
+      !member.email
+    ) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+    if (!isEmail(member.email)) {
+      return res.status(400).json({ error: "Invalid email format" });
+    }
+
+    const saved = await createCoreTeamStore(member);
+    invalidateAnalyticsCache();
+    adminEvents.emit("CORE_TEAM_MEMBER_ADDED", {
+      adminEmail,
+      member: saved,
+      timestamp: new Date().toISOString(),
+    });
+
+    return res.status(201).json(saved);
+  } catch (e) {
+    return res.status(400).json({ error: e?.message || "Validation failed" });
     const id = req.params.id;
     const uid = req.adminSession?.username || 'global';
     const removed = notificationsService.removeNotification(uid, id);
@@ -4409,6 +4504,26 @@ app.delete('/api/notifications', adminAuth, notificationRateLimiter, (req, res) 
   try {
     const uid = req.adminSession?.username || 'global';
     notificationsService.clearAll(uid);
+    const id = String(req.params.id || "").trim();
+    const adminEmail = req.adminSession?.username || "admin";
+
+    const deleted = await deleteCoreTeamStore(id);
+    if (!deleted) return res.status(404).json({ error: "Member not found" });
+
+    invalidateAnalyticsCache();
+    adminEvents.emit("CORE_TEAM_MEMBER_REMOVED", {
+      adminEmail,
+      memberId: id,
+      timestamp: new Date().toISOString(),
+    });
+
+    return res.json({ ok: true });
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ error: e?.message || "Unable to delete member" });
+    const userId = req.query.userId || 'global';
+    notificationsService.clearAll(userId);
     return res.json({ success: true });
   } catch (err) {
     return res.status(500).json({ error: err.message });
