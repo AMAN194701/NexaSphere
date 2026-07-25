@@ -54,6 +54,7 @@ async function ensureSchema(client) {
     CREATE TABLE IF NOT EXISTS portfolios (
       username VARCHAR(100) PRIMARY KEY,
       passkey_hash VARCHAR(255) NOT NULL,
+      is_public BOOLEAN DEFAULT true,
       theme VARCHAR(50) DEFAULT 'glassmorphic',
       customization JSONB DEFAULT '{}'::jsonb,
       visible_sections JSONB DEFAULT '{"quests": true, "roadmaps": true, "projects": true, "analytics": false}'::jsonb,
@@ -77,6 +78,10 @@ async function ensureSchema(client) {
 
   await client.query(`
     ALTER TABLE portfolios ADD COLUMN IF NOT EXISTS github_username VARCHAR(39)
+  `);
+
+  await client.query(`
+    ALTER TABLE portfolios ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT true
   `);
 
   await client.query(`
@@ -223,6 +228,7 @@ function mapRow(row) {
   if (!row) return null;
   const raw = {
     username: row.username,
+    isPublic: row.is_public !== undefined ? row.is_public : true,
     theme: row.theme,
     customization:
       typeof row.customization === 'string'
@@ -364,6 +370,7 @@ export const portfolioRepository = {
     if (!portfolio || (!includeDeleted && portfolio.deletedAt)) return null;
     return sanitizePortfolioOutput({
       username: portfolio.username,
+      isPublic: portfolio.isPublic !== undefined ? portfolio.isPublic : true,
       theme: portfolio.theme,
       customization: portfolio.customization || {},
     if (!portfolio) return null;
@@ -492,6 +499,7 @@ export const portfolioRepository = {
     const sanitizedUsername = clean.username || canonicalizeUsername(data.username);
     const passkeyHash = await hashPasskey(passkeyVal);
 
+    const isPublic = clean.isPublic !== undefined ? clean.isPublic : true;
     const customization = clean.customization || {};
     const theme = clean.theme || 'glassmorphic';
     const visibleSections = clean.visibleSections;
@@ -555,8 +563,12 @@ export const portfolioRepository = {
               username, passkey_hash, theme, visible_sections, social_links,
               custom_domain, seo_metadata, skills, badges, projects, roadmaps, bio, title, avatar_url, education, work_experience, updated_at
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW())
+              username, passkey_hash, is_public, theme, customization, visible_sections, social_links,
+              custom_domain, seo_metadata, skills, badges, projects, roadmaps, bio, title, avatar_url, education, work_experience, updated_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, NOW())
             ON CONFLICT (username) DO UPDATE SET
               passkey_hash = EXCLUDED.passkey_hash,
+              is_public = EXCLUDED.is_public,
               theme = EXCLUDED.theme,
               customization = EXCLUDED.customization,
               visible_sections = EXCLUDED.visible_sections,
@@ -578,6 +590,7 @@ export const portfolioRepository = {
             [
               sanitizedUsername,
               passkeyHash,
+              isPublic,
               theme,
               JSON.stringify(customization),
               JSON.stringify(visibleSections),
@@ -622,6 +635,7 @@ export const portfolioRepository = {
       const updatedPortfolio = {
         username: sanitizedUsername,
         passkeyHash,
+        isPublic,
         theme,
         customization,
         visibleSections,

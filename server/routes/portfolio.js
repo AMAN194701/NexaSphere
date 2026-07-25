@@ -146,6 +146,13 @@ router.get('/portfolio/github-repos/:username', async (req, res) => {
     return res.status(503).json({
       error: 'GitHub repository import is unavailable because the server token is not configured.',
     });
+    return sendError(
+      req,
+      res,
+      'GitHub repository import is unavailable because the server token is not configured.',
+      503,
+      'DEPENDENCY_ERROR'
+    );
   }
 
   const sort =
@@ -170,11 +177,24 @@ router.get('/portfolio/github-repos/:username', async (req, res) => {
       const resetDate = resetHeader
         ? new Date(Number.parseInt(resetHeader, 10) * 1000).toISOString()
         : null;
-      return sendError(req, res, 'GitHub rate limit reached. Please try again later.', response.status, 'RATE_LIMITED', { rateLimitReset: resetDate });
+      return sendError(
+        req,
+        res,
+        'GitHub rate limit reached. Please try again later.',
+        response.status,
+        'RATE_LIMITED',
+        { rateLimitReset: resetDate }
+      );
     }
 
     if (response.status === 404) {
-      return sendError(req, res, `GitHub user "${username}" not found. Please check the username and try again.`, 404, 'NOT_FOUND');
+      return sendError(
+        req,
+        res,
+        `GitHub user "${username}" not found. Please check the username and try again.`,
+        404,
+        'NOT_FOUND'
+      );
     }
 
     if (!response.ok) {
@@ -195,6 +215,13 @@ router.get('/portfolio/github-repos/:username', async (req, res) => {
       return res.status(response.status).json({
         error: `GitHub API error: ${response.status} ${response.statusText}`,
       });
+      return sendError(
+        req,
+        res,
+        `GitHub API error: ${response.status} ${response.statusText}`,
+        response.status,
+        'DEPENDENCY_ERROR'
+      );
     }
 
     const repos = await response.json();
@@ -209,16 +236,26 @@ router.get('/portfolio/github-repos/:username', async (req, res) => {
     return res.status(502).json({
       error: 'Failed to fetch repositories from GitHub.',
     });
+    return sendError(
+      req,
+      res,
+      'Failed to fetch repositories from GitHub.',
+      502,
+      'DEPENDENCY_ERROR'
+    );
   }
 });
 
 /**
  * GET /api/portfolio/:username — Public portfolio lookup.
  * Returns 404 if the username does not exist.
+ * Returns 403 if the portfolio is not public and no valid passkey is provided.
  */
 router.get('/portfolio/:username', async (req, res) => {
   try {
     const username = String(req.params.username || '').trim();
+    const passkey = req.query.passkey;
+
     if (!username) {
       return sendError(req, res, 'Username is required', 400, 'VALIDATION_ERROR');
     }
@@ -226,6 +263,21 @@ router.get('/portfolio/:username', async (req, res) => {
     if (!portfolio) {
       return sendError(req, res, 'Portfolio not found', 404, 'NOT_FOUND');
     }
+
+    // Check if portfolio is private
+    if (portfolio.isPublic === false) {
+      if (!passkey) {
+        return sendError(req, res, 'This portfolio is private', 403, 'FORBIDDEN');
+      }
+
+      const isAuthorized = await portfolioRepository.verifyPasskey(username, passkey);
+      if (!isAuthorized) {
+        // To avoid brute-force via GET, we could apply rate limit,
+        // but for now just return 403.
+        return sendError(req, res, 'Incorrect passkey for private portfolio', 403, 'FORBIDDEN');
+      }
+    }
+
     return sendSuccess(res, portfolio);
   } catch (err) {
     console.error('Error fetching portfolio:', err);
@@ -316,7 +368,13 @@ router.put('/portfolio', protectedActionRateLimiter, async (req, res) => {
     });
     if (!credentials.success) {
       const firstIssue = credentials.error.issues[0];
-      return sendError(req, res, firstIssue?.message || 'Invalid request body', 400, 'VALIDATION_ERROR');
+      return sendError(
+        req,
+        res,
+        firstIssue?.message || 'Invalid request body',
+        400,
+        'VALIDATION_ERROR'
+      );
     }
     const { username, passkey } = credentials.data;
 
@@ -327,9 +385,13 @@ router.put('/portfolio', protectedActionRateLimiter, async (req, res) => {
     const content = portfolioContentSchema.safeParse(body);
     if (!content.success) {
       const firstIssue = content.error.issues[0];
-      return sendError(req, res,
+      return sendError(
+        req,
+        res,
         `Invalid portfolio content: ${firstIssue?.path?.join('.') || ''} ${firstIssue?.message || ''}`.trim(),
-        400, 'VALIDATION_ERROR');
+        400,
+        'VALIDATION_ERROR'
+      );
     }
 
     const existingPortfolio = await portfolioRepository.getByUsername(username);
@@ -337,7 +399,13 @@ router.put('/portfolio', protectedActionRateLimiter, async (req, res) => {
 
     const lockout = checkPasskeyLockout(username, ip);
     if (lockout) {
-      return sendError(req, res, 'Too many failed passkey attempts. Please try again later.', 429, 'RATE_LIMITED');
+      return sendError(
+        req,
+        res,
+        'Too many failed passkey attempts. Please try again later.',
+        429,
+        'RATE_LIMITED'
+      );
     }
 
     const isAuthorized = await portfolioRepository.verifyPasskey(username, passkey, {
@@ -380,7 +448,13 @@ router.put('/portfolio', protectedActionRateLimiter, async (req, res) => {
     return res.json({ ok: true, portfolio: saved });
   } catch (err) {
     if (err.code === '23505') {
-      return sendError(req, res, 'Username already exists. Another request may have just created it.', 409, 'CONFLICT');
+      return sendError(
+        req,
+        res,
+        'Username already exists. Another request may have just created it.',
+        409,
+        'CONFLICT'
+      );
     }
     console.error('Error saving portfolio:', err);
     return sendError(req, res, err.message || 'Internal server error', 500, 'INTERNAL_ERROR');
