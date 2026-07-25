@@ -4,7 +4,13 @@ import apiClient from '../../utils/apiClient';
 import { formatRelativeTime } from '../../utils/formatRelativeTime';
 import { useStudentAuth } from '../../context/StudentAuthContext';
 import { NotificationSkeleton } from '../../components/ui/skeleton/NotificationSkeleton';
-
+import {
+  initializeSocket,
+  joinRoom,
+  emit as socketEmit,
+  on as socketOn,
+  off as socketOff,
+} from '../../utils/socketClient';
 
 const TYPE_ICONS = {
   message: '💬',
@@ -75,6 +81,7 @@ export default function NotificationHistoryPage({ userId = 'global' }) {
           body: JSON.stringify({ id, userId: effectiveUserId }),
           body: JSON.stringify({ id, userId }),
         });
+        socketEmit('notifications:updated', { userId: effectiveUserId, notificationId: id });
       } catch {
         /* ignore */
       }
@@ -92,6 +99,7 @@ export default function NotificationHistoryPage({ userId = 'global' }) {
         body: JSON.stringify({ userId: effectiveUserId }),
         body: JSON.stringify({ userId }),
       });
+      socketEmit('notifications:updated', { userId: effectiveUserId, allRead: true });
     } catch {
       /* ignore */
     }
@@ -103,6 +111,7 @@ export default function NotificationHistoryPage({ userId = 'global' }) {
     setHasMore(false);
     try {
       await apiClient(`/api/notifications?userId=${effectiveUserId}`, { method: 'DELETE' });
+      socketEmit('notifications:updated', { userId: effectiveUserId, cleared: true });
     } catch {
       /* ignore */
     }
