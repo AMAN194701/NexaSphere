@@ -88,6 +88,8 @@ import { auditLogRepository } from '../repositories/auditLogRepository.js';
 import apiAnalyticsRoutes from './apiAnalytics.js';
 import budgetRoutes from './budget.js';
 import eventRecurringRoutes from "./eventRecurringRoutes.js";
+import eventConflictRouter from "./eventConflict.js";
+import waitlistRoutes from "./waitlist.js";
 
 import * as recommendationsController from '../controllers/recommendationsController.js';
 import * as gamificationController from '../controllers/gamificationController.js';
@@ -747,6 +749,9 @@ router.get('/api/admin/impersonate/status', adminAuthMiddleware.requireAdmin, (r
   return sendSuccess(res, { impersonating: !!active, user: active?.targetUser || null });
 });
 router.use(
+"/api/announcements",
+announcementPriorityRouter
+);
 
   "/resource-discovery",
   resourceDiscoveryRoutes
