@@ -203,6 +203,11 @@ const RoadmapBuilderInner: React.FC<RoadmapBuilderInnerProps> = ({
         alert("Roadmap imported and restored successfully!");
       } catch (err: any) {
         alert(err.message || "Malformed JSON Schema: could not load roadmap.");
+        alert('Roadmap imported and restored successfully!');
+      } catch (err: unknown) {
+        alert(
+          err instanceof Error ? err.message : 'Malformed JSON Schema: could not load roadmap.'
+        );
       }
     };
     reader.readAsText(file);
