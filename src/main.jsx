@@ -4,6 +4,7 @@ import App from './App.jsx';
 import './i18n';
 import { registerSW } from 'virtual:pwa-register';
 import { validateEnvironment } from './utils/env';
+import { HelmetProvider } from 'react-helmet-async'; // <--- 1. ADD THIS
 
 // Apply saved theme before React renders — prevents flash of wrong theme
 const savedTheme = localStorage.getItem('ns-theme') || 'dark';
@@ -18,6 +19,11 @@ registerSW({ immediate: true });
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <App />
+    <GlobalErrorBoundary>
+      <HelmetProvider>
+      <App />
+      </HelmetProvider>
+    </GlobalErrorBoundary>
   </StrictMode>
 );
 import React from "react";

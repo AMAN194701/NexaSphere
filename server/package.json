@@ -43,6 +43,11 @@
     "compression": "^1.8.1",
     "connect-redis": "^9.0.0",
     "cookie-parser": "^1.4.7",
+<<<<<<< HEAD
+    "compression": "^1.8.1",
+=======
+    "bcryptjs": "^3.0.3",
+>>>>>>> origin/pr/176
     "cors": "^2.8.5",
     "csurf": "^1.11.0",
     "dotenv": "^16.6.1",
