@@ -77,6 +77,10 @@ function StatCard({ label, value, color }) {
             cur += Math.ceil(num / 40);
             if (cur >= num) {
               setCount(num);
+          intervalRef.current = setInterval(() => {
+            cur += Math.ceil(num / 40);
+            if (cur >= num) {
+              setCount(num);
               if (intervalRef.current) clearInterval(intervalRef.current);
               intervalRef.current = null;
             } else setCount(cur);
