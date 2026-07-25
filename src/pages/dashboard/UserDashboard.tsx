@@ -21,6 +21,7 @@ import {
   Lightbulb,
 } from 'lucide-react';
 import PrivacySettings from '../../components/profile/PrivacySettings';
+import ProfileBadges from '../../components/profile/ProfileBadges';
 
 const ACHIEVEMENT_ICONS: Record<
   string,

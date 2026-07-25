@@ -278,6 +278,27 @@ export default function UserManager() {
     }
   }
 
+  async function handleAwardBadge() {
+    const res = await fetch(`/api/admin/users/${awardBadgeUser.id}/badges`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        ...badgeForm,
+        isCustom: true,
+        earnedAt: new Date(),
+      }),
+    });
+    if (res.ok) {
+      setAwardBadgeUser(null);
+      setBadgeForm({ name: '', description: '', icon: 'Award' });
+      fetchUsers();
+    } else {
+      const d = await res.json();
+      alert(d.error || 'Failed to award badge');
+    }
+  }
+
   function openEdit(user) {
     setEditUser(user);
     setForm({
