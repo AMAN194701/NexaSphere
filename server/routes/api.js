@@ -52,6 +52,10 @@ const router = Router();
 import multer from 'multer';
 
 const router = Router();
+import multer from 'multer';
+
+const router = Router();
+
 router.use(rateLimitAdminRoutes);
 router.use(throttleMiddleware);
 
