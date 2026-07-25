@@ -72,6 +72,19 @@ const FORM_MAX_REQUESTS = parsePositiveInt(
 const createLimiterHandler = (logMessage, clientErrorMessage) => {
   return (req, res, _next, options) => {
     logger.warn(logMessage, {
+      ip: req.ip,
+      path: req.originalUrl || req.path,
+      method: req.method,
+      limit: options.max,
+      windowMs: options.windowMs,
+    });
+
+    res.status(options.statusCode).json({
+      error: clientErrorMessage,
+    });
+  };
+};
+
 export const apiRateLimiter = rateLimit({
   skip: () => process.env.NODE_ENV === 'test',
   windowMs: API_WINDOW_MS,
@@ -190,6 +203,10 @@ export const authRateLimiter = rateLimit({
   message: {
     error: 'Too many login attempts, please try again after a minute.',
   },
+  handler: createLimiterHandler(
+    "Authentication rate limit exceeded",
+    "Too many login attempts, please try again after a minute."
+  ),
 });
 
 // Notification mutation rate limiter — 60 requests per IP per 15 minutes
@@ -209,6 +226,10 @@ export const notificationRateLimiter = rateLimit({
   message: {
     error: 'Too many notification requests, please try again later.',
   },
+  handler: createLimiterHandler(
+    "Notification mutation rate limit exceeded",
+    "Too many notification requests, please try again later."
+  ),
 });
 
 // Activity-event auth rate limiter: 10 requests per IP per 15 minutes.
@@ -244,6 +265,8 @@ export const subscriptionRateLimiter = rateLimit({
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
+// Portfolio update rate limiter — 10 requests per IP per 15 minutes
+// Portfolio update rate limiter — 10 requests per IP per 15 minutes
 export const portfolioRateLimiter = rateLimit({
   skip: () => process.env.NODE_ENV === 'test',
   windowMs: 15 * 60 * 1000,
@@ -391,6 +414,10 @@ export const searchRateLimiter = rateLimit({
       error: 'Too many search requests. Please slow down.',
     });
   },
+  handler: createLimiterHandler(
+    "Portfolio update rate limit exceeded",
+    "Too many portfolio update attempts from this IP, please try again after 15 minutes."
+  ),
 });
 
 // ---------------------------------------------------------------------------
