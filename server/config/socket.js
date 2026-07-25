@@ -46,8 +46,7 @@ const JOIN_ROOM_WINDOW_MS = 60000;
 const MAX_CURSOR_X = 5000;
 const MAX_CURSOR_Y = 5000;
 // ===================================// WEBSOCKET BACKPRESSURE & THROTTLING CONFIG
-// ==========================================
-const MAX_PENDING_PACKETS = parseInt(process.env.WS_MAX_PENDING_PACKETS) || 100;
+// ===================================const MAX_PENDING_PACKETS = parseInt(process.env.WS_MAX_PENDING_PACKETS) || 100;
 const SLOW_CONSUMER_TIMEOUT_MS = parseInt(process.env.WS_SLOW_CONSUMER_TIMEOUT_MS) || 5000;
 
 const EVENT_POLICIES = {
@@ -267,6 +266,7 @@ export function stopSocketValidation() {
 /**
  * Parse Bearer token from auth header
  */
+=======
 function parseBearer(authHeader) {
   if (!authHeader || !authHeader.startsWith("Bearer ")) return "";
   return authHeader.slice(7).trim();
@@ -432,7 +432,6 @@ export function _onConnection(socket) {
     socket.join(handshakeRoomId);
   }
 
-  // Keep track of identify operations to rate limit floods per-socket (Max 3 events per lifetime)
   let identifyCount = 0;
 
   socket.on('user:identify', (userData) => {
@@ -457,6 +456,13 @@ export function _onConnection(socket) {
     // 2. Defensive Payload Structure & Type Validation
     if (!userData || typeof userData !== "object") {
       logger.warn("Invalid user identification payload type rejected", {
+      return;
+    }
+
+    const { userId, email } = userData;
+
+    if (typeof userId !== 'string' || typeof email !== 'string') {
+      logger.warn('User identification payload fields must be primitive strings', {
         socketId: socket.id,
       });
       return;
@@ -490,6 +496,11 @@ export function _onConnection(socket) {
   // Store connected user
   socket.on("user:identify", (userData) => {
     // 4. Safe Deep Copy (Persist sanitized primitives)
+    if (userId.length > 128 || email.length > 256) {
+      logger.warn('Oversized user identification payload values rejected', { socketId: socket.id });
+      return;
+    }
+
     connectedUsers.set(socket.id, {
       id: String(userId),
       email: String(email),
@@ -595,7 +606,6 @@ export function _onConnection(socket) {
       });
     }
 
-    // 4. Per-Socket Bounded Active Rooms Cap (Set size check)
     const joinedCount = socket.rooms ? socket.rooms.size - 1 : 0;
     if (joinedCount >= MAX_ROOMS_PER_SOCKET) {
       logger.warn("Socket joined rooms limit exceeded", {
@@ -633,7 +643,6 @@ export function _onConnection(socket) {
       return;
     }
 
-    // 2. Per-Socket Bounded Active Rooms Cap
     const joinedCount = socket.rooms ? socket.rooms.size - 1 : 0;
     if (joinedCount >= MAX_ROOMS_PER_SOCKET) {
       logger.warn("Socket workspace joined rooms limit exceeded", {
@@ -688,7 +697,6 @@ export function _onConnection(socket) {
       }
     }).catch(() => {});
 
-    // Sanitize user details to prevent reference leaks / massive nested objects
     const sanitizedUser =
       user && typeof user === 'object'
         ? {
@@ -787,7 +795,6 @@ export function _onConnection(socket) {
     }
   });
 
-  // Event planning real-time collaboration
   socket.on('planning:join', (eventId) => {
     if (typeof eventId === 'string' && /^[a-zA-Z0-9\-_]{1,100}$/.test(eventId)) {
       socket.join(`planning:${eventId}`);
@@ -1195,7 +1202,6 @@ export function _onConnection(socket) {
     }
   });
 
-  // Waiting room — join queue
   socket.on('waiting:join', ({ eventId, fullName, email, isPriority } = {}) => {
     if (!eventId || !email || !fullName) return;
     const userId = socket.id;
@@ -1290,14 +1296,12 @@ export function _onConnection(socket) {
     _cleanupWorkspaceMembership(socket.id);
   });
 
-  // Waiting room — get current queue status
   socket.on('waiting:status', ({ eventId } = {}) => {
     if (!eventId) return;
     const queue = waitingRoomService.getQueue(eventId);
     socket.emit('waiting:status:update', { eventId, queue, total: queue.length });
   });
 
-  // Waiting room — admin admit one
   socket.on('waiting:admit-one', ({ eventId } = {}) => {
     if (!socket.adminAuthenticated || !eventId) return;
     const entry = waitingRoomService.admitOne(eventId);
@@ -1306,28 +1310,24 @@ export function _onConnection(socket) {
     }
   });
 
-  // Waiting room — admin admit all
   socket.on('waiting:admit-all', ({ eventId } = {}) => {
     if (!socket.adminAuthenticated || !eventId) return;
     const admitted = waitingRoomService.admitAll(eventId);
     socket.emit('waiting:admitted-entries', { eventId, count: admitted.length });
   });
 
-  // Waiting room — admin remove attendee
   socket.on('waiting:remove', ({ eventId, entryId } = {}) => {
     if (!socket.adminAuthenticated || !eventId || !entryId) return;
     waitingRoomService.removeFromQueue(eventId, entryId);
     socket.emit('waiting:removed-entry', { eventId, entryId });
   });
 
-  // Waiting room — admin move to front
   socket.on('waiting:move-front', ({ eventId, entryId } = {}) => {
     if (!socket.adminAuthenticated || !eventId || !entryId) return;
     waitingRoomService.moveToFront(eventId, entryId);
     socket.emit('waiting:moved-front', { eventId, entryId });
   });
 
-  // Waiting room — admin send message to waiting room
   socket.on('waiting:send-message', ({ eventId, message } = {}) => {
     if (!socket.adminAuthenticated || !eventId || !message) return;
     waitingRoomService.sendMessage(eventId, message);
@@ -1335,6 +1335,7 @@ export function _onConnection(socket) {
 
   // Handle disconnection
   socket.on("disconnect", () => {
+  socket.on('disconnect', () => {
     connectedUsers.delete(socket.id);
     logger.info("User disconnected", { socketId: socket.id });
   });
@@ -1362,7 +1363,6 @@ export function _onConnection(socket) {
     logger.info('User disconnected', { socketId: socket.id });
   });
 
-  // Error handling
   socket.on('error', (error) => {
     logger.error('Socket error', { error: error.message, socketId: socket.id });
   });
@@ -1410,18 +1410,12 @@ export function emitToUser(userId, eventName, data) {
   }
 }
 
-/**
- * Emit event to specific user by email
- */
 export function emitToUserByEmail(email, eventName, data) {
   if (!io) return;
   io.to(`user-${String(email).toLowerCase()}`).emit(eventName, data);
   logger.debug('Emit to user by email room', { email, event: eventName });
 }
 
-/**
- * Get connected users count
- */
 export function getConnectedUsersCount() {
   return connectedUsers.size;
 }
