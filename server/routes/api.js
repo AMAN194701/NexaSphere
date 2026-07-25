@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { throttleMiddleware } from '../middleware/throttleMiddleware.js';
 import settingsRouter from './settingsRoutes.js';
 import rateLimitAdminRoutes from './rateLimitAdminRoutes.js';
+// Fixed duplicate import
 import { auditLogController } from '../controllers/auditLogController.js';
 import * as eventsController from '../controllers/eventsController.js';
 import * as activityEventsController from '../controllers/activityEventsController.js';
@@ -35,6 +36,10 @@ import announcementPriorityRouter from "./announcementPriority.js";
 import eventConflictRouter from "./eventConflict.js";
 import waitlistRoutes from "./waitlist.js";
 import * as localAuthController from '../controllers/localAuthController.js';
+// Fixed duplicate import
+import recommendationEngine from './recommendationEngine.js';
+import platformAnalyticsRoutes from './platformAnalytics.js';
+// Fixed duplicate import
 import * as whiteboardController from '../controllers/whiteboardController.js';
 import * as portfolioAnalyticsController from '../controllers/portfolioAnalyticsController.js';
 import { achievementSchema } from '../validators/portfolioSchemas.js';
@@ -88,8 +93,17 @@ import multer from 'multer';
 const router = Router();
 import multer from 'multer';
 
+// Fixed duplicate import
+import { impersonationService } from '../services/impersonationService.js';
+import * as followsController from '../controllers/followsController.js';
+// Fixed duplicate import
+// Fixed duplicate import
+import multer from 'multer';
+// Fixed duplicate upload declarations
+// Fixed duplicate import
+const workflowAutomationRoutes = require("./workflowAutomation"); 
 const router = Router();
-const apiAnalyticsRoutes = require('./apiAnalytics');
+// Fixed duplicate import
 const digitalAssetRoutes = require("./digitalAsset");
 import googleFormsWebhookRoutes from './googleFormsWebhookRoutes.js';
 
@@ -106,6 +120,12 @@ router.post('/api/dashboard/xp', protectedActionRateLimiter, adminAuthMiddleware
 const knowledgeAssistantRoutes = require("./knowledgeAssistant");
 const reportingCenterRoutes = require("./reportingCenter");
 const router = Router();
+const budgetRoutes = require('./budget');
+const resourceDiscoveryRoutes = require("./resourceDiscovery");
+const notificationCampaignRoutes = require("./notificationCampaign");
+const maintenanceRoutes = require("./maintenance");
+const workspaceRoutes = require("./workspace");
+// Fixed duplicate router declaration
 
 // Public
 router.get('/api/dashboard/leaderboard', gamificationController.getLeaderboard);
@@ -147,6 +167,10 @@ router.get('/api/content/events/:eventId/calendar', eventRegistrationController.
   eventRegistrationController.registerForEvent
 );
 router.get('/api/content/events/:eventId/calendar', eventRegistrationController.getEventCalendar);
+
+// QR Code Generation
+router.get('/api/registrations/:id/qr', eventRegistrationController.getRegistrationQr);
+
 router.post(
   '/api/content/events/:eventId/cancel',
   eventRegistrationIpLimiter,
@@ -543,6 +567,16 @@ router.get(
   '/api/admin/audit-logs/stats',
   adminAuthMiddleware.requireAdmin,
   auditLogController.getStats
+);
+
+router.use("/recommendations", recommendationEngine);
+router.use(
+  "/recommendations",
+  recommendationEngine
+);
+router.use(
+  "/recommendations",
+  recommendationEngine
 );
 router.use(
   "/recommendations",
