@@ -126,6 +126,16 @@ export function toSafeString(value, max = 4000) {
     .slice(0, max);
 }
 
+export function toSafeString(value, max = 4000) {
+  return String(value ?? "")
+    .trim()
+    .slice(0, max);
+}
+
+export function normalizePhone(value) {
+  return String(value || "").replace(/[^\d]/g, "");
+}
+
 export function validateWhatsApp(str) {
   const v = String(str || "").trim();
   if (!/^\d{10}$/.test(v))
@@ -146,8 +156,7 @@ export function normalizePhone(value) {
   return String(value || "").replace(/[^\d]/g, "");
 }
 
-// ============================================================
-// Portfolio sanitization (issue #969)
+// =====================================================// Portfolio sanitization (issue #969)
 //
 // Portfolio content is rendered to anonymous visitors at
 // /p/:username, so any HTML or javascript: URL stored in the
@@ -457,3 +466,5 @@ export {
   validateSection,
   validateWhatsApp,
 };
+=======
+export { escapeHtml, sanitizeNullableText, sanitizeText, sanitizeTextArray };

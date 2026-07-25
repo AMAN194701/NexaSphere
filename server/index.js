@@ -909,6 +909,7 @@ const fileMutex = new Mutex();
 async function readContent() {
   await ensureContentFile();
   const raw = await fs.readFile(CONTENT_FILE, 'utf8');
+  const raw = await fs.readFile(CONTENT_FILE, "utf8");
   return JSON.parse(raw);
 }
 
@@ -931,6 +932,7 @@ async function readContent() {
 async function writeContent(content) {
   await ensureContentFile();
   await fsp.writeFile(CONTENT_FILE, JSON.stringify(content, null, 2), 'utf8');
+  await fs.writeFile(CONTENT_FILE, JSON.stringify(content, null, 2), "utf8");
 }
 
 let contentLock = Promise.resolve();
@@ -1543,6 +1545,8 @@ async function appendToSupabaseForms(formType, payload) {
   }
 export async function supabaseRequest(pathname, { method = 'GET', body } = {}) {
   if (!HAS_SUPABASE) throw new Error('Supabase is not configured');
+export async function supabaseRequest(pathname, { method = "GET", body } = {}) {
+  if (!HAS_SUPABASE) throw new Error("Supabase is not configured");
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${pathname}`, {
     method,
     headers: {
@@ -1550,6 +1554,8 @@ export async function supabaseRequest(pathname, { method = 'GET', body } = {}) {
       Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
       'Content-Type': 'application/json',
       Prefer: method === 'GET' ? 'count=exact' : 'return=representation',
+      "Content-Type": "application/json",
+      Prefer: method === "GET" ? "count=exact" : "return=representation",
     },
     body: body ? JSON.stringify(body) : undefined,
   });
@@ -1579,6 +1585,13 @@ export function isSupabaseDuplicateKeyError(err) {
     errMsg.includes('23505') ||
     errMsg.includes('duplicate key') ||
     errMsg.includes('already exists')
+  if (err.body && err.body.code === "23505") return true;
+  const errMsg = String(err.message || "").toLowerCase();
+  if (
+    errMsg.includes("409") ||
+    errMsg.includes("23505") ||
+    errMsg.includes("duplicate key") ||
+    errMsg.includes("already exists")
   ) {
     return true;
   }
@@ -1678,6 +1691,106 @@ async function canManageActivityEvent({ name, email, phone, password }) {
     .trim()
     .toLowerCase();
   const e = String(email || '')
+// Paginated variant: appends LIMIT/OFFSET to a PostgREST GET request and reads
+// the total row count from the Content-Range response header (sent when
+// Prefer: count=exact is set). Returns { rows, total } instead of a bare array.
+async function supabasePaginatedRequest(pathname, page, limit) {
+  if (!HAS_SUPABASE) throw new Error("Supabase is not configured");
+  const offset = (page - 1) * limit;
+  const separator = pathname.includes("?") ? "&" : "?";
+  const url = `${SUPABASE_URL}/rest/v1/${pathname}${separator}limit=${limit}&offset=${offset}`;
+  const res = await fetch(url, {
+    method: "GET",
+    headers: {
+      apikey: SUPABASE_SERVICE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
+      "Content-Type": "application/json",
+      Prefer: "count=exact",
+    },
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Supabase error (${res.status}): ${text}`);
+  }
+  const text = await res.text();
+  const rows = text ? JSON.parse(text) : [];
+  // Content-Range format from PostgREST: "0-19/150" or "*/0" when empty
+  const contentRange = res.headers.get("content-range") || "";
+  const totalMatch = contentRange.match(/\/(\d+)$/);
+  const total = totalMatch ? parseInt(totalMatch[1], 10) : rows.length;
+  return { rows, total };
+}
+
+// Parses ?page and ?limit from a request query object, clamps to safe bounds,
+// and returns normalised integers. Defaults: page=1, limit=20, cap=100.
+function parsePagination(query) {
+  const page = Math.max(1, parseInt(query.page, 10) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(query.limit, 10) || 20));
+  return { page, limit };
+}
+
+function toSafeString(value, max = 4000) {
+  return String(value ?? "")
+    .trim()
+    .slice(0, max);
+}
+
+function validateWhatsApp(str) {
+  const v = String(str || "").trim();
+  if (!/^\d{10}$/.test(v))
+    throw new Error("WhatsApp must be exactly 10 digits");
+  return v;
+}
+
+function validateSection(str) {
+  const v = String(str || "")
+    .trim()
+    .toUpperCase();
+  if (!/^[A-Z]$/.test(v))
+    throw new Error("Section must be a single letter (A-Z)");
+  return v;
+}
+
+function sanitizeEvent(input = {}) {
+  const status = input.status === "upcoming" ? "upcoming" : "completed";
+  const tags = Array.isArray(input.tags)
+    ? input.tags
+        .map((t) => toSafeString(t, 40))
+        .filter(Boolean)
+        .slice(0, 12)
+    : String(input.tags || "")
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean)
+        .slice(0, 12);
+
+  return {
+    id:
+      toSafeString(input.id || input.shortName || input.name, 80)
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "") || `event-${Date.now()}`,
+    name: toSafeString(input.name, 120),
+    shortName: toSafeString(input.shortName || input.name, 60),
+    date: toSafeString(input.date, 80),
+    description: toSafeString(input.description, 1200),
+    status,
+    icon: toSafeString(input.icon || "Pin", 32),
+    tags,
+  };
+}
+
+function normalizePhone(value) {
+  return String(value || "").replace(/[^\d]/g, "");
+}
+
+async function canManageActivityEvent({ name, email, phone, password }) {
+  const expectedPassword = process.env.ADMIN_EVENT_PASSWORD;
+  if (String(password || "") !== expectedPassword) return false;
+  const n = String(name || "")
+    .trim()
+    .toLowerCase();
+  const e = String(email || "")
     .trim()
     .toLowerCase();
   const p = normalizePhone(phone);
@@ -1686,6 +1799,9 @@ async function canManageActivityEvent({ name, email, phone, password }) {
   return members.some(
     (m) =>
       m.name.toLowerCase() === n && m.email.toLowerCase() === e && normalizePhone(m.whatsapp) === p
+      m.name.toLowerCase() === n &&
+      m.email.toLowerCase() === e &&
+      normalizePhone(m.whatsapp) === p,
   );
 }
 
@@ -1695,6 +1811,9 @@ async function listEventsStore({ page = 1, limit = 20 } = {}) {
       'events?select=*&order=created_at.desc',
       page,
       limit
+      "events?select=*&order=created_at.desc",
+      page,
+      limit,
     );
     return {
       events: rows.map((r) =>
@@ -1710,6 +1829,11 @@ async function listEventsStore({ page = 1, limit = 20 } = {}) {
           createdAt: r.created_at,
           updatedAt: r.updated_at,
         })
+          icon: r.icon || "Pin",
+          tags: Array.isArray(r.tags) ? r.tags : [],
+          createdAt: r.created_at,
+          updatedAt: r.updated_at,
+        }),
       ),
       total,
     };
@@ -1762,6 +1886,27 @@ export async function createEventStore(event) {
         throw e;
       }
     }
+function sanitizeEventRecord(event) {
+  return event;
+}
+
+export async function createEventStore(event) {
+  if (HAS_SUPABASE) {
+    const [row] = await supabaseRequest("events", {
+      method: "POST",
+      body: [
+        {
+          id: event.id,
+          name: event.name,
+          short_name: event.shortName,
+          date_text: event.date,
+          description: event.description,
+          status: event.status,
+          icon: event.icon,
+          tags: event.tags,
+        },
+      ],
+    });
     return sanitizeEventRecord({
       id: row.id,
       name: row.name,
@@ -1770,6 +1915,7 @@ export async function createEventStore(event) {
       description: row.description,
       status: row.status,
       icon: row.icon || 'Pin',
+      icon: row.icon || "Pin",
       tags: Array.isArray(row.tags) ? row.tags : [],
       createdAt: row.created_at,
       updatedAt: row.updated_at,
@@ -1803,6 +1949,22 @@ async function updateEventStore(id, patch) {
         updated_at: new Date().toISOString(),
       },
     });
+    const [row] = await supabaseRequest(
+      `events?id=eq.${encodeURIComponent(id)}`,
+      {
+        method: "PATCH",
+        body: {
+          name: patch.name,
+          short_name: patch.shortName,
+          date_text: patch.date,
+          description: patch.description,
+          status: patch.status,
+          icon: patch.icon,
+          tags: patch.tags,
+          updated_at: new Date().toISOString(),
+        },
+      },
+    );
     if (!row) return null;
     return sanitizeEventRecord({
       id: row.id,
@@ -1812,6 +1974,7 @@ async function updateEventStore(id, patch) {
       description: row.description,
       status: row.status,
       icon: row.icon || 'Pin',
+      icon: row.icon || "Pin",
       tags: Array.isArray(row.tags) ? row.tags : [],
       createdAt: row.created_at,
       updatedAt: row.updated_at,
@@ -1837,6 +2000,10 @@ async function deleteEventStore(id) {
     const rows = await supabaseRequest(`events?id=eq.${encodeURIComponent(id)}`, {
       method: 'DELETE',
     });
+    const rows = await supabaseRequest(
+      `events?id=eq.${encodeURIComponent(id)}`,
+      { method: "DELETE" },
+    );
     return Array.isArray(rows) && rows.length > 0;
   }
   return withContentLock(async () => {
@@ -1855,6 +2022,7 @@ async function listActivityEventsStore(activityKey, { page = 1, limit = 20 } = {
       `activity_events?activity_key=eq.${encodeURIComponent(activityKey)}&select=*&order=created_at.desc`,
       page,
       limit
+      limit,
     );
     return {
       events: rows.map((r) =>
@@ -1867,6 +2035,9 @@ async function listActivityEventsStore(activityKey, { page = 1, limit = 20 } = {
           status: r.status || 'completed',
           createdAt: r.created_at,
         })
+          status: r.status || "completed",
+          createdAt: r.created_at,
+        }),
       ),
       total,
     };
@@ -1874,6 +2045,7 @@ async function listActivityEventsStore(activityKey, { page = 1, limit = 20 } = {
   const content = await readContent();
   const all = (content.activityEvents?.[activityKey] || []).map((event) =>
     sanitizeActivityEventRecord(event)
+    sanitizeActivityEventRecord(event),
   );
   const total = all.length;
   const start = (page - 1) * limit;
@@ -1882,6 +2054,7 @@ async function listActivityEventsStore(activityKey, { page = 1, limit = 20 } = {
 
 function sanitizeActivityEventRecord(event) {
   if (!event || typeof event !== 'object') return event;
+  if (!event || typeof event !== "object") return event;
   const { createdBy, ...safe } = event;
   return safe;
 }
@@ -1890,6 +2063,8 @@ async function createActivityEventStore(activityKey, event) {
   if (HAS_SUPABASE) {
     const [row] = await supabaseRequest('activity_events', {
       method: 'POST',
+    const [row] = await supabaseRequest("activity_events", {
+      method: "POST",
       body: [
         {
           id: event.id,
@@ -1902,6 +2077,9 @@ async function createActivityEventStore(activityKey, event) {
           created_by_name: event.createdBy?.name || '',
           created_by_email: event.createdBy?.email || '',
           created_by_phone: event.createdBy?.phone || '',
+          created_by_name: event.createdBy?.name || "",
+          created_by_email: event.createdBy?.email || "",
+          created_by_phone: event.createdBy?.phone || "",
         },
       ],
     });
@@ -1912,6 +2090,7 @@ async function createActivityEventStore(activityKey, event) {
       tagline: row.tagline,
       description: row.description,
       status: row.status || 'completed',
+      status: row.status || "completed",
       createdAt: row.created_at,
     });
   }
@@ -1919,6 +2098,8 @@ async function createActivityEventStore(activityKey, event) {
     const content = await readContent();
     content.activityEvents = content.activityEvents || {};
     content.activityEvents[activityKey] = content.activityEvents[activityKey] || [];
+    content.activityEvents[activityKey] =
+      content.activityEvents[activityKey] || [];
     content.activityEvents[activityKey].unshift(event);
     await writeContent(content);
     return sanitizeActivityEventRecord(event);
@@ -1930,6 +2111,7 @@ async function deleteActivityEventStore(activityKey, eventId) {
     const rows = await supabaseRequest(
       `activity_events?activity_key=eq.${encodeURIComponent(activityKey)}&id=eq.${encodeURIComponent(eventId)}`,
       { method: 'DELETE' }
+      { method: "DELETE" },
     );
     return Array.isArray(rows) && rows.length > 0;
   }
@@ -1948,6 +2130,9 @@ async function deleteActivityEventStore(activityKey, eventId) {
 async function listCoreTeamStore() {
   if (HAS_SUPABASE) {
     const rows = await supabaseRequest('core_team_members?select=*&order=created_at.asc');
+    const rows = await supabaseRequest(
+      "core_team_members?select=*&order=created_at.asc",
+    );
     return rows.map((r) =>
       sanitizeCoreTeamMemberRecord({
         id: r.id,
@@ -1967,6 +2152,13 @@ async function listCoreTeamStore() {
   }
   const content = await readContent();
   return (content.coreTeam || []).map((member) => sanitizeCoreTeamMemberRecord(member));
+      }),
+    );
+  }
+  const content = await readContent();
+  return (content.coreTeam || []).map((member) =>
+    sanitizeCoreTeamMemberRecord(member),
+  );
 }
 
 function sanitizeCoreTeamMemberRecord(member) {
@@ -1977,6 +2169,8 @@ async function createCoreTeamStore(member) {
   if (HAS_SUPABASE) {
     const [row] = await supabaseRequest('core_team_members', {
       method: 'POST',
+    const [row] = await supabaseRequest("core_team_members", {
+      method: "POST",
       body: [
         {
           name: member.name,
@@ -2026,6 +2220,10 @@ async function deleteCoreTeamStore(id) {
     const rows = await supabaseRequest(`core_team_members?id=eq.${encodeURIComponent(id)}`, {
       method: 'DELETE',
     });
+    const rows = await supabaseRequest(
+      `core_team_members?id=eq.${encodeURIComponent(id)}`,
+      { method: "DELETE" },
+    );
     return Array.isArray(rows) && rows.length > 0;
   }
   return withContentLock(async () => {
@@ -2033,6 +2231,9 @@ async function deleteCoreTeamStore(id) {
     content.coreTeam = content.coreTeam || [];
     const before = content.coreTeam.length;
     content.coreTeam = content.coreTeam.filter((m) => String(m.id) !== String(id));
+    content.coreTeam = content.coreTeam.filter(
+      (m) => String(m.id) !== String(id),
+    );
     if (content.coreTeam.length === before) return false;
     await writeContent(content);
     return true;
@@ -2044,6 +2245,8 @@ async function appendToSupabaseForms(formType, payload) {
   try {
     await supabaseRequest('form_submissions', {
       method: 'POST',
+    await supabaseRequest("form_submissions", {
+      method: "POST",
       body: [
         {
           form_type: formType,
@@ -2488,6 +2691,38 @@ app.post(
   formsController.makeHandleForm('recruitment')
 );
 
+let membershipCache = null;
+let membershipCacheTime = 0;
+let inFlightMembershipFetch = null;
+
+async function fetchMembershipData(scriptUrl, secret, timeoutMs = 5000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(scriptUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "getResponses", token: secret }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Google Apps Script returned ${response.status}`);
+    }
+
+    const data = await response.json();
+    const responses = data.responses || [];
+
+    membershipCache = responses;
+    membershipCacheTime = Date.now();
+
+    return responses;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 // Admin membership responses
 app.get('/api/admin/membership', adminAuth, async (req, res) => {
 app.get("/api/admin/core-team", adminAuth, async (req, res) => {
@@ -2643,8 +2878,17 @@ app.get("/api/admin/membership", adminAuth, async (req, res) => {
 
     return res.json({ responses: data });
   } catch (err) {
-    console.error('[Membership] Failed to fetch responses:', err.message);
-    return res.status(500).json({ error: 'Failed to fetch membership responses' });
+    console.error("[Membership] Failed to fetch responses:", err.message);
+
+    // 3. Stale Fallback: return stale cache if external request fails or times out
+    if (membershipCache) {
+      res.setHeader("X-Cache", "STALE");
+      return res.json({ responses: membershipCache });
+    }
+
+    return res
+      .status(500)
+      .json({ error: "Failed to fetch membership responses" });
   }
 
   // Cleanup expired entries proactively
@@ -3677,11 +3921,14 @@ if (!process.env.VERCEL) {
   const boot = HAS_SUPABASE ? Promise.resolve() : ensureContentFile();
   boot.then(() => {
     server.listen(port, () => {
+let server;
+
 if (process.env.NODE_ENV !== "test") {
   if (!process.env.VERCEL) {
     const boot = HAS_SUPABASE ? Promise.resolve() : ensureContentFile();
     boot.then(() => {
       const server = app.listen(port, () => {
+      server = app.listen(port, () => {
         // eslint-disable-next-line no-console
         console.log(`NexaSphere server listening on http://localhost:${port}`);
       });
@@ -3690,6 +3937,7 @@ if (process.env.NODE_ENV !== "test") {
   } else {
     // Vercel/Render style deployments rely on the platform to start the server.
     const server = app.listen(port, () => {
+    server = app.listen(port, () => {
       // eslint-disable-next-line no-console
       console.log(`NexaSphere server listening on http://localhost:${port}`);
     });
@@ -3852,6 +4100,19 @@ app.use('*', (req, res) => {
     console.log(`NexaSphere server listening on http://localhost:${port}`);
   });
   initializeSocketIO(server);
+}
+
+export function _getMembershipCache() {
+  return membershipCache;
+}
+export function _setMembershipCache(cache, time = Date.now()) {
+  membershipCache = cache;
+  membershipCacheTime = time;
+}
+export function _clearMembershipCache() {
+  membershipCache = null;
+  membershipCacheTime = 0;
+  inFlightMembershipFetch = null;
 }
 
 export function _getMembershipCache() {
