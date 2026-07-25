@@ -31,6 +31,7 @@ const requireNotificationPrefAuth = (req, res, next) => {
   return res.status(401).json({ error: 'Unauthorized' });
 };
 
+import { body, validationResult } from 'express-validator';
 const router = Router();
 
 // ── Constants ───────────────────────────────────────────────────────────────
