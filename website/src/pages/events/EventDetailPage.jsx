@@ -1007,6 +1007,9 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
               error
             );
           }
+        } catch (err) {
+          console.error('Failed to save ticket locally:', err);
+          setRegError('Warning: Could not save ticket to your device. Please take a screenshot.');
         }
       }
     } catch (err) {
