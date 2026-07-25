@@ -158,6 +158,71 @@ registerRoute(
 const bgSyncPlugin = new BackgroundSyncPlugin('nexasphere-offline-queue', {
   maxRetentionTime: 48 * 60, // retain queued requests for up to 48 hours (in minutes)
   onSync: async ({ queue }) => {
+registerRoute(
+  ({ url }) => url.pathname.startsWith('/api/') && !url.pathname.includes('/auth/'),
+  new NetworkFirst({
+    cacheName: 'nexasphere-api-mutations',
+    plugins: [new CacheableResponsePlugin({ statuses: [0, 200] }), bgSyncPlugin],
+  }),
+  'POST'
+);
+
+registerRoute(
+  ({ url }) => url.pathname.startsWith('/api/') && !url.pathname.includes('/auth/'),
+  new NetworkFirst({
+    cacheName: 'nexasphere-api-mutations',
+    plugins: [new CacheableResponsePlugin({ statuses: [0, 200] }), bgSyncPlugin],
+  }),
+  'PUT'
+);
+
+registerRoute(
+  ({ url }) => url.pathname.startsWith('/api/') && !url.pathname.includes('/auth/'),
+  new NetworkFirst({
+    cacheName: 'nexasphere-api-mutations',
+    plugins: [new CacheableResponsePlugin({ statuses: [0, 200] }), bgSyncPlugin],
+  }),
+  'DELETE'
+);
+
+// ── Background Sync ───────────────────────────────────────────────────────────
+
+/**
+ * SW Background Sync event — triggered by browser when connectivity returns.
+ * Relays to all active app clients so the app-side queue manager can process it.
+ */
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'ns-bg-sync') {
+    event.waitUntil(
+      self.clients.matchAll({ type: 'window', includeUncontrolled: false }).then((clients) => {
+        clients.forEach((client) => {
+          client.postMessage({ type: 'NS_TRIGGER_SYNC' });
+        });
+        console.log(`[SW] Background sync triggered — notified ${clients.length} client(s).`);
+      })
+    );
+  }
+});
+
+// ── Push Notifications ────────────────────────────────────────────────────────
+
+self.addEventListener('push', (event) => {
+  let notificationData = {
+    title: 'NexaSphere',
+    body: 'You have a new notification',
+    icon: '/pwa-192x192.png',
+    badge: '/pwa-192x192.png',
+    tag: 'nexasphere-notification',
+    requireInteraction: false,
+    actions: [
+      { action: 'register', title: 'Register Now' },
+      { action: 'snooze', title: 'Snooze 1h' },
+      { action: 'dismiss', title: 'Dismiss' },
+    ],
+    data: {},
+  };
+
+  if (event.data) {
     try {
       await queue.replayRequests();
       // Emptied successfully! Trigger notification if permitted
@@ -172,6 +237,18 @@ const bgSyncPlugin = new BackgroundSyncPlugin('nexasphere-offline-queue', {
       throw error;
     }
   }
+
+  event.waitUntil(
+    self.registration.showNotification(notificationData.title, {
+      body: notificationData.body,
+      icon: notificationData.icon,
+      badge: notificationData.badge,
+      tag: notificationData.tag,
+      requireInteraction: notificationData.requireInteraction,
+      data: notificationData.data,
+      actions: notificationData.actions,
+    })
+  );
 });
 
 // Intercept mutating requests to our API — queue them when offline
@@ -194,6 +271,53 @@ registerRoute(
       plugins: [new CacheableResponsePlugin({ statuses: [200, 201, 204] }), bgSyncPlugin],
     }),
     method
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const urlToOpen = event.notification.data?.link || '/';
+  const action = event.action;
+  const notificationId = event.notification.data?.id;
+
+  // Analytics: Track Interaction
+  event.waitUntil(
+    fetch('/api/notifications/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        notificationId,
+        eventType: action ? 'action_clicked' : 'opened',
+        action,
+      }),
+    }).catch(() => {})
+  );
+
+  if (action === 'snooze') {
+    // Logic to notify backend to re-send in 1 hour
+    console.log('[SW] Snoozing notification:', notificationId);
+    return;
+  }
+
+  if (action === 'register') {
+    // Specific deep link logic if needed
+    const registerUrl = event.notification.data?.registerUrl || urlToOpen;
+    event.waitUntil(clients.openWindow(registerUrl));
+    return;
+  }
+
+  if (action === 'dismiss') {
+    return;
+  }
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url === urlToOpen && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(urlToOpen);
+      }
+    })
   );
 });
 

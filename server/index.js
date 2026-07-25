@@ -162,6 +162,7 @@ import { performanceMonitor } from './middleware/performanceMonitor.js';
 import { tracingMiddleware } from './middleware/tracingMiddleware.js';
 import { apiRequestLogger } from './middleware/apiRequestLogger.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+import { notificationAnalyticsRepository } from './repositories/notificationAnalyticsRepository.js';
 import { initializeSentry, addSentryErrorHandler } from './utils/sentry.js';
 import {
   apiRateLimiter,
@@ -968,6 +969,7 @@ app.use((req, res, next) => {
 app.use(csrfProtection);
 
 // Global API rate limiter â€” protects all /api routes from request flooding
+// Global API rate limiter — protects all /api routes from request flooding
 app.use('/api', apiRateLimiter);
 app.use('/api', tierRateLimiter());
 
@@ -3815,6 +3817,167 @@ app.get('/api/admin/membership', adminAuth, async (req, res) => {
 
   if (!scriptUrl || !secret) {
     return res.json({ responses: [] });
+/**
+ * Notification Analytics & Feedback Loop
+ */
+app.post('/api/notifications/track', notificationRateLimiter, async (req, res) => {
+  const { userId, notificationId, eventType, action } = req.body;
+  await notificationAnalyticsRepository.logEvent(
+    userId || 'anonymous',
+    notificationId,
+    eventType,
+    action
+  );
+  return res.json({ success: true });
+});
+
+app.get('/api/notifications/stats/:userId', adminAuth, async (req, res) => {
+  const stats = await notificationAnalyticsRepository.getUserStats(req.params.userId);
+  return res.json(stats);
+});
+
+function requireNotificationAuth(req, res, next) {
+  adminAuthMiddleware.requireAdmin(req, res, (err) => {
+    if (!err && req.adminSession) {
+      return next();
+    }
+    requireStudentAuth(req, res, (err2) => {
+      if (!err2 && req.studentUser) {
+        return next();
+      }
+      return res.status(401).json({ error: 'Unauthorized: Authentication required' });
+    });
+  });
+}
+
+app.post(
+  '/api/notifications/mark-read',
+  requireNotificationAuth,
+  notificationRateLimiter,
+  async (req, res) => {
+    try {
+      const { id, userId } = req.body || {};
+      if (!id) return res.status(400).json({ error: 'id required' });
+      let uid = userId || 'global';
+      if (req.studentUser) {
+        const studentId = req.studentUser.sub || req.studentUser.id;
+        if (userId && userId !== studentId) {
+          return res
+            .status(403)
+            .json({ error: 'Forbidden: Cannot modify other users notifications' });
+        }
+        uid = studentId;
+      }
+      const ok = await notificationsService.markAsRead(uid, id);
+      return res.json({ success: ok });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+app.post(
+  '/api/notifications/mark-all-read',
+  requireNotificationAuth,
+  notificationRateLimiter,
+  async (req, res) => {
+    try {
+      const { userId } = req.body || {};
+      let uid = userId || 'global';
+      if (req.studentUser) {
+        const studentId = req.studentUser.sub || req.studentUser.id;
+        if (userId && userId !== studentId) {
+          return res.status(403).json({ error: 'Forbidden' });
+        }
+        uid = studentId;
+      }
+      await notificationsService.markAllAsRead(uid);
+      return res.json({ success: true });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+app.delete(
+  '/api/notifications/:id',
+  requireNotificationAuth,
+  notificationRateLimiter,
+  async (req, res) => {
+    try {
+      const id = req.params.id;
+      let uid = req.query.userId || 'global';
+      if (req.studentUser) {
+        const studentId = req.studentUser.sub || req.studentUser.id;
+        if (req.query.userId && req.query.userId !== studentId) {
+          return res.status(403).json({ error: 'Forbidden' });
+        }
+        uid = studentId;
+      }
+      const removed = await notificationsService.removeNotification(uid, id);
+      if (!removed) return res.status(404).json({ error: 'Notification not found' });
+      return res.json({ success: true });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+app.delete(
+  '/api/notifications',
+  requireNotificationAuth,
+  notificationRateLimiter,
+  async (req, res) => {
+    try {
+      let uid = req.query.userId || 'global';
+      if (req.studentUser) {
+        const studentId = req.studentUser.sub || req.studentUser.id;
+        if (req.query.userId && req.query.userId !== studentId) {
+          return res.status(403).json({ error: 'Forbidden' });
+        }
+        uid = studentId;
+      }
+      await notificationsService.clearAll(uid);
+      return res.json({ success: true });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+app.post('/api/notifications', adminAuth, notificationRateLimiter, async (req, res) => {
+  try {
+    const { userId, title, message, type, link } = req.body || {};
+    if (!title || !message) {
+      return res.status(400).json({ error: 'title and message are required' });
+    }
+    const note = await notificationsService.addNotification(userId || 'global', {
+      title,
+      message,
+      type,
+      link,
+    });
+    return res.json({ success: true, notification: note });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Portfolio routing support
+app.get('/api/portfolio/:username', async (req, res) => {
+  try {
+    const username = String(req.params.username || '').trim();
+    if (!username) {
+      return res.status(400).json({ error: 'Username is required' });
+    }
+    const portfolio = await portfolioRepository.getByUsername(username);
+    if (!portfolio) {
+      return res.status(404).json({ error: 'Portfolio not found' });
+    }
+    return res.json(portfolio);
+  } catch (err) {
+    console.error('Error fetching portfolio:', err);
+    return res.status(500).json({ error: err.message || 'Internal server error' });
   }
 });
 
