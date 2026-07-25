@@ -10,6 +10,7 @@ import { generateQrCodeImageBuffer, buildVerificationUrl } from '../services/cer
 import { renderCertificatePdf } from '../services/certificates/certificatePdfGenerator.js';
 import { uploadCertificatePdfToS3, uploadQrCodeToS3, downloadCertificatePdfFromS3 } from '../services/certificates/s3Storage.js';
 import { buildBadgeAssertion } from '../services/certificates/openBadgesGenerator.js';
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -80,6 +81,35 @@ export async function getMyCertificates(req, res) {
         expiresAt: certificate.expiresAt,
         pdfUrl: certificate.pdfUrl,
         qrUrl: certificate.qrUrl,
+      },
+    });
+  } catch (error) {
+    return sendError(req, res, 'Error verifying certificate', 500, 'VERIFICATION_ERROR');
+  }
+}
+
+export async function getMyCertificates(req, res) {
+  try {
+    const certificate = await prisma.certificate.findUnique({
+      where: { code },
+      include: { user: true },
+    });
+
+    if (!certificate) {
+      return sendError(req, res, 'Certificate not found', 404, 'NOT_FOUND');
+    }
+
+    return sendSuccess(res, {
+      certificate: {
+        code: certificate.code,
+        attendeeName: certificate.attendeeName || certificate.user?.name,
+        eventName: certificate.eventName,
+        date: certificate.date.toISOString().slice(0, 10),
+        completionCriteria: certificate.completionCriteria,
+        status: certificate.status,
+        verified: certificate.verified,
+        verifiedAt: certificate.verifiedAt,
+        expiresAt: certificate.expiresAt,
       },
     });
   } catch (error) {
@@ -258,6 +288,11 @@ export async function issueCertificates(req, res) {
 
       const qrUpload = await uploadQrCodeToS3({ buffer: qrBuffer, key: `certificates/qr-${code}.png` });
       const pdfUpload = await uploadCertificatePdfToS3({ buffer: pdfBuffer, key: `certificates/${code}.pdf` });
+
+  try {
+    const issued = [];
+    for (const userId of attendeeIds) {
+      const code = buildCertificateCode({ userId, eventId });
 
       const cert = await prisma.certificate.create({
         data: {
