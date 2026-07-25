@@ -533,6 +533,7 @@ export const portfolioRepository = {
             ON CONFLICT (username) DO UPDATE SET
               passkey_hash = EXCLUDED.passkey_hash,
               theme = EXCLUDED.theme,
+              customization = EXCLUDED.customization,
               visible_sections = EXCLUDED.visible_sections,
               social_links = EXCLUDED.social_links,
               custom_domain = EXCLUDED.custom_domain,
