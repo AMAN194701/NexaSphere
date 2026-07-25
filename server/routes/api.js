@@ -42,6 +42,32 @@ import announcementPriorityRouter from "./announcementPriority.js";
 import eventConflictRouter from "./eventConflict.js";
 import waitlistRoutes from "./waitlist.js";
 
+import bookmarkRoutes from './bookmark.js';
+import operationalInsightsRoutes from './operationalInsights.js';
+import * as authRefreshController from '../controllers/authRefreshController.js';
+import { validate } from '../middleware/validate.js';
+import { sendSuccess, sendError, sendNoContent } from '../utils/responseHelper.js';
+import {
+  awardXPSchema,
+  exportPDFSchema,
+  eventRegistrationSchema,
+  emailSchema,
+  addActivityEventSchema,
+  accountRecoveryRequestSchema,
+  accountRecoveryVerifySchema,
+  markAttendanceSchema,
+  adminCreateUserSchema,
+  adminUpdateUserSchema,
+  adminUpdateUserRoleSchema,
+  adminLoginSchema,
+  localLoginSchema,
+  verifyTwoFactorSchema,
+  verifyTwoFactorSetupSchema,
+  adminCreateEventSchema,
+  adminUpdateEventSchema,
+  createSubscriptionSchema,
+  adminBannerBodySchema,
+} from '../validators/routes/apiSchemas.js';
 import * as recommendationsController from '../controllers/recommendationsController.js';
 import * as gamificationController from '../controllers/gamificationController.js';
 import { studentAuthService } from '../services/studentAuthService.js';
@@ -175,6 +201,15 @@ router.put(
   attachOldState((req) => usersRepository.getUserById(req.params.id)),
   adminAuditMiddleware,
   usersController.adminUpdateUser
+);
+router.put(
+  '/api/admin/users/:id/role',
+  adminAuthMiddleware.requireAdmin,
+  adminAuthMiddleware.requireScope('users:write'),
+  attachOldState((req) => usersRepository.getUserById(req.params.id)),
+  adminAuditMiddleware,
+  validate(adminUpdateUserRoleSchema),
+  usersController.adminUpdateUserRole
 );
 router.delete(
   '/api/admin/users/:id',

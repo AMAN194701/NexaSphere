@@ -1,6 +1,7 @@
 import { usersRepository } from '../repositories/usersRepository.js';
 import { toPublicUserDTO, toAdminUserDTO } from '../utils/userSerializer.js';
 import { sendSuccess, sendError, sendNoContent } from '../utils/responseHelper.js';
+import { auditLogRepository } from '../repositories/auditLogRepository.js';
 
 const MAX_LIMIT = 100;
 const ALLOWED_ROLES = ['admin', 'user', 'moderator', 'member'];
@@ -72,8 +73,8 @@ export async function adminCreateUser(req, res) {
 export async function adminUpdateUser(req, res) {
   try {
     const { id } = req.params;
-    const { display_name, email, phone_number, admin_roles } = req.body;
-    const user = await usersRepository.updateUser(id, { display_name, email, phone_number, admin_roles });
+    const { display_name, email, phone_number } = req.body;
+    const user = await usersRepository.updateUser(id, { display_name, email, phone_number });
     if (!user) return sendError(req, res, 'User not found', 404, 'NOT_FOUND');
     return sendSuccess(res, { user });
     if (!user) return res.status(404).json({ error: 'User not found' });
@@ -92,6 +93,33 @@ export async function adminDeactivateUser(req, res) {
     return sendSuccess(res, { message: 'User deactivated', user });
   } catch (error) {
     console.error('[Admin] Error deactivating user:', error.message);
+    return sendError(req, res, 'Internal server error', 500, 'INTERNAL_ERROR');
+  }
+}
+
+export async function adminUpdateUserRole(req, res) {
+  try {
+    const { id } = req.params;
+    const { admin_roles } = req.body;
+    
+    const user = await usersRepository.updateUser(id, { admin_roles });
+    if (!user) return sendError(req, res, 'User not found', 404, 'NOT_FOUND');
+    
+    // Log audit event for role mutation
+    await auditLogRepository.insertAuditLog({
+      adminId: req.adminSession ? req.adminSession.username : 'system',
+      action: 'ROLE_UPDATED',
+      oldState: {},
+      newState: { admin_roles: user.admin_roles },
+      resourceType: 'user',
+      resourceId: id,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+    
+    return sendSuccess(res, { user });
+  } catch (error) {
+    console.error('[Admin] Error updating user role:', error.message);
     return sendError(req, res, 'Internal server error', 500, 'INTERNAL_ERROR');
   }
 }
