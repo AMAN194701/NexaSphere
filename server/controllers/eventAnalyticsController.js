@@ -67,4 +67,5 @@ export const getEventStats = wrapAsync(async (req, res) => {
 export const getEventRecommendations = wrapAsync(async (req, res) => {
   const recommendations = await getAdminEventRecommendations();
   return sendSuccess(res, recommendations);
+  return res.json(recommendations);
 });
