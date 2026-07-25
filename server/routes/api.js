@@ -7,6 +7,7 @@ import * as eventRegistrationController from '../controllers/eventRegistrationCo
 import * as usersController from '../controllers/usersController.js';
 import * as attendanceController from '../controllers/attendanceController.js';
 import * as eventAnalyticsController from '../controllers/eventAnalyticsController.js';
+import * as bannersController from '../controllers/bannersController.js';
 import { adminAuditMiddleware, attachOldState } from '../middleware/adminAuditMiddleware.js';
 import { eventsRepository } from '../repositories/eventsRepository.js';
 import { coreTeamService } from '../services/coreTeamService.js';
@@ -167,6 +168,42 @@ router.delete(
   }),
   adminAuditMiddleware,
   coreTeamController.adminDeleteCoreTeamMember
+);
+
+// Subscription management APIs
+router.get(
+  '/api/admin/subscriptions',
+  adminAuthMiddleware.requireScope('events:read'),
+  subscriptionsController.listSubscriptions
+);
+router.get(
+  '/api/admin/subscriptions/stats',
+  adminAuthMiddleware.requireScope('events:read'),
+  subscriptionsController.getStats
+);
+router.post(
+  '/api/admin/subscriptions',
+  adminAuthMiddleware.requireScope('events:write'),
+  adminAuditMiddleware,
+  subscriptionsController.createSubscription
+);
+
+// Banners Admin
+router.get('/api/admin/banners', adminAuthMiddleware.requireAdmin, bannersController.listAllBanners);
+router.post('/api/admin/banners', adminAuthMiddleware.requireAdmin, bannersController.createBanner);
+router.put('/api/admin/banners/:id', adminAuthMiddleware.requireAdmin, bannersController.updateBanner);
+router.delete('/api/admin/banners/:id', adminAuthMiddleware.requireAdmin, bannersController.deleteBanner);
+
+router.post(
+  '/api/admin/subscriptions/:userId/cancel',
+  adminAuthMiddleware.requireScope('events:write'),
+  adminAuditMiddleware,
+  subscriptionsController.cancelSubscription
+);
+router.get(
+  '/api/admin/subscriptions/:userId/billing',
+  adminAuthMiddleware.requireScope('events:read'),
+  subscriptionsController.getBillingHistory
 );
 
 // Portfolio management APIs
