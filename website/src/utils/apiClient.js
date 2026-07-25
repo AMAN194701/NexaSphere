@@ -203,6 +203,8 @@ export const apiClient = async (url, options = {}) => {
       ...fetchOptions,
       signal: combinedSignal,
       signal,
+      credentials: fetchOptions.credentials ?? 'include',
+      signal: controller.signal,
     });
 
     clearTimeout(id);

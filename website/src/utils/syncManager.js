@@ -79,10 +79,10 @@ async function replayRequest(entry) {
 
   const fetchOptions = {
     method,
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       ...headers,
-      ...authHeaders, // live token always wins
     },
   };
 

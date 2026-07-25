@@ -1,40 +1,32 @@
 // authUtils.js
-// Handles JWT decoding, proactive auto-logout scheduling, and token cleanup.
+// Token storage via sessionStorage is deprecated for admin auth.
+// Admin authentication now uses secure HttpOnly cookies and server-side session validation.
 
 import { jwtDecode } from 'jwt-decode';
-
-const TOKEN_KEY = 'admin_token';
-const STORE = sessionStorage;
 let _logoutTimer = null;
 
 /**
- * Persist token and schedule automatic logout before it expires.
- * Call this immediately after a successful login.
- *
- * @param {string} token  - Raw JWT string received from the server.
- * @param {Function} logoutFn - Your app's logout action (clears state + redirects).
+ * Client-side token persistence is deprecated; secure cookies are used instead.
  */
 export function saveTokenAndScheduleLogout(token, logoutFn) {
-  STORE.setItem(TOKEN_KEY, token);
+  console.warn('[authUtils] Token storage is deprecated. Secure cookies are used instead.');
   scheduleAutoLogout(token, logoutFn);
 }
 
 /**
- * Decode the JWT and set a timer to call logoutFn ~30 s before expiry
- * (gives any in-flight requests a chance to complete cleanly).
+ * Decode the JWT and set a timer to call logoutFn ~30 s before expiry.
  */
 export function scheduleAutoLogout(token, logoutFn) {
-  clearAutoLogoutTimer(); // cancel any previously scheduled timer
+  clearAutoLogoutTimer();
 
   try {
     const { exp } = jwtDecode(token);
     if (!exp) return;
 
-    const BUFFER_MS = 30_000; // 30-second safety buffer
+    const BUFFER_MS = 30_000;
     const msUntilExpiry = exp * 1000 - Date.now() - BUFFER_MS;
 
     if (msUntilExpiry <= 0) {
-      // Token already expired (or expiring imminently) — log out right away.
       logoutFn();
       return;
     }
@@ -48,7 +40,7 @@ export function scheduleAutoLogout(token, logoutFn) {
   }
 }
 
-/** Cancel a pending auto-logout timer (e.g. on manual logout or token refresh). */
+/** Cancel a pending auto-logout timer. */
 export function clearAutoLogoutTimer() {
   if (_logoutTimer !== null) {
     clearTimeout(_logoutTimer);
@@ -58,23 +50,11 @@ export function clearAutoLogoutTimer() {
 
 /** Return the stored token, or null if absent. */
 export function getToken() {
-  return STORE.getItem(TOKEN_KEY);
+  return null;
 }
 
-/** Wipe the token from storage (call inside your logoutFn). */
-export function removeToken() {
-  STORE.removeItem(TOKEN_KEY);
-}
+/** Wipe the token from storage (no-op for secure cookies). */
+export function removeToken() {}
 
-/**
- * Re-hydrate the auto-logout timer on page reload.
- * Call once during app bootstrap (e.g. inside useEffect in <App>).
- *
- * @param {Function} logoutFn
- */
-export function rehydrateSession(logoutFn) {
-  const token = getToken();
-  if (token) {
-    scheduleAutoLogout(token, logoutFn);
-  }
-}
+/** Re-hydrate session state from secure cookies (no-op). */
+export function rehydrateSession() {}

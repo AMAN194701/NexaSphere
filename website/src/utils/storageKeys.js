@@ -26,6 +26,9 @@ export const STORAGE_KEYS = {
    * @example
    * localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, 'eyJhbGciOiJIUzI1NiIs...');
    * const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+   * JWT issued by /api/auth — deprecated for direct storage.
+   * Authentication should be handled via HttpOnly cookies instead
+   * of JS-readable localStorage/sessionStorage.
    */
   AUTH_TOKEN: 'ns_student_token',
 

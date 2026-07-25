@@ -27,6 +27,12 @@ export function StudentAuthProvider({ children }) {
       }
     } catch {
       localStorage.removeItem('ns_user');
+      const options = token
+        ? { headers: { Authorization: `Bearer ${token}` } }
+        : undefined;
+      const data = await apiClient('/api/auth/me', options);
+      setUser(data.user);
+    } catch {
       setUser(null);
     }
   }, []);
@@ -57,6 +63,7 @@ export function StudentAuthProvider({ children }) {
     } else {
       setLoading(false);
     }
+    fetchMe().finally(() => setLoading(false));
   }, [fetchMe]);
 
   useEffect(() => {

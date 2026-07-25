@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import DashboardStats from '../../components/admin/analytics/DashboardStats';
 import UserGrowthChart from '../../components/admin/analytics/UserGrowthChart';
 import EventAttendanceChart from '../../components/admin/analytics/EventAttendanceChart';
-import useLocalStorage from '../../hooks/useLocalStorage';
 import '../../components/admin/analytics/analytics.css';
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -29,6 +28,7 @@ export default function AdminPage({ onBack }) {
   const [isLoggedIn, setIsLoggedIn] = useState(
     () => localStorage.getItem('ns_admin_logged_in') === 'true'
   );
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loginData, setLoginData] = useState({ username: '', password: '' });
   const [token, setToken] = useState(() =>
     localStorage.getItem("ns_admin_token")
@@ -40,7 +40,7 @@ export default function AdminPage({ onBack }) {
     events: [],
   });
 
-  const fetchAnalytics = async (authToken) => {
+  const fetchAnalytics = async () => {
     try {
       setLoading(true);
       const base = (import.meta?.env?.VITE_API_BASE || '').replace(/\/+$/, '');
@@ -48,13 +48,13 @@ export default function AdminPage({ onBack }) {
       const headers = { Authorization: `Bearer ${authToken}` };
 
       const [statsRes, growthRes, eventsRes] = await Promise.all([
-        fetch(`${base}/api/admin/analytics/stats`, { headers }),
-        fetch(`${base}/api/admin/analytics/growth`, { headers }),
-        fetch(`${base}/api/admin/analytics/events`, { headers }),
+        fetch(`${base}/api/admin/analytics/stats`, { credentials: 'include' }),
+        fetch(`${base}/api/admin/analytics/growth`, { credentials: 'include' }),
+        fetch(`${base}/api/admin/analytics/events`, { credentials: 'include' }),
       ]);
 
       if (statsRes.status === 401) {
-        setToken(null);
+        setIsAuthenticated(false);
         throw new Error('Session expired. Please login again.');
         localStorage.removeItem("ns_admin_token");
         throw new Error("Session expired. Please login again.");
@@ -84,10 +84,10 @@ export default function AdminPage({ onBack }) {
 
       setData({ stats, growth, events });
       setError(null);
+      setIsAuthenticated(true);
     } catch (err) {
       setError(err.message);
-      // Fallback for dev environment if token is present but API fails
-      if (import.meta.env.DEV && authToken) {
+      if (import.meta.env.DEV) {
         console.warn('Using fallback mock data for analytics');
         setData({
           stats: {
@@ -97,7 +97,9 @@ export default function AdminPage({ onBack }) {
             conversionRate: '12.5%',
           },
           growth: Array.from({ length: 30 }, (_, i) => ({
-            date: new Date(Date.now() - (30 - i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            date: new Date(Date.now() - (30 - i) * 24 * 60 * 60 * 1000)
+              .toISOString()
+              .split('T')[0],
             registrations: Math.floor(Math.random() * 20) + i,
           })),
           events: [
@@ -112,10 +114,8 @@ export default function AdminPage({ onBack }) {
   };
 
   useEffect(() => {
-    if (token) {
-      fetchAnalytics(token);
-    }
-  }, [token]);
+    fetchAnalytics();
+  }, []);
 
   useEffect(() => {
     if (!token) return;
@@ -286,6 +286,7 @@ export default function AdminPage({ onBack }) {
       const base = (import.meta?.env?.VITE_API_BASE || "").replace(/\/+$/, "");
       const res = await fetch(`${base}/api/admin/login`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(loginData),
         credentials: 'include',
@@ -316,6 +317,9 @@ export default function AdminPage({ onBack }) {
       localStorage.setItem("ns_admin_token", result.token);
       setToken(result.token);
       toast.success("Successfully logged in as admin!");
+      setError(null);
+      setIsAuthenticated(true);
+      await fetchAnalytics();
     } catch (err) {
       setError(err.message);
       toast.error(err.message || "Login failed.");
@@ -339,10 +343,14 @@ export default function AdminPage({ onBack }) {
     }
     localStorage.removeItem('ns_admin_logged_in');
     setIsLoggedIn(false);
+    } catch {
+      // ignore
+    }
+    setIsAuthenticated(false);
     setData({ stats: null, growth: [], events: [] });
   };
 
-  if (!token) {
+  if (!isAuthenticated) {
     return (
       <div className="analytics-dashboard" style={{ maxWidth: 400, marginTop: '10vh' }}>
         <button onClick={onBack} className="btn-back">

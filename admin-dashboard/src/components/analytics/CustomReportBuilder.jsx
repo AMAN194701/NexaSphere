@@ -17,9 +17,9 @@ export function CustomReportBuilder() {
         `${import.meta.env.VITE_API_BASE}/api/admin/analytics/reports/execute`,
         {
           method: 'POST',
+          credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
           body: JSON.stringify({ metric, timeRange }),
         }
@@ -38,9 +38,9 @@ export function CustomReportBuilder() {
     try {
       await fetch(`${import.meta.env.VITE_API_BASE}/api/admin/analytics/reports`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
         body: JSON.stringify({ name, description, config: { metric, timeRange } }),
       });

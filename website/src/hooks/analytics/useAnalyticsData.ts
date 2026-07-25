@@ -71,13 +71,11 @@ export function useAnalyticsData(): AnalyticsDataState {
     }
 
     const base = getApiBase();
-    const token = localStorage.getItem('ns_student_token');
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
     Promise.all([
-      apiClient(`${base}/api/admin/analytics/stats`, { headers }),
-      apiClient(`${base}/api/admin/analytics/growth`, { headers }),
-      apiClient(`${base}/api/admin/analytics/events`, { headers }),
+      apiClient(`${base}/api/admin/analytics/stats`),
+      apiClient(`${base}/api/admin/analytics/growth`),
+      apiClient(`${base}/api/admin/analytics/events`),
     ])
       .then(([statsResult, growthResult, eventsResult]) => {
         if (!isMounted) return;
