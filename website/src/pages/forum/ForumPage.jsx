@@ -68,6 +68,13 @@ export default function ForumPage({ onBack }) {
           }
           setThreads(fallbackThreads);
         }
+      .then(([catData, threadData]) => {
+        if (catData?.categories) setCategories(catData.categories);
+        if (threadData?.threads) setThreads(threadData.threads);
+      })
+      .catch(() => {
+        setCategories(fallbackCategories);
+        setThreads(fallbackThreads);
       })
       .finally(() => setLoading(false));
   }, [sort, activeCategory]);
