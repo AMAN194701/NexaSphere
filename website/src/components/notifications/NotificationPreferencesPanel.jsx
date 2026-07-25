@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import prefsService from '../../services/notifications/preferences';
+import apiClient from '../../utils/apiClient';
+import { useStudentAuth } from '../../context/StudentAuthContext';
 
 const CATEGORIES = [
   { key: 'event_reminders', label: 'Event Reminders', desc: 'Reminders for your events' },
@@ -41,6 +43,7 @@ export default function NotificationPreferencesPanel({ userId, onClose }) {
     (async () => {
       try {
         const list = await prefsService.fetchPreferences(userId);
+        const data = await apiClient(`/api/notifications/preferences?userId=${effectiveUserId}`);
         const map = {};
         for (const p of list || []) {
           map[p.category] = {
@@ -103,12 +106,17 @@ export default function NotificationPreferencesPanel({ userId, onClose }) {
         dnd: !!global.dnd,
         quiet_start: global.quiet_start,
         quiet_end: global.quiet_end,
+      await apiClient('/api/notifications/preferences/bulk', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: effectiveUserId, preferences: bulk }),
       });
     } catch (e) {
       // ignore
     }
     setSaving(false);
   }, [prefs, userId, global]);
+  }, [prefs, effectiveUserId]);
 
   if (!loaded)
     return (
