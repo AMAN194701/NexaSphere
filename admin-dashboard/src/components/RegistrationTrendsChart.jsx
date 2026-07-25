@@ -18,6 +18,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+import { Skeleton } from './Skeleton';
 import analyticsAPI from '../services/analyticsAPI.js';
 
 export default function RegistrationTrendsChart({
@@ -96,9 +97,8 @@ export default function RegistrationTrendsChart({
       </div>
 
       {loading ? (
-        <div className="chart-loading">
-          <div className="spinner"></div>
-          <p>Loading trends...</p>
+        <div style={{ padding: '20px' }}>
+          <Skeleton height={350} />
         </div>
       ) : chartData && chartData.length > 0 ? (
         <ResponsiveContainer width="100%" height={350}>
