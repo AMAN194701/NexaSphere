@@ -51,6 +51,18 @@ export function useRecommendations(userId, { limit = 10, page = 1 } = {}) {
         });
       } catch (err) {
         console.error('[useRecommendations] track error:', err);
+  const trackEvent = useCallback((eventId, action, metadata) => {
+    userInterestTracker.trackEventInteraction(eventId, action, metadata);
+    // Ideally, this interaction should be sent to the backend for the ML model's feedback loop.
+    // Example: axios.post(`${import.meta.env.VITE_API_BASE}/user-interactions`, { userId: '101', eventId, action, metadata });
+  }, []);
+
+  const getSimilarEvents = useCallback(
+    (event, limit = 3) => {
+      // This function for "similar events" could either remain client-side (if purely content-based)
+      // or be moved to a backend endpoint (e.g., /api/events/{id}/similar) for ML-driven similarity.
+      if (similarEvents[event.id]) {
+        return similarEvents[event.id];
       }
     },
     [userId]
