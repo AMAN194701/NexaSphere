@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 
@@ -36,6 +37,8 @@ function CopyPopup({ value, onClose }) {
       });
   };
 
+  const timerRef = useRef(null);
+
   useEffect(() => {
     const handler = (e) => {
       if (!e.target.closest('.copy-popup')) onClose();
@@ -50,6 +53,19 @@ function CopyPopup({ value, onClose }) {
       }
       if (copiedTimeoutRef.current) {
         clearTimeout(copiedTimeoutRef.current);
+    // Defer addEventListener by one tick so the triggering click that
+    // opened the popup does not immediately close it. Store the timer
+    // in a ref so cleanup can cancel it if the component unmounts
+    // before the tick fires — prevents addEventListener running after
+    // removeEventListener and leaving a dangling handler on document.
+    timerRef.current = setTimeout(() => {
+      document.addEventListener('click', handler);
+      timerRef.current = null;
+    }, 0);
+    return () => {
+      if (timerRef.current !== null) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
       }
       document.removeEventListener('click', handler);
     };
@@ -97,6 +113,10 @@ function ModalContent({ member, onClose }) {
   const modalRef = useFocusTrap(true, onClose);
 
   useEffect(() => {
+    const handler = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handler);
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = '';
