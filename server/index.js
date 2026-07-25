@@ -275,6 +275,22 @@ app.use(
 
         objectSrc: ["'none'"],
 
+//  feat/i18n-localization-1397
+//  feat/i18n-localization-1397
+
+//  fix/csp-helmet-config-1475
+//  main
+        // ✅ CRITICAL FIX: Missing directives added below
+        baseUri: ["'self'"],                                    // Prevents <base> tag injection
+        frameAncestors: ["'none'"],                             // Prevents clickjacking
+        formAction: ["'self'"],                                 // Prevents form submission to external sites
+        workerSrc: ["'self'", 'blob:'],                         // Restricts web worker sources
+        manifestSrc: ["'self'"],                                // Restricts manifest sources
+        mediaSrc: ["'self'"],                                   // Restricts media sources
+        frameSrc: ["'self'", 'https://challenges.cloudflare.com', 'https://maps.google.com'], // Restricts iframe sources
+        childSrc: ["'none'"],                                   // Restricts child browsing contexts
+        upgradeInsecureRequests: [],                            // Upgrades HTTP to HTTPS
+
         baseUri: ["'self'"],
         frameAncestors: ["'none'"],
         formAction: ["'self'"],
