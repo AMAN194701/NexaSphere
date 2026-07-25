@@ -96,6 +96,7 @@ const ResourcesPage = lazy(() => import('./pages/resources/ResourcesPage'));
 const NotificationHistoryPage = lazy(() => import('./pages/notifications/NotificationHistoryPage'));
 const SponsorsPage = lazy(() => import('./pages/sponsors/SponsorsPage'));
 
+const ResourcesPage = lazy(() => import('./pages/resources/ResourcesPage')); //issue #1861
 const MNH = 88,
   DNH = 64;
 
