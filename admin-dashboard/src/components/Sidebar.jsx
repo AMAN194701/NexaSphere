@@ -296,6 +296,9 @@ export function Sidebar() {
       >
         <span className={`ham-line${open ? ' open' : ''}`} />
 
+        <span // a11y: aria-current indicates the active page to screen readers
+              aria-current={isActive ? 'page' : undefined}
+              className={`ham-line${open ? ' open' : ''}`} />
         <span className={`ham-line${open ? ' open' : ''}`} />
 
         <span className={`ham-line${open ? ' open' : ''}`} />
