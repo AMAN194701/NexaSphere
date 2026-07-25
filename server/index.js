@@ -1,3 +1,5 @@
+import logger from './utils/logger.js';
+import { getRedisClient } from './utils/redis.js';
 import 'dotenv/config';
 ﻿import 'dotenv/config';
 import { tracedFetch } from './config/appContext.js';
@@ -466,6 +468,58 @@ app.use(apiLogger);
 app.use(performanceMonitor);
 app.use(cookieParser());
 
+// Verify Redis URL protocol in production
+const redisSessionUrl = process.env.REDIS_URL || '';
+if (process.env.NODE_ENV === 'production' && !redisSessionUrl.startsWith('rediss://')) {
+  console.warn('Security Warning: Redis URL should use rediss:// for TLS in production.');
+}
+// Reuse the existing getRedisClient if possible, else create a new one
+let sessionClient = getRedisClient();
+if (!sessionClient) {
+  sessionClient = new Redis(redisSessionUrl);
+app.use(
+  session({
+    store: new RedisStore({ client: sessionClient, prefix: 'session:express:' }),
+    secret: SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    name: 'ns_session',
+    cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+      sameSite: 'strict',
+      maxAge: process.env.NODE_ENV === 'production' ? 8 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000,
+    },
+  })
+);
+// Session logging middleware
+app.use((req, res, next) => {
+  if (req.session && !req.session.created_at) {
+    req.session.created_at = Date.now();
+    req.session.ip = req.ip || req.connection?.remoteAddress || 'unknown';
+    logger.info('[Session] New session created:', req.sessionID, 'IP:', req.session.ip);
+  } else if (
+    req.session &&
+    req.session.ip &&
+    req.session.ip !== (req.ip || req.connection?.remoteAddress)
+  ) {
+    console.warn(
+      '[Session] Suspicious activity: Session accessed from different IP. Original:',
+      req.session.ip,
+      'New:',
+      req.ip || req.connection?.remoteAddress
+  next();
+});
+// Idle timeout middleware (30 mins)
+  if (req.session) {
+    const now = Date.now();
+    if (req.session.lastActive && now - req.session.lastActive > 30 * 60 * 1000) {
+      logger.info('[Session] Destroying idle session:', req.sessionID);
+      req.session.destroy((err) => {
+        if (err) console.error('[Session] Error destroying idle session:', err);
+        return res.status(401).json({ error: 'Session expired due to inactivity' });
+      return;
+    req.session.lastActive = now;
 // Track app activity for smart notification frequency adjustment
 app.use((req, res, next) => {
   if (req.studentUser || req.adminSession) {
@@ -1620,6 +1674,8 @@ app.post('/api/notifications/analytics', async (req, res) => {
     // Minimal validation â€” in future route can forward to analytics pipeline
     console.log('[notification-analytics]', event.type || 'unknown', event);
     return res.json({ ok: true });
+    logger.info('[notification-analytics]', event.type || 'unknown', event);
+    return sendSuccess(res, { ok: true });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
@@ -1767,7 +1823,7 @@ if (process.env.NODE_ENV !== 'test') {
       loadPersistedPushSubscriptions();
       slackIntegrationService.init();
       server = app.listen(port, () => {
-        console.log(`NexaSphere server listening on http://localhost:${port}`);
+        logger.info(`NexaSphere server listening on http://localhost:${port}`);
         schedulerService.init();
       });
       server.on('error', (err) => {
@@ -1779,7 +1835,7 @@ if (process.env.NODE_ENV !== 'test') {
     loadPersistedPushSubscriptions();
     slackIntegrationService.init();
     server = app.listen(port, () => {
-      console.log(`NexaSphere server listening on http://localhost:${port}`);
+      logger.info(`NexaSphere server listening on http://localhost:${port}`);
       schedulerService.init();
       startWebhookRetryProcessor();
     });
