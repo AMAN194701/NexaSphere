@@ -7,6 +7,8 @@ const CertificateVerifyPage = () => {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
+import { useEffect, useState } from 'react';
+import { getApiBase } from '../../utils/runtimeConfig';
 import apiClient from '../../utils/apiClient.js';
 
 // ---------------------------------------------------------------------------
