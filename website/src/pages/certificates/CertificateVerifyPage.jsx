@@ -9,6 +9,7 @@ const CertificateVerifyPage = () => {
 
 import { useEffect, useState } from 'react';
 import { getApiBase } from '../../utils/runtimeConfig';
+import { isSafari } from '../../utils/deviceDetection';
 import apiClient from '../../utils/apiClient.js';
 
 // ---------------------------------------------------------------------------
@@ -69,6 +70,36 @@ import apiClient from '../../utils/apiClient.js';
   const downloadUrl = cert
     ? `${getApiBase()}/api/public/certificates/${encodeURIComponent(cert.certificate_id)}/download`
     : null;
+  };
+
+  const handleDownload = async (e) => {
+    e.preventDefault();
+    if (!downloadUrl || !cert) return;
+    try {
+      const res = await fetch(downloadUrl);
+      if (!res.ok) throw new Error('Download failed');
+      const blob = await res.blob();
+      const filename = `cert_${cert.certificate_id}.pdf`;
+      const blobUrl = URL.createObjectURL(blob);
+
+      if (isSafari()) {
+        // Safari (iOS & macOS) ignores the `download` attribute on
+        // cross-origin links, so open the blob in a new tab instead.
+        const newTab = window.open(blobUrl, '_blank');
+        if (!newTab) window.location.href = blobUrl;
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+      } else {
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(blobUrl);
+      }
+    } catch (err) {
+      console.error('Certificate download failed:', err);
+    }
   };
 
   const handleDownload = async (e) => {
