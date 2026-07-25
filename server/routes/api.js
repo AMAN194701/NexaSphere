@@ -106,6 +106,7 @@ const resourceDiscoveryRoutes = require("./resourceDiscovery");
 const notificationCampaignRoutes = require("./notificationCampaign");
 const maintenanceRoutes = require("./maintenance");
 const workspaceRoutes = require("./workspace");
+import * as learningPathsController from '../controllers/learningPathsController.js';
 const router = Router();
 
 // Public
@@ -632,6 +633,13 @@ router.delete(
     }
   }
 );
+router.get('/api/learning-paths', learningPathsController.listLearningPaths);
+
+router.get('/api/learning-paths/:id', learningPathsController.getLearningPath);
+
+router.post('/api/learning-paths/enroll', learningPathsController.enrollUser);
+
+router.get('/api/learning-paths/dashboard/:userId', learningPathsController.getDashboard);
 
 // Waiting room management API
 // Waiting room management API
