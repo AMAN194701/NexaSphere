@@ -278,6 +278,15 @@ import { eventsService } from "./services/eventsService.js";
 import { coreTeamService } from "./services/coreTeamService.js";
 import notificationsService from "./services/notificationsService.js";
 import { portfolioRepository } from "./repositories/portfolioRepository.js";
+import * as eventsController from './controllers/eventsController.js';
+import * as activityEventsController from './controllers/activityEventsController.js';
+import * as coreTeamController from './controllers/coreTeamController.js';
+import * as formsController from './controllers/formsController.js';
+import { eventsService } from './services/eventsService.js';
+import { coreTeamService } from './services/coreTeamService.js';
+import notificationsService from './services/notificationsService.js';
+import { portfolioRepository } from './repositories/portfolioRepository.js';
+import { getWorkspaceDocument, saveWorkspaceDocument } from './repositories/workspaceRepository.js';
 
 validateLimiters();
 import adminStreamRouter from './routes/adminStream.js';
@@ -3186,6 +3195,29 @@ app.delete(
   adminAuth,
   eventsController.adminDeleteEvent
 );
+
+// Workspace Document Persistence
+app.get('/api/workspace/:roomId', async (req, res) => {
+  try {
+    const doc = await getWorkspaceDocument(req.params.roomId);
+    res.json(doc || { roomId: req.params.roomId, content: '', version: 0 });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/workspace/:roomId', async (req, res) => {
+  try {
+    const { content, version } = req.body;
+    if (typeof content !== 'string') {
+      return res.status(400).json({ error: 'content must be a string' });
+    }
+    const result = await saveWorkspaceDocument(req.params.roomId, content, version || 0);
+    res.json({ ok: true, version: result.version });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // Public listings
 app.get("/api/content/team", async (req, res) => {
