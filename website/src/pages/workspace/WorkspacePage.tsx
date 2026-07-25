@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import { useSocketSync } from '../../hooks/useSocketSync';
 import { useWorkspaceStore } from '../../store/workspaceStore';
 import { useStudentAuth } from '../../context/StudentAuthContext';
@@ -74,6 +74,19 @@ export default function WorkspacePage({ roomId, onBack }: WorkspacePageProps) {
     color: `hsl(${Math.floor(Math.random() * 360)}, 70%, 50%)`,
     initials: "U",
   });
+  const { user: authUser } = useStudentAuth();
+  const [anonUser] = useState(getOrCreateAnonUser);
+
+  const user = useMemo(() => {
+    if (authUser?.name) {
+      return {
+        name: authUser.name,
+        initials: authUser.name.substring(0, 2).toUpperCase(),
+        color: anonUser.color,
+      };
+    }
+    return anonUser;
+  }, [authUser, anonUser]);
 
   const { updateDocContent, updateLocalCursor, updateLocalTyping } =
     useCollaborativeDoc(roomId, user);
