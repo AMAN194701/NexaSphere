@@ -46,6 +46,7 @@ import { useBackToTop } from './hooks/useScrollLogic';
 
 // Shared layout and telemetry widgets
 import Navbar from './shared/Navbar';
+import SkipLink from './components/common/SkipLink';
 import MoveToTop from './shared/MoveToTop';
 import Chatbot from './shared/Chatbot';
 import ScrollProgress from './shared/ScrollProgress';
@@ -798,6 +799,7 @@ function MainRouter({
     <SessionRecordingProvider sessionId={sessionId}>
       {cinDone && <AmbientOrbs theme={theme} />}
       <SkipLink targetId="main-content" label="Skip to main content" />
+      <SkipLink />
       {cinDone && (
         <Navbar
           activeTab={activeTab}
