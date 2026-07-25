@@ -109,7 +109,7 @@
     "compression": "^1.8.1",
     "axe-playwright": "^2.2.2",
     "bcryptjs": "^3.0.3",
-    "bullmq": "^5.80.8",
+    "bullmq": "^5.80.10",
     "compression": "^1.8.1",
     "connect-redis": "^9.0.0",
     "compression": "^1.7.4",
