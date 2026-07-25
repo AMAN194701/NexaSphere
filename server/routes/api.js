@@ -48,6 +48,8 @@ import * as gamificationController from '../controllers/gamificationController.j
 import { studentAuthService } from '../services/studentAuthService.js';
 import * as recommendationsController from '../controllers/recommendationsController.js';
 import * as gamificationController from '../controllers/gamificationController.js';
+import * as recommendationsController from '../controllers/recommendationsController.js';
+import * as gamificationController from '../controllers/gamificationController.js';
 import multer from 'multer';
 import settingsRouter from './settingsRoutes.js';
 import { impersonationService } from '../services/impersonationService.js';

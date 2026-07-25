@@ -48,6 +48,13 @@ router.use(
 );
 async function redis() {
   return getRedisClient();
+
+async function redis() {
+  try {
+    return getRedisClient();
+  } catch {
+    return null;
+  }
 }
 
 

@@ -12,6 +12,13 @@
 - [ ] Run website build + unit tests
 - [ ] Run e2e tests that cover offline/registration flows (if feasible)
 # TODO - Event Stream Processing & Real-Time Analytics (#1776)
+# NexaSphere Monorepo TODO Checklist
+
+This file tracks the status of major features and integrations planned for NexaSphere.
+
+---
+
+## 1. Event Stream Processing & Real-Time Analytics (#1776)
 
 # TODO - Event Stream Processing & Real-Time Analytics (#1776)
 # NexaSphere Monorepo TODO Checklist

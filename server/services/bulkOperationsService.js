@@ -300,6 +300,30 @@ class BulkOperationsService {
             const plainPassword = crypto.randomBytes(4).toString('hex'); // 8 char temp password
             const passwordHash = await bcrypt.hash(plainPassword, 10);
 
+              [
+                user.display_name || existing.display_name,
+                user.username,
+                user.role,
+                user.status,
+                user.major || null,
+                user.year || null,
+                updatedTags,
+                existing.id,
+              ]
+            );
+            newState.push({
+              type: 'update',
+              table: 'users',
+              key: existing.id,
+              data: updatedRows[0],
+            });
+          } else {
+            // Create new user with password
+            const id = `user-${crypto.randomUUID()}`;
+            const updatedTags = JSON.stringify(user.tags);
+            const plainPassword = crypto.randomBytes(4).toString('hex'); // 8 char temp password
+            const passwordHash = await bcrypt.hash(plainPassword, 10);
+
             const { rows: insertedRows } = await client.query(
               `INSERT INTO users (id, username, display_name, email, role, admin_roles, status, major, year, tags, password_hash, created_at, updated_at)
                  VALUES ($1, $2, $3, $4, $5, $5, $6, $7, $8, $9, $10, NOW(), NOW()) RETURNING *`,

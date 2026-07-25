@@ -337,6 +337,9 @@ app.use(
 app.use(
   cors({
     origin: (origin, callback) => {
+app.use(
+  cors({
+    origin: (origin, callback) => {
       if (!origin) {
         return callback(null, true);
       }
