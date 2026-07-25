@@ -11,6 +11,8 @@ import RegistrationTrendsChart from './RegistrationTrendsChart';
 import RecentRegistrationsList from './RecentRegistrationsList';
 import CheckInStatsChart from './CheckInStatsChart';
 import AnalyticsExport from './AnalyticsExport';
+import { Skeleton } from './Skeleton';
+import { DashboardCardSkeleton } from './DashboardCardSkeleton';
 import '../styles/analytics-dashboard.css';
 
 export default function AnalyticsDashboard({ eventId }) {
@@ -113,10 +115,33 @@ export default function AnalyticsDashboard({ eventId }) {
       </div>
 
       {loading && metrics === null ? (
-        <div className="loading-state">
-          <div className="spinner"></div>
-          <p>Loading analytics data...</p>
-        </div>
+        <>
+          <div className="metrics-cards-section">
+            <div className="metrics-grid">
+              <DashboardCardSkeleton />
+              <DashboardCardSkeleton />
+              <DashboardCardSkeleton />
+              <DashboardCardSkeleton />
+              <DashboardCardSkeleton />
+            </div>
+          </div>
+          <div className="charts-section">
+            <div className="chart-container">
+              <Skeleton height={350} />
+            </div>
+            <div className="chart-container">
+              <Skeleton height={350} />
+            </div>
+          </div>
+          <div className="dashboard-bottom">
+            <div className="recent-activity">
+              <Skeleton height={200} />
+            </div>
+            <div className="export-section">
+              <Skeleton height={200} />
+            </div>
+          </div>
+        </>
       ) : (
         <>
           {/* Live Metrics Cards */}
