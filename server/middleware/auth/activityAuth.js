@@ -37,6 +37,7 @@ import {
   normalizePhone,
   listCoreTeamStore,
 } from '../../repositories/contentStore.js';
+import { timingSafeStringEqual, normalizePhone, listCoreTeamStore } from '../../repositories/contentStore.js';
 
 export async function canManageActivityEvent({ name, email, phone, password }) {
   const expectedPassword = process.env.ADMIN_EVENT_PASSWORD;

@@ -106,3 +106,4 @@ let targetJs = js.replace(
   replacement + '\nfunction clearPasskeyAttempts'
 );
 fs.writeFileSync('server/index.js', targetJs);
+}

@@ -375,6 +375,8 @@ router.get('/notifications', async (req, res) => {
 
 router.get('/notifications/preferences', requireNotificationPrefAuth, async (req, res) => {
 router.get('/notifications/preferences', requireNotificationAuth, async (req, res) => {
+
+router.get('/notifications/preferences', requireNotificationPrefAuth, async (req, res) => {
   try {
     const userId = req.query.userId || 'global';
     const prefs = await notificationPreferencesRepository.list(userId);
@@ -390,6 +392,12 @@ router.put('/notifications/preferences', requireNotificationAuth, async (req, re
     const userId = req.body.userId || 'global';
     const { category, email, push, in_app, sms, frequency, quiet_start, quiet_end, dnd } = req.body;
     if (!category) return sendError(req, res, 'category is required', 400, 'VALIDATION_ERROR');
+
+router.put('/notifications/preferences', requireNotificationPrefAuth, async (req, res) => {
+  try {
+    const userId = req.body.userId || 'global';
+    const { category, email, push, in_app, sms, frequency, quiet_start, quiet_end, dnd } = req.body;
+    if (!category) return res.status(400).json({ error: 'category is required' });
     const pref = await notificationPreferencesRepository.set(userId, category, {
       email,
       push,
@@ -408,6 +416,8 @@ router.put('/notifications/preferences', requireNotificationAuth, async (req, re
 
 router.put('/notifications/preferences/bulk', validate(bulkPreferencesSchema), requireNotificationPrefAuth, async (req, res) => {
 router.put('/notifications/preferences/bulk', requireNotificationAuth, async (req, res) => {
+
+router.put('/notifications/preferences/bulk', requireNotificationPrefAuth, async (req, res) => {
   try {
     const userId = req.body.userId || 'global';
     const { preferences } = req.body;
@@ -432,5 +442,19 @@ router.post('/notifications/analytics', async (req, res) => {
     return sendError(req, res, err.message, 500, 'INTERNAL_ERROR');
   }
 });
+
+
+// Notification analytics (lightweight collector)
+router.post('/notifications/analytics', async (req, res) => {
+  try {
+    const event = req.body || {};
+    // Minimal validation — in future route can forward to analytics pipeline
+    console.log('[notification-analytics]', event.type || 'unknown', event);
+    return res.json({ ok: true });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 
 export default router;

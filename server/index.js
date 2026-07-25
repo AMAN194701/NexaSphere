@@ -372,6 +372,16 @@ import { schedulerService } from './services/schedulerService.js';
 import dynamicPricingRouter from './routes/dynamicPricing.js';
 
 // Fail fast on startup if any rate limiter failed to export correctly.
+  normalizePhone
+} from './repositories/contentStore.js';
+
+import { checkPasskeyLockout, recordFailedPasskeyAttempt, clearPasskeyAttempts } from './middleware/auth/passkeyLockout.js';
+import { checkActivityAuthLockout, recordFailedActivityAuth, clearActivityAuthAttempts, canManageActivityEvent } from './middleware/auth/activityAuth.js';
+import { requireNotificationPrefAuth, requireMentorshipAuth } from './middleware/auth/customAuth.js';
+import { uploadWithMagicCheck, validateMagicBytes, UPLOADS_DIR } from './middleware/uploadMiddleware.js';
+
+import circuitBreakerRouter from './routes/circuitBreaker.js';
+
 validateLimiters();
 import adminStreamRouter from './routes/adminStream.js';
 import { portfolioRepository } from './repositories/portfolioRepository.js';
@@ -2311,6 +2321,9 @@ app.use('/api', certificatesRouter);
 // ── File Upload Configuration ──
 app.use('/uploads', express.static(UPLOADS_DIR));
 
+// ── File Upload Configuration ──
+app.use('/uploads', express.static(UPLOADS_DIR));
+
 // Compliance & Legal Documents (handles both public and admin routes internally)
 app.use('/api/compliance', complianceRouter);
 
@@ -3803,6 +3816,16 @@ app.patch(
   validate(indexSchemas.answerQuestionSchema),
   adminAuth,
   streamController.answerQuestion
+app.patch('/api/streams/questions/:qId/answer', adminAuth, streamController.answerQuestion);
+app.post('/api/streams/:id/reactions', streamController.addReaction);
+app.get('/api/streams/:id/reactions', streamController.getReactions);
+
+// Public listings
+// Admin Team Management
+app.get(
+  '/api/admin/core-team',
+  adminAuthMiddleware.requireScope('settings:admin'),
+  coreTeamController.adminListCoreTeamMembers
 );
 app.post(
   '/api/streams/:id/reactions',
@@ -5425,6 +5448,7 @@ app.use('/api/admin/circuit-breaker', circuitBreakerRouter);
       return sendSuccess(res, { preferences: results });
     } catch (err) {
       return sendError(req, res, err.message, 500, 'INTERNAL_ERROR');
+app.use('/api/admin/circuit-breaker', circuitBreakerRouter);
 
 // Notification analytics (lightweight collector)
 app.post('/api/notifications/analytics', async (req, res) => {
