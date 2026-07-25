@@ -5,7 +5,10 @@ datasource db {
 
 generator client {
   provider = "prisma-client-js"
+<<<<<<< HEAD
   output   = "../server/node_modules/.prisma/client"
+=======
+>>>>>>> origin/pr/1398
 }
 
 model User {
@@ -18,6 +21,7 @@ model User {
   workspaceMembers WorkspaceMember[]
   posts            Post[]
   logs             Log[]
+<<<<<<< HEAD
   feedbacks        EventFeedback[]
   actionItems      ActionItem[]
   settingsChanges  SettingsChangeLog[]
@@ -48,16 +52,51 @@ model WorkspaceMember {
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   role      Role      @relation(fields: [roleId], references: [id])
+=======
+}
+
+model Workspace {
+  id          String            @id @default(uuid())
+  name        String
+  slug        String            @unique
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  members     WorkspaceMember[]
+  roles       Role[]
+  posts       Post[]
+  logs        Log[]
+}
+
+model WorkspaceMember {
+  id          String    @id @default(uuid())
+  workspaceId String
+  userId      String
+  roleId      String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        Role      @relation(fields: [roleId], references: [id])
+>>>>>>> origin/pr/1398
 
   @@unique([workspaceId, userId])
 }
 
 model Role {
+<<<<<<< HEAD
   id          String   @id @default(uuid())
   name        String
   workspaceId String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+=======
+  id          String            @id @default(uuid())
+  name        String
+  workspaceId String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+>>>>>>> origin/pr/1398
 
   workspace   Workspace?        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   permissions Permission[]      @relation("RolePermissions")
@@ -73,6 +112,7 @@ model Permission {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+<<<<<<< HEAD
   roles Role[] @relation("RolePermissions")
 }
 
@@ -92,10 +132,32 @@ model Post {
 
 model Log {
   id          String   @id @default(uuid())
+=======
+  roles       Role[]   @relation("RolePermissions")
+}
+
+model Post {
+  id          String    @id @default(uuid())
+  title       String
+  content     String?
+  published   Boolean   @default(false)
+  authorId    String
+  workspaceId String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+}
+
+model Log {
+  id          String    @id @default(uuid())
+>>>>>>> origin/pr/1398
   action      String
   details     String?
   userId      String?
   workspaceId String
+<<<<<<< HEAD
   createdAt   DateTime @default(now())
 
   user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
@@ -182,3 +244,10 @@ model SettingsChangeLog {
   @@index([changedById])
 }
 
+=======
+  createdAt   DateTime  @default(now())
+
+  user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+}
+>>>>>>> origin/pr/1398
