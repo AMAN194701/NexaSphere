@@ -156,6 +156,7 @@ export function setupWorkspaceSocket(io) {
         }
 
         // Security Check: Verify socket is actually in the room
+        // Security Check: Verify socket is actually a member of the room
         if (!socket.rooms || !socket.rooms.has(roomId)) {
           if (typeof ack === 'function') ack({ success: false, error: 'Unauthorized: Not a member of this room' });
           return;
@@ -199,7 +200,9 @@ export function setupWorkspaceSocket(io) {
       const { roomId } = data || {};
       if (!isValidRoomId(roomId)) return;
 
-      // Extract the verified user from the socket's secure server-side session data
+      // Security Check: Verify socket is actually a member of the room
+      if (!socket.rooms || !socket.rooms.has(roomId)) return;
+
       const sessionUser = socket.data?.user;
 
       socket.to(roomId).emit('typing_start', {
@@ -213,6 +216,9 @@ export function setupWorkspaceSocket(io) {
     socket.on('typing_stop', (data) => {
       const { roomId } = data || {};
       if (!isValidRoomId(roomId) || !socket.rooms || !socket.rooms.has(roomId)) return;
+
+      // Security Check: Verify socket is actually a member of the room
+      if (!socket.rooms || !socket.rooms.has(roomId)) return;
 
       socket.to(roomId).emit('typing_stop', { socketId: socket.id });
     });
