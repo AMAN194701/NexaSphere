@@ -345,6 +345,11 @@ router.put('/portfolio', protectedActionRateLimiter, async (req, res) => {
     }
 
     return sendSuccess(res, { ok: true, portfolio: saved });
+        console.warn('[Portfolio] Could not emit project-approved notification:', socketErr.message);
+      }
+    }
+
+    return res.json({ ok: true, portfolio: saved });
   } catch (err) {
     if (err.code === '23505') {
       return sendError(req, res, 'Username already exists. Another request may have just created it.', 409, 'CONFLICT');

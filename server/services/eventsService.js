@@ -3,6 +3,7 @@ import { eventSchema } from '../validators/eventSchemas.js';
 import { recordEventCreated } from '../observability/metrics.js';
 import { scheduleReminderJob } from './queueService.js';
 import logger from '../utils/logger.js';
+import { emitToRoom } from '../config/socket.js';
 
 
 export const eventsService = {
@@ -120,6 +121,16 @@ export const eventsService = {
     }
     
     recordEventCreated();
+
+    // Emit real-time notification to all connected clients
+    try {
+      emitToRoom('notifications-room', 'event-published', {
+        eventId: created.id,
+        eventName: created.name,
+      });
+    } catch (socketErr) {
+      logger.warn(`Could not emit event-published notification: ${socketErr.message}`);
+    }
 
     // Attempt to schedule a reminder if date is parseable
     try {

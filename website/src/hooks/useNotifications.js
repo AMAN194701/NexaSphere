@@ -279,6 +279,9 @@ export function useNotifications() {
           data.authorName && data.threadTitle
             ? `${data.authorName} replied to "${data.threadTitle}"`
             : 'Someone replied to your thread.',
+        message: data.authorName && data.threadTitle
+          ? `${data.authorName} replied to "${data.threadTitle}"`
+          : 'Someone replied to your thread.',
         isRead: false,
         createdAt: new Date().toISOString(),
         link: data.threadId ? `/forum/thread/${data.threadId}` : '/forum',

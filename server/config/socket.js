@@ -1389,12 +1389,18 @@ export function emitToUser(userId, eventName, data) {
   }
 }
 
+/**
+ * Emit event to specific user by email
+ */
 export function emitToUserByEmail(email, eventName, data) {
   if (!io) return;
   io.to(`user-${String(email).toLowerCase()}`).emit(eventName, data);
   logger.debug('Emit to user by email room', { email, event: eventName });
 }
 
+/**
+ * Get connected users count
+ */
 export function getConnectedUsersCount() {
   return connectedUsers.size;
 }
@@ -1472,6 +1478,15 @@ export function _setIOForTests(mockIo) {
   io = mockIo;
 }
 
+/**
+ * Emit an event to the admin role-scoped room(s) that have permission
+ * to receive it.  Falls back to the legacy shared `admin-room` for
+ * `super_admin` so single-admin deployments continue working.
+ *
+ * @param {string|string[]} roles - Role name(s) (e.g. 'membership_admin')
+ * @param {string} eventName - Event name
+ * @param {Object} data - Payload
+ */
 export function emitToRole(roles, eventName, data) {
   if (!io) return;
   const list = Array.isArray(roles) ? roles : [roles];
