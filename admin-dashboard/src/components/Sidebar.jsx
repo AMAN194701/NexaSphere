@@ -441,7 +441,6 @@ export function Sidebar() {
             color: 'var(--admin-text-muted, #888)',
             textDecoration: 'none',
             borderBottom: '1px solid var(--admin-border, rgba(255,255,255,0.06))',
-            marginBottom: '8px',
             transition: 'color 0.2s',
           }}
           onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--admin-accent, #CC1111)')}
@@ -450,6 +449,41 @@ export function Sidebar() {
           <AdminIcon name="ArrowLeft" size={12} aria-hidden="true" />
           Back to Website
         </a>
+
+        {/* Global Command Palette Trigger */}
+        <div
+          className="tour-command-palette"
+          style={{
+            padding: '12px 20px',
+            borderBottom: '1px solid var(--admin-border, rgba(255,255,255,0.06))',
+            marginBottom: '8px',
+          }}
+        >
+          <button
+            className="btn-secondary"
+            style={{
+              width: '100%',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              fontSize: '0.75rem',
+              opacity: 0.7,
+            }}
+            onClick={() => alert('Command Palette (Ctrl+K) triggered!')}
+          >
+            <span>Search</span>
+            <kbd
+              style={{
+                background: 'rgba(255,255,255,0.1)',
+                padding: '2px 6px',
+                borderRadius: '4px',
+                fontSize: '0.65rem',
+              }}
+            >
+              Ctrl+K
+            </kbd>
+          </button>
+        </div>
 
         {/* Navigation */}
 
