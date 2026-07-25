@@ -136,6 +136,7 @@ router.post('/api/dashboard/xp', gamificationController.awardXP);
 router.use("/reporting-center", reportingCenterRoutes);
   gamificationController.awardXP
 );
+router.post('/api/dashboard/xp', protectedActionRateLimiter, adminAuthMiddleware.requireAdmin, gamificationController.awardXP);
 router.post(
   '/api/assistant/recommend',
   upload.single('file'),
