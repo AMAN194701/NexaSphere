@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { PLATFORMS, addUtmParams, getQRUrl, copyToClipboard } from '../../utils/shareUtils';
 import './ShareHub.css';
 
@@ -12,6 +13,7 @@ export default function ShareHub({ isOpen, onClose, data }) {
       if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
     };
   }, []);
+  const [showQR, setShowQR] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -38,6 +40,7 @@ export default function ShareHub({ isOpen, onClose, data }) {
       setCopied(true);
       if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
       copiedTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
+      setTimeout(() => setCopied(false), 2000);
     }
   }, [shareUrl]);
 
@@ -67,6 +70,7 @@ export default function ShareHub({ isOpen, onClose, data }) {
           });
         }
       });
+      navigator.share({ title: shareTitle, url: shareUrl }).catch(() => {});
     }
   }
 
@@ -94,6 +98,7 @@ export default function ShareHub({ isOpen, onClose, data }) {
               className="sharehub-preview-img"
             />
           )}
+          {data.image && <img src={data.image} alt="" className="sharehub-preview-img" />}
           <div>
             <p className="sharehub-preview-title">{data.title}</p>
             {data.subtitle && <p className="sharehub-preview-sub">{data.subtitle}</p>}
@@ -139,6 +144,10 @@ export default function ShareHub({ isOpen, onClose, data }) {
             Clipboard access denied. Please manually copy the link above.
           </p>
         )}
+          <button className="sharehub-copy-btn" onClick={handleCopy}>
+            {copied ? 'Copied!' : 'Copy'}
+          </button>
+        </div>
 
         <button
           className="sharehub-qr-toggle"

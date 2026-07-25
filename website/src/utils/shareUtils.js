@@ -75,6 +75,13 @@ export async function copyToClipboard(text) {
   }
   const el = document.createElement('textarea');
   el.value = sanitizedText;
+export async function copyToClipboard(text) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return true;
+  }
+  const el = document.createElement('textarea');
+  el.value = text;
   el.style.cssText = 'position:fixed;opacity:0';
   document.body.appendChild(el);
   el.select();
