@@ -52,22 +52,27 @@ export default function WebhooksPage() {
 
   const handleSelectWebhook = async (webhook) => {
     setSelectedWebhook(webhook);
-    // Fetch deliveries and stats
+    const deliveriesPromise = fetch(buildUrl(`/api/webhooks/${webhook.id}/deliveries`));
+    const statsPromise = fetch(buildUrl(`/api/webhooks/${webhook.id}/stats`));
+
     try {
-      const [delRes, statsRes] = await Promise.all([
-        fetch(buildUrl(`/api/webhooks/${webhook.id}/deliveries`)),
-        fetch(buildUrl(`/api/webhooks/${webhook.id}/stats`)),
-      ]);
+      const delRes = await deliveriesPromise;
       if (delRes.ok) {
         const delData = await delRes.json();
         setDeliveries(delData.data || []);
       }
+    } catch (err) {
+      console.error('Error fetching deliveries:', err);
+    }
+
+    try {
+      const statsRes = await statsPromise;
       if (statsRes.ok) {
         const statsData = await statsRes.json();
         setStats(statsData.data || null);
       }
     } catch (err) {
-      console.error('Error fetching details:', err);
+      console.error('Error fetching webhook stats:', err);
     }
   };
 
