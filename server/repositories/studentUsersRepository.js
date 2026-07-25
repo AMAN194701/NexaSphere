@@ -76,6 +76,7 @@ export const studentUsersRepository = {
       `);
       await client.query(`
         CREATE INDEX IF NOT EXISTS idx_xp_transactions_user_id ON xp_transactions(student_user_id)
+        ALTER TABLE student_users ADD COLUMN IF NOT EXISTS phone_number VARCHAR(20) DEFAULT NULL;
       `);
     });
   },

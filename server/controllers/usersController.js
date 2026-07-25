@@ -76,6 +76,8 @@ export async function adminUpdateUser(req, res) {
     const user = await usersRepository.updateUser(id, { display_name, email, phone_number, admin_roles });
     if (!user) return sendError(req, res, 'User not found', 404, 'NOT_FOUND');
     return sendSuccess(res, { user });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    return res.json({ user });
   } catch (error) {
     console.error('[Admin] Error updating user:', error.message);
     return sendError(req, res, 'Internal server error', 500, 'INTERNAL_ERROR');
