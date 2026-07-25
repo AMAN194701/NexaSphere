@@ -48,8 +48,10 @@ function getOrCreateAnonUser() {
     // sessionStorage unavailable (private browsing), or stored value is not
     // valid JSON — fall through to create
   }
-  const id = Math.floor(Math.random() * 9000) + 1000;
-  const hue = Math.floor(Math.random() * 360);
+  const secureRand = new Uint32Array(2);
+  window.crypto.getRandomValues(secureRand);
+  const id = (secureRand[0] % 9000) + 1000;
+  const hue = secureRand[1] % 360;
   const name = `User-${id}`;
   const user = {
     name,
