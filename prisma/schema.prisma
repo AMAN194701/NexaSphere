@@ -9,12 +9,12 @@ generator client {
 }
 
 model User {
-  id               String            @id @default(uuid())
-  email            String            @unique
+  id               String              @id @default(uuid())
+  email            String              @unique
   name             String?
   password         String
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
   workspaceMembers WorkspaceMember[]
   posts            Post[]
   logs             Log[]
@@ -22,6 +22,7 @@ model User {
   actionItems      ActionItem[]
   settingsChanges  SettingsChangeLog[]
   certificates     Certificate[]
+  registrations    EventRegistration[]
 
   @@index([createdAt])
 }
@@ -207,6 +208,51 @@ model AuditLog {
 
   timestamp DateTime    @default(now())
 }
+
+// =========================================================
+// FEATURE #3318: SEATING LAYOUT & REGISTRATION EXTENSIONS
+// =========================================================
+
+model VenueLayout {
+  id        String   @id @default(uuid())
+  name      String
+  gridData  Json     // Holds dimensions (rows/cols) and cell matrix (types: SEAT, VIP, AISLE, BLOCKED)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  events Event[]
+}
+
+model Event {
+  id            String   @id @default(uuid())
+  title         String
+  description   String?
+  venueLayoutId String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  venueLayout   VenueLayout?        @relation(fields: [venueLayoutId], references: [id], onDelete: SetNull)
+  registrations EventRegistration[]
+}
+
+model EventRegistration {
+  id        String   @id @default(uuid())
+  eventId   String
+  userId    String
+  seatCode  String?  // e.g., "A-12" or "VIP-B4"
+  status    String   @default("CONFIRMED") // e.g., CONFIRMED, CANCELLED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, seatCode]) // Ensures no duplicate seats per event in DB
+  @@index([eventId])
+  @@index([userId])
+}
+
+// =========================================================
 
 model EventFeedback {
   id               String   @id @default(uuid())
@@ -401,3 +447,4 @@ model Certificate {
   user               User      @relation(fields: [userId], references: [id])
 }
 
+}

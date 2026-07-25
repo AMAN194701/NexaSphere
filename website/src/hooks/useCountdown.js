@@ -96,9 +96,15 @@ export default function useCountdown({ startDate, endDate, soonThreshold = DEFAU
   const [countdown, setCountdown] = useState(computeCountdown);
 
   useEffect(() => {
+    // 1. Immediately sync countdown on start/end change
+    setCountdown(computeCountdown());
+
+    // 2. Set up interval
     const interval = window.setInterval(() => {
       setCountdown(computeCountdown());
     }, 1000);
+
+    // 3. ✅ Essential cleanup: stops timer on unmount or dependency change
     return () => window.clearInterval(interval);
   }, [computeCountdown]);
   }, [start, end, soonThreshold]);
