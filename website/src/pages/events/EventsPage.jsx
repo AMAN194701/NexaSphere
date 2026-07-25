@@ -7,6 +7,10 @@ import PersonalizedFeed from '../../components/recommendations/PersonalizedFeed'
 import EventCountdown from '../../components/events/EventCountdown.jsx';
 import { useRecommendations } from '../../hooks/useRecommendations';
 import { getEventCountdownStatus, parseDate } from '../../hooks/useCountdown.js';
+import PersonalizedFeed from '../../components/recommendation/PersonalizedFeed';
+import EventCountdown from '../../components/events/EventCountdown.jsx';
+import { useRecommendations } from '../../hooks/useRecommendations';
+import { getEventCountdownStatus } from '../../hooks/useCountdown.js';
 import EventCalendarView from '../../components/calendar/EventCalendarView';
 import { useStudentAuth } from '../../context/StudentAuthContext';
 import { EventCardSkeleton } from '../../components/ui/skeleton/EventCardSkeleton';
@@ -457,6 +461,11 @@ export default function EventsPage({
                         ) : ev.status === 'starting-soon' ? (
                           <>
                             <DynamicIcon name="Clock" size={11} style={{ marginRight: '4px' }} />{' '}
+                            <DynamicIcon
+                              name="Clock"
+                              size={11}
+                              style={{ marginRight: '4px' }}
+                            />{' '}
                             Starting Soon
                           </>
                         ) : (

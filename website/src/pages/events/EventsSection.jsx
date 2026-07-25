@@ -3,6 +3,7 @@ import { DynamicIcon } from '../../shared/Icons';
 import EventCountdown from '../../components/events/EventCountdown.jsx';
 import { getEventCountdownStatus, parseDate } from '../../hooks/useCountdown.js';
 import { WalkthroughWrapper } from '../../components/walkthrough/WalkthroughWrapper.jsx';
+import { getEventCountdownStatus } from '../../hooks/useCountdown.js';
 import './EventsSection.css';
 
 export default function EventsSection({ onEventClick, events = [] }) {
@@ -238,11 +239,21 @@ export default function EventsSection({ onEventClick, events = [] }) {
                       ) : ev._effectiveStatus === 'live' ? (
                         <>
                           <DynamicIcon name="PlayCircle" size={11} style={{ marginRight: '4px' }} />{' '}
+                          <DynamicIcon
+                            name="PlayCircle"
+                            size={11}
+                            style={{ marginRight: '4px' }}
+                          />{' '}
                           Live Now
                         </>
                       ) : ev._effectiveStatus === 'starting-soon' ? (
                         <>
                           <DynamicIcon name="Clock" size={11} style={{ marginRight: '4px' }} />{' '}
+                          <DynamicIcon
+                            name="Clock"
+                            size={11}
+                            style={{ marginRight: '4px' }}
+                          />{' '}
                           Starting Soon
                         </>
                       ) : (
