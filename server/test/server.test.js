@@ -34,3 +34,20 @@ describe('Server', () => {
     assert.strictEqual(decrypted, secret);
   });
 });
+
+
+it("should rotate encryption key", () => {
+  const result = encryptionManager.rotateEncryptionKey();
+
+  assert.ok(result.message);
+  assert.ok(result.rotatedAt);
+});
+
+
+it("should generate encryption audit logs", () => {
+  const logs = encryptionManager.getEncryptionAuditLogs();
+
+  assert.ok(Array.isArray(logs));
+});
+
+});
