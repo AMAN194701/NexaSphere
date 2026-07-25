@@ -69,6 +69,14 @@ import NotificationBell from "../components/NotificationBell";
 
 const TABS = [
   "Home",
+import { useState, useEffect } from "react";
+import { BRAND_LOGO_FULL, BRAND_LOGO_ICON } from "./brandAssets";
+import NotificationBell from "../components/NotificationBell";
+
+const TABS = [
+  "Home",
+  "Dashboard",
+  "Mentorship",
   "Activities",
   "Events",
   "Projects",
@@ -93,7 +101,7 @@ const TABS = [
   'Contact',
 ];
 
-import { ThemeToggle } from '../components/common/ThemeToggle';
+import { ThemeToggle } from "../components/common/ThemeToggle";
 
 const TABS = [
   'Home',
@@ -626,6 +634,7 @@ export default function Navbar({ activeTab, onTabChange, onApply, onJoin, onTogg
     );
   return (
     <nav className={`ns-navbar${scrolled ? ' scrolled' : ''}`}>
+    <nav className={`ns-navbar${scrolled ? " scrolled" : ""}`}>
       <div className="container">
         <div className="ns-nav-top">
           <div

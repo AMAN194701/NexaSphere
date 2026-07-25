@@ -110,6 +110,10 @@ export const NodeCanvas: React.FC<NodeCanvasProps> = ({ theme }) => {
       window.removeEventListener("pointerup", handlePointerUp);
     };
 
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+    };
+
     window.addEventListener("pointermove", handlePointerMove);
     window.addEventListener("pointerup", handlePointerUp);
   };

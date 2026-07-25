@@ -15,6 +15,9 @@ import { Server } from "socket.io";
 import logger from "../utils/logger.js";
 import { getAdminSession } from "../repositories/adminSessionsRepository.js";
 import { getWorkspaceDocument, saveWorkspaceDocument } from '../repositories/workspaceRepository.js';
+import { Server } from "socket.io";
+import logger from "../utils/logger.js";
+import { getAdminSession } from "../repositories/adminSessionsRepository.js";
 
 let io = null;
 const connectedUsers = new Map();
@@ -286,6 +289,12 @@ export function initializeSocketIO(httpServer) {
     : [process.env.FRONTEND_URL || "http://localhost:5173"];
 
 export function initializeSocketIO(httpServer) {
+  const allowedOrigins = process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(",")
+        .map((origin) => origin.trim())
+        .filter(Boolean)
+    : [process.env.FRONTEND_URL || "http://localhost:5173"];
+
   io = new Server(httpServer, {
     cors: {
       origin: resolveSocketCorsOrigin(),
@@ -460,6 +469,20 @@ export function _onConnection(socket) {
   ];
   const MAX_ROOMS_PER_SOCKET = 10;
 
+    logger.info("User identified", {
+      userId: userData.userId,
+      socketId: socket.id,
+    });
+  });
+
+  // Approved public-facing rooms that standard users can join
+  const ALLOWED_PUBLIC_ROOMS = [
+    "notifications-room",
+    "events-room",
+    "admin-room",
+  ];
+  const MAX_ROOMS_PER_SOCKET = 10;
+
   // Join notification room
   socket.on("room:join", (roomName) => {
     // 1. Primitive Type Validation
@@ -620,6 +643,9 @@ export function _onConnection(socket) {
         ? {
             name: typeof user.name === 'string' ? user.name.slice(0, 100) : 'Anonymous',
             email: typeof user.email === 'string' ? user.email.slice(0, 150) : '',
+
+    // Sanitize user details to prevent reference leaks / massive nested objects
+    const sanitizedUser =
       user && typeof user === "object"
         ? {
             name:
@@ -675,6 +701,16 @@ export function _onConnection(socket) {
   socket.on("leave_room", (roomId) => {
     if (typeof roomId !== "string") return;
     _removeWorkspaceMember(roomId, socket.id);
+      .emit("user_joined", {
+        socketId: socket.id,
+        user: sanitizedUser,
+        timestamp: Date.now(),
+      });
+  });
+
+  // Leave workspace room
+  socket.on("leave_room", (roomId) => {
+    if (typeof roomId !== "string") return;
     socket.leave(roomId);
     logger.info("User left workspace room", { socketId: socket.id, roomId });
     socket.to(roomId).emit("user_left", { socketId: socket.id });
@@ -713,6 +749,82 @@ export function _onConnection(socket) {
         version: currentVersion,
       });
       return;
+  // Workspace synchronization events
+  socket.on("workspace_update", (data) => {
+    const { roomId, ...payload } = data;
+    if (roomId) socket.to(roomId).emit("workspace_update", payload);
+  });
+
+  socket.on("document_change", (data) => {
+    const { roomId, ...payload } = data;
+    if (roomId) socket.to(roomId).emit("document_change", payload);
+  });
+
+  socket.on("cursor_moved", (data) => {
+    const { roomId, ...payload } = data;
+    if (roomId)
+      socket
+        .to(roomId)
+        .emit("cursor_moved", { socketId: socket.id, ...payload });
+  });
+
+  socket.on("typing_start", (data) => {
+    const { roomId, ...payload } = data;
+    if (roomId)
+      socket
+        .to(roomId)
+        .emit("typing_start", { socketId: socket.id, ...payload });
+  });
+
+  socket.on("typing_stop", (data) => {
+    const { roomId, ...payload } = data;
+    if (roomId)
+      socket
+        .to(roomId)
+        .emit("typing_stop", { socketId: socket.id, ...payload });
+  });
+
+  // Mentorship Review Events
+  socket.on("review:join_room", (roomId, user) => {
+    if (
+      typeof roomId !== "string" ||
+      !/^review-[a-zA-Z0-9\-_]{1,100}$/.test(roomId)
+    )
+      return;
+
+    socket.join(roomId);
+
+    const sanitizedUser =
+      user && typeof user === "object"
+        ? {
+            id: user.id || socket.id,
+            name:
+              typeof user.name === "string"
+                ? user.name.slice(0, 100)
+                : "Anonymous",
+            color: typeof user.color === "string" ? user.color : "#000",
+          }
+        : {};
+
+    socket
+      .to(roomId)
+      .emit("review:user_joined", { socketId: socket.id, user: sanitizedUser });
+  });
+
+  socket.on("review:annotation_add", (data) => {
+    const { roomId, ...payload } = data;
+    if (roomId && typeof roomId === "string") {
+      // payload expects { line, text, author, timestamp, id }
+      socket
+        .to(roomId)
+        .emit("review:annotation_added", { socketId: socket.id, ...payload });
+    }
+  });
+
+  socket.on("review:annotation_resolve", (data) => {
+    const { roomId, annotationId } = data;
+    if (roomId && annotationId) {
+      socket.to(roomId).emit("review:annotation_resolved", { annotationId });
     }
 
     const newVersion = currentVersion + 1;
@@ -970,9 +1082,7 @@ export function _onConnection(socket) {
   // Handle disconnection
   socket.on("disconnect", () => {
     connectedUsers.delete(socket.id);
-    _cleanupWorkspaceMembership(socket.id);
-    joinRoomAttempts.delete(socket.id);
-    logger.info('User disconnected', { socketId: socket.id });
+    logger.info("User disconnected", { socketId: socket.id });
   });
 
   socket.on('error', (error) => {
@@ -1142,4 +1252,7 @@ export default { initializeSocketIO, getIO, broadcastEvent, emitToRoom, emitToUs
   setEmitToRoomOverride,
   applyBackpressureProtection,
   getQueuePressureMetrics,
+};
+  _clearConnectedUsers,
+  _onConnection,
 };

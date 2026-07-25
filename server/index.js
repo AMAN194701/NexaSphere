@@ -353,6 +353,17 @@ app.use(
 );
 app.use(express.json({ limit: "512kb" }));
 const adminEvents = new EventEmitter();
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN
+      ? process.env.CORS_ORIGIN.split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : true,
+    credentials: false,
+  })
+);
+app.use(express.json({ limit: "512kb" }));
 
 function requiredStrongPassword(name) {
   if (process.env.NODE_ENV === 'test') {
@@ -1055,6 +1066,7 @@ async function readContent() {
 async function writeContent(content) {
   await ensureContentFile();
   await fs.writeFile(CONTENT_FILE, JSON.stringify(content, null, 2), 'utf8');
+  await fs.writeFile(CONTENT_FILE, JSON.stringify(content, null, 2), "utf8");
 }
 
 // Helper to safely run file operations atomically
@@ -1065,6 +1077,7 @@ export async function runWithFileLock(callback) {
 async function readContent() {
   await ensureContentFile();
   const raw = await fsp.readFile(CONTENT_FILE, 'utf8');
+  const raw = await fs.readFile(CONTENT_FILE, "utf8");
   return JSON.parse(raw);
 }
 
@@ -1709,6 +1722,7 @@ export async function supabaseRequest(pathname, { method = "GET", body } = {}) {
       error.body = null;
     }
     throw error;
+    throw new Error(`Supabase error (${res.status}): ${text}`);
   }
   const text = await res.text();
   return text ? JSON.parse(text) : [];
@@ -1941,6 +1955,9 @@ async function canManageActivityEvent({ name, email, phone, password }) {
       m.name.toLowerCase() === n &&
       m.email.toLowerCase() === e &&
       normalizePhone(m.whatsapp) === p,
+      m.name.toLowerCase() === n &&
+      m.email.toLowerCase() === e &&
+      normalizePhone(m.whatsapp) === p
   );
 }
 
@@ -1953,6 +1970,9 @@ async function listEventsStore({ page = 1, limit = 20 } = {}) {
       "events?select=*&order=created_at.desc",
       page,
       limit,
+      "events?select=*&order=created_at.desc",
+      page,
+      limit
     );
     return {
       events: rows.map((r) =>
@@ -1973,6 +1993,7 @@ async function listEventsStore({ page = 1, limit = 20 } = {}) {
           createdAt: r.created_at,
           updatedAt: r.updated_at,
         }),
+        })
       ),
       total,
     };
@@ -1996,6 +2017,11 @@ app.use('/api/admin/queues', adminAuth, serverAdapter.getRouter());
 // OAuth / SSO Student Auth Endpoints
 app.get('/api/auth/mock-login', async (req, res, next) => {
 export async function createEventStore(event) {
+function sanitizeEventRecord(event) {
+  return event;
+}
+
+async function createEventStore(event) {
   if (HAS_SUPABASE) {
     let payload = {
       id: event.id,
@@ -2046,6 +2072,18 @@ export async function createEventStore(event) {
         },
       ],
     });
+      [row] = await supabaseRequest("events", {
+        method: "POST",
+        body: [payload],
+      });
+    } catch (e) {
+      // Retry with suffix if id collision occurs.
+      payload = { ...payload, id: `${event.id}-${Date.now()}` };
+      [row] = await supabaseRequest("events", {
+        method: "POST",
+        body: [payload],
+      });
+    }
     return sanitizeEventRecord({
       id: row.id,
       name: row.name,
@@ -2103,6 +2141,7 @@ async function updateEventStore(id, patch) {
           updated_at: new Date().toISOString(),
         },
       },
+      }
     );
     if (!row) return null;
     return sanitizeEventRecord({
@@ -2142,6 +2181,9 @@ async function deleteEventStore(id) {
     const rows = await supabaseRequest(
       `events?id=eq.${encodeURIComponent(id)}`,
       { method: "DELETE" },
+    const rows = await supabaseRequest(
+      `events?id=eq.${encodeURIComponent(id)}`,
+      { method: "DELETE" }
     );
     return Array.isArray(rows) && rows.length > 0;
   }
@@ -2156,6 +2198,10 @@ async function deleteEventStore(id) {
 }
 
 async function listActivityEventsStore(activityKey, { page = 1, limit = 20 } = {}) {
+async function listActivityEventsStore(
+  activityKey,
+  { page = 1, limit = 20 } = {}
+) {
   if (HAS_SUPABASE) {
     const { rows, total } = await supabasePaginatedRequest(
       `activity_events?activity_key=eq.${encodeURIComponent(activityKey)}&select=*&order=created_at.desc`,
@@ -2177,6 +2223,9 @@ async function listActivityEventsStore(activityKey, { page = 1, limit = 20 } = {
           status: r.status || "completed",
           createdAt: r.created_at,
         }),
+          status: r.status || "completed",
+          createdAt: r.created_at,
+        })
       ),
       total,
     };
@@ -2251,6 +2300,7 @@ async function deleteActivityEventStore(activityKey, eventId) {
       `activity_events?activity_key=eq.${encodeURIComponent(activityKey)}&id=eq.${encodeURIComponent(eventId)}`,
       { method: 'DELETE' }
       { method: "DELETE" },
+      { method: "DELETE" }
     );
     return Array.isArray(rows) && rows.length > 0;
   }
@@ -2271,6 +2321,10 @@ export async function listCoreTeamStore() {
     const rows = await supabaseRequest('core_team_members?select=*&order=created_at.asc');
     const rows = await supabaseRequest(
       "core_team_members?select=*&order=created_at.asc",
+async function listCoreTeamStore() {
+  if (HAS_SUPABASE) {
+    const rows = await supabaseRequest(
+      "core_team_members?select=*&order=created_at.asc"
     );
     return rows.map((r) =>
       sanitizeCoreTeamMemberRecord({
@@ -2304,6 +2358,8 @@ export async function listCoreTeamStore() {
   const content = await readContent();
   return (content.coreTeam || []).map((member) =>
     sanitizeCoreTeamMemberRecord(member),
+  return (content.coreTeam || []).map((member) =>
+    sanitizeCoreTeamMemberRecord(member)
   );
 }
 
@@ -2450,6 +2506,11 @@ async function deleteCoreTeamStore(id) {
     const rows = await supabaseRequest(
       `core_team_members?id=eq.${encodeURIComponent(id)}`,
       { method: "DELETE" },
+async function deleteCoreTeamStore(id) {
+  if (HAS_SUPABASE) {
+    const rows = await supabaseRequest(
+      `core_team_members?id=eq.${encodeURIComponent(id)}`,
+      { method: "DELETE" }
     );
     return Array.isArray(rows) && rows.length > 0;
   }
@@ -2460,6 +2521,8 @@ async function deleteCoreTeamStore(id) {
     content.coreTeam = content.coreTeam.filter((m) => String(m.id) !== String(id));
     content.coreTeam = content.coreTeam.filter(
       (m) => String(m.id) !== String(id),
+    content.coreTeam = content.coreTeam.filter(
+      (m) => String(m.id) !== String(id)
     );
     if (content.coreTeam.length === before) return false;
     await writeContent(content);
@@ -2490,6 +2553,14 @@ async function appendToSupabaseForms(formType, payload) {
   }
 }
     await fs.writeFile(CONTENT_FILE, JSON.stringify(defaultContent, null, 2), 'utf8');
+    const [row] = await supabaseRequest(`forms_${formType}`, {
+      method: "POST",
+      body: [payload],
+    });
+    return !!row;
+  } catch (e) {
+    console.error(`[Supabase Form] Error saving ${formType}:`, e.message);
+    return false;
   }
 }
 
@@ -3301,6 +3372,10 @@ app.post('/api/content/activity-events/:activityKey', activityAuthRateLimiter, a
       });
     }
 
+app.post("/api/content/activity-events/:activityKey", async (req, res) => {
+  try {
+    const activityKey = toSafeString(req.params.activityKey, 80);
+    const body = req.body || {};
     const auth = {
       name: body.name,
       email: body.email,
@@ -3851,6 +3926,24 @@ app.get("/api/admin/membership", adminAuth, async (req, res) => {
   const cacheTtl = Number(process.env.MEMBERSHIP_CACHE_TTL_MS) || 30000;
   const timeoutMs = Number(process.env.MEMBERSHIP_TIMEOUT_MS) || 5000;
   const now = Date.now();
+app.delete(
+  "/api/content/activity-events/:activityKey/:eventId",
+  async (req, res) => {
+    try {
+      const activityKey = toSafeString(req.params.activityKey, 80);
+      const eventId = toSafeString(req.params.eventId, 120);
+      const body = req.body || {};
+      const auth = {
+        name: body.name,
+        email: body.email,
+        phone: body.phone,
+        password: body.password,
+      };
+      if (!(await canManageActivityEvent(auth))) {
+        return res.status(401).json({
+          error: "Unauthorized. Core team details or password did not match.",
+        });
+      }
 
   // 1. Return fresh cache if within TTL
   if (membershipCache && now - membershipCacheTime < cacheTtl) {
@@ -3899,6 +3992,8 @@ app.get("/api/admin/membership", adminAuth, async (req, res) => {
     if (!response.ok) {
       throw new Error(`Google Apps Script returned ${response.status}`);
     }
+  }
+);
 
     const data = await response.json();
     return res.json({ responses: data.responses || [] });
@@ -4794,9 +4889,45 @@ app.post('/api/notifications', adminAuth, notificationRateLimiter, (req, res) =>
 // Portfolio routing support
 app.get('/api/portfolio/:username', async (req, res) => {
   try {
-    const username = String(req.params.username || '').trim();
-    if (!username) {
-      return res.status(400).json({ error: 'Username is required' });
+    const payload = normalizeFormSubmission(formType, req.body || {});
+
+    const savedToSupabase = await appendToSupabaseForms(formType, payload);
+    try {
+      await appendFormToSheet(formType, payload);
+    } catch (sheetErr) {
+      if (!savedToSupabase) throw sheetErr;
+    }
+
+    // NEW: Send a welcome email to the user
+    try {
+      const verifyUrl = `${getPublicAppUrl()}/verify?email=${encodeURIComponent(req.body.collegeEmail)}`;
+      await sendWelcomeVerificationEmail(
+        req.body.collegeEmail,
+        req.body.fullName,
+        verifyUrl
+      );
+    } catch (emailErr) {
+      console.error("[Form Handler] Failed to send welcome email:", emailErr);
+      // We don't fail the whole request if email fails, but we log it.
+    }
+
+    // NEW: Real-time notification and metrics updates
+    try {
+      broadcastSSEEvent("registration", {
+        formType,
+        fullName: payload.fullName,
+        timestamp: new Date().toISOString(),
+      });
+      emitToRoom(getRoom("admin"), "admin:new-registration", {
+        formType,
+        userName: payload.fullName,
+        timestamp: new Date(),
+      });
+    } catch (realtimeErr) {
+      console.error(
+        "[Form Handler] Failed to broadcast real-time updates:",
+        realtimeErr
+      );
     }
     const portfolio = await portfolioRepository.getByUsername(username);
     if (!portfolio) {
@@ -4976,6 +5107,9 @@ app.get("/api/notifications", (req, res) => {
   try {
 app.get("/api/notifications", (req, res) => {
   try {
+    const userId = req.query.userId || "global";
+  try {
+    // If user id provided via query or auth, use that; otherwise global
     const userId = req.query.userId || "global";
     const list = notificationsService.getNotifications(userId);
     return res.json({ notifications: list });
@@ -5340,6 +5474,7 @@ app.put("/api/portfolio", portfolioRateLimiter, async (req, res) => {
       });
     }
 
+    // Verify ownership/passkey
     const isAuthorized = await portfolioRepository.verifyPasskey(
       username,
       passkey

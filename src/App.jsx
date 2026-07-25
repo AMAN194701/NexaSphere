@@ -279,6 +279,37 @@ import {
 
   AmbientOrbs,
   SectionDivider,
+import { useState, useEffect, useRef, useCallback } from "react";
+
+import "./styles/themes.css";
+import "./styles/globals.css";
+import "./styles/animations.css";
+import "./styles/chatbot.css";
+import "./styles/components.css";
+import "./styles/portfolio.css";
+
+import "./styles/aurora.css";
+import "./styles/motion.css";
+import WorkspacePage from "./pages/workspace/WorkspacePage";
+import SearchBar from "./components/SearchBar";
+import FloatingDock from "./components/common/FloatingDock";
+import ParticleBackground from "./shared/ParticleBackground";
+import GeometricGridBackground from "./shared/GeometricGridBackground";
+import ScrollProgress from "./shared/ScrollProgress";
+import Navbar from "./shared/Navbar";
+import HeroSection from "./pages/home/HeroSection";
+import ActivitiesSection from "./pages/activities/ActivitiesSection";
+import EventsSection from "./pages/events/EventsSection";
+import AboutSection from "./pages/about/AboutSection";
+import TeamSection from "./pages/team/TeamSection";
+import Footer from "./shared/Footer";
+import ActivityDetailPage from "./pages/activities/ActivityDetailPage";
+import EventDetailPage from "./pages/events/EventDetailPage";
+import CinematicOpening from "./shared/CinematicOpening";
+import Chatbot from "./shared/Chatbot";
+import {
+  AmbientOrbs,
+  SectionDivider,
   PageFlash,
   BannerOrbs,
   useNsReveal,
@@ -492,6 +523,28 @@ import PublicPortfolio from "./pages/portfolio/PublicPortfolio";
 import DashboardPage from "./pages/dashboard/DashboardPage";
 import AnalyticsPage from "./pages/analytics/AnalyticsPage";
 
+
+const RecruitmentPage = dynamic(
+  () => import("./pages/recruitment/RecruitmentPage"),
+  { ssr: false }
+);
+const MembershipPage = dynamic(
+  () => import("./pages/membership/MembershipPage"),
+  { ssr: false }
+);
+const AdminPage = dynamic(() => import("./pages/admin/AdminPage"), {
+  ssr: false,
+});
+import RoadmapsPage from "./pages/roadmaps/RoadmapsPage";
+import ProjectsPage from "./pages/projects/ProjectsPage";
+import CertificateVerifyPage from "./pages/certificates/CertificateVerifyPage";
+import CollabPage from "./pages/collab/CollabPage";
+import PortfolioBuilder from "./components/portfolio/PortfolioBuilder";
+import PublicPortfolio from "./pages/portfolio/PublicPortfolio";
+import DashboardPage from "./pages/dashboard/DashboardPage";
+import MentorshipDashboard from "./pages/mentorship/MentorshipDashboard";
+import ReviewSession from "./pages/mentorship/ReviewSession";
+
 import { activityPages } from "./data/activities/index";
 import { events as fallbackEvents } from "./data/eventsData";
 import nexasphereLogo from "./assets/images/logos/nexasphere-logo.png";
@@ -629,6 +682,9 @@ import { useDeveloperMode } from "./hooks/useDeveloperMode";
 import Terminal from "./components/developer/Terminal";
 import { useDeveloperMode } from "./hooks/useDeveloperMode";
 
+import Terminal from "./components/developer/Terminal";
+import { useDeveloperMode } from "./hooks/useDeveloperMode";
+
 import { BookmarkProvider } from "./context/BookmarkContext";
 import BookmarksDrawer from "./components/bookmarks/BookmarksDrawer";
 import { useTheme } from "./hooks/useTheme";
@@ -708,6 +764,10 @@ const TABS = [
   "Home",
   "Dashboard",
   "Analytics",
+  DNH = 86;
+const TABS = [
+  "Home",
+  "Dashboard",
   "Activities",
   "Events",
   "Projects",
@@ -1003,6 +1063,12 @@ function PageIn({ children, k }) {
     return () => cancelAnimationFrame(raf1);
   }, [k]);
   return (
+  const [r, setR] = useState(false);
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setR(true));
+    return () => cancelAnimationFrame(raf);
+  }, [k]);
+  return (
     <div
       style={{
         opacity: r ? 1 : 0,
@@ -1147,6 +1213,15 @@ function Cursor() {
     hovering: false,
     clicking: false,
     visible: true,
+    mx: 0,
+    my: 0,
+    ox: 0,
+    oy: 0,
+    floatY: 0,
+    floatPhase: 0,
+    hovering: false,
+    clicking: false,
+    visible: true,
     raf: null,
   });
 
@@ -1182,6 +1257,9 @@ function Cursor() {
       s.hovering = !!e.target.closest('button,a,[role="button"],[tabindex]');
     };
     const onLeave = () => {
+    const s = stateRef.current;
+    if (window.matchMedia("(hover:none)").matches) return;
+    document.body.style.cursor = "none";
     const s = stateRef.current;
     if (window.matchMedia("(hover:none)").matches) return;
     document.body.style.cursor = "none";
@@ -1392,6 +1470,8 @@ function Cursor() {
             ? 0
             : 0.35
           : 0;
+      }
+      if (glowRef.current) {
       }
       if (glowRef.current) {
       }
@@ -2156,6 +2236,14 @@ export default function App() {
       )
       .forEach((el) => obs.observe(el));
 
+      { threshold: 0.09, rootMargin: "0px 0px -36px 0px" }
+    );
+    document
+      .querySelectorAll(
+        ".pop-in,.pop-left,.pop-right,.pop-scale,.pop-flip,.pop-word,.pop-num"
+      )
+      .forEach((el) => obs.observe(el));
+
     const btns = document.querySelectorAll(".mag-btn");
     const onMove = (e) => {
       btns.forEach((btn) => {
@@ -2294,6 +2382,8 @@ export default function App() {
       });
             : "";
       });
+            : "";
+      });
       document.querySelectorAll(".activity-card").forEach((card) => {
         const rect = card.getBoundingClientRect();
         const cx = rect.left + rect.width / 2;
@@ -2335,7 +2425,6 @@ export default function App() {
   useBackToTop();
   useActiveTabObserver(page, mobile, NAV_TABS, NAV_HEIGHTS, setActiveTab);
 
-  // Add direct URL parsing for workspace route
   useEffect(() => {
     if (window.location.pathname.startsWith("/workspace/")) {
       const roomId = window.location.pathname.split("/workspace/")[1];
@@ -2813,6 +2902,67 @@ export default function App() {
     [nav]
   );
 
+  const onTab = useCallback(
+    (tab) => {
+      if (tab === "Mentorship") {
+        nav(() => {
+          window.history.pushState({}, "", "/mentorship");
+          setPage({ type: "mentorship" });
+          setActiveTab(tab);
+        });
+        return;
+      }
+      if (
+        [
+          "Dashboard",
+          "Activities",
+          "Events",
+          "Projects",
+          "Roadmaps",
+          "Portfolio",
+          "Collab",
+          "About",
+          "Team",
+          "Contact",
+        ].includes(tab)
+      ) {
+        nav(() => {
+          setPage({ type: "section", section: tab });
+          setActiveTab(tab);
+        });
+        return;
+      }
+      nav(() => {
+        setPage(null);
+        setActiveTab(tab);
+        setTimeout(() => {
+          const el = document.getElementById(`section-${tab.toLowerCase()}`);
+          if (!el) return;
+          window.scrollTo({
+            top: el.offsetTop - (mobile ? MNH : DNH),
+            behavior: "smooth",
+          });
+        }, 50);
+      });
+    },
+    [nav, mobile]
+  );
+
+  const onNavigate = useCallback(
+    (type, title) => {
+      if (type === "activity")
+        nav(() => setPage({ type: "activity", activityKey: title }));
+    },
+    [nav]
+  );
+
+  const onEvent = useCallback(
+    (ev) => {
+      nav(() => setPage((p) => ({ ...p, type: "event", event: ev })));
+    },
+    [nav]
+  );
+
   const onKSSClick = useCallback(
     (ev) => {
       nav(() =>
@@ -3124,6 +3274,15 @@ export default function App() {
   }, [nav]);
 
   const onBackHome = useCallback(() => {
+  const openApply = useCallback(() => {
+    nav(() => setPage({ type: "apply" }));
+  }, [nav]);
+
+  const openJoin = useCallback(() => {
+    nav(() => setPage({ type: "join" }));
+  }, [nav]);
+
+  const onBackHome = useCallback(() => {
     window.history.pushState({}, "", "/");
     nav(() => {
       setPage(null);
@@ -3355,6 +3514,12 @@ export default function App() {
             )}
             {page.section === "Analytics" && (
               <AnalyticsPage onBack={onBackHome} />
+            )}
+            {page.section === "Activities" && (
+              <ActivitiesPage onNavigate={onNavigate} onBack={onBackHome} />
+            )}
+            {page.section === "Dashboard" && (
+              <DashboardPage onBack={onBackHome} />
             )}
             {page.section === "Activities" && (
               <ActivitiesPage onNavigate={onNavigate} onBack={onBackHome} />
@@ -3726,6 +3891,29 @@ export default function App() {
             justifyContent: "center",
             boxShadow: "0 4px 20px rgba(204,17,17,0.5)",
             transition: "transform 0.2s, box-shadow 0.2s",
+            position: "fixed",
+            bottom: "80px",
+            left: "24px",
+            zIndex: 8500,
+            width: "46px",
+            height: "46px",
+            borderRadius: "50%",
+            background: "linear-gradient(135deg,#CC1111,#880000)",
+            border: "none",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: "0 4px 20px rgba(204,17,17,0.5)",
+            transition: "transform 0.2s, box-shadow 0.2s",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = "scale(1.12)";
+            e.currentTarget.style.boxShadow = "0 6px 28px rgba(204,17,17,0.75)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = "scale(1)";
+            e.currentTarget.style.boxShadow = "0 4px 20px rgba(204,17,17,0.5)";
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.transform = "scale(1.12)";
