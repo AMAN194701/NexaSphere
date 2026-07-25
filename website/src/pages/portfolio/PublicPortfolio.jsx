@@ -57,6 +57,7 @@ export default function PublicPortfolio({ username, onBack }) {
   const portfolioRef = useRef();
 
   const { handlePrint, isExporting, exportError } = useCertificateExport({
+  const { handlePrint, isExporting } = useCertificateExport({
     content: () => portfolioRef.current,
     documentTitle: `${username}_Portfolio`,
     removeAfterPrint: true,
