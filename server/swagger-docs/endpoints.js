@@ -484,6 +484,8 @@
  *     description: Platform-Wide Scheduled Maintenance Management
  *   - name: Workspaces
  *     description: Smart Workspace for Club & Team Collaboration
+ *   - name: Reporting Center
+ *     description: Platform-Wide Data Export & Reporting Center
  */
 /**
  * @swagger
@@ -553,6 +555,12 @@
  *     tags: [Workspaces]
  *   - name: Knowledge Assistant
  *     description: AI-Powered Platform Knowledge Assistant
+ *     tags: [Reporting Center]
+ *     requestBody:
+ *       required: true
+ *     responses:
+ *       201:
+ *         description: Template saved successfully
  * /api/notification-preferences/{userId}:
  *   get:
  *     summary: Get notification preferences

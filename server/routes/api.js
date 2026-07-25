@@ -73,12 +73,14 @@ const upload = multer({
 router.get('/api/dashboard/leaderboard', gamificationController.getLeaderboard);
 router.post('/api/dashboard/xp', protectedActionRateLimiter, adminAuthMiddleware.requireAdmin, gamificationController.awardXP);
 const knowledgeAssistantRoutes = require("./knowledgeAssistant");
+const reportingCenterRoutes = require("./reportingCenter");
 const router = Router();
 
 // Public
 router.get('/api/dashboard/leaderboard', gamificationController.getLeaderboard);
 router.post('/api/dashboard/xp', gamificationController.awardXP);
 router.use("/knowledge-assistant", knowledgeAssistantRoutes);
+router.use("/reporting-center", reportingCenterRoutes);
 
 // Public
 router.get('/api/dashboard/leaderboard', gamificationController.getLeaderboard);
