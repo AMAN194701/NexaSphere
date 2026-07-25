@@ -2005,6 +2005,21 @@ app.put('/api/portfolio', portfolioRateLimiter, async (req, res) => {
       passkey,
     });
     return sendSuccess(res, { ok: true, portfolio: saved });
+// Server-side notifications API (simple in-memory store)
+import notificationsService from './services/notificationsService.js';
+
+const notificationAuthRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  message: { error: 'Too many notification requests, please try again later' },
+});
+
+// GET is read-only — apply rate limiting but not admin auth
+app.get('/api/notifications', notificationAuthRateLimiter, (req, res) => {
+  try {
+    const userId = req.query.userId || 'global';
+    const list = notificationsService.getNotifications(userId);
+    return res.json({ notifications: list });
   } catch (err) {
     if (err.code === '23505') {
       return sendError(
@@ -2047,6 +2062,66 @@ app.patch(
   forumController.moderateReply
 );
 app.get('/api/admin/forum/threads', adminAuth, forumController.adminListThreads);
+// Mutation endpoints require admin auth + rate limiting
+app.post('/api/notifications/mark-read', adminAuth, notificationAuthRateLimiter, (req, res) => {
+  try {
+    const { id, userId } = req.body || {};
+    if (!id) return res.status(400).json({ error: 'id required' });
+    const uid = userId || 'global';
+    const ok = notificationsService.markAsRead(uid, id);
+    if (!ok) return res.status(404).json({ error: 'Notification not found' });
+    return res.json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/notifications/mark-all-read', adminAuth, notificationAuthRateLimiter, (req, res) => {
+  try {
+    const { userId } = req.body || {};
+    notificationsService.markAllAsRead(userId || 'global');
+    return res.json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/notifications/:id', adminAuth, notificationAuthRateLimiter, (req, res) => {
+  try {
+    const id = req.params.id;
+    const userId = req.query.userId || 'global';
+    const removed = notificationsService.removeNotification(userId, id);
+    if (!removed) return res.status(404).json({ error: 'Notification not found' });
+    return res.json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete all notifications for a user (or global)
+app.delete('/api/notifications', adminAuth, notificationAuthRateLimiter, (req, res) => {
+  try {
+    const userId = req.query.userId || 'global';
+    notificationsService.clearAll(userId);
+    return res.json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Create notification (admin-only)
+app.post('/api/notifications', adminAuth, notificationAuthRateLimiter, (req, res) => {
+  try {
+    const { userId, title, message, type, link } = req.body || {};
+    if (!title || !message) {
+      return res.status(400).json({ error: 'title and message are required' });
+    }
+    const note = notificationsService.addNotification(userId || 'global', { title, message, type, link });
+    return res.status(201).json({ success: true, notification: note });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
 
 function requireMentorshipAuth(req, res, next) {
   adminAuthMiddleware.requireAdmin(req, res, (err) => {
@@ -2112,6 +2187,11 @@ app.use(errorHandler);
 
 const server = http.createServer(app);
 initializeSocketIO(server);
+
+process.on('uncaughtException', (err) => {
+  console.error('[Process] Uncaught exception:', err instanceof Error ? err.message : err);
+  if (err && err.stack) console.error(err.stack);
+});
 
 const port = Number(process.env.PORT || 8787);
 if (!process.env.VERCEL) {

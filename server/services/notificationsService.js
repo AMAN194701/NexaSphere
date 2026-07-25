@@ -203,3 +203,18 @@ export const markAllAsRead = notificationsService.markAllAsRead.bind(notificatio
 export const clearAll = notificationsService.clearAll.bind(notificationsService);
 export const removeNotification =
   notificationsService.removeNotification.bind(notificationsService);
+export function clearAll(userId = 'global') {
+  notificationsStore.set(userId, []);
+}
+
+export function removeNotification(userId = 'global', id) {
+  const list = _ensureList(userId);
+  const idx = list.findIndex(n => n.id === id);
+  if (idx < 0) return false;
+  list.splice(idx, 1);
+  return true;
+}
+
+export default {
+  getNotifications, addNotification, markAsRead, markAllAsRead, clearAll, removeNotification,
+};
