@@ -107,6 +107,16 @@ export const usersRepository = {
     });
   },
 
+  async getUserByEmail(email) {
+    return withDb(async (client) => {
+      const { rows } = await client.query(
+        'SELECT id, username, display_name, email, admin_roles, created_at FROM users WHERE email = $1',
+        [email]
+      );
+      return rows[0] || null;
+    });
+  },
+
   async updateUser(id, updates) {
     return withDb(async (client) => {
       const fields = [];
