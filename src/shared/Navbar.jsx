@@ -63,9 +63,23 @@ const TABS = [
   'About',
   'Team',
   'Contact',
+import { useState, useEffect } from "react";
+import { BRAND_LOGO_FULL, BRAND_LOGO_ICON } from "./brandAssets";
+import NotificationBell from "../components/NotificationBell";
+
+const TABS = [
+  "Home",
+  "Activities",
+  "Events",
+  "Projects",
+  "Roadmaps",
+  "Portfolio",
+  "About",
+  "Team",
+  "Contact",
 ];
 
-import { ThemeToggle } from '../components/common/ThemeToggle';
+import ThemeToggle from "../components/ThemeToggle";
 
 const TABS = [
   'Home',
@@ -157,16 +171,16 @@ function BookmarkToggle({ isOpen = false, onToggle, controlsId = BOOKMARKS_DRAWE
       aria-controls={controlsId}
       title="Saved Bookmarks"
       style={{
-        background: 'none',
-        border: 'none',
-        color: 'var(--t1)',
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '6px',
-        borderRadius: '50%',
-        transition: 'background 0.2s',
+        background: "none",
+        border: "none",
+        color: "var(--t1)",
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "6px",
+        borderRadius: "50%",
+        transition: "background 0.2s",
       }}
       onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
       onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
@@ -248,6 +262,8 @@ export default function Navbar({
   onToggleBookmarks,
 }) {
 export default function Navbar({ activeTab, onTabChange, onApply, onJoin, onToggleBookmarks }) {
+  onToggleBookmarks,
+}) {
   const [scrolled, setScrolled] = useState(false);
   const [mobile, setMobile] = useState(window.innerWidth <= 768);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -266,9 +282,11 @@ export default function Navbar({ activeTab, onTabChange, onApply, onJoin, onTogg
     window.addEventListener("resize", r, { passive: true });
     window.addEventListener('scroll', s, { passive: true });
     window.addEventListener('resize', r, { passive: true });
+    window.addEventListener("scroll", s, { passive: true });
+    window.addEventListener("resize", r, { passive: true });
     return () => {
-      window.removeEventListener('scroll', s);
-      window.removeEventListener('resize', r);
+      window.removeEventListener("scroll", s);
+      window.removeEventListener("resize", r);
     };
   }, []);
 
@@ -526,6 +544,17 @@ export default function Navbar({ activeTab, onTabChange, onApply, onJoin, onTogg
         </div>
       </nav>
     );
+
+          <button
+            className="ns-mobile-tab ns-mobile-cta ns-mobile-cta-apply"
+            onClick={onApply}
+            aria-label="Apply for Core Team"
+          >
+            Apply
+          </button>
+        </div>
+      </nav>
+    );
   return (
     <nav className={`ns-navbar${scrolled ? ' scrolled' : ''}`}>
     <nav className={`ns-navbar${scrolled ? " scrolled" : ""}`}>
@@ -533,8 +562,8 @@ export default function Navbar({ activeTab, onTabChange, onApply, onJoin, onTogg
         <div className="ns-nav-top">
           <div
             className="ns-nav-logos"
-            onClick={() => handleTab('Home')}
-            style={{ cursor: 'pointer' }}
+            onClick={() => handleTab("Home")}
+            style={{ cursor: "pointer" }}
             aria-label="Go to homepage"
           >
   const handleTab = (tab) => {

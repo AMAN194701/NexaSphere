@@ -40,3 +40,12 @@ module.exports = {
   },
   plugins: [],
 };
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+    "./app/**/*.{js,ts,jsx,tsx}",
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+};

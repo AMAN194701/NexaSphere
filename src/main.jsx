@@ -13,6 +13,9 @@ import { registerSW } from "virtual:pwa-register";
 import { initializeSentry } from "./utils/errorTracking.js";
 import * as Sentry from "@sentry/react";
 import { AppProviders } from "./context/AppProviders";
+import { HelmetProvider } from "react-helmet-async";
+import { ThemeProvider } from "./context/theme/ThemeProvider";
+import GlobalErrorBoundary from "./components/GlobalErrorBoundary.jsx";
 
 initializeSentry();
 
