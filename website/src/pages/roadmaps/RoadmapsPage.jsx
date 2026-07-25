@@ -28,17 +28,32 @@ const DOMAIN_ICONS = {
 };
 
 export default function RoadmapsPage({ onBack }) {
+  const innerScrollRef = useRef(null);
   const [isBuilderActive, setIsBuilderActive] = useState(false);
   const [activeDomain, setActiveDomain] = useState('webdev');
   const [selectedNode, setSelectedNode] = useState(null);
   const panelRef = useRef(null);
   const nodeRefs = useRef({});
 
+  // Ensure panel scroll resets to top when a new node is selected
+  useEffect(() => {
+    if (innerScrollRef.current) {
+      innerScrollRef.current.scrollTop = 0;
+    }
+  }, [selectedNode]);
+
   const domainData = roadmapData[activeDomain];
 
   // Reset selected node when domain changes
   useEffect(() => {
     setSelectedNode(null);
+  }, [activeDomain]);
+
+  // Scroll page to top when domain changes (smooth scroll)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   }, [activeDomain]);
 
   // Handle outside click to close the panel
@@ -61,14 +76,17 @@ export default function RoadmapsPage({ onBack }) {
   // the empty dep array caused a second redundant keydown listener to be
   // registered on mount that was never re-registered, while the correct
   // selectedNode-aware listener was already handled by the effect above.
+  // Ensure panel scroll resets to top when a new node is selected
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        setSelectedNode(null);
+    if (panelRef.current) {
+      const innerScroll = panelRef.current.querySelector('.panel-inner-scroll');
+      if (innerScroll) {
+        innerScroll.scrollTop = 0;
       }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
+    }
   }, [selectedNode]);
 
   const IconComponent = DOMAIN_ICONS[activeDomain] || Monitor;
@@ -244,7 +262,7 @@ export default function RoadmapsPage({ onBack }) {
               style={{ position: 'absolute', top: '16px', right: '16px', zIndex: 20 }}
             />
 
-            <div className="panel-inner-scroll">
+            <div className="panel-inner-scroll" ref={innerScrollRef}>
               {/* Header */}
               <div className="panel-header-section">
                 <span className="panel-category-tag">{domainData.title} · Core Step</span>
