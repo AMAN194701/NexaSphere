@@ -1478,6 +1478,7 @@ async function fetchWithAuth(url, options = {}) {
           resolve({ users: seedUsers });
         }
       }
+    }
     }, 300); // simulate slight network delay
     }, 300);
   });

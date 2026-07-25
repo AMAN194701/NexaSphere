@@ -292,6 +292,7 @@ router.get('/api/admin/reports/engagement', adminAuth, async (req, res) => {
   });
   seedUsers.sort((a, b) => b.engagementScore - a.engagementScore);
   sendSuccess(res, { users: seedUsers });
+  res.json({ users: seedUsers });
 });
 
 router.get('/api/admin/reports/revenue', adminAuth, async (req, res) => {
@@ -391,6 +392,9 @@ router.get('/admin/stats', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('Error fetching admin stats:', error);
     res.status(500).json({ error: 'Failed to fetch platform statistics' });
+    res.json(report);
+  } catch (error) {
+    res.status(500).json({ error: error.message || 'Failed to generate revenue report' });
   }
 });
 
