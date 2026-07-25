@@ -1004,6 +1004,7 @@ if (useStructuredHttpLog) {
 } else {
   app.use(morgan('combined'));
 }
+app.use(apiLogger);
 app.use(performanceMonitor);
 app.use(cookieParser());
 // CSRF protection for CodeQL (configured to ignore all API methods to prevent breaking existing flows)
