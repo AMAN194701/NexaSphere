@@ -118,27 +118,28 @@ function difficultyLabel(level) {
 function ActivityCard({ a, idx, onNavigate }) {
   const ref = useRef(null);
   const details = activityDetails[a.title] || {};
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const onMove = (e) => {
     const c = ref.current;
-    if (!c) return;
+    if (!c || prefersReducedMotion) return;
     const rect = c.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width - 0.5;
     const y = (e.clientY - rect.top) / rect.height - 0.5;
     c.style.transform = `translateY(-10px) rotateX(${-y * 10}deg) rotateY(${x * 10}deg) scale(1.02)`;
   };
   const onLeave = () => {
-    if (ref.current) ref.current.style.transform = '';
+    if (ref.current && !prefersReducedMotion) ref.current.style.transform = '';
   };
   const click = () => {
     const c = ref.current;
-    if (c) {
+    if (c && !prefersReducedMotion) {
       c.style.transform = 'scale(.93)';
       setTimeout(() => {
         c.style.transform = '';
       }, 140);
     }
-    setTimeout(() => onNavigate('activity', a.title), 160);
+    setTimeout(() => onNavigate('activity', a.title), prefersReducedMotion ? 0 : 160);
   };
 
   return (
@@ -381,11 +382,20 @@ export default function ActivitiesPage({ onNavigate, onBack }) {
 
       return;
     }
+
+    // Check if user prefers reduced motion
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
     const obs = new IntersectionObserver(
       (entries) => {
         entries.forEach((e) => {
           if (e.isIntersecting) {
-            e.target.classList.add('fired');
+            // If motion is reduced, skip animation but still mark as fired
+            if (prefersReducedMotion) {
+              e.target.classList.add('no-animation');
+            } else {
+              e.target.classList.add('fired');
+            }
             obs.unobserve(e.target);
           }
         });
@@ -399,7 +409,7 @@ export default function ActivitiesPage({ onNavigate, onBack }) {
     document
       .querySelectorAll('#activities-page .pop-in, #activities-page .pop-word')
       .forEach((el) => {
-        if (!el.classList.contains('fired')) {
+        if (!el.classList.contains('fired') && !el.classList.contains('no-animation')) {
           obs.observe(el);
         }
       });
