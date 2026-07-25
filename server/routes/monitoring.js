@@ -235,6 +235,7 @@ router.get('/logs', requireMonitoringAuth, (req, res) => {
       locations: {
         error: 'server/logs/error.log',
         combined: 'server/logs/combined.log',
+        apiRequests: 'server/logs/api-requests-YYYY-MM-DD.log',
         exceptions: 'server/logs/exceptions.log',
         rejections: 'server/logs/rejections.log',
       },

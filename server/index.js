@@ -126,6 +126,8 @@ import { getActiveTraceId } from './observability/tracing.js';
 import helmet from 'helmet';
 import express from 'express';
 import cors from 'cors';
+import { body, validationResult } from 'express-validator';
+import { EventEmitter } from 'events';
 import { google } from 'googleapis';
 import { promises as fs } from 'fs';
 import path from 'path';
@@ -149,6 +151,18 @@ import monitoringRouter from "./routes/monitoring.js";
 import { performanceMonitor } from "./middleware/performanceMonitor.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { initializeSentry, addSentryErrorHandler } from "./utils/sentry.js";
+import healthRouter from './routes/health.js';
+import coreTeamRouter from './routes/coreTeam.js';
+import formsRouter from './routes/forms.js';
+import portfolioRouter from './routes/portfolio.js';
+import notificationsRouter from './routes/notifications.js';
+import adminRouter from './routes/admin.js';
+import { validateEnvironment } from './utils/envValidator.js';
+import { performanceMonitor } from './middleware/performanceMonitor.js';
+import { tracingMiddleware } from './middleware/tracingMiddleware.js';
+import { apiRequestLogger } from './middleware/apiRequestLogger.js';
+import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+import { initializeSentry, addSentryErrorHandler } from './utils/sentry.js';
 import {
   apiRateLimiter,
   formRateLimiter,
@@ -317,6 +331,7 @@ initCacheListener();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const CONTENT_FILE = path.join(__dirname, "data", "content.json");
+const CONTENT_FILE = path.join(__dirname, 'data', 'content.json');
 
 validateEnvironment();
 initializeTypesenseCollections().catch((err) => {
@@ -420,8 +435,6 @@ const useStructuredHttpLog = (process.env.LOG_FORMAT || '').toLowerCase() === 'j
 app.set('trust proxy', 1);
 setTraceIdResolver(getActiveTraceId);
 initObservability(app);
-
-const useStructuredHttpLog = (process.env.LOG_FORMAT || '').toLowerCase() === 'json';
 
 // Trust the first reverse proxy hop (e.g., Vercel, Render, Nginx, Cloudflare)
 // to correctly populate req.ip and securely discard spoofed X-Forwarded-For headers
@@ -746,6 +759,8 @@ app.use(
 app.use(intrusionDetectionMiddleware);
 app.use(abnormalRequestDetector);
 
+app.use(tracingMiddleware);
+app.use('/api', apiRequestLogger());
 app.use(
   cors({
     origin: (origin, callback) => {
@@ -804,6 +819,8 @@ adminEvents.on("CORE_TEAM_MEMBER_REMOVED", (event) =>
 app.options('*', cors());
 
 app.use(enhancedTracingMiddleware);
+app.use(tracingMiddleware);
+app.use('/api', apiRequestLogger());
 
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
@@ -965,6 +982,7 @@ app.delete(
 // API Key Management
 app.use(apiKeysRouter);
 // Mount monitoring + API documentation routes (previously implemented but never registered).
+// Mount monitoring + API documentation routes
 app.use('/api/monitoring', monitoringRouter);
 app.use('/api', documentationRouter);
 

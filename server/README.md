@@ -49,7 +49,6 @@ The `server/` directory contains the **Node.js / Express** backend API that powe
 | `zod`                | ^4.4    | Request schema validation     |
 | `express-validator`  | ^7.0    | Additional input validation   |
 | `winston`            | ^3.11   | Structured logging            |
-| `morgan`             | ^1.10   | HTTP request logging          |
 | `cors`               | ^2.8    | CORS header management        |
 | `swagger-jsdoc`      | ^6.2    | OpenAPI spec generation       |
 | `swagger-ui-express` | ^5.0    | Swagger UI serving            |

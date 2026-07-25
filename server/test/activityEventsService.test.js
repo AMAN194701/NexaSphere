@@ -64,6 +64,7 @@ test('activityEventsService.addActivityEvent accepts authorized requests', async
   const authorizedInput = {
     name: 'Hackathon Event',
     date: '2026-06-01T00:00:00Z',
+    date: '2026-06-01T00:00:00.000Z',
     description: 'A test event description',
     password: 'TestPassword123', // Matches process.env.ADMIN_EVENT_PASSWORD
     // Matching the fictional TEST_MEMBER returned by the mocked coreTeamService.listMembers

@@ -83,6 +83,7 @@ Copy variables from [`server/.env.example.monitoring`](../server/.env.example.mo
 ## Log retention
 
 - **Default logs** (`nexasphere-logs-*`): 30-day ILM policy
+- **API request logs** (`nexasphere-api-requests-*`): 90-day ILM policy, backed by `server/logs/api-requests-YYYY-MM-DD.log`
 - **Compliance logs** (`nexasphere-compliance-*`): 365-day ILM for `audit` / `admin` level entries
 
 ILM policies are applied by the `elasticsearch-setup` container on first boot.
@@ -91,6 +92,8 @@ ILM policies are applied by the `elasticsearch-setup` container on first boot.
 
 ```
 level:error AND service:nexasphere-api
+event:api_request AND status >= 500
+method:POST AND path:"/api/admin/login"
 traceId:"<from Jaeger>"
 userId:"<user-id>"
 @timestamp:[now-1h TO now]
@@ -180,3 +183,8 @@ For production alerting, copy `alertmanager/alertmanager.prod.yml.example` → `
 | Dashboards | Grafana NexaSphere folder (5 dashboards) |
 | Log retention | `curl localhost:9200/_ilm/policy/nexasphere-logs-30d` |
 | Error tracking wired | `cd server && npm test` (62 tests pass) |
+| API request logs searchable | Kibana Discover shows `nexasphere-api-requests-*` |
+| Traces available | Jaeger UI shows `nexasphere-api` spans |
+| Dashboards | Grafana NexaSphere folder (5 dashboards) |
+| Log retention | `curl localhost:9200/_ilm/policy/nexasphere-api-requests-90d` |
+| Error tracking wired | `cd server && npm test` |

@@ -150,6 +150,10 @@ const baseFileFormat = winston.format.combine(
 );
 
 const baseFileFormat = LOG_FORMAT === 'json' ? jsonFormat : textFormat;
+const apiRequestOnlyFormat = winston.format((info) => {
+  return info.event === 'api_request' ? info : false;
+});
+const apiRequestFileFormat = winston.format.combine(apiRequestOnlyFormat(), jsonFormat);
 
 // Determine runtime levels: Console is dynamic, historical files maintain info baseline
 const consoleLevel = process.env.LOG_LEVEL || 'info';
@@ -210,6 +214,16 @@ if (isStorageWritable) {
       maxSize: '20m',
       maxFiles: '14d',
       format: winston.format.uncolorize(),
+      utc: true,
+    }),
+    new DailyRotateFile({
+      filename: path.join(logsDir, 'api-requests-%DATE%.log'),
+      datePattern: 'YYYY-MM-DD',
+      level: 'http',
+      maxSize: '20m',
+      maxFiles: '90d',
+      zippedArchive: true,
+      format: apiRequestFileFormat,
       utc: true,
     })
   );
