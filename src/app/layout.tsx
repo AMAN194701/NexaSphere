@@ -1,5 +1,6 @@
 import React from "react";
 import ThemeProvider from "../src/components/ThemeProvider";
+import { Analytics } from "@vercel/analytics/react";
 
 export const metadata = {
   title: "NexaSphere — Connecting GL Bajaj Tech Ecosystem",
@@ -23,6 +24,8 @@ export default function RootLayout({
         >
           {children}
         </ThemeProvider>
+        {children}
+        <Analytics />
       </body>
     </html>
   );
