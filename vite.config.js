@@ -61,3 +61,5 @@ export default defineConfig({
     },
   },
 });
+  base: './',  // or '/' if deploying to root
+})
