@@ -124,6 +124,12 @@ const MOCK_METRICS = {
 // getApiBase imported from runtimeConfig — avoids as any cast and duplicated URL logic
 
 export default function UserDashboard() {
+  // No auth system exists yet — userId is hardcoded as a placeholder meaning
+  // every user fetches the same data. isDemo is forced true below to make this
+  // limitation visible. When an auth system is added, replace with the real
+  // user ID from the auth context and remove the forced isDemo = true.
+  const userId = 'user_123';
+
   const [activities, setActivities] = useState<Activity[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [metrics, setMetrics] = useState({
@@ -200,6 +206,70 @@ export default function UserDashboard() {
       });
       setLoading(false);
     }, 500);
+      return;
+    }
+
+    // Force demo banner even when API is reachable — userId is still
+    // hardcoded as 'user_123' so all users see identical placeholder data.
+    setIsDemo(true);
+
+    Promise.all([
+      fetch(`${base}/api/dashboard/profile/${userId}`).then((r) => r.json()),
+      fetch(`${base}/api/dashboard/quests/${userId}`).then((r) => r.json()),
+      fetch(`${base}/api/dashboard/leaderboard`).then((r) => r.json()),
+    ])
+      .then(([profile, quests, leaderboard]) => {
+        // isDemo stays true — userId is still hardcoded as 'user_123'
+
+        // Map profile → metrics
+        if (profile && typeof profile === 'object') {
+          setMetrics({
+            eventsAttended: profile.eventsAttended ?? 0,
+            commentsPosted: profile.commentsPosted ?? 0,
+            contributionsMade: profile.contributionsMade ?? 0,
+            totalPoints: profile.xp ?? 0,
+            currentStreak: profile.currentStreak ?? 0,
+            longestStreak: profile.longestStreak ?? 0,
+          });
+          // Map badges → achievements
+          if (Array.isArray(profile.badges) && profile.badges.length > 0) {
+            setAchievements(
+              profile.badges.map((b: string, i: number) => ({
+                id: String(i),
+                title: b,
+                description: '',
+                icon: '🏅',
+                points: 0,
+              }))
+            );
+          } else {
+            setAchievements(MOCK_ACHIEVEMENTS);
+          }
+        }
+
+        // Map quests → activities feed
+        if (Array.isArray(quests) && quests.length > 0) {
+          setActivities(
+            quests.map((q: Quest) => ({
+              id: q.id,
+              type: 'achievement' as const,
+              title: q.title,
+              description: q.description,
+              date: new Date(),
+            }))
+          );
+        } else {
+          setActivities(MOCK_ACTIVITIES);
+        }
+      })
+      .catch(() => {
+        // API unreachable — fall back to mock data with demo banner
+        setActivities(MOCK_ACTIVITIES);
+        setAchievements(MOCK_ACHIEVEMENTS);
+        setMetrics(MOCK_METRICS);
+        setIsDemo(true);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const weeklyData = [
