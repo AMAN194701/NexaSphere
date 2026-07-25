@@ -1548,6 +1548,99 @@
 }
 .copy-popup-btn:hover { filter: brightness(1.12); transform: scale(1.05); }
 
+.ns-footer {
+  border-top: 1px solid var(--bdr);
+  padding: 32px 0;
+  background: linear-gradient(180deg, transparent, rgba(242, 92, 102, 0.008));
+}
+[data-theme='light'] .ns-footer {
+  background: linear-gradient(180deg, transparent, rgba(204, 17, 17, 0.025));
+  border-top-color: rgba(26, 26, 26, 0.1);
+}
+.ns-footer-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.ns-footer-logos {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.ns-footer-logo-ns {
+  height: 44px;
+  width: 44px;
+  object-fit: contain;
+  mix-blend-mode: normal;
+  filter: drop-shadow(0 0 8px rgba(204, 17, 17, 0.5)) brightness(1.05);
+}
+[data-theme='light'] .ns-footer-logo-ns {
+  mix-blend-mode: normal;
+  filter: drop-shadow(0 2px 6px rgba(204, 17, 17, 0.4));
+}
+.ns-footer-logo-gl {
+  height: 32px;
+  width: auto;
+  opacity: 0.7;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 2px 6px;
+  border-radius: 5px;
+}
+[data-theme='light'] .ns-footer-logo-gl {
+  background: transparent;
+  opacity: 0.8;
+}
+.ns-footer-text {
+  font-size: 0.78rem;
+  color: var(--t2);
+  text-align: center;
+}
+[data-theme='light'] .ns-footer-text {
+  color: #4a4a4a;
+}
+.ns-footer-text span {
+  background: linear-gradient(135deg, var(--c1), var(--c2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+}
+[data-theme='light'] .ns-footer-text span {
+  background: linear-gradient(135deg, #cc1111, #aa0000);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.ns-footer-email-link {
+  color: var(--c1);
+  font-weight: 600;
+}
+[data-theme='light'] .ns-footer-email-link {
+  color: #cc1111;
+}
+.ns-footer-divider {
+  width: 100%;
+  height: 1px;
+  margin-bottom: 18px;
+  background: linear-gradient(90deg, transparent, var(--c1b), var(--c2b), transparent);
+}
+[data-theme='light'] .ns-footer-divider {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(204, 17, 17, 0.25),
+    rgba(170, 0, 0, 0.2),
+    transparent
+  );
+}
+.ns-footer-built {
+  font-size: 0.72rem;
+  opacity: 1;
+}
+[data-theme='light'] .ns-footer-built {
+  color: #4a4a4a;
+}
 
 /* ══════════════════════════════════════════════════════════════════
    CORNER DECORATIONS
