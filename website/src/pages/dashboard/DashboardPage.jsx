@@ -22,6 +22,7 @@ export default function DashboardPage({ onBack }) {
         role: authUser.role || 'student',
       }
     : { id: 'user_123', name: 'Explorer', email: '', role: 'student' };
+  const [currentUser] = useState({ id: 'user_123', name: 'Explorer' });
   const [interests, setInterests] = useState([]);
   const [quests, setQuests] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
@@ -77,6 +78,18 @@ export default function DashboardPage({ onBack }) {
       ].sort((a, b) => b.xp - a.xp || a.username.localeCompare(b.username))
     );
   }, [currentUser]);
+    // Simulated data based on timeframe
+    const data = {
+      all: [
+        { id: 'u1', userId: 'user_123', username: 'Explorer', xp: 450, level: 3 },
+        { id: 'u2', userId: 'user_456', username: 'TechNinja', xp: 850, level: 5 },
+        { id: 'u3', userId: 'user_789', username: 'CodeMaster', xp: 320, level: 2 },
+      ].sort((a, b) => b.xp - a.xp),
+      week: [{ id: 'u2', userId: 'user_456', username: 'TechNinja', xp: 200, level: 5 }],
+      month: [{ id: 'u1', userId: 'user_123', username: 'Explorer', xp: 350, level: 3 }],
+    };
+    setLeaderboard(data[timeframe] || data.all);
+  }, [timeframe]);
 
   const toggleInterest = (domain) => {
     setInterests((prev) => {

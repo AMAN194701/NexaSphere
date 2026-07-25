@@ -91,6 +91,14 @@ export default function Leaderboard({ users, currentUserId, timeframe, setTimefr
                   {user.xp} XP
                 </span>
               </div>
+              <span
+                style={{
+                  color: isMe ? '#FFD700' : 'inherit',
+                  fontWeight: isMe ? 'bold' : 'normal',
+                }}
+              >
+                {user.xp} XP
+              </span>
             </div>
           );
         })}
