@@ -42,6 +42,28 @@ const joinRoomAttempts = new Map();
 const MAX_JOIN_ROOM_ATTEMPTS = 20;
 const JOIN_ROOM_WINDOW_MS = 60000;
 
+// Periodic cleanup timer for joinRoomAttempts map
+let joinRoomCleanupTimer = null;
+const JOIN_ROOM_CLEANUP_INTERVAL_MS = 300000; // 5 minutes
+
+/**
+ * Remove stale entries from joinRoomAttempts map.
+ * Called periodically to prevent unbounded memory growth.
+ */
+function cleanupJoinRoomAttempts() {
+  const now = Date.now();
+  let cleaned = 0;
+  for (const [socketId, attempts] of joinRoomAttempts) {
+    if (now > attempts.resetAt) {
+      joinRoomAttempts.delete(socketId);
+      cleaned++;
+    }
+  }
+  if (cleaned > 0) {
+    logger.debug('joinRoomAttempts cleanup', { cleaned, remaining: joinRoomAttempts.size });
+  }
+}
+
 // ===================================// WEBSOCKET BACKPRESSURE & THROTTLING CONFIG
 const MAX_CURSOR_X = 5000;
 const MAX_CURSOR_Y = 5000;
@@ -261,6 +283,10 @@ export function stopSocketValidation() {
     clearInterval(socketValidationTimer);
     socketValidationTimer = null;
   }
+  if (joinRoomCleanupTimer) {
+    clearInterval(joinRoomCleanupTimer);
+    joinRoomCleanupTimer = null;
+  }
 }
 
 
@@ -388,6 +414,14 @@ export function initializeSocketIO(httpServer) {
   liveQaService.setIO(io);
   // Start distributed revocation checks for admin WebSocket clients
   startSocketValidation();
+
+  // Start periodic cleanup of joinRoomAttempts map to prevent memory leaks
+  if (!joinRoomCleanupTimer) {
+    joinRoomCleanupTimer = setInterval(cleanupJoinRoomAttempts, JOIN_ROOM_CLEANUP_INTERVAL_MS);
+    if (typeof joinRoomCleanupTimer.unref === 'function') {
+      joinRoomCleanupTimer.unref();
+    }
+  }
 
   return io;
 }
