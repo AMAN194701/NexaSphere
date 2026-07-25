@@ -224,6 +224,16 @@ export function getNotifications(userId = 'global') {
   const list = _ensureList(userId);
   _removeExpired(list);
   return list.slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+function _stripRowMeta(row) {
+  return {
+    id: row.id,
+    type: row.type,
+    title: row.title,
+    message: row.message,
+    link: row.link,
+    isRead: row.isRead,
+    createdAt: row.createdAt,
+  };
 }
 
 export function addNotification(userId = 'global', payload = {}) {
@@ -314,6 +324,13 @@ export function markAsRead(userId = "global", id) {
       n.isRead = true;
       changed = true;
       break;
+export async function markAsRead(userId = 'global', id) {
+  const ok = await notificationsRepository.markAsRead(userId, id);
+  if (ok) {
+    const list = _ensureCache(userId);
+    if (list) {
+      const n = list.find((x) => x.id === id);
+      if (n) n.isRead = true;
     }
   }
   if (changed) {
@@ -325,6 +342,12 @@ export function markAsRead(userId = "global", id) {
 export function markAllAsRead(userId = "global") {
   const list = _ensureList(userId);
   list.forEach((n) => (n.isRead = true));
+export async function markAllAsRead(userId = 'global') {
+  await notificationsRepository.markAllAsRead(userId);
+  const list = _ensureCache(userId);
+  if (list) {
+    list.forEach((n) => (n.isRead = true));
+  }
 }
 
 export const addNotification = notificationsService.addNotification.bind(notificationsService);
@@ -354,6 +377,14 @@ export function removeNotification(userId = "global", id) {
     list.splice(idx, 1);
     broadcastNotificationSync("remove", userId, { id });
     return true;
+export async function removeNotification(userId = 'global', id) {
+  const ok = await notificationsRepository.remove(userId, id);
+  if (ok) {
+    const list = _ensureCache(userId);
+    if (list) {
+      const idx = list.findIndex((n) => n.id === id);
+      if (idx >= 0) list.splice(idx, 1);
+    }
   }
   return false;
 }

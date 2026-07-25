@@ -95,6 +95,9 @@ const logLayout = winston.format.printf((info) => {
 });
 
 const textFormat = winston.format.combine(
+// Define transports
+// 1. Define the base format WITHOUT colorize
+const baseFileFormat = winston.format.combine(
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),
   winston.format.errors({ stack: true }),
   winston.format.splat(),
@@ -115,6 +118,7 @@ const textFormat = winston.format.combine(
     const ts = timestamp.slice(0, 19).replace('T', ' ');
     return `${ts} [${level}]: ${message} ${
       Object.keys(args).length ? JSON.stringify(args, null, 2) : ''
+      Object.keys(cleanArgs).length ? JSON.stringify(cleanArgs, null, 2) : ''
     }`;
   })
 );
@@ -138,6 +142,7 @@ const activeTransports = [
             correlationFormat(),
             logLayout
           ),
+    format: winston.format.combine(winston.format.colorize({ all: true }), baseFileFormat),
   }),
 ];
 
@@ -171,6 +176,8 @@ if (isStorageWritable) {
       level: fileBaselineLevel,
       maxSize: '20m',
       maxFiles: '90d',
+      maxSize: '20m',
+      maxFiles: '14d',
       format: winston.format.uncolorize(),
       utc: true,
     })
@@ -247,6 +254,32 @@ const logger = winston.createLogger({
       filename: path.join(logsDir, 'rejections.log'),
     }),
   ],
+  format: baseFileFormat,
+  transports: activeTransports,
+  exceptionHandlers: isStorageWritable
+    ? [
+        new DailyRotateFile({
+          filename: path.join(logsDir, 'exceptions-%DATE%.log'),
+          datePattern: 'YYYY-MM-DD',
+          maxSize: '20m',
+          maxFiles: '14d',
+          format: baseFileFormat, //  FIX: Ensures clean exception dumps
+          utc: true,
+        }),
+      ]
+    : undefined,
+  rejectionHandlers: isStorageWritable
+    ? [
+        new DailyRotateFile({
+          filename: path.join(logsDir, 'rejections-%DATE%.log'),
+          datePattern: 'YYYY-MM-DD',
+          maxSize: '20m',
+          maxFiles: '14d',
+          format: baseFileFormat, //  FIX: Ensures clean rejection dumps
+          utc: true,
+        }),
+      ]
+    : undefined,
 });
 
 export default logger;

@@ -882,3 +882,4 @@ export { login, logout, requireAdmin, requireRole, requireScope };
 
 // DCO sign-off commit
 };
+export { login, logout, requireAdmin, requireRole, requireScope };

@@ -327,6 +327,11 @@ export function initializeSocketIO(httpServer) {
     const subClient = pubClient.duplicate();
     subClient.on('error', (err) => {
       logger.error('Redis subscription client connection error:', err);
+  if (process.env.REDIS_URL) {
+    const pubClient = getRedisClient();
+    const subClient = pubClient.duplicate();
+    subClient.on('error', (err) => {
+      logger.error('Redis subClient connection error:', err);
     });
     // Ensure both pub/sub clients are connected before wiring the adapter
     const connectIfNeeded = async (client) => {
@@ -344,6 +349,7 @@ export function initializeSocketIO(httpServer) {
     io.adapter(createAdapter(pubClient, subClient));
   } else {
     logger.info('Skipping Redis adapter in test environment');
+    logger.info('REDIS_URL not configured. Socket.IO falling back to in-memory adapter.');
   }
 
   io.use(async (socket, next) => {

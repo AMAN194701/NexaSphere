@@ -250,6 +250,7 @@ export function normalizePhone(value) {
     .replace(/\D/g, '')
     .slice(0, 30);
 }
+// ============================================================
 
 const SAFE_URL_PROTOCOLS = /^(https?:\/\/|\/[^\/])/i;
 const URL_MAX_LENGTH = 2048;
@@ -266,6 +267,10 @@ function stripHtml(value) {
   let text = String(value);
   // Clean using DOMPurify with no tags/attributes allowed (plain text output)
   text = DOMPurify.sanitize(text, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+  text = text.replace(SCRIPT_PATTERN, '');
+  text = text.replace(STYLE_PATTERN, '');
+  text = text.replace(HTML_COMMENT_PATTERN, '');
+  text = text.replace(HTML_TAG_PATTERN, '');
   text = text.replace(CONTROL_CHAR_PATTERN, '');
   text = text.replace(NULL_BYTE_PATTERN, '');
   return text;
@@ -282,6 +287,8 @@ function isSafeUrl(value) {
   if (trimmed.length === 0) return false;
   if (trimmed.length > URL_MAX_LENGTH) return false;
   // Reject known dangerous protocols explicitly.
+  // Reject known dangerous protocols explicitly.  The regex below
+  // also catches javascript:, data:, vbscript:, file:, etc.
   if (/^\s*(javascript|data|vbscript|file|about|chrome|jar|mocha):/i.test(trimmed)) {
     return false;
   }
@@ -450,6 +457,7 @@ export function sanitizePortfolioRecord(data = {}) {
       .map((badge) => sanitizeBadge(badge))
       .filter(Boolean)
       .slice(0, 100);
+    out.badges = data.badges.map(sanitizeBadge).filter(Boolean).slice(0, 100);
   } else {
     out.badges = [];
   }
@@ -458,6 +466,7 @@ export function sanitizePortfolioRecord(data = {}) {
       .map((project) => sanitizeProject(project))
       .filter(Boolean)
       .slice(0, 50);
+    out.projects = data.projects.map(sanitizeProject).filter(Boolean).slice(0, 50);
   } else {
     out.projects = [];
   }
@@ -517,6 +526,12 @@ export function sanitizePortfolioRecord(data = {}) {
       out.githubUsername = gh;
     }
   }
+    out.roadmaps = data.roadmaps.map(sanitizeRoadmap).filter(Boolean).slice(0, 50);
+  } else {
+    out.roadmaps = [];
+  }
+  out.bio = stripHtmlTruncated(data.bio, 5000);
+  out.title = stripHtmlTruncated(data.title, 200);
   return out;
 }
 
@@ -557,12 +572,32 @@ export {
   validateWhatsApp,
 };
 export { escapeHtml, sanitizeNullableText, sanitizeText, sanitizeTextArray };
-=======
 export { escapeHtml, sanitizeNullableText, sanitizeText, sanitizeTextArray };
 =======
 =======
 function toSafeString(value, max = 4000) {
   return String(value ?? '')
+=======
+}
+
+function toSafeString(value, max = 4000) {
+  return String(value ?? '')
+    .trim()
+    .slice(0, max);
+}
+
+function normalizePhone(value) {
+  return String(value || '').replace(/[^\d]/g, '');
+}
+
+function validateWhatsApp(str) {
+  const v = String(str || '').replace(/[^\d]/g, '');
+  if (v.length !== 10) throw new Error('WhatsApp must be exactly 10 digits');
+  return v;
+}
+
+function validateSection(str) {
+  const v = String(str || '')
     .trim()
     .slice(0, max);
 }
