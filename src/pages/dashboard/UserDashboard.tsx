@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { getApiBase } from '../../utils/runtimeConfig';
 import {
   Calendar,
   Award,
@@ -45,6 +46,82 @@ interface Achievement {
   icon: string;
   points: number;
 }
+
+interface Quest {
+  id: string;
+  title: string;
+  description: string;
+  xpReward: number;
+  completed: boolean;
+}
+
+interface LeaderboardUser {
+  id: string;
+  userId: string;
+  username: string;
+  xp: number;
+  level: number;
+}
+
+// Mock data used as fallback when the API is unavailable
+const MOCK_ACTIVITIES: Activity[] = [
+  {
+    id: '1',
+    type: 'event_registration',
+    title: 'Tech Symposium 2026',
+    description: 'You registered for Tech Symposium',
+    date: new Date(),
+  },
+  {
+    id: '2',
+    type: 'comment',
+    title: 'Commented on AI Workshop',
+    description: 'Great insights on AI applications!',
+    date: new Date(Date.now() - 2 * 86400000),
+  },
+  {
+    id: '3',
+    type: 'achievement',
+    title: 'First Event Attended',
+    description: 'Earned "First Step" badge',
+    date: new Date(Date.now() - 5 * 86400000),
+  },
+];
+
+const MOCK_ACHIEVEMENTS: Achievement[] = [
+  {
+    id: '1',
+    title: 'First Event',
+    description: 'Attended your first event',
+    icon: '🎯',
+    points: 50,
+  },
+  {
+    id: '2',
+    title: 'Active Participant',
+    description: 'Attended 5 events',
+    icon: '🏆',
+    points: 100,
+  },
+  {
+    id: '3',
+    title: 'Community Builder',
+    description: 'Posted 10 comments',
+    icon: '💬',
+    points: 75,
+  },
+];
+
+const MOCK_METRICS = {
+  eventsAttended: 8,
+  commentsPosted: 24,
+  contributionsMade: 12,
+  totalPoints: 450,
+  currentStreak: 5,
+  longestStreak: 12,
+};
+
+// getApiBase imported from runtimeConfig — avoids as any cast and duplicated URL logic
 
 export default function UserDashboard() {
   const [activities, setActivities] = useState<Activity[]>([]);
