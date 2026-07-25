@@ -25,6 +25,7 @@ export const searchController = {
 
       if (!q || q.length < 2) {
         return sendSuccess(res, { results: [], total: 0, page, limit });
+        return res.json({ results: [], total: 0, page, limit });
       }
 
       const { isTypesenseEnabled, typesenseClient } = await import('../config/typesense.js');
@@ -346,6 +347,8 @@ export const searchController = {
       results = results.slice(0, limit);
 
       return sendSuccess(res, { results, total: allResultsCount, query: q });
+
+      return res.json({ results, total: trueTotal, page, limit, query: q });
     } catch (err) {
       console.error('Search error:', err);
       return sendError(req, res, 'Search failed', 500, 'INTERNAL_ERROR', { results: [], total: 0 });

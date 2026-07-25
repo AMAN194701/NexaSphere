@@ -5992,6 +5992,9 @@ app.patch(
   adminAuth,
   resourcesController.moderateResource
 );
+app.get('/api/search', searchRateLimiter, searchController.search);
+app.get('/api/search/trending', searchRateLimiter, searchController.trending);
+app.get('/api/recommendations', searchRateLimiter, searchController.recommendations);
 // Must be registered after all routes.
 app.use(notFoundHandler);
 addSentryErrorHandler(app);
