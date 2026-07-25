@@ -106,6 +106,7 @@ import analyticsRouter from "./routes/analytics.js";
 import { initializeSocketIO, emitToRoom, getRoom } from "./config/socket.js";
 import adminStreamRouter from "./routes/adminStream.js";
 import mentorshipRouter from "./routes/mentorship.js";
+import adaptiveRoadmapRouter from "./routes/adaptiveRoadmap.js";
 import { broadcastSSEEvent } from "./services/sseService.js";
 import rateLimit from "express-rate-limit";
 import 'dotenv/config';
@@ -334,6 +335,11 @@ app.use(
 );
 app.use(express.json({ limit: '512kb' }));
 const adminEvents = new EventEmitter();
+app.use(express.json({ limit: "512kb" }));
+
+function redactUrl(url) {
+  return url.replace(/[?&]token=[^&\s]+/gi, "$1token=REDACTED");
+}
 
 app.get('/api-docs.json', (req, res) => {
   res.setHeader('Content-Type', 'application/json');
@@ -567,6 +573,7 @@ app.use(
   })
 app.use("/api", apiRateLimiter);
 app.use("/api/mentorship", mentorshipRouter);
+app.use("/api/adaptive-roadmap", adaptiveRoadmapRouter);
 
 const adminAuth = adminAuthMiddleware.requireAdmin;
 const adminEvents = new EventEmitter();
@@ -2127,7 +2134,7 @@ async function deleteActivityEventStore(activityKey, eventId) {
   });
 }
 
-async function listCoreTeamStore() {
+export async function listCoreTeamStore() {
   if (HAS_SUPABASE) {
     const rows = await supabaseRequest('core_team_members?select=*&order=created_at.asc');
     const rows = await supabaseRequest(
@@ -2146,6 +2153,13 @@ async function listCoreTeamStore() {
         linkedin: r.linkedin,
         instagram: r.instagram,
         photoUrl: r.photo_url,
+        githubUsername: r.github_username,
+        leetcodeUsername: r.leetcode_username,
+        cachedGithubStats: r.cached_github_stats,
+        cachedLeetcodeStats: r.cached_leetcode_stats,
+        lastSyncedAt: r.last_synced_at,
+        syncStatus: r.sync_status,
+        syncErrorMessage: r.sync_error_message,
         createdAt: r.created_at,
       })
     );
@@ -2183,6 +2197,8 @@ async function createCoreTeamStore(member) {
           linkedin: member.linkedin,
           instagram: member.instagram,
           photo_url: member.photoUrl,
+          github_username: member.githubUsername,
+          leetcode_username: member.leetcodeUsername,
         },
       ],
     });
@@ -2198,6 +2214,13 @@ async function createCoreTeamStore(member) {
       linkedin: row.linkedin,
       instagram: row.instagram,
       photoUrl: row.photo_url,
+      githubUsername: row.github_username,
+      leetcodeUsername: row.leetcode_username,
+      cachedGithubStats: row.cached_github_stats,
+      cachedLeetcodeStats: row.cached_leetcode_stats,
+      lastSyncedAt: row.last_synced_at,
+      syncStatus: row.sync_status,
+      syncErrorMessage: row.sync_error_message,
       createdAt: row.created_at,
     });
   }
@@ -2208,10 +2231,82 @@ async function createCoreTeamStore(member) {
       ...member,
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
+      cachedGithubStats: {},
+      cachedLeetcodeStats: {},
+      syncStatus: "pending",
     };
     content.coreTeam.push(newMember);
     await writeContent(content);
     return sanitizeCoreTeamMemberRecord(newMember);
+  });
+}
+
+export async function updateCoreTeamStore(id, patch) {
+  if (HAS_SUPABASE) {
+    const body = {};
+    if (patch.name !== undefined) body.name = patch.name;
+    if (patch.role !== undefined) body.role = patch.role;
+    if (patch.year !== undefined) body.year = patch.year;
+    if (patch.branch !== undefined) body.branch = patch.branch;
+    if (patch.section !== undefined) body.section = patch.section;
+    if (patch.email !== undefined) body.email = patch.email;
+    if (patch.whatsapp !== undefined) body.whatsapp = patch.whatsapp;
+    if (patch.linkedin !== undefined) body.linkedin = patch.linkedin;
+    if (patch.instagram !== undefined) body.instagram = patch.instagram;
+    if (patch.photoUrl !== undefined) body.photo_url = patch.photoUrl;
+    if (patch.githubUsername !== undefined)
+      body.github_username = patch.githubUsername;
+    if (patch.leetcodeUsername !== undefined)
+      body.leetcode_username = patch.leetcodeUsername;
+    if (patch.cachedGithubStats !== undefined)
+      body.cached_github_stats = patch.cachedGithubStats;
+    if (patch.cachedLeetcodeStats !== undefined)
+      body.cached_leetcode_stats = patch.cachedLeetcodeStats;
+    if (patch.lastSyncedAt !== undefined)
+      body.last_synced_at = patch.lastSyncedAt;
+    if (patch.syncStatus !== undefined) body.sync_status = patch.syncStatus;
+    if (patch.syncErrorMessage !== undefined)
+      body.sync_error_message = patch.syncErrorMessage;
+
+    const [row] = await supabaseRequest(
+      `core_team_members?id=eq.${encodeURIComponent(id)}`,
+      {
+        method: "PATCH",
+        body,
+      }
+    );
+    if (!row) return null;
+    return sanitizeCoreTeamMemberRecord({
+      id: row.id,
+      name: row.name,
+      role: row.role,
+      year: row.year,
+      branch: row.branch,
+      section: row.section,
+      email: row.email,
+      whatsapp: row.whatsapp,
+      linkedin: row.linkedin,
+      instagram: row.instagram,
+      photoUrl: row.photo_url,
+      githubUsername: row.github_username,
+      leetcodeUsername: row.leetcode_username,
+      cachedGithubStats: row.cached_github_stats,
+      cachedLeetcodeStats: row.cached_leetcode_stats,
+      lastSyncedAt: row.last_synced_at,
+      syncStatus: row.sync_status,
+      syncErrorMessage: row.sync_error_message,
+      createdAt: row.created_at,
+    });
+  }
+  return withContentLock(async () => {
+    const content = await readContent();
+    const idx = (content.coreTeam || []).findIndex(
+      (m) => String(m.id) === String(id)
+    );
+    if (idx < 0) return null;
+    content.coreTeam[idx] = { ...content.coreTeam[idx], ...patch };
+    await writeContent(content);
+    return sanitizeCoreTeamMemberRecord(content.coreTeam[idx]);
   });
 }
 
@@ -2316,6 +2411,21 @@ app.put(
   studentAuthController.updateProfile
 );
 app.get('/api/auth/registrations', requireStudentAuth, studentAuthController.getRegistrations);
+app.get("/api/content/events", async (req, res) => {
+  try {
+    const { page, limit } = parsePagination(req.query);
+    const { events, total } = await listEventsStore({ page, limit });
+    return res.json({
+      events,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
+    });
+  }
+});
 
 // Slack Integration Endpoints
 app.post(
@@ -2669,11 +2779,171 @@ function checkPasskeyLockout(username, ip) {
     }
   }
 );
+});
 
-// Admin Team Management
-app.get('/api/admin/core-team', adminAuth, coreTeamController.adminListCoreTeamMembers);
-app.post('/api/admin/core-team', adminAuth, coreTeamController.adminAddCoreTeamMember);
-app.delete('/api/admin/core-team/:id', adminAuth, coreTeamController.adminDeleteCoreTeamMember);
+app.put("/api/admin/events/:id", adminAuth, async (req, res) => {
+  try {
+    const id = String(req.params.id || "").trim();
+    const patch = sanitizeEvent({ ...req.body, id });
+    const updated = await updateEventStore(id, patch);
+    if (!updated) return res.status(404).json({ error: "Event not found" });
+    return res.json({ ok: true, event: updated });
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ error: e?.message || "Unable to update event" });
+  }
+});
+
+app.delete("/api/admin/events/:id", adminAuth, async (req, res) => {
+  try {
+    const id = String(req.params.id || "").trim();
+    const deleted = await deleteEventStore(id);
+    if (!deleted) return res.status(404).json({ error: "Event not found" });
+    return res.json({ ok: true });
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ error: e?.message || "Unable to delete event" });
+  }
+});
+
+app.get("/api/content/core-team", async (req, res) => {
+  try {
+    const fullTeam = await listCoreTeamStore();
+    // Strip out PII (email, whatsapp) for the unauthenticated public endpoint
+    const publicTeam = fullTeam.map((member) => {
+      const { email, whatsapp, ...safeData } = member;
+      return safeData;
+    });
+    return res.json({ members });
+  } catch (e) {
+    return res.status(500).json({ error: e?.message || 'Failed to load core team' });
+  }
+});
+
+app.get("/api/content/portfolios", async (req, res) => {
+  try {
+    const fullTeam = await listCoreTeamStore();
+    // Return the dynamic portfolios with stats
+    const portfolios = fullTeam.map((member) => {
+      const { email, whatsapp, ...safeData } = member;
+      return safeData;
+    });
+    return res.json(portfolios);
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ error: e?.message || "Failed to load portfolios" });
+  }
+});
+
+app.get("/api/admin/core-team", adminAuth, async (req, res) => {
+  try {
+    return res.json(await listCoreTeamStore());
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ error: e?.message || "Failed to load core team" });
+  }
+});
+
+app.post("/api/admin/core-team", adminAuth, async (req, res) => {
+  try {
+    const body = req.body || {};
+    const adminEmail = req.adminSession?.username || "admin";
+
+    const member = {
+      name: toSafeString(body.name, 100),
+      role: toSafeString(body.role, 100),
+      year: toSafeString(body.year, 20),
+      branch: toSafeString(body.branch, 100),
+      section: validateSection(body.section),
+      email: toSafeString(body.email, 140),
+      whatsapp: validateWhatsApp(body.whatsapp),
+      linkedin: toSafeString(body.linkedin, 255) || null,
+      instagram: toSafeString(body.instagram, 255) || null,
+      photoUrl: toSafeString(body.photoUrl, 500) || null,
+      githubUsername: toSafeString(body.githubUsername, 100) || null,
+      leetcodeUsername: toSafeString(body.leetcodeUsername, 100) || null,
+    };
+
+    if (
+      !member.name ||
+      !member.role ||
+      !member.year ||
+      !member.branch ||
+      !member.email
+    ) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+    if (!isEmail(member.email)) {
+      return res.status(400).json({ error: "Invalid email format" });
+    }
+
+    const saved = await createCoreTeamStore(member);
+    adminEvents.emit("CORE_TEAM_MEMBER_ADDED", {
+      adminEmail,
+      member: saved,
+      timestamp: new Date().toISOString(),
+    });
+    return res.json({ members });
+  } catch (e) {
+    return res.status(500).json({ error: e?.message || 'Failed to load core team' });
+  }
+});
+
+app.put("/api/admin/core-team/:id", adminAuth, async (req, res) => {
+  try {
+    const id = String(req.params.id || "").trim();
+    const body = req.body || {};
+    const adminEmail = req.adminSession?.username || "admin";
+
+    const patch = {};
+    if (body.name !== undefined) patch.name = toSafeString(body.name, 100);
+    if (body.role !== undefined) patch.role = toSafeString(body.role, 100);
+    if (body.year !== undefined) patch.year = toSafeString(body.year, 20);
+    if (body.branch !== undefined)
+      patch.branch = toSafeString(body.branch, 100);
+    if (body.section !== undefined)
+      patch.section = validateSection(body.section);
+    if (body.email !== undefined) {
+      if (!isEmail(body.email))
+        return res.status(400).json({ error: "Invalid email format" });
+      patch.email = toSafeString(body.email, 140);
+    }
+    if (body.whatsapp !== undefined)
+      patch.whatsapp = validateWhatsApp(body.whatsapp);
+    if (body.linkedin !== undefined)
+      patch.linkedin = toSafeString(body.linkedin, 255) || null;
+    if (body.instagram !== undefined)
+      patch.instagram = toSafeString(body.instagram, 255) || null;
+    if (body.photoUrl !== undefined)
+      patch.photoUrl = toSafeString(body.photoUrl, 500) || null;
+    if (body.githubUsername !== undefined)
+      patch.githubUsername = toSafeString(body.githubUsername, 100) || null;
+    if (body.leetcodeUsername !== undefined)
+      patch.leetcodeUsername = toSafeString(body.leetcodeUsername, 100) || null;
+
+    const updated = await updateCoreTeamStore(id, patch);
+    if (!updated) return res.status(404).json({ error: "Member not found" });
+
+    adminEvents.emit("CORE_TEAM_MEMBER_UPDATED", {
+      adminEmail,
+      member: updated,
+      timestamp: new Date().toISOString(),
+    });
+
+    return res.json({ ok: true, member: updated });
+  } catch (e) {
+    return res.status(400).json({ error: e?.message || "Validation failed" });
+  }
+});
+
+app.delete("/api/admin/core-team/:id", adminAuth, async (req, res) => {
+  try {
+    const id = String(req.params.id || "").trim();
+    const adminEmail = req.adminSession?.username || "admin";
 
 // Dynamic forms
 app.post('/api/forms/membership', formRateLimiter, formsController.makeHandleForm('membership'));
@@ -3550,6 +3820,112 @@ app.get('/api/portfolio/:username', async (req, res) => {
         realtimeErr
       );
     }
+
+    return res.json({ ok: true });
+  } catch (e) {
+    if (e instanceof ZodError) {
+      return res.status(400).json({
+        error: "Invalid form submission",
+        issues: e.issues.map((issue) => ({
+          path: issue.path.join("."),
+          message: issue.message,
+        })),
+      });
+    }
+    return res.status(500).json({ error: e?.message || "Submission failed" });
+  }
+});
+
+app.post('/api/notifications/unsubscribe', (req, res) => {
+  try {
+    const { subscription } = req.body;
+    if (subscription) pushSubscriptions.delete(JSON.stringify(subscription));
+    return res.json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Server side notifications store api
+app.get('/api/notifications', (req, res) => {
+  try {
+    const userId = req.query.userId || 'global';
+    const list = notificationsService.getNotifications(userId);
+    return res.json({ notifications: list });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/notifications/mark-read', adminAuth, notificationRateLimiter, (req, res) => {
+  try {
+    const { id, userId } = req.body || {};
+    if (!id) return res.status(400).json({ error: 'id required' });
+    const uid = userId || 'global';
+    const ok = notificationsService.markAsRead(uid, id);
+    return res.json({ success: ok });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/notifications/mark-all-read', adminAuth, notificationRateLimiter, (req, res) => {
+  try {
+    const { userId } = req.body || {};
+    notificationsService.markAllAsRead(userId || 'global');
+    return res.json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/notifications/:id', adminAuth, notificationRateLimiter, (req, res) => {
+  try {
+    const id = req.params.id;
+    const userId = req.query.userId || 'global';
+    const removed = notificationsService.removeNotification(userId, id);
+    if (!removed) return res.status(404).json({ error: 'Notification not found' });
+    return res.json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/notifications', adminAuth, notificationRateLimiter, (req, res) => {
+  try {
+    const userId = req.query.userId || 'global';
+    notificationsService.clearAll(userId);
+    return res.json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/notifications', adminAuth, notificationRateLimiter, (req, res) => {
+  try {
+    const { userId, title, message, type, link } = req.body || {};
+    if (!title || !message) {
+      return res.status(400).json({ error: 'title and message are required' });
+    }
+    const note = notificationsService.addNotification(userId || 'global', {
+      title,
+      message,
+      type,
+      link,
+    });
+    return res.json({ success: true, notification: note });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Portfolio routing support
+app.get('/api/portfolio/:username', async (req, res) => {
+  try {
+    const username = String(req.params.username || '').trim();
+    if (!username) {
+      return res.status(400).json({ error: 'Username is required' });
+    }
     const portfolio = await portfolioRepository.getByUsername(username);
     if (!portfolio) {
       return res.status(404).json({ error: 'Portfolio not found' });
@@ -3841,7 +4217,6 @@ app.get('/api/portfolio/:username', async (req, res) => {
 });
 
 app.put("/api/portfolio", portfolioRateLimiter, async (req, res) => {
-app.put('/api/portfolio', portfolioRateLimiter, async (req, res) => {
   try {
     const body = req.body || {};
     const username = String(body.username || '').trim();

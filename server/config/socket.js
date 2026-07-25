@@ -917,4 +917,6 @@ export default {
   setEmitToRoomOverride,
   applyBackpressureProtection,
   getQueuePressureMetrics,
+  _clearConnectedUsers,
+  _onConnection,
 };

@@ -1,4 +1,11 @@
 import React, { createContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
+import React, {
+  createContext,
+  useState,
+  useEffect,
+  useCallback,
+  ReactNode,
+} from "react";
 
 export interface ResourceLink {
   title: string;
@@ -11,10 +18,14 @@ export interface RoadmapNode {
   description: string;
   x: number;
   y: number;
-  status: 'Not Started' | 'In Progress' | 'Completed' | 'Stuck';
+  status: "Not Started" | "In Progress" | "Completed" | "Stuck";
   notes: string;
   resources: ResourceLink[];
   prerequisites: string[];
+  isAiGenerated?: boolean;
+  isPrerequisite?: boolean;
+  isAdvanced?: boolean;
+  aiReason?: string;
 }
 
 export interface RoadmapBuilderContextType {
@@ -23,7 +34,7 @@ export interface RoadmapBuilderContextType {
   roadmapDescription: string;
   selectedNodeId: string | null;
   activeNodeId: string | null;
-  addNode: (node: Omit<RoadmapNode, 'id'>) => void;
+  addNode: (node: Omit<RoadmapNode, "id">) => void;
   updateNode: (id: string, updates: Partial<RoadmapNode>) => void;
   deleteNode: (id: string) => void;
   setNodes: (nodes: RoadmapNode[]) => void;
@@ -31,21 +42,31 @@ export interface RoadmapBuilderContextType {
   setRoadmapDescription: (desc: string) => void;
   setSelectedNodeId: (id: string | null) => void;
   setActiveNodeId: (id: string | null) => void;
-  loadRoadmap: (title: string, description: string, nodes: RoadmapNode[]) => void;
+  loadRoadmap: (
+    title: string,
+    description: string,
+    nodes: RoadmapNode[]
+  ) => void;
   resetRoadmap: () => void;
 }
 
 export const RoadmapBuilderContext = createContext<RoadmapBuilderContextType | undefined>(
   undefined
 );
+export const RoadmapBuilderContext = createContext<
+  RoadmapBuilderContextType | undefined
+>(undefined);
 
-const LOCAL_STORAGE_KEY = 'ns-interactive-roadmap-workspace';
+const LOCAL_STORAGE_KEY = "ns-interactive-roadmap-workspace";
 
-export const RoadmapBuilderProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const RoadmapBuilderProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const [nodes, setNodesState] = useState<RoadmapNode[]>([]);
-  const [roadmapTitle, setRoadmapTitleState] = useState<string>('My Custom Path');
+  const [roadmapTitle, setRoadmapTitleState] =
+    useState<string>("My Custom Path");
   const [roadmapDescription, setRoadmapDescriptionState] = useState<string>(
-    'Build and track your interactive personalized learning roadmap.'
+    "Build and track your interactive personalized learning roadmap."
   );
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
@@ -72,6 +93,8 @@ export const RoadmapBuilderProvider: React.FC<{ children: ReactNode }> = ({ chil
           {
             id: 'node-1',
             title: 'Getting Started',
+            id: "node-1",
+            title: "Getting Started",
             description:
               'This is your first learning node. Drag me around, double click or click "Edit" to configure!',
             x: 200,
@@ -79,6 +102,11 @@ export const RoadmapBuilderProvider: React.FC<{ children: ReactNode }> = ({ chil
             status: 'Not Started',
             notes: '- Learn the basics\n- Customize this node',
             resources: [{ title: 'NexaSphere Home', url: 'https://nexasphere.gl' }],
+            status: "Not Started",
+            notes: "- Learn the basics\n- Customize this node",
+            resources: [
+              { title: "NexaSphere Home", url: "https://nexasphere.gl" },
+            ],
             prerequisites: [],
           },
         ];
@@ -93,12 +121,15 @@ export const RoadmapBuilderProvider: React.FC<{ children: ReactNode }> = ({ chil
       }
     } finally {
       isHydrated.current = true;
+      console.error("Failed to load roadmap from localStorage:", e);
     }
   }, []);
 
   // Autosave roadmap state using localStorage on every change
   useEffect(() => {
     if (!isHydrated.current) return;
+    // Skip empty initial state saving to prevent overwriting
+    if (nodes.length === 0 && roadmapTitle === "My Custom Path") return;
 
     const stateToSave = {
       title: roadmapTitle,
@@ -108,7 +139,7 @@ export const RoadmapBuilderProvider: React.FC<{ children: ReactNode }> = ({ chil
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stateToSave));
   }, [nodes, roadmapTitle, roadmapDescription]);
 
-  const addNode = useCallback((nodeData: Omit<RoadmapNode, 'id'>) => {
+  const addNode = useCallback((nodeData: Omit<RoadmapNode, "id">) => {
     const id = `node-${Date.now()}`;
     const newNode: RoadmapNode = {
       ...nodeData,
@@ -121,6 +152,14 @@ export const RoadmapBuilderProvider: React.FC<{ children: ReactNode }> = ({ chil
   const updateNode = useCallback((id: string, updates: Partial<RoadmapNode>) => {
     setNodesState((prev) => prev.map((node) => (node.id === id ? { ...node, ...updates } : node)));
   }, []);
+  const updateNode = useCallback(
+    (id: string, updates: Partial<RoadmapNode>) => {
+      setNodesState((prev) =>
+        prev.map((node) => (node.id === id ? { ...node, ...updates } : node))
+      );
+    },
+    []
+  );
 
   const deleteNode = useCallback(
     (id: string) => {
@@ -156,17 +195,20 @@ export const RoadmapBuilderProvider: React.FC<{ children: ReactNode }> = ({ chil
     setRoadmapDescriptionState(desc);
   }, []);
 
-  const loadRoadmap = useCallback((title: string, description: string, newNodes: RoadmapNode[]) => {
-    setRoadmapTitleState(title);
-    setRoadmapDescriptionState(description);
-    setNodesState(newNodes);
-    setSelectedNodeId(null);
-    setActiveNodeId(null);
-  }, []);
+  const loadRoadmap = useCallback(
+    (title: string, description: string, newNodes: RoadmapNode[]) => {
+      setRoadmapTitleState(title);
+      setRoadmapDescriptionState(description);
+      setNodesState(newNodes);
+      setSelectedNodeId(null);
+      setActiveNodeId(null);
+    },
+    []
+  );
 
   const resetRoadmap = useCallback(() => {
-    setRoadmapTitleState('New Learning Path');
-    setRoadmapDescriptionState('Custom learning flow created on NexaSphere.');
+    setRoadmapTitleState("New Learning Path");
+    setRoadmapDescriptionState("Custom learning flow created on NexaSphere.");
     setNodesState([]);
     setSelectedNodeId(null);
     setActiveNodeId(null);

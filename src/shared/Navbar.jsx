@@ -582,6 +582,8 @@ export default function Navbar({ activeTab, onTabChange, onApply, onJoin, onTogg
             className="ns-nav-logos"
             onClick={() => handleTab('Home')}
             style={{ cursor: 'pointer' }}
+            onClick={() => handleTab("Home")}
+            style={{ cursor: "pointer" }}
             aria-label="Go to homepage"
           >
             <img

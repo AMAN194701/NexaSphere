@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import SafeImage from "../../shared/SafeImage";
+import PortfolioStats from "../../components/developer/PortfolioStats";
 
 // ── Copy Popup ──
 function CopyPopup({ value, onClose }) {
@@ -14,17 +16,17 @@ function CopyPopup({ value, onClose }) {
 
   useEffect(() => {
     const handler = (e) => {
-      if (!e.target.closest('.copy-popup')) onClose();
+      if (!e.target.closest(".copy-popup")) onClose();
     };
-    setTimeout(() => document.addEventListener('click', handler), 0);
-    return () => document.removeEventListener('click', handler);
+    setTimeout(() => document.addEventListener("click", handler), 0);
+    return () => document.removeEventListener("click", handler);
   }, [onClose]);
 
   return (
     <div className="copy-popup">
       <span className="copy-popup-value">{value}</span>
       <button className="copy-popup-btn" onClick={handleCopy}>
-        {copied ? '✅ Copied!' : '📋 Copy'}
+        {copied ? "✅ Copied!" : "📋 Copy"}
       </button>
     </div>
   );
@@ -34,7 +36,7 @@ function CopyPopup({ value, onClose }) {
 function getWhatsappDisplay(raw) {
   if (!raw) return null;
   // Already a full URL
-  if (raw.startsWith('http')) return raw;
+  if (raw.startsWith("http")) return raw;
   // Plain number — just show it as-is for copy
   return raw;
 }
@@ -50,13 +52,18 @@ function ModalContent({ member, onClose }) {
     };
     window.addEventListener('keydown', handler);
     document.body.style.overflow = 'hidden';
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handler);
+    document.body.style.overflow = "hidden";
     return () => {
-      window.removeEventListener('keydown', handler);
-      document.body.style.overflow = '';
+      window.removeEventListener("keydown", handler);
+      document.body.style.overflow = "";
     };
   }, [onClose]);
 
-  const hasSocial = member.linkedin || member.whatsapp || member.instagram || member.email;
+  const hasSocial =
+    member.linkedin || member.whatsapp || member.instagram || member.email;
   const whatsappValue = getWhatsappDisplay(member.whatsapp);
 
   return (
@@ -89,6 +96,12 @@ function ModalContent({ member, onClose }) {
           alt={member.name}
           className="modal-photo"
           onError={() => setImgError(true)}
+        <SafeImage
+          src={member.photo}
+          alt={member.name}
+          className="modal-photo"
+          loading="lazy"
+          fallbackType="avatar"
         />
 
         {/* Name & Role */}
@@ -110,6 +123,12 @@ function ModalContent({ member, onClose }) {
             <span className="modal-info-value">{member.section}</span>
           </div>
         </div>
+
+        {/* Portfolio Stats */}
+        <PortfolioStats
+          githubStats={member.cachedGithubStats}
+          leetcodeStats={member.cachedLeetcodeStats}
+        />
 
         {/* Social */}
         {hasSocial && (
@@ -157,6 +176,23 @@ function ModalContent({ member, onClose }) {
                       <CopyPopup value={whatsappValue} onClose={() => setActivePopup(null)} />
                     )}
                   </>
+              <div style={{ position: "relative" }}>
+                <button
+                  className="modal-social-btn btn-whatsapp"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActivePopup(
+                      activePopup === "whatsapp" ? null : "whatsapp"
+                    );
+                  }}
+                >
+                  💬 WhatsApp
+                </button>
+                {activePopup === "whatsapp" && (
+                  <CopyPopup
+                    value={whatsappValue}
+                    onClose={() => setActivePopup(null)}
+                  />
                 )}
               </div>
             )}
@@ -173,18 +209,21 @@ function ModalContent({ member, onClose }) {
             )}
 
             {member.email && (
-              <div style={{ position: 'relative' }}>
+              <div style={{ position: "relative" }}>
                 <button
                   className="modal-social-btn btn-contact"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setActivePopup(activePopup === 'email' ? null : 'email');
+                    setActivePopup(activePopup === "email" ? null : "email");
                   }}
                 >
                   ✉️ Email
                 </button>
-                {activePopup === 'email' && (
-                  <CopyPopup value={member.email} onClose={() => setActivePopup(null)} />
+                {activePopup === "email" && (
+                  <CopyPopup
+                    value={member.email}
+                    onClose={() => setActivePopup(null)}
+                  />
                 )}
               </div>
             )}

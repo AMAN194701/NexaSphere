@@ -9,6 +9,11 @@ import { toast } from "sonner";
 import DashboardStats from "../../components/admin/analytics/DashboardStats";
 import UserGrowthChart from "../../components/admin/analytics/UserGrowthChart";
 import EventAttendanceChart from "../../components/admin/analytics/EventAttendanceChart";
+import React, { useState, useEffect } from "react";
+import DashboardStats from "../../components/admin/analytics/DashboardStats";
+import UserGrowthChart from "../../components/admin/analytics/UserGrowthChart";
+import EventAttendanceChart from "../../components/admin/analytics/EventAttendanceChart";
+import TeamManagement from "../../components/admin/team/TeamManagement";
 import "../../components/admin/analytics/analytics.css";
 import socketClient from "../../utils/socketClient";
 
@@ -63,6 +68,10 @@ export default function AdminPage({ onBack }) {
         apiClient(`${base}/api/admin/analytics/stats`, { headers }),
         apiClient(`${base}/api/admin/analytics/growth`, { headers }),
         apiClient(`${base}/api/admin/analytics/events`, { headers }),
+      const [stats, growth, events] = await Promise.all([
+        statsRes.json(),
+        growthRes.json(),
+        eventsRes.json(),
       ]);
 
       setData({ stats, growth, events });
@@ -282,6 +291,12 @@ export default function AdminPage({ onBack }) {
       });
 
       const result = await res.json();
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(loginData),
+      });
+
+      const result = await res.json();
       if (!res.ok) throw new Error(result.error || "Login failed");
 
       localStorage.setItem("ns_admin_token", result.token);
@@ -348,6 +363,8 @@ export default function AdminPage({ onBack }) {
               onChange={(e) => setLoginData({ ...loginData, username: e.target.value })}
               className="input-field"
               value={loginData.username}
+              className="input-field"
+              value={loginData.username}
               onChange={(e) =>
                 setLoginData({ ...loginData, username: e.target.value })
               }
@@ -360,6 +377,8 @@ export default function AdminPage({ onBack }) {
               className="input-field"
               value={loginData.password}
               onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+              className="input-field"
+              value={loginData.password}
               className="input-field"
               value={loginData.password}
               onChange={(e) =>
@@ -433,6 +452,19 @@ export default function AdminPage({ onBack }) {
             Visualizing platform growth and event performance.
           </p>
         </div>
+          <h1
+            style={{
+              fontSize: "2rem",
+              marginBottom: "0.5rem",
+              marginTop: "0.5rem",
+            }}
+          >
+            Admin Analytics
+          </h1>
+          <p style={{ opacity: 0.7 }}>
+            Visualizing platform growth and event performance.
+          </p>
+        </div>
         <div style={{ display: "flex", gap: "0.5rem" }}>
           <button
             className="btn btn-outline"
@@ -461,6 +493,8 @@ export default function AdminPage({ onBack }) {
         <UserGrowthChart data={data.growth} />
         <EventAttendanceChart data={data.events} />
       </div>
+
+      <TeamManagement token={token} />
     </div>
   );
 }
