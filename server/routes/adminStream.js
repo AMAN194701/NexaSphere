@@ -31,6 +31,11 @@ router.get('/stream', setupSSEHeaders, (req, res) => {
   const adminId = req.adminSession?.username || 'anonymous';
   logger.info('Admin connected to SSE stream', { adminId });
 
+  const authHeader = req.headers.authorization || '';
+  if (authHeader.startsWith('Bearer ')) {
+    res.adminSessionToken = authHeader.slice(7).trim();
+  }
+
   logger.info('Admin connected to SSE stream', { adminId });
   addSSEClient(res, req.adminSession);
 
