@@ -1,5 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import debounce from 'lodash/debounce';
+import { useState, useEffect, useMemo } from 'react';
+
+function debounce(fn, ms) {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), ms);
+  };
+}
 
 /**
  * Hook for managing advanced search state and API interaction
@@ -75,7 +84,7 @@ export const useAdvancedSearch = () => {
   const clearFilters = () => setActiveFilters({});
 
   const saveSearch = () => {
-    let saved = [];
+    let saved;
     try {
       saved = JSON.parse(localStorage.getItem('saved_searches') || '[]');
       if (!Array.isArray(saved)) saved = [];
