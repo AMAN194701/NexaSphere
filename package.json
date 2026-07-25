@@ -185,5 +185,8 @@
     "engine.io-client": "^6.6.2"
   "prisma": {
     "seed": "ts-node --compiler-options {\\\"module\\\":\\\"CommonJS\\\"} prisma/seed.ts"
+    "@rollup/rollup-linux-x64-musl": "4.60.0",
+    "@rollup/rollup-linux-arm64-gnu": "4.60.0",
+    "@rollup/rollup-linux-arm64-musl": "4.61.0"
   }
 }
