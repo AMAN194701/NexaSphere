@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useRoadmapBuilder } from '../../hooks/useRoadmapBuilder';
 import { X, Plus, Trash2, Globe, AlertCircle } from 'lucide-react';
+import { X, Plus, Trash2, Globe, Link, CheckSquare, ListPlus } from 'lucide-react';
 
 interface NodeModalProps {
   theme: 'dark' | 'light';
@@ -135,6 +136,7 @@ export const NodeModal: React.FC<NodeModalProps> = ({ theme }) => {
 
       if (hasCycle(node.id, targetId)) {
         alert('Invalid connection: checking this node will create a circular loop!');
+        setUrlError('Invalid connection: checking this node will create a circular loop.');
         return;
       }
 
@@ -284,6 +286,11 @@ export const NodeModal: React.FC<NodeModalProps> = ({ theme }) => {
             <div
               className="status-grid-selector"
               style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(4, 1fr)',
+                gap: '12px',
+              }}
             >
               {(['Not Started', 'In Progress', 'Completed', 'Stuck'] as const).map((statusVal) => {
                 const isActive = status === statusVal;
@@ -297,6 +304,7 @@ export const NodeModal: React.FC<NodeModalProps> = ({ theme }) => {
 
                 return (
                   <button
+                    aria-label="Interactive element"
                     key={statusVal}
                     type="button"
                     className={`status-select-btn ${isActive ? 'active ' + colorClass : ''}`}
@@ -332,6 +340,13 @@ export const NodeModal: React.FC<NodeModalProps> = ({ theme }) => {
                 </p>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
+                  }}
+                >
                   {nodes
                     .filter((n) => n.id !== node.id)
                     .map((otherNode) => {
@@ -412,6 +427,7 @@ export const NodeModal: React.FC<NodeModalProps> = ({ theme }) => {
                     <div className="flex items-center gap-2 truncate">
                       <Globe size={12} className="text-brand-red flex-shrink-0" />
                       <a
+                        aria-label="Interactive element"
                         href={res.url}
                         target="_blank"
                         rel="noopener noreferrer"

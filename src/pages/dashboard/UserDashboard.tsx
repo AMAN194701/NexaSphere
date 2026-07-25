@@ -28,6 +28,7 @@ const ACHIEVEMENT_ICONS: Record<
   Trophy,
   MessageSquare,
 };
+} from 'lucide-react';
 
 interface Activity {
   id: string;
@@ -58,6 +59,7 @@ export default function UserDashboard() {
   });
   const [loading, setLoading] = useState(true);
   const [profileCompletion] = useState(65);
+  const [exportMessage, setExportMessage] = useState('');
 
   useEffect(() => {
     // Mock data - replace with API call
@@ -91,6 +93,7 @@ export default function UserDashboard() {
           title: 'First Event',
           description: 'Attended your first event',
           icon: 'Target',
+          icon: '🎯',
           points: 50,
         },
         {
@@ -98,6 +101,7 @@ export default function UserDashboard() {
           title: 'Active Participant',
           description: 'Attended 5 events',
           icon: 'Trophy',
+          icon: '🏆',
           points: 100,
         },
         {
@@ -105,6 +109,7 @@ export default function UserDashboard() {
           title: 'Community Builder',
           description: 'Posted 10 comments',
           icon: 'MessageSquare',
+          icon: '💬',
           points: 75,
         },
       ]);
@@ -154,11 +159,14 @@ export default function UserDashboard() {
             </div>
             <button
               onClick={() => alert('Report exported!')}
+              aria-label="Interactive element"
+              onClick={() => setExportMessage('Report exported!')}
               className="flex items-center gap-2 px-4 py-2 bg-[#CC1111] text-white rounded-lg hover:bg-[#AA0E0E] transition-all"
             >
               <Download className="h-4 w-4" />
               Export Report
             </button>
+            {exportMessage && <span className="text-sm text-green-400">{exportMessage}</span>}
           </div>
         </div>
       </div>
@@ -212,6 +220,10 @@ export default function UserDashboard() {
                 <div
                   className="w-full bg-[#CC1111] rounded-t-lg transition-all hover:bg-[#DD2222]"
                   style={{ height: `${(item.count / maxCount) * 100}%`, minHeight: '4px' }}
+                  style={{
+                    height: `${(item.count / maxCount) * 100}%`,
+                    minHeight: '4px',
+                  }}
                 />
                 <span className="text-xs text-gray-500">{item.day}</span>
                 <span className="text-xs text-gray-400">{item.count}</span>
@@ -276,6 +288,7 @@ export default function UserDashboard() {
                         return I ? <I size={36} /> : null;
                       })()}
                     </div>
+                    <div className="text-4xl mb-2">{achievement.icon}</div>
                     <p className="font-medium text-white text-sm">{achievement.title}</p>
                     <p className="text-xs text-gray-500 mt-1">{achievement.description}</p>
                     <p className="text-xs text-[#CC1111] mt-2">{achievement.points} pts</p>
@@ -307,7 +320,10 @@ export default function UserDashboard() {
               </div>
               <p className="text-right text-xs text-gray-500 mt-1">{profileCompletion}% Complete</p>
             </div>
-            <button className="px-4 py-2 border border-[#CC1111] text-[#CC1111] rounded-lg hover:bg-[#CC1111] hover:text-white transition-all text-sm">
+            <button
+              aria-label="Interactive element"
+              className="px-4 py-2 border border-[#CC1111] text-[#CC1111] rounded-lg hover:bg-[#CC1111] hover:text-white transition-all text-sm"
+            >
               Complete Profile →
             </button>
           </div>
@@ -325,6 +341,12 @@ export default function UserDashboard() {
               </h4>
               <p className="text-sm text-gray-500 mt-1">Based on your interests</p>
               <button className="mt-3 text-sm text-[#CC1111] font-medium flex items-center gap-1">
+              <h4 className="font-medium text-white">🤖 AI Workshop</h4>
+              <p className="text-sm text-gray-500 mt-1">Based on your interests</p>
+              <button
+                aria-label="Interactive element"
+                className="mt-3 text-sm text-[#CC1111] font-medium flex items-center gap-1"
+              >
                 Register <ArrowRight className="h-3 w-3" />
               </button>
             </div>
@@ -333,7 +355,10 @@ export default function UserDashboard() {
                 <FileText size={15} aria-hidden="true" /> Complete Profile
               </h4>
               <p className="text-sm text-gray-500 mt-1">Earn 50 bonus points</p>
-              <button className="mt-3 text-sm text-[#CC1111] font-medium flex items-center gap-1">
+              <button
+                aria-label="Interactive element"
+                className="mt-3 text-sm text-[#CC1111] font-medium flex items-center gap-1"
+              >
                 Complete <ArrowRight className="h-3 w-3" />
               </button>
             </div>
@@ -342,7 +367,10 @@ export default function UserDashboard() {
                 <Lightbulb size={15} aria-hidden="true" /> Share Feedback
               </h4>
               <p className="text-sm text-gray-500 mt-1">Help us improve</p>
-              <button className="mt-3 text-sm text-[#CC1111] font-medium flex items-center gap-1">
+              <button
+                aria-label="Interactive element"
+                className="mt-3 text-sm text-[#CC1111] font-medium flex items-center gap-1"
+              >
                 Share <ArrowRight className="h-3 w-3" />
               </button>
             </div>

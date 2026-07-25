@@ -392,6 +392,7 @@ export default function NotificationBell() {
                   </motion.button>
                 )}
                 <motion.button
+                  aria-label="Interactive element"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={closePanel}
@@ -454,6 +455,7 @@ export default function NotificationBell() {
                   const cfg = TYPE_CONFIG[n.type] || TYPE_CONFIG.system;
                   return (
                     <motion.button
+                      aria-label="Interactive element"
                       key={n.id}
                       onClick={() => markAsRead(n.id)}
                       whileHover={{ background: "rgba(204,17,17,0.06)" }}

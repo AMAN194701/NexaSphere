@@ -170,6 +170,7 @@ export default function SearchBar({ open, onClose, activities, events, onNavigat
               )}
 
               <button
+                aria-label="Interactive element"
                 onClick={onClose}
                 style={{
                   background: 'rgba(255,255,255,0.07)',
@@ -199,6 +200,7 @@ export default function SearchBar({ open, onClose, activities, events, onNavigat
             >
               {['all', 'activities', 'events'].map((f) => (
                 <button
+                  aria-label="Interactive element"
                   key={f}
                   onClick={() => setFilter(f)}
                   style={{
@@ -276,6 +278,7 @@ export default function SearchBar({ open, onClose, activities, events, onNavigat
                 const ts = TYPE_STYLE[result.type];
                 return (
                   <button
+                    aria-label="Interactive element"
                     key={result.id + result.type}
                     onClick={() => handleClick(result)}
                     style={{

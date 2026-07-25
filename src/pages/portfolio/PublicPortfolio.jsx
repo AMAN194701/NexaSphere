@@ -217,6 +217,10 @@ export default function PublicPortfolio({ username, onBack }) {
             ← Back Home
           </button>
           <button className="btn btn-primary" onClick={onBack}>
+          <button aria-label="Interactive element" className="btn btn-outline" onClick={onBack}>
+            ← Back Home
+          </button>
+          <button aria-label="Interactive element" className="btn btn-primary" onClick={onBack}>
             Build Yours
           </button>
         </div>

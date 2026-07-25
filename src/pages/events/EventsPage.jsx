@@ -10,6 +10,8 @@ import PersonalizedFeed from '../../components/recommendation/PersonalizedFeed';
 import EventCalendarView from '../../components/calendar/EventCalendarView';
 import SchedulingAssistant from '../../components/scheduling/SchedulingAssistant';
 import useIntersectionObserver from '../../hooks/useIntersectionObserver';
+import PersonalizedFeed from '../../components/recommendation/PersonalizedFeed';
+import EventCalendarView from '../../components/calendar/EventCalendarView';
 
 export default function EventsPage({ onBack, onEventClick, events = fallbackEvents }) {
   const [view, setView] = useState('timeline');
@@ -37,6 +39,7 @@ import Footer from "../../shared/Footer";
 import { DynamicIcon } from "../../shared/Icons";
 import BookmarkButton from "../../components/common/BookmarkButton";
 import ErrorBoundary from "../../components/common/ErrorBoundary";
+
   const now = Date.now();
   const parseDate = (ev) => {
     const raw = ev.dateText ?? ev.date ?? '';
@@ -47,6 +50,7 @@ import ErrorBoundary from "../../components/common/ErrorBoundary";
     if (ev.status === 'completed') return 'completed';
     const d = parseDate(ev);
     if (d && d.getTime() < now) return 'completed';
+    if (d && d.getTime() < now) return 'completed'; // date passed → auto-complete
     return ev.status || 'upcoming';
   };
 
@@ -90,7 +94,7 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
     );
     document
       .querySelectorAll(
-        "#events-page .pop-in, #events-page .pop-left, #events-page .pop-right, #events-page .pop-word"
+        '#events-page .pop-in, #events-page .pop-left, #events-page .pop-right, #events-page .pop-word'
       )
       .forEach((el) => obs.observe(el));
     return () => obs.disconnect();
@@ -120,6 +124,18 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
           marginBottom: "60px",
           position: "relative",
           overflow: "hidden",
+      <div
+        className="page-banner"
+        style={{
+          background: 'linear-gradient(135deg, rgba(0,212,255,.06), rgba(123,111,255,.04))',
+          borderBottom: '1px solid var(--bdr)',
+          padding: '70px 0 50px',
+          textAlign: 'center',
+          /* Normalized to 32px — content areas use paddingTop:32px, so the
+           combined visual gap stays consistent (~32px) instead of ~116px */
+          marginBottom: '32px',
+          position: 'relative',
+          overflow: 'hidden',
         }}
       >
         <div
@@ -135,12 +151,13 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
             top: 0,
             left: 0,
             right: 0,
-            height: "3px",
-            background: "linear-gradient(90deg,var(--c1),var(--c2),var(--c3))",
+            height: '3px',
+            background: 'linear-gradient(90deg,var(--c1),var(--c2),var(--c3))',
           }}
         />
         <BannerOrbs color="rgba(123,111,255,.06)" />
         <button
+          aria-label="Interactive element"
           onClick={onBack}
           className="ns-back-btn"
           style={{
@@ -207,6 +224,22 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
         >
           Where ideas come to life. Every event is a milestone in the NexaSphere journey.
         </p>
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <span className="cin-section-label pop-in">NexaSphere · GL Bajaj</span>
+          <h1 className="section-title pop-word" style={{ fontSize: 'clamp(2rem, 5vw, 3.2rem)' }}>
+            Our Events
+          </h1>
+          <p
+            className="section-subtitle pop-in"
+            style={{
+              animationDelay: '.1s',
+              maxWidth: '520px',
+              margin: '0 auto',
+            }}
+          >
+            Where ideas come to life. Every event is a milestone in the NexaSphere journey.
+          </p>
+        </div>
 
         {/* View Toggle Buttons */}
         <div
@@ -221,6 +254,7 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
           }}
         >
           <button
+            aria-label="Interactive element"
             onClick={() => {
               setView('timeline');
               setRecommendationView(false);
@@ -242,6 +276,10 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
               borderRadius: '100px',
               color:
                 !recommendationView && !scheduleView && view === 'timeline' ? 'white' : 'var(--t2)',
+              background: !recommendationView && view === 'timeline' ? 'var(--c1)' : 'transparent',
+              border: !recommendationView && view === 'timeline' ? 'none' : '1px solid var(--bdr)',
+              borderRadius: '100px',
+              color: !recommendationView && view === 'timeline' ? 'white' : 'var(--t2)',
               cursor: 'pointer',
               fontSize: '13px',
               fontWeight: 500,
@@ -328,6 +366,7 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
             List View
           </button>
           <button
+            aria-label="Interactive element"
             onClick={() => {
               setView('calendar');
               setRecommendationView(false);
@@ -349,6 +388,10 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
               borderRadius: '100px',
               color:
                 !recommendationView && !scheduleView && view === 'calendar' ? 'white' : 'var(--t2)',
+              background: !recommendationView && view === 'calendar' ? 'var(--c1)' : 'transparent',
+              border: !recommendationView && view === 'calendar' ? 'none' : '1px solid var(--bdr)',
+              borderRadius: '100px',
+              color: !recommendationView && view === 'calendar' ? 'white' : 'var(--t2)',
               cursor: 'pointer',
               fontSize: '13px',
               fontWeight: 500,
@@ -442,6 +485,7 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
             Calendar View
           </button>
           <button
+            aria-label="Interactive element"
             onClick={() => {
               setRecommendationView(true);
               setView('timeline');
@@ -616,6 +660,7 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
                   .includes("kss");
               return (
                 <div className="timeline-item" key={ev.id}>
+                  <div className={`timeline-dot${ev.status === 'upcoming' ? ' upcoming' : ''}`} />
                   <div
                     className={`timeline-dot${ev.status === "upcoming" ? " upcoming" : ""}`}
                   />
@@ -630,6 +675,13 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
                       cursor: isKSS ? "none" : "default",
                       transition: "all .28s ease",
                       position: "relative",
+                    className={`timeline-card shimmer ${i % 2 === 0 ? 'pop-left' : 'pop-right'}`}
+                    style={{
+                      animationDelay: `${i * 0.11}s`,
+                      /* cursor: pointer ensures touch/mobile devices get proper feedback
+                         even when the global custom cursor sets cursor:none on desktop */
+                      cursor: hasDetailPage ? 'pointer' : 'default',
+                      transition: 'all .28s ease',
                     }}
                     onClick={isKSS ? () => onEventClick(ev) : undefined}
                     onMouseEnter={
@@ -647,6 +699,9 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
                               "0 8px 32px rgba(168,85,247,.15)";
                             e.currentTarget.style.transform =
                               "translateY(-4px)";
+                            e.currentTarget.style.borderColor = 'var(--c1b)';
+                            e.currentTarget.style.boxShadow = '0 6px 24px var(--c1g)';
+                            e.currentTarget.style.transform = 'translateY(-3px)';
                           }
                         : undefined
                     }
@@ -674,6 +729,14 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
                         alignItems: 'center',
                         gap: '10px',
                         marginBottom: '7px',
+                        fontSize: '1.05rem',
+                        fontWeight: 800,
+                        color: 'var(--c1)',
+                        marginBottom: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '8px',
                       }}
                     >
                       <span style={{ display: 'flex', color: 'var(--c1)' }}>
@@ -738,6 +801,9 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
                             border: "1px solid rgba(168,85,247,.3)",
                             fontFamily: "'Space Mono', monospace",
                             whiteSpace: "nowrap",
+                            color: 'var(--c1)',
+                            opacity: 0.8,
+                            fontSize: '0.9rem',
                           }}
                         >
                           View Details →
@@ -756,6 +822,31 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
                       <DynamicIcon name="Calendar" size={14} /> {ev.date}
                     </div>
                     <p className="timeline-event-desc">{ev.description}</p>
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '.74rem',
+                        color: 'var(--t3)',
+                        marginBottom: '8px',
+                      }}
+                    >
+                      <DynamicIcon
+                        name={ev.icon || 'Calendar'}
+                        size={13}
+                        style={{ color: 'var(--c1)' }}
+                      />
+                      {ev.dateText ?? ev.date}
+                    </div>
+                    <p
+                      className="timeline-event-desc"
+                      style={{
+                        fontSize: '.84rem',
+                        lineHeight: '1.55',
+                        marginBottom: '12px',
+                      }}
+                    >
+                      {ev.description}
+                    </p>
                     <div
                       style={{
                         display: 'flex',
@@ -789,6 +880,19 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
                             />{' '}
                               style={{ marginRight: "4px" }}
                             />{" "}
+                      }}
+                    >
+                      <span
+                        className={`timeline-badge ${ev.status}`}
+                        style={{ fontSize: '.64rem', padding: '1px 8px' }}
+                      >
+                        {ev.status === 'completed' ? (
+                          <>
+                            <DynamicIcon
+                              name="CheckCircle"
+                              size={11}
+                              style={{ marginRight: '4px' }}
+                            />{' '}
                             Completed
                           </>
                         ) : (
@@ -799,6 +903,7 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
                               size={14}
                               style={{ marginRight: "4px" }}
                             />{" "}
+                            <DynamicIcon name="Calendar" size={11} style={{ marginRight: '4px' }} />{' '}
                             Upcoming
                           </>
                         )}
@@ -809,6 +914,8 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
                           style={{
                             fontSize: '.68rem',
                             padding: '2px 8px',
+                            fontSize: '.64rem',
+                            padding: '1px 8px',
                             borderRadius: '10px',
                             background: 'var(--c2a)',
                             color: 'var(--c2)',
@@ -974,6 +1081,9 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
                   textAlign: "center",
                   color: "var(--t3)",
                   animationDelay: `${safeEvents.length * 0.11}s`,
+                  textAlign: 'center',
+                  color: 'var(--t3)',
+                  animationDelay: `${sortedEvents.length * 0.11}s`,
                 }}
               >
                 <DynamicIcon
@@ -984,7 +1094,7 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
                 <p style={{ marginTop: '6px', fontSize: '.84rem' }}>
                   style={{ color: "var(--c1)", marginBottom: "8px" }}
                 />
-                <p style={{ marginTop: "6px", fontSize: ".84rem" }}>
+                <p style={{ marginTop: '6px', fontSize: '.84rem' }}>
                   More events coming soon. Watch this space!
                 </p>
               </div>
@@ -992,6 +1102,7 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
           </div>
         ) : (
           <EventCalendarView events={events} onEventClick={onEventClick} />
+          <EventCalendarView events={sortedEvents} onEventClick={onEventClick} />
         )}
       </div>
 

@@ -171,6 +171,14 @@ function Input({
         e.target.style.borderColor = 'var(--bdr2)';
         e.target.style.boxShadow = 'none';
       }}
+      onFocus={(e) => {
+        e.target.style.borderColor = 'var(--c1b)';
+        e.target.style.boxShadow = 'var(--sh1)';
+      }}
+      onBlur={(e) => {
+        e.target.style.borderColor = 'var(--bdr2)';
+        e.target.style.boxShadow = 'none';
+      }}
     />
   );
 }
@@ -202,6 +210,14 @@ function TextArea({ value, onChange, placeholder, rows = 5 }) {
       onBlur={(e) => {
         e.target.style.borderColor = "var(--bdr2)";
         e.target.style.boxShadow = "none";
+      }}
+      onFocus={(e) => {
+        e.target.style.borderColor = 'var(--c1b)';
+        e.target.style.boxShadow = 'var(--sh1)';
+      }}
+      onBlur={(e) => {
+        e.target.style.borderColor = 'var(--bdr2)';
+        e.target.style.boxShadow = 'none';
       }}
       onFocus={(e) => {
         e.target.style.borderColor = 'var(--c1b)';
@@ -257,6 +273,14 @@ function StyledSelect({ value, onChange, children, placeholder }) {
         e.target.style.borderColor = 'var(--bdr2)';
         e.target.style.boxShadow = 'none';
       }}
+      onFocus={(e) => {
+        e.target.style.borderColor = 'var(--c1b)';
+        e.target.style.boxShadow = 'var(--sh1)';
+      }}
+      onBlur={(e) => {
+        e.target.style.borderColor = 'var(--bdr2)';
+        e.target.style.boxShadow = 'none';
+      }}
     >
       {placeholder && (
         <option value="" disabled>
@@ -276,6 +300,7 @@ function PillRadio({ options, value, onChange }) {
         const active = value === opt;
         return (
           <button
+            aria-label="Interactive element"
             key={opt}
             type="button"
             onClick={() => onChange(opt)}
@@ -309,6 +334,7 @@ function MultiSelectChips({ options, values, onToggle }) {
         const active = values.includes(opt);
         return (
           <button
+            aria-label="Interactive element"
             key={opt}
             type="button"
             onClick={() => onToggle(opt)}
@@ -778,6 +804,7 @@ export default function MembershipPage({ onBack }) {
                 Before filling the form, please follow our official LinkedIn page:
               </span>
               <a
+                aria-label="Interactive element"
                 href={LINKEDIN_PAGE}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -1406,6 +1433,22 @@ export default function MembershipPage({ onBack }) {
     [form]
   );
 
+
+            <Field label="Why do you want to join NexaSphere?" required>
+              <TextArea
+                value={form.whyJoin}
+                onChange={(v) => set('whyJoin', v)}
+                placeholder="Share your motivation and what you hope to learn or contribute."
+                rows={6}
+              />
+            </Field>
+          </div>
+        ),
+      },
+    ],
+    [form]
+  );
+
   const current = steps[step];
   const progress = step / (steps.length - 1);
 
@@ -1467,6 +1510,7 @@ export default function MembershipPage({ onBack }) {
         <div className="member-hero-bg" />
         {onBack ? (
           <button
+            aria-label="Interactive element"
             onClick={onBack}
             className="btn btn-outline btn-sm"
             style={{ position: 'absolute', top: 24, left: 24 }}
@@ -1947,6 +1991,7 @@ export default function MembershipPage({ onBack }) {
                   }}
                 >
                   <a
+                    aria-label="Interactive element"
                     className="btn btn-whatsapp"
                     href={WHATSAPP_COMMUNITY}
                     target="_blank"
@@ -1964,6 +2009,7 @@ export default function MembershipPage({ onBack }) {
                     </span>
                   </a>
                   <a
+                    aria-label="Interactive element"
                     className="btn btn-outline"
                     href={LINKEDIN_PAGE}
                     target="_blank"
@@ -2019,6 +2065,11 @@ export default function MembershipPage({ onBack }) {
                   <a
                     href="mailto:nexasphere@glbajajgroup.org"
                     style={{ color: "var(--c1)", textDecoration: "none" }}
+                  📌 Questions? Reach us at{' '}
+                  <a
+                    aria-label="Interactive element"
+                    href="mailto:nexasphere@glbajajgroup.org"
+                    style={{ color: 'var(--c1)', textDecoration: 'none' }}
                   >
                     nexasphere@glbajajgroup.org
                   </a>
@@ -2068,6 +2119,7 @@ export default function MembershipPage({ onBack }) {
                   }}
                 >
                   <button
+                    aria-label="Interactive element"
                     className="btn btn-outline"
                     type="button"
                     disabled={busy}
@@ -2096,6 +2148,7 @@ export default function MembershipPage({ onBack }) {
 
                   {step < steps.length - 1 ? (
                     <button
+                      aria-label="Interactive element"
                       className="btn btn-primary btn-ripple"
                       type="button"
                       disabled={busy || !canNext}
@@ -2137,6 +2190,7 @@ export default function MembershipPage({ onBack }) {
                       }}
                     />
                     <button
+                      aria-label="Interactive element"
                       className="btn btn-primary btn-ripple"
                       type="button"
                       disabled={busy || !canNext}

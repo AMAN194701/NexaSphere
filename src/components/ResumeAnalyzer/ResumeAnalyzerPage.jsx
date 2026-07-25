@@ -5,10 +5,16 @@ import CareerRecommendationCard from "../../components/ResumeAnalyzer/CareerReco
 import ATSScoreBar from "../../components/ResumeAnalyzer/ATSScoreBar";
 import { extractTextFromPDF } from "../../utils/pdfParser";
 import "../../styles/resume.css";
+import { useState } from 'react';
+import ResumeUploader from '../../components/ResumeAnalyzer/ResumeUploader';
+import SkillGapChart from '../../components/ResumeAnalyzer/SkillGapChart';
+import CareerRecommendationCard from '../../components/ResumeAnalyzer/CareerRecommendationCard';
+import ATSScoreBar from '../../components/ResumeAnalyzer/ATSScoreBar';
+import '../../styles/resume.css';
 
 const MOCK_RESULT = {
-  name: "Nagajyothi Tammisetti",
-  role: "Frontend Developer",
+  name: 'Nagajyothi Tammisetti',
+  role: 'Frontend Developer',
   resumeScore: 82,
   atsScore: 74,
   skills: [
@@ -18,8 +24,14 @@ const MOCK_RESULT = {
     { name: "DSA", current: 60, required: 85 },
     { name: "System Design", current: 30, required: 70 },
     { name: "CSS/Tailwind", current: 85, required: 80 },
+    { name: 'React', current: 80, required: 90 },
+    { name: 'Node.js', current: 55, required: 80 },
+    { name: 'TypeScript', current: 40, required: 75 },
+    { name: 'DSA', current: 60, required: 85 },
+    { name: 'System Design', current: 30, required: 70 },
+    { name: 'CSS/Tailwind', current: 85, required: 80 },
   ],
-  missingSkills: ["TypeScript", "System Design", "GraphQL", "Docker"],
+  missingSkills: ['TypeScript', 'System Design', 'GraphQL', 'Docker'],
   recommendations: [
     {
       icon: "🗺️",
@@ -52,12 +64,39 @@ const MOCK_RESULT = {
       description:
         "Cloud skills are increasingly expected in mid-level roles. Start here.",
       link: "https://aws.amazon.com/certification/",
+      icon: '🗺️',
+      type: 'roadmap',
+      title: 'Full Stack Developer Roadmap',
+      description: "You're 65% aligned. Strengthen Node.js and System Design to close the gap.",
+      link: '/roadmaps',
+    },
+    {
+      icon: '📘',
+      type: 'course',
+      title: 'TypeScript for React Developers',
+      description: 'Highly in-demand skill missing from your profile. Add it in 2–3 weeks.',
+      link: 'https://www.typescriptlang.org/docs/',
+    },
+    {
+      icon: '🏗️',
+      type: 'project',
+      title: 'Build a Full-Stack Dashboard',
+      description:
+        'Showcases React, Node.js, and TypeScript together — perfect for your portfolio.',
+      link: '/projects',
+    },
+    {
+      icon: '🏆',
+      type: 'certification',
+      title: 'AWS Cloud Practitioner',
+      description: 'Cloud skills are increasingly expected in mid-level roles. Start here.',
+      link: 'https://aws.amazon.com/certification/',
     },
   ],
 };
 
 export default function ResumeAnalyzerPage() {
-  const [step, setStep] = useState("upload");
+  const [step, setStep] = useState('upload');
   const [result, setResult] = useState(null);
 
   const handleUpload = async (file) => {
@@ -131,6 +170,12 @@ export default function ResumeAnalyzerPage() {
       alert("Failed to parse the resume. Please ensure it is a valid PDF.");
       setStep("upload");
     }
+  const handleUpload = () => {
+    setStep('analyzing');
+    setTimeout(() => {
+      setResult(MOCK_RESULT);
+      setStep('result');
+    }, 2500);
   };
 
   return (
@@ -140,16 +185,18 @@ export default function ResumeAnalyzerPage() {
         <p className="ra-subtitle">
           Upload your resume and get personalized career insights, skill gap
           analysis, and roadmap recommendations.
+          Upload your resume and get personalized career insights, skill gap analysis, and roadmap
+          recommendations.
         </p>
       </div>
 
-      {step === "upload" && (
+      {step === 'upload' && (
         <div className="ra-upload-section">
           <ResumeUploader onUpload={handleUpload} />
         </div>
       )}
 
-      {step === "analyzing" && (
+      {step === 'analyzing' && (
         <div className="ra-analyzing">
           <div className="analyzing-spinner" />
           <p className="analyzing-text">Analyzing your resume with AI...</p>
@@ -159,7 +206,7 @@ export default function ResumeAnalyzerPage() {
         </div>
       )}
 
-      {step === "result" && result && (
+      {step === 'result' && result && (
         <div className="ra-results">
           <div className="ra-profile-card">
             <div className="profile-avatar">
@@ -167,12 +214,19 @@ export default function ResumeAnalyzerPage() {
                 .split(" ")
                 .map((w) => w[0])
                 .join("")}
+                .split(' ')
+                .map((w) => w[0])
+                .join('')}
             </div>
             <div>
               <h2 className="profile-name">{result.name}</h2>
               <p className="profile-role">{result.role}</p>
             </div>
-            <button className="re-upload-btn" onClick={() => setStep("upload")}>
+            <button
+              aria-label="Interactive element"
+              className="re-upload-btn"
+              onClick={() => setStep('upload')}
+            >
               Re-upload Resume
             </button>
           </div>
@@ -195,6 +249,10 @@ export default function ResumeAnalyzerPage() {
                 value: result.missingSkills.length,
                 color: "#ef4444",
               },
+              { label: 'Resume Score', value: result.resumeScore, color: '#6366f1' },
+              { label: 'ATS Score', value: result.atsScore, color: '#10b981' },
+              { label: 'Skills Detected', value: result.skills.length, color: '#f59e0b' },
+              { label: 'Gaps Found', value: result.missingSkills.length, color: '#ef4444' },
             ].map((s, i) => (
               <div key={i} className="score-card">
                 <p className="score-card-label">{s.label}</p>

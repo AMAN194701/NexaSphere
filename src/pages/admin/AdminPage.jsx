@@ -346,6 +346,7 @@ export default function AdminPage({ onBack }) {
     return (
       <div className="analytics-dashboard" style={{ maxWidth: 400, marginTop: '10vh' }}>
         <button onClick={onBack} className="btn-back">
+        <button aria-label="Interactive element" onClick={onBack} className="btn-back">
           ← Back
         </button>
         <div className="chart-container" style={{ padding: '2rem' }}>
@@ -384,6 +385,9 @@ export default function AdminPage({ onBack }) {
               onChange={(e) =>
                 setLoginData({ ...loginData, username: e.target.value })
               }
+              className="input-field"
+              value={loginData.username}
+              onChange={(e) => setLoginData({ ...loginData, username: e.target.value })}
               required
             />
             <input
@@ -405,11 +409,19 @@ export default function AdminPage({ onBack }) {
               required
             />
             <button
+              className="input-field"
+              value={loginData.password}
+              onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+              required
+            />
+            <button
+              aria-label="Interactive element"
               type="submit"
               className="btn btn-primary"
               disabled={loading}
             >
               {loading ? "Authenticating..." : "Login to Dashboard"}
+              {loading ? 'Authenticating...' : 'Login to Dashboard'}
             </button>
           </form>
           {error && (
@@ -449,6 +461,10 @@ export default function AdminPage({ onBack }) {
       >
         <div>
           <button onClick={onBack} className="btn-back">
+        }}
+      >
+        <div>
+          <button aria-label="Interactive element" onClick={onBack} className="btn-back">
             ← Back to Home
           </button>
           <h1 style={{ fontSize: '2rem', marginBottom: '0.5rem', marginTop: '0.5rem' }}>
@@ -510,6 +526,19 @@ export default function AdminPage({ onBack }) {
             onClick={handleLogout}
             style={{ borderColor: 'rgba(239, 68, 68, 0.5)', color: '#ef4444' }}
             style={{ borderColor: "rgba(239, 68, 68, 0.5)", color: "#ef4444" }}
+          <button
+            aria-label="Interactive element"
+            className="btn btn-outline"
+            onClick={fetchAnalytics}
+            disabled={loading}
+          >
+            Refresh
+          </button>
+          <button
+            aria-label="Interactive element"
+            className="btn btn-outline"
+            onClick={handleLogout}
+            style={{ borderColor: 'rgba(239, 68, 68, 0.5)', color: '#ef4444' }}
           >
             Logout
           </button>

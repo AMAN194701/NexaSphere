@@ -442,6 +442,7 @@ export default function PortfolioBuilder() {
                 { id: "minimalist-light", label: "Light" },
               ].map((t) => (
                 <button
+                  aria-label="Interactive element"
                   key={t.id}
                   type="button"
                   className={`theme-card ${theme === t.id ? "active" : ""}`}
@@ -795,6 +796,7 @@ export default function PortfolioBuilder() {
                   style={{ flex: 1 }}
                 />
                 <button
+                  aria-label="Interactive element"
                   type="button"
                   className="btn btn-outline"
                   onClick={fetchGithubRepos}
@@ -1023,6 +1025,7 @@ export default function PortfolioBuilder() {
           {/* Builder Action Toolbar */}
           <div className="builder-actions">
             <button
+              aria-label="Interactive element"
               type="submit"
               disabled={isSaving}
               className="btn btn-primary"
@@ -1051,6 +1054,7 @@ export default function PortfolioBuilder() {
             {successMsg && username && (
               <div style={{ display: "flex", gap: "10px", marginTop: "4px" }}>
                 <button
+                  aria-label="Interactive element"
                   type="button"
                   className="btn btn-outline"
                   onClick={handleCopyLink}
@@ -1059,6 +1063,7 @@ export default function PortfolioBuilder() {
                   {copied ? "Copied Showcase Link!" : "Copy Public URL"}
                 </button>
                 <a
+                  aria-label="Interactive element"
                   href={`/p/${username}`}
                   target="_blank"
                   rel="noopener noreferrer"

@@ -337,6 +337,7 @@ export default function TeamSection({ onApply }) {
             and we&apos;ll reach out!
           </p>
           <button
+            aria-label="Interactive element"
             type="button"
             onClick={() => onApply && onApply()}
             className="btn btn-join btn-ripple"

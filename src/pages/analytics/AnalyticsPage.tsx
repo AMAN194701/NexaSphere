@@ -66,6 +66,7 @@ const AnalyticsDashboardContent: React.FC<AnalyticsPageProps> = ({
           <div>
             {onBack && (
               <button
+                aria-label="Interactive element"
                 onClick={onBack}
                 className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-2"
               >
@@ -83,6 +84,7 @@ const AnalyticsDashboardContent: React.FC<AnalyticsPageProps> = ({
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2 bg-[#111] border border-[#333] rounded-lg p-1">
               <button
+                aria-label="Interactive element"
                 onClick={() => updateFilter('timeGranularity', 'daily')}
                 className={`px-3 py-1.5 text-sm rounded-md transition-colors ${filters.timeGranularity === 'daily' ? 'bg-[#333] text-white' : 'text-gray-400 hover:text-gray-200'}`}
                 onClick={() => updateFilter("timeGranularity", "daily")}
@@ -91,6 +93,7 @@ const AnalyticsDashboardContent: React.FC<AnalyticsPageProps> = ({
                 Daily
               </button>
               <button
+                aria-label="Interactive element"
                 onClick={() => updateFilter('timeGranularity', 'weekly')}
                 className={`px-3 py-1.5 text-sm rounded-md transition-colors ${filters.timeGranularity === 'weekly' ? 'bg-[#333] text-white' : 'text-gray-400 hover:text-gray-200'}`}
                 onClick={() => updateFilter("timeGranularity", "weekly")}
@@ -99,6 +102,7 @@ const AnalyticsDashboardContent: React.FC<AnalyticsPageProps> = ({
                 Weekly
               </button>
               <button
+                aria-label="Interactive element"
                 onClick={() => updateFilter('timeGranularity', 'monthly')}
                 className={`px-3 py-1.5 text-sm rounded-md transition-colors ${filters.timeGranularity === 'monthly' ? 'bg-[#333] text-white' : 'text-gray-400 hover:text-gray-200'}`}
                 onClick={() => updateFilter("timeGranularity", "monthly")}
@@ -108,6 +112,7 @@ const AnalyticsDashboardContent: React.FC<AnalyticsPageProps> = ({
               </button>
             </div>
             <button
+              aria-label="Interactive element"
               onClick={handleExport}
               disabled={exporting || loading}
               className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-4 py-2.5 rounded-lg font-medium transition-all disabled:opacity-50"

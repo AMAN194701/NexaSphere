@@ -119,6 +119,7 @@ export default function RoadmapsPage({ onBack }) {
         </p>
         <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center' }}>
           <button
+            aria-label="Interactive element"
             onClick={() => setIsBuilderActive(true)}
             className="btn btn-primary flex items-center gap-2"
             style={{
@@ -143,6 +144,7 @@ export default function RoadmapsPage({ onBack }) {
           const isActive = activeDomain === key;
           return (
             <button
+              aria-label="Interactive element"
               key={key}
               role="tab"
               aria-selected={isActive}
@@ -300,6 +302,7 @@ export default function RoadmapsPage({ onBack }) {
                   <FileText size={16} /> Official Documentation
                 </h4>
                 <a
+                  aria-label="Interactive element"
                   href={selectedNode.docs}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -324,6 +327,7 @@ export default function RoadmapsPage({ onBack }) {
                   {selectedNode.tutorials.map((tutorial, idx) => (
                     <a
                       key={`tutorial-${selectedNode.id}-${tutorial.url}`}
+                      aria-label="Interactive element"
                       key={idx}
                       href={tutorial.url}
                       target="_blank"
@@ -349,6 +353,7 @@ export default function RoadmapsPage({ onBack }) {
                   {selectedNode.practice.map((item, idx) => (
                     <a
                       key={`practice-${selectedNode.id}-${item.url}`}
+                      aria-label="Interactive element"
                       key={idx}
                       href={item.url}
                       target="_blank"

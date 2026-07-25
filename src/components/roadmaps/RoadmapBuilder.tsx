@@ -44,9 +44,7 @@ interface RoadmapBuilderInnerProps {
 const typedRoadmapData = roadmapData as RoadmapDataMap;
 const RoadmapBuilderInner: React.FC<RoadmapBuilderInnerProps> = ({ onBack }) => {
 
-const RoadmapBuilderInner: React.FC<RoadmapBuilderInnerProps> = ({
-  onBack,
-}) => {
+const RoadmapBuilderInner: React.FC<RoadmapBuilderInnerProps> = ({ onBack }) => {
   const {
     nodes,
     roadmapTitle,
@@ -68,12 +66,19 @@ const RoadmapBuilderInner: React.FC<RoadmapBuilderInnerProps> = ({
         | "dark"
         | "light") || "dark"
     );
+  const [activeTheme, setActiveTheme] = useState<'dark' | 'light'>(() => {
+    return (document.documentElement.getAttribute('data-theme') as 'dark' | 'light') || 'dark';
   });
 
   // Track if we are editing title/description inline
   const [isEditingMeta, setIsEditingMeta] = useState(false);
   const [metaTitle, setMetaTitle] = useState(roadmapTitle);
   const [metaDesc, setMetaDesc] = useState(roadmapDescription);
+  const [notice, setNotice] = useState('');
+  const [confirmAction, setConfirmAction] = useState<null | {
+    message: string;
+    onConfirm: () => void;
+  }>(null);
 
   // Sync theme changes
   React.useEffect(() => {
@@ -106,11 +111,11 @@ const RoadmapBuilderInner: React.FC<RoadmapBuilderInnerProps> = ({
         "Click the edit button (✎) to add a description, prerequisites, and resource links.",
       title: "New Topic",
       description:
-        "Click the edit button (✎) to add a description, prerequisites, and resource links.",
+        'Click the edit button (✎) to add a description, prerequisites, and resource links.',
       x: 350,
       y: 100 + nodes.length * 60, // staggered visual stacking
-      status: "Not Started",
-      notes: "",
+      status: 'Not Started',
+      notes: '',
       resources: [],
       prerequisites: [],
     });
@@ -129,6 +134,19 @@ const RoadmapBuilderInner: React.FC<RoadmapBuilderInnerProps> = ({
         "Loading this base template will overwrite your active workspace. Do you wish to continue?"
       )
     ) {
+    const loadStatic = () => {
+      const { title, description, nodes: parsedNodes } = parseStaticRoadmap(domainKey, staticData);
+      loadRoadmap(title, description, parsedNodes);
+      setMetaTitle(title);
+      setMetaDesc(description);
+      setConfirmAction(null);
+    };
+
+    if (nodes.length > 0) {
+      setConfirmAction({
+        message: 'Loading this base template will overwrite your active workspace.',
+        onConfirm: loadStatic,
+      });
       return;
     }
 
@@ -162,10 +180,13 @@ const RoadmapBuilderInner: React.FC<RoadmapBuilderInnerProps> = ({
         alert("Roadmap imported and restored successfully!");
       } catch (err: any) {
         alert(err.message || "Malformed JSON Schema: could not load roadmap.");
+        setNotice('Roadmap imported and restored successfully.');
+      } catch (err: any) {
+        setNotice(err.message || 'Malformed JSON Schema: could not load roadmap.');
       }
     };
     reader.readAsText(file);
-    e.target.value = ""; // Reset file input trigger
+    e.target.value = ''; // Reset file input trigger
   };
 
   // Trigger JSON Export
@@ -185,6 +206,15 @@ const RoadmapBuilderInner: React.FC<RoadmapBuilderInnerProps> = ({
       setMetaTitle("New Learning Path");
       setMetaDesc("Custom learning flow created on NexaSphere.");
     }
+    setConfirmAction({
+      message: 'Clear your current workspace? All unsaved custom data will be deleted.',
+      onConfirm: () => {
+        resetRoadmap();
+        setMetaTitle('New Learning Path');
+        setMetaDesc('Custom learning flow created on NexaSphere.');
+        setConfirmAction(null);
+      },
+    });
   };
 
   const handleSaveMeta = () => {
@@ -263,6 +293,7 @@ const RoadmapBuilderInner: React.FC<RoadmapBuilderInnerProps> = ({
                 />
                 <div className="flex gap-2 justify-end mt-2">
                   <button
+                    aria-label="Interactive element"
                     onClick={handleSaveMeta}
                     className="btn btn-sm btn-primary flex items-center gap-1"
                   >
@@ -328,7 +359,7 @@ const RoadmapBuilderInner: React.FC<RoadmapBuilderInnerProps> = ({
             <select
               onChange={(e) => {
                 handleImportStatic(e.target.value);
-                e.target.value = ""; // Reset
+                e.target.value = ''; // Reset
               }}
               className="dropdown-select text-xxs font-black uppercase text-t2 bg-transparent border-none py-1 focus:outline-none"
               defaultValue=""
@@ -366,7 +397,7 @@ const RoadmapBuilderInner: React.FC<RoadmapBuilderInnerProps> = ({
             type="file"
             accept=".json"
             onChange={handleImportJSONFile}
-            style={{ display: "none" }}
+            style={{ display: 'none' }}
           />
 
           {/* Export Canvas Image dropdown */}
@@ -418,6 +449,55 @@ const RoadmapBuilderInner: React.FC<RoadmapBuilderInnerProps> = ({
         </div>
       </header>
 
+      {notice && (
+        <div
+          className="glassmorphic-panel"
+          role="status"
+          style={{
+            padding: '10px 14px',
+            marginBottom: '16px',
+            color: 'var(--t1)',
+          }}
+        >
+          {notice}
+        </div>
+      )}
+
+      {confirmAction && (
+        <div
+          className="glassmorphic-panel"
+          role="dialog"
+          aria-modal="true"
+          style={{
+            padding: '16px',
+            marginBottom: '16px',
+            display: 'flex',
+            gap: '12px',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+          }}
+        >
+          <span>{confirmAction.message}</span>
+          <span style={{ display: 'flex', gap: '8px' }}>
+            <button
+              aria-label="Interactive element"
+              className="btn btn-sm btn-outline"
+              onClick={() => setConfirmAction(null)}
+            >
+              Cancel
+            </button>
+            <button
+              aria-label="Interactive element"
+              className="btn btn-sm btn-danger"
+              onClick={confirmAction.onConfirm}
+            >
+              Continue
+            </button>
+          </span>
+        </div>
+      )}
+
       {/* Main Workspace split panel layout */}
       <div
         className="builder-split-workspace"
@@ -457,20 +537,19 @@ const RoadmapBuilderInner: React.FC<RoadmapBuilderInnerProps> = ({
                 listStyle: "none",
                 padding: 0,
                 margin: 0,
-                display: "flex",
-                flexDirection: "column",
-                gap: "8px",
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
               }}
             >
               {nodes.map((n) => (
                 <li key={n.id}>
                   <button
+                    aria-label="Interactive element"
                     onClick={() => setSelectedNodeId(n.id)}
                     className="sidebar-node-btn w-full text-left glassmorphic-panel p-3 rounded-xl hover:border-border-hover transition-all text-xs flex justify-between items-center"
                   >
-                    <span className="font-bold text-t1 truncate pr-2">
-                      {n.title}
-                    </span>
+                    <span className="font-bold text-t1 truncate pr-2">{n.title}</span>
                     <span
                       className="text-xxs font-black px-2 py-0.5 rounded-md uppercase"
                       style={{
@@ -498,18 +577,16 @@ const RoadmapBuilderInner: React.FC<RoadmapBuilderInnerProps> = ({
                                 ? "rgba(230, 57, 70, 0.1)"
                                 : "rgba(255, 255, 255, 0.05)",
                         color:
-                          n.status === "Completed"
-                            ? "#4CAF50"
-                            : n.status === "In Progress"
-                              ? "#FFC107"
-                              : n.status === "Stuck"
-                                ? "#E63946"
-                                : "var(--t3)",
+                          n.status === 'Completed'
+                            ? '#4CAF50'
+                            : n.status === 'In Progress'
+                              ? '#FFC107'
+                              : n.status === 'Stuck'
+                                ? '#E63946'
+                                : 'var(--t3)',
                       }}
                     >
-                      {n.status === "Not Started"
-                        ? "New"
-                        : n.status.substring(0, 11)}
+                      {n.status === 'Not Started' ? 'New' : n.status.substring(0, 11)}
                     </span>
                   </button>
                 </li>
@@ -534,9 +611,7 @@ const RoadmapBuilderInner: React.FC<RoadmapBuilderInnerProps> = ({
   );
 };
 
-export const RoadmapBuilder: React.FC<RoadmapBuilderInnerProps> = ({
-  onBack,
-}) => {
+export const RoadmapBuilder: React.FC<RoadmapBuilderInnerProps> = ({ onBack }) => {
   return (
     <RoadmapBuilderProvider>
       <RoadmapBuilderInner onBack={onBack} />

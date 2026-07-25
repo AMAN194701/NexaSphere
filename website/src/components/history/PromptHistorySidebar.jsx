@@ -4,6 +4,7 @@ import { getWorkspaces } from '../../lib/workspaceService';
 import './PromptHistorySidebar.css';
 
 const PromptHistorySidebar = ({ id, isOpen, onSelectPrompt, currentWorkspace = 'default' }) => {
+const PromptHistorySidebar = ({ isOpen, onSelectPrompt, currentWorkspace = 'default' }) => {
   const [prompts, setPrompts] = useState([]);
   const [workspaces, setWorkspaces] = useState([]);
   const [selectedWorkspace, setSelectedWorkspace] = useState(currentWorkspace);
@@ -22,6 +23,7 @@ const PromptHistorySidebar = ({ id, isOpen, onSelectPrompt, currentWorkspace = '
       if (import.meta.env.DEV) {
         console.error('[PromptHistorySidebar] Error loading history:', error.message);
       }
+      console.error('Error loading history:', error);
     } finally {
       setLoading(false);
     }
@@ -138,8 +140,12 @@ const PromptHistorySidebar = ({ id, isOpen, onSelectPrompt, currentWorkspace = '
       {deleteTarget && (
         <div className="history-confirm" role="dialog" aria-modal="true">
           <p>Delete this conversation?</p>
-          <button onClick={() => setDeleteTarget(null)}>Cancel</button>
-          <button onClick={confirmDeletePrompt}>Delete</button>
+          <button aria-label="Interactive element" onClick={() => setDeleteTarget(null)}>
+            Cancel
+          </button>
+          <button aria-label="Interactive element" onClick={confirmDeletePrompt}>
+            Delete
+          </button>
         </div>
       )}
     </div>

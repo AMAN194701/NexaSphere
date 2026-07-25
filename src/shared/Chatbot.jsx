@@ -110,6 +110,8 @@ const Chatbot = () => {
     } catch (e) {
       setMessages((prev) => [...prev, { role: 'bot', text: data.reply }]);
     } catch (e) {
+      setMessages((prev) => [...prev, { role: 'bot', text: data.reply }]);
+    } catch (e) {
       console.error('AI chat request failed', e);
       setMessages((prev) => [
         ...prev,
@@ -153,6 +155,7 @@ const Chatbot = () => {
     <div className="ns-chatbot-wrapper">
       {!isOpen ? (
         <button
+          aria-label="Interactive element"
           className="chat-trigger-btn"
           onClick={() => setIsOpen(true)}
           aria-label="Open Nexa AI chat"
@@ -222,6 +225,9 @@ const Chatbot = () => {
                 className="close-btn"
                 onClick={() => setIsOpen(false)}
                 aria-label="Close Nexa AI chat"
+                aria-label="Interactive element"
+                className="close-btn"
+                onClick={() => setIsOpen(false)}
               >
                 ×
               </button>
@@ -259,6 +265,12 @@ const Chatbot = () => {
                 disabled={isSending}
               />
               <button onClick={handleSend} className="send-btn" disabled={isSending}>
+              <button
+                aria-label="Interactive element"
+                onClick={handleSend}
+                className="send-btn"
+                disabled={isSending}
+              >
                 {isSending ? '...' : '🚀'}
               </button>
             </div>

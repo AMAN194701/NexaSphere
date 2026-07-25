@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import ResumeUploader from '../../components/ResumeAnalyzer/ResumeUploader';
 import SkillGapChart from '../../components/ResumeAnalyzer/SkillGapChart';
 import CareerRecommendationCard from '../../components/ResumeAnalyzer/CareerRecommendationCard';
@@ -55,43 +56,47 @@ import ATSScoreBar from "../../components/ResumeAnalyzer/ATSScoreBar";
 import "../../styles/resume.css";
 
 const MOCK_RESULT = {
-  name: "Nagajyothi Tammisetti",
-  role: "Frontend Developer",
+  name: 'Nagajyothi Tammisetti',
+  role: 'Frontend Developer',
   resumeScore: 82,
   atsScore: 74,
   skills: [
-    { name: "React",         current: 80, required: 90 },
-    { name: "Node.js",       current: 55, required: 80 },
-    { name: "TypeScript",    current: 40, required: 75 },
-    { name: "DSA",           current: 60, required: 85 },
-    { name: "System Design", current: 30, required: 70 },
-    { name: "CSS/Tailwind",  current: 85, required: 80 },
+    { name: 'React', current: 80, required: 90 },
+    { name: 'Node.js', current: 55, required: 80 },
+    { name: 'TypeScript', current: 40, required: 75 },
+    { name: 'DSA', current: 60, required: 85 },
+    { name: 'System Design', current: 30, required: 70 },
+    { name: 'CSS/Tailwind', current: 85, required: 80 },
   ],
-  missingSkills: ["TypeScript", "System Design", "GraphQL", "Docker"],
+  missingSkills: ['TypeScript', 'System Design', 'GraphQL', 'Docker'],
   recommendations: [
     {
-      icon: "🗺️", type: "roadmap",
-      title: "Full Stack Developer Roadmap",
+      icon: '🗺️',
+      type: 'roadmap',
+      title: 'Full Stack Developer Roadmap',
       description: "You're 65% aligned. Strengthen Node.js and System Design to close the gap.",
-      link: "/roadmaps",
+      link: '/roadmaps',
     },
     {
-      icon: "📘", type: "course",
-      title: "TypeScript for React Developers",
-      description: "Highly in-demand skill missing from your profile. Add it in 2–3 weeks.",
-      link: "https://www.typescriptlang.org/docs/",
+      icon: '📘',
+      type: 'course',
+      title: 'TypeScript for React Developers',
+      description: 'Highly in-demand skill missing from your profile. Add it in 2–3 weeks.',
+      link: 'https://www.typescriptlang.org/docs/',
     },
     {
-      icon: "🏗️", type: "project",
-      title: "Build a Full-Stack Dashboard",
-      description: "Showcases React, Node.js, and TypeScript — perfect for your portfolio.",
-      link: "/projects",
+      icon: '🏗️',
+      type: 'project',
+      title: 'Build a Full-Stack Dashboard',
+      description: 'Showcases React, Node.js, and TypeScript — perfect for your portfolio.',
+      link: '/projects',
     },
     {
-      icon: "🏆", type: "certification",
-      title: "AWS Cloud Practitioner",
-      description: "Cloud skills are increasingly expected in mid-level roles. Start here.",
-      link: "https://aws.amazon.com/certification/",
+      icon: '🏆',
+      type: 'certification',
+      title: 'AWS Cloud Practitioner',
+      description: 'Cloud skills are increasingly expected in mid-level roles. Start here.',
+      link: 'https://aws.amazon.com/certification/',
     },
   ],
 };
@@ -118,10 +123,10 @@ export default function ResumeAnalyzerPage({ onBack }) {
   const [result, setResult] = useState(null);
 
   const handleUpload = () => {
-    setStep("analyzing");
+    setStep('analyzing');
     setTimeout(() => {
       setResult(MOCK_RESULT);
-      setStep("result");
+      setStep('result');
     }, 2500);
   };
 
@@ -129,7 +134,7 @@ export default function ResumeAnalyzerPage({ onBack }) {
     <div className="ra-page">
       {/* Back button — matches NexaSphere pattern */}
       {onBack && (
-        <button className="ra-back-btn" onClick={onBack}>
+        <button aria-label="Interactive element" className="ra-back-btn" onClick={onBack}>
           ← Back
         </button>
       )}
@@ -177,11 +182,13 @@ export default function ResumeAnalyzerPage({ onBack }) {
                 .join('')}
       {step === "result" && result && (
         <div className="ra-results">
-
           {/* Profile Card */}
           <div className="ra-profile-card">
             <div className="profile-avatar">
-              {result.name.split(" ").map((w) => w[0]).join("")}
+              {result.name
+                .split(' ')
+                .map((w) => w[0])
+                .join('')}
             </div>
             <div>
               <h2 className="profile-name">{result.name}</h2>
@@ -189,6 +196,11 @@ export default function ResumeAnalyzerPage({ onBack }) {
             </div>
             <button className="re-upload-btn" onClick={() => setStep('upload')}>
             <button className="re-upload-btn" onClick={() => setStep("upload")}>
+            <button
+              aria-label="Interactive element"
+              className="re-upload-btn"
+              onClick={() => setStep('upload')}
+            >
               Re-upload Resume
             </button>
           </div>
@@ -213,7 +225,9 @@ export default function ResumeAnalyzerPage({ onBack }) {
             ].map((s, i) => (
               <div key={i} className="score-card">
                 <p className="score-card-label">{s.label}</p>
-                <p className="score-card-value" style={{ color: s.color }}>{s.value}</p>
+                <p className="score-card-value" style={{ color: s.color }}>
+                  {s.value}
+                </p>
               </div>
             ))}
           </div>
@@ -245,6 +259,9 @@ export default function ResumeAnalyzerPage({ onBack }) {
                   {s}
                 </span>
                 <span key={i} className="skill-tag missing">{s}</span>
+                <span key={i} className="skill-tag missing">
+                  {s}
+                </span>
               ))}
             </div>
           </div>

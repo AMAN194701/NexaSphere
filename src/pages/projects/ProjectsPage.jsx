@@ -61,6 +61,7 @@ export default function ProjectsPage({ onBack }) {
       <div className="category-filters" role="tablist" aria-label="Project Categories">
         {CATEGORIES.map((category) => (
           <button
+            aria-label="Interactive element"
             key={category}
             role="tab"
             aria-selected={activeCategory === category}

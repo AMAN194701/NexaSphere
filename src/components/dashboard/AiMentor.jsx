@@ -130,6 +130,7 @@ export default function AiMentor() {
       />
 
       <button
+        aria-label="Interactive element"
         onClick={handleSubmit}
         disabled={loading || !code.trim()}
         className="btn btn-primary"

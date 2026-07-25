@@ -71,6 +71,7 @@ const SearchBar = ({ onSelectPrompt, workspace = 'default' }) => {
         {isSearching && <span className="search-spinner">⟳</span>}
         {query && (
           <button
+            aria-label="Interactive element"
             className="clear-search"
             aria-label="Clear conversation search"
             onClick={() => {

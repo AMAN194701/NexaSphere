@@ -173,6 +173,8 @@ function RolesGuideModal({ onClose }) {
           position: 'fixed',
         style={{
           position: "fixed",
+        style={{
+          position: 'fixed',
           top: 0,
           right: 0,
           bottom: 0,
@@ -252,6 +254,7 @@ function RolesGuideModal({ onClose }) {
             </div>
           </div>
           <button
+            aria-label="Interactive element"
             type="button"
             onClick={onClose}
             style={{
@@ -443,6 +446,28 @@ function RolesGuideModal({ onClose }) {
                 'Design posters & certificates',
                 'Handle photography & reels',
                 'Maintain NexaSphere brand consistency',
+              ])}
+            </>
+          )}
+
+          {sec(
+            'Palette',
+            '2. Product & Creative Team',
+            <>
+              {role('Palette', 'UI/UX Lead', null, [
+                'Conduct design workshops',
+                'Promote user-centric thinking',
+                'Collaborate with tech teams',
+              ])}
+              {role('Puzzle', 'Product Management Lead', null, [
+                'Bridge tech and user needs',
+                'Guide MVP development',
+                'Support hackathons with product strategy',
+              ])}
+              {role('Camera', 'Media & Design Lead', null, [
+                'Design posters & certificates',
+                'Handle photography & reels',
+                'Maintain NexaSphere brand consistency',
             "Palette",
             "2. Product & Creative Team",
             <>
@@ -547,6 +572,14 @@ function RolesGuideModal({ onClose }) {
           }}
         >
           <button type="button" onClick={onClose} className="btn btn-primary">
+          }}
+        >
+          <button
+            aria-label="Interactive element"
+            type="button"
+            onClick={onClose}
+            className="btn btn-primary"
+          >
             Back to Application Form
           </button>
         </div>
@@ -701,6 +734,14 @@ function Input({
         e.target.style.borderColor = isInvalid ? '#ef4444' : 'var(--bdr2)';
         e.target.style.boxShadow = isInvalid ? '0 0 10px rgba(239, 68, 68, 0.15)' : 'none';
       }}
+      onFocus={(e) => {
+        e.target.style.borderColor = 'var(--c1b)';
+        e.target.style.boxShadow = 'var(--sh1)';
+      }}
+      onBlur={(e) => {
+        e.target.style.borderColor = 'var(--bdr2)';
+        e.target.style.boxShadow = 'none';
+      }}
     />
   );
 }
@@ -745,6 +786,14 @@ function TextArea({ value, onChange, placeholder, rows = 5 }) {
       onBlur={(e) => {
         e.target.style.borderColor = isInvalid ? '#ef4444' : 'var(--bdr2)';
         e.target.style.boxShadow = isInvalid ? '0 0 10px rgba(239, 68, 68, 0.15)' : 'none';
+      }}
+      onFocus={(e) => {
+        e.target.style.borderColor = 'var(--c1b)';
+        e.target.style.boxShadow = 'var(--sh1)';
+      }}
+      onBlur={(e) => {
+        e.target.style.borderColor = 'var(--bdr2)';
+        e.target.style.boxShadow = 'none';
       }}
     />
   );
@@ -805,6 +854,7 @@ function PillRadio({ options, value, onChange, ...rest }) {
         const active = value === opt;
         return (
           <button
+            aria-label="Interactive element"
             key={opt}
             type="button"
             onClick={() => onChange(opt)}
@@ -835,6 +885,7 @@ function MultiSelectChips({ options, values, onToggle }) {
         const active = values.includes(opt);
         return (
           <button
+            aria-label="Interactive element"
             key={opt}
             type="button"
             onClick={() => onToggle(opt)}
@@ -1884,6 +1935,15 @@ export default function RecruitmentPage({ onBack }) {
                   >
                     <DynamicIcon name="Search" size={14} /> View Roles &
                     Responsibilities
+                <div style={{ marginTop: 8 }}>
+                  <button
+                    aria-label="Interactive element"
+                    type="button"
+                    onClick={() => setShowRoles(true)}
+                    className="btn btn-outline btn-sm"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                  >
+                    <DynamicIcon name="Search" size={14} /> View Roles & Responsibilities
                   </button>
                 </div>
               </div>
@@ -2356,6 +2416,9 @@ export default function RecruitmentPage({ onBack }) {
                   const isDisagree = opt.k === "disagree";
                   return (
                     <button
+                  return (
+                    <button
+                      aria-label="Interactive element"
                       key={opt.k}
                       type="button"
                       onClick={() =>
@@ -2455,6 +2518,8 @@ export default function RecruitmentPage({ onBack }) {
                           gap: 10,
                         }}
                       >
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <span
                           style={{
                             width: 18,
@@ -2501,6 +2566,9 @@ export default function RecruitmentPage({ onBack }) {
     () => step / (steps.length - 1),
     [step, steps.length]
   );
+  );
+
+  const progress = useMemo(() => step / (steps.length - 1), [step, steps.length]);
 
   const current = steps[step];
 
@@ -2814,6 +2882,7 @@ export default function RecruitmentPage({ onBack }) {
         <div className="apply-hero-bg" />
         {onBack ? (
           <button
+            aria-label="Interactive element"
             onClick={onBack}
             className="btn btn-outline btn-sm"
             style={{ position: "absolute", top: 24, left: 24 }}
@@ -3159,6 +3228,8 @@ export default function RecruitmentPage({ onBack }) {
             )}
             {done ? (
               <div style={{ display: "grid", gap: 18 }}>
+            {done ? (
+              <div style={{ display: 'grid', gap: 18 }}>
                 {/* ── Confirmation banner ── */}
                 <div
                   style={{
@@ -3383,6 +3454,11 @@ export default function RecruitmentPage({ onBack }) {
                   }}
                 >
                   <a
+                <div
+                  style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}
+                >
+                  <a
+                    aria-label="Interactive element"
                     className="btn btn-whatsapp"
                     href={WHATSAPP_SCREENING}
                     target="_blank"
@@ -3400,6 +3476,7 @@ export default function RecruitmentPage({ onBack }) {
                     </span>
                   </a>
                   <a
+                    aria-label="Interactive element"
                     className="btn btn-join"
                     href={WHATSAPP_COMMUNITY}
                     target="_blank"
@@ -3449,6 +3526,9 @@ export default function RecruitmentPage({ onBack }) {
                   <a
                     href="mailto:nexasphere@glbajajgroup.org"
                     style={{ color: "var(--c1)", textDecoration: "none" }}
+                    aria-label="Interactive element"
+                    href="mailto:nexasphere@glbajajgroup.org"
+                    style={{ color: 'var(--c1)', textDecoration: 'none' }}
                   >
                     nexasphere@glbajajgroup.org
                   </a>
@@ -3500,6 +3580,7 @@ export default function RecruitmentPage({ onBack }) {
                   }}
                 >
                   <button
+                    aria-label="Interactive element"
                     className="btn btn-outline"
                     type="button"
                     onClick={() => {
@@ -3526,6 +3607,7 @@ export default function RecruitmentPage({ onBack }) {
 
                   {step < steps.length - 1 ? (
                     <button
+                      aria-label="Interactive element"
                       className="btn btn-primary btn-ripple"
                       type="button"
                       disabled={busy || !canNext}
@@ -3577,6 +3659,7 @@ export default function RecruitmentPage({ onBack }) {
                     </button>
                   ) : (
                     <button
+                      aria-label="Interactive element"
                       className="btn btn-primary btn-ripple"
                       type="button"
                       disabled={

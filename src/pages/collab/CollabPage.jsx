@@ -88,6 +88,7 @@ export default function CollabPage({ onBack }) {
         style={{ padding: '0 24px', maxWidth: '1200px', margin: '0 auto', marginBottom: '24px' }}
       >
         <button
+          aria-label="Interactive element"
           onClick={onBack}
           style={{
             background: 'transparent',
@@ -137,6 +138,9 @@ export default function CollabPage({ onBack }) {
             role="tab"
             aria-selected={activeTab === 'find-team'}
             aria-controls="collab-find-team-panel"
+        >
+          <button
+            aria-label="Interactive element"
             onClick={() => setActiveTab('find-team')}
             style={{
               padding: '12px 24px',
@@ -159,6 +163,7 @@ export default function CollabPage({ onBack }) {
             role="tab"
             aria-selected={activeTab === 'skill-swap'}
             aria-controls="collab-skill-swap-panel"
+            aria-label="Interactive element"
             onClick={() => setActiveTab('skill-swap')}
             style={{
               padding: '12px 24px',

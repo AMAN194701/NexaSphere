@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { activities } from '../../data/activitiesData';
 import { BannerOrbs } from '../../shared/MotionLayer';
 import Footer from '../../shared/Footer';
@@ -340,6 +341,8 @@ export default function ActivitiesPage({ onNavigate, onBack }) {
           padding: '60px 0 50px',
           textAlign: 'center',
           marginBottom: '60px',
+          /* Normalized to 32px — matches EventsPage and ActivityDetailPage standard */
+          marginBottom: '32px',
           position: 'relative',
           overflow: 'hidden',
         }}
@@ -357,6 +360,7 @@ export default function ActivitiesPage({ onNavigate, onBack }) {
         />
         <BannerOrbs color="rgba(204,17,17,.06)" />
         <button
+          aria-label="Interactive element"
           onClick={onBack}
           className="ns-back-btn"
           style={{
@@ -406,6 +410,23 @@ export default function ActivitiesPage({ onNavigate, onBack }) {
           Every format is designed to sharpen a different skill. Explore what excites you — then
           dive in.
         </p>
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <span className="cin-section-label pop-in">NexaSphere · GL Bajaj</span>
+          <h1 className="section-title pop-word" style={{ fontSize: 'clamp(2rem, 5vw, 3.2rem)' }}>
+            Our Activities
+          </h1>
+          <p
+            className="section-subtitle pop-in"
+            style={{
+              animationDelay: '.1s',
+              maxWidth: '580px',
+              margin: '0 auto',
+            }}
+          >
+            Every format is designed to sharpen a different skill. Explore what excites you — then
+            dive in.
+          </p>
+        </div>
       </div>
 
       <div className="container">

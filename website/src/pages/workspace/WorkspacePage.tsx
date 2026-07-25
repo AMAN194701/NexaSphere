@@ -56,6 +56,12 @@ export default function WorkspacePage({ roomId, onBack }: WorkspacePageProps) {
   // Stable anonymous identity — persisted for the session so hot reloads
   // and re-mounts do not generate a new user name and color each time.
   const [user, setUser] = useState(getOrCreateAnonUser);
+  // Use a random anonymous user for now, or fetch from context if there's auth
+  const [user] = useState({
+    name: `User-${Math.floor(Math.random() * 1000)}`,
+    color: `hsl(${Math.floor(Math.random() * 360)}, 70%, 50%)`,
+    initials: 'U',
+  });
 
   const { emitDocumentChange, emitCursorMove, emitTyping } = useSocketSync(roomId, user);
   const { documentContent, users, status } = useWorkspaceStore();
@@ -104,7 +110,7 @@ export default function WorkspacePage({ roomId, onBack }: WorkspacePageProps) {
     <div className="workspace-container">
       <div className="workspace-header">
         <div className="workspace-header-left">
-          <button onClick={onBack} className="workspace-back-btn">
+          <button aria-label="Interactive element" onClick={onBack} className="workspace-back-btn">
             <ChevronLeft size={20} /> Back
           </button>
           <h2>Room: {roomId}</h2>

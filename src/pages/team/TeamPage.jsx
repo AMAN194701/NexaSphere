@@ -13,13 +13,23 @@ import TeamMemberModal from "./TeamMemberModal";
 import { IconArrowRight, IconSpark } from "../../shared/Icons";
 import { BannerOrbs } from "../../shared/MotionLayer";
 import Footer from "../../shared/Footer";
+import { Rocket } from 'lucide-react';
+import { teamMembers } from '../../data/teamData';
+import apiClient from '../../utils/apiClient.js';
+import {
+  getLocalTeamMembers,
+  mergeTeamMembers,
+  subscribePublicContent,
+} from '../../utils/publicContentStore.js';
+import TeamMemberModal from './TeamMemberModal';
+import { IconSpark } from '../../shared/Icons';
+import { BannerOrbs } from '../../shared/MotionLayer';
+import Footer from '../../shared/Footer';
 
 function MemberCard({ member, idx, onClick }) {
   const ref = useRef(null);
   const [imgError, setImgError] = useState(false);
-  const agDelays = [
-    -0.0, -2.1, -4.2, -1.0, -3.3, -5.5, -0.7, -6.1, -2.8, -4.9, -1.6, -3.8,
-  ];
+  const agDelays = [-0.0, -2.1, -4.2, -1.0, -3.3, -5.5, -0.7, -6.1, -2.8, -4.9, -1.6, -3.8];
 
   const onMove = (e) => {
     const c = ref.current;
@@ -43,6 +53,8 @@ function MemberCard({ member, idx, onClick }) {
     }, 150);
     c.style.transform = "";
     c.style.animationPlayState = "";
+    c.style.transform = '';
+    c.style.animationPlayState = '';
   };
   const click = () => {
     const c = ref.current;
@@ -52,7 +64,7 @@ function MemberCard({ member, idx, onClick }) {
         c.style.transform = '';
       c.style.transform = "scale(.9)";
       setTimeout(() => {
-        c.style.transform = "";
+        c.style.transform = '';
       }, 140);
     }
     setTimeout(() => onClick(member), 110);
@@ -67,11 +79,11 @@ function MemberCard({ member, idx, onClick }) {
         perspective: '800px',
       className="team-card shimmer mag-card"
       style={{
-        cursor: "pointer",
-        perspective: "800px",
+        cursor: 'pointer',
+        perspective: '800px',
         animation: `ag 7s ease-in-out ${agDelays[idx % 12]}s infinite`,
-        willChange: "transform",
-        animationFillMode: "both",
+        willChange: 'transform',
+        animationFillMode: 'both',
         opacity: 1,
         animationDelay: `${idx * 0.08}s`,
       }}
@@ -89,7 +101,7 @@ function MemberCard({ member, idx, onClick }) {
       role="button"
       tabIndex={0}
       onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") click();
+        if (e.key === 'Enter' || e.key === ' ') click();
       }}
     >
       <div className="team-card-photo-wrap">
@@ -100,9 +112,9 @@ function MemberCard({ member, idx, onClick }) {
                 encodeURIComponent(member.name) +
                 '&backgroundColor=7b6fff&textColor=ffffff'
             imgError
-              ? "https://api.dicebear.com/7.x/initials/svg?seed=" +
+              ? 'https://api.dicebear.com/7.x/initials/svg?seed=' +
                 encodeURIComponent(member.name) +
-                "&backgroundColor=CC1111&textColor=ffffff"
+                '&backgroundColor=CC1111&textColor=ffffff'
               : member.photo
           }
           alt={member.name}
@@ -129,6 +141,7 @@ export default function TeamPage({ onBack, onApply }) {
   const [members, setMembers] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [members, setMembers] = useState(() => getLocalTeamMembers(teamMembers));
 
   useEffect(() => {
     window.scrollTo({ top: 0 });
@@ -169,6 +182,32 @@ export default function TeamPage({ onBack, onApply }) {
       .finally(() => {
         if (alive) setLoading(false);
       });
+    const applyLocalTeam = () => {
+      if (alive) setMembers(getLocalTeamMembers(teamMembers));
+    };
+
+    if (!base) {
+      applyLocalTeam();
+      return subscribePublicContent(applyLocalTeam);
+    }
+
+    const fetchTeam = () => {
+      apiClient(`${base}/api/content/team`)
+        .then((data) => {
+          if (!alive) return;
+          setMembers(
+            Array.isArray(data?.members) && data.members.length
+              ? mergeTeamMembers(teamMembers, data.members)
+              : getLocalTeamMembers(teamMembers)
+          );
+        })
+        .catch(() => {
+          if (alive) setMembers((prev) => (prev?.length ? prev : getLocalTeamMembers(teamMembers)));
+        });
+    };
+
+    fetchTeam();
+    const interval = setInterval(fetchTeam, 4000);
     return () => {
       alive = false;
     };
@@ -223,7 +262,7 @@ export default function TeamPage({ onBack, onApply }) {
   );
 
   return (
-    <div id="team-page" style={{ minHeight: "100vh", padding: "0 0 100px" }}>
+    <div id="team-page" style={{ minHeight: '100vh', padding: '0 0 100px' }}>
       <div
         className="page-banner"
         style={{
@@ -235,6 +274,13 @@ export default function TeamPage({ onBack, onApply }) {
           marginBottom: "60px",
           position: "relative",
           overflow: "hidden",
+          background: 'linear-gradient(135deg, rgba(123,111,255,.07), rgba(189,92,255,.04))',
+          borderBottom: '1px solid var(--bdr)',
+          padding: '70px 0 50px',
+          textAlign: 'center',
+          marginBottom: '48px',
+          position: 'relative',
+          overflow: 'hidden',
         }}
       >
         <div
@@ -250,12 +296,13 @@ export default function TeamPage({ onBack, onApply }) {
             top: 0,
             left: 0,
             right: 0,
-            height: "3px",
-            background: "linear-gradient(90deg,var(--c2),var(--c3),var(--c1))",
+            height: '3px',
+            background: 'linear-gradient(90deg,var(--c2),var(--c3),var(--c1))',
           }}
         />
         <BannerOrbs color="rgba(123,111,255,.07)" />
         <button
+          aria-label="Interactive element"
           onClick={onBack}
           className="ns-back-btn"
           style={{
@@ -348,6 +395,29 @@ export default function TeamPage({ onBack, onApply }) {
           The minds and hands behind NexaSphere — meet the people driving the
           vision forward.
         </p>
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <span
+            className="cin-section-label"
+            style={{
+              display: 'block',
+              textAlign: 'center',
+              marginBottom: '8px',
+              fontFamily: "'Space Mono', monospace",
+              fontSize: '.6rem',
+              color: 'var(--t3)',
+              letterSpacing: '.3em',
+              textTransform: 'uppercase',
+            }}
+          >
+            GL Bajaj Group of Institutions · Mathura
+          </span>
+          <h1 className="section-title pop-word" style={{ fontSize: 'clamp(2rem, 5vw, 3.2rem)' }}>
+            Core Team
+          </h1>
+          <p className="section-subtitle" style={{ maxWidth: '500px', margin: '0 auto' }}>
+            The minds and hands behind NexaSphere — meet the people driving the vision forward.
+          </p>
+        </div>
       </div>
 
       <div className="container">
@@ -370,17 +440,17 @@ export default function TeamPage({ onBack, onApply }) {
           <div
             style={{
               fontFamily: "'Orbitron', monospace",
-              fontSize: ".68rem",
+              fontSize: '.68rem',
               fontWeight: 700,
-              color: "var(--c2)",
-              letterSpacing: ".2em",
-              textTransform: "uppercase",
-              textAlign: "center",
-              marginBottom: "24px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "12px",
+              color: 'var(--c2)',
+              letterSpacing: '.2em',
+              textTransform: 'uppercase',
+              textAlign: 'center',
+              marginBottom: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '12px',
             }}
           >
             <div
@@ -471,17 +541,17 @@ export default function TeamPage({ onBack, onApply }) {
           <div
             style={{
               fontFamily: "'Orbitron', monospace",
-              fontSize: ".68rem",
+              fontSize: '.68rem',
               fontWeight: 700,
-              color: "var(--c1)",
-              letterSpacing: ".2em",
-              textTransform: "uppercase",
-              textAlign: "center",
-              marginBottom: "24px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "12px",
+              color: 'var(--c1)',
+              letterSpacing: '.2em',
+              textTransform: 'uppercase',
+              textAlign: 'center',
+              marginBottom: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '12px',
             }}
           >
             <div
@@ -572,9 +642,8 @@ export default function TeamPage({ onBack, onApply }) {
               top: 0,
               left: 0,
               right: 0,
-              height: "3px",
-              background:
-                "linear-gradient(90deg, var(--c1), var(--c2), var(--c3))",
+              height: '3px',
+              background: 'linear-gradient(90deg, var(--c1), var(--c2), var(--c3))',
             }}
           />
           <div className="corner-tl" />
@@ -582,9 +651,9 @@ export default function TeamPage({ onBack, onApply }) {
           <div style={{ fontSize: '2rem', marginBottom: '10px', color: 'var(--c1)' }}>
           <div
             style={{
-              fontSize: "2rem",
-              marginBottom: "10px",
-              color: "var(--c1)",
+              fontSize: '2rem',
+              marginBottom: '10px',
+              color: 'var(--c1)',
             }}
           >
             <Rocket size={32} />
@@ -600,9 +669,9 @@ export default function TeamPage({ onBack, onApply }) {
               fontFamily: "Orbitron,monospace",
               fontSize: "1rem",
               fontWeight: 700,
-              color: "var(--c1)",
-              marginBottom: "8px",
-              letterSpacing: ".05em",
+              color: 'var(--c1)',
+              marginBottom: '8px',
+              letterSpacing: '.05em',
             }}
           >
             Want to Join NexaSphere?
@@ -623,14 +692,15 @@ export default function TeamPage({ onBack, onApply }) {
               lineHeight: 1.65,
             }}
           >
-            We&apos;re looking for passionate students to drive NexaSphere
-            forward. Fill in the form and we&apos;ll reach out!
+            We&apos;re looking for passionate students to drive NexaSphere forward. Fill in the form
+            and we&apos;ll reach out!
           </p>
           <button
+            aria-label="Interactive element"
             type="button"
             onClick={() => onApply && onApply()}
             className="btn btn-join btn-ripple"
-            style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
           >
             Apply Here <IconSpark />
           </button>

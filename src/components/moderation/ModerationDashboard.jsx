@@ -126,6 +126,7 @@ export default function ModerationDashboard() {
           }}
         >
           <button
+            aria-label="Interactive element"
             onClick={() => {
               setSelectedTab('pending');
               loadData();
@@ -142,6 +143,7 @@ export default function ModerationDashboard() {
             Pending ({stats.pending})
           </button>
           <button
+            aria-label="Interactive element"
             onClick={() => {
               setSelectedTab('reviewed');
               loadData();
@@ -238,6 +240,7 @@ export default function ModerationDashboard() {
                   {flag.status === 'pending' && (
                     <div style={{ display: 'flex', gap: '12px' }}>
                       <button
+                        aria-label="Interactive element"
                         onClick={() => handleResolve(flag.id, 'warn')}
                         style={{
                           padding: '8px 16px',
@@ -251,6 +254,7 @@ export default function ModerationDashboard() {
                         Warn User
                       </button>
                       <button
+                        aria-label="Interactive element"
                         onClick={() => handleResolve(flag.id, 'shadow_ban')}
                         style={{
                           padding: '8px 16px',
@@ -264,6 +268,7 @@ export default function ModerationDashboard() {
                         Shadow Ban
                       </button>
                       <button
+                        aria-label="Interactive element"
                         onClick={() => handleResolve(flag.id, 'block')}
                         style={{
                           padding: '8px 16px',

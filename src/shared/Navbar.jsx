@@ -54,6 +54,22 @@ import { BRAND_LOGO_FULL, BRAND_LOGO_ICON } from './brandAssets';
 import NotificationBell from '../components/NotificationBell';
 import { BRAND_LOGO_FULL, BRAND_LOGO_ICON } from './brandAssets';
 import NotificationBell from '../components/NotificationBell';
+import { BRAND_LOGO_FULL, BRAND_LOGO_ICON } from './brandAssets';
+import NotificationBell from '../components/NotificationBell';
+
+const TABS = [
+  'Home',
+  'Activities',
+  'Events',
+  'Projects',
+  'Roadmaps',
+  'Portfolio',
+  'About',
+  'Team',
+  'Contact',
+];
+
+import { ThemeToggle } from '../components/common/ThemeToggle';
 
 const TABS = [
   'Home',
@@ -524,6 +540,9 @@ export default function Navbar({ activeTab, onTabChange, onApply, onJoin, onTogg
             alt="NexaSphere"
             className="ns-mobile-logo-ns"
           />
+          aria-label="Go to homepage"
+        >
+          <img src={BRAND_LOGO_ICON} alt="NexaSphere" className="ns-mobile-logo-ns" />
 
           <span className="ns-mobile-brand">
             <span>NexaSphere</span>
@@ -542,6 +561,7 @@ export default function Navbar({ activeTab, onTabChange, onApply, onJoin, onTogg
         <div className="ns-mobile-tabs">
           {TABS.map((t) => (
             <button
+              aria-label="Interactive element"
               key={t}
               className={`ns-mobile-tab${
                 activeTab === t ? ' active' : ''
@@ -760,6 +780,7 @@ export default function Navbar({ activeTab, onTabChange, onApply, onJoin, onTogg
             {TABS.map((t) => (
               <li key={t}>
                 <button
+                  aria-label="Interactive element"
                   className={`ns-nav-tab${activeTab === t ? ' active' : ''}${
                     t === 'Contact' ? ' contact-tab contact-nav-tab' : ''
                   }`}

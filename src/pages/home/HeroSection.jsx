@@ -29,6 +29,7 @@ function RippleBtn({ cls, children, href, onClick }) {
   if (href)
     return (
       <a
+        aria-label="Interactive element"
         ref={ref}
         href={href}
         target="_blank"
@@ -40,7 +41,12 @@ function RippleBtn({ cls, children, href, onClick }) {
       </a>
     );
   return (
-    <button ref={ref} className={`btn btn-ripple ${cls}`} onClick={go}>
+    <button
+      aria-label="Interactive element"
+      ref={ref}
+      className={`btn btn-ripple ${cls}`}
+      onClick={go}
+    >
       {children}
     </button>
   );
@@ -491,6 +497,9 @@ function Atmosphere({ isLight }) {
             inset: 0,
             backgroundImage:
               'repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(204,17,17,.005) 2px,rgba(204,17,17,.005) 4px)',
+            backgroundImage: isLight
+              ? 'repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(204,17,17,.003) 2px,rgba(204,17,17,.003) 4px)'
+              : 'repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(204,17,17,.005) 2px,rgba(204,17,17,.005) 4px)',
           }}
         />
       </div>

@@ -27,6 +27,8 @@ function CopyPopup({ value, onClose }) {
       <span className="copy-popup-value">{value}</span>
       <button className="copy-popup-btn" onClick={handleCopy}>
         {copied ? "✅ Copied!" : "📋 Copy"}
+      <button aria-label="Interactive element" className="copy-popup-btn" onClick={handleCopy}>
+        {copied ? '✅ Copied!' : '📋 Copy'}
       </button>
     </div>
   );
@@ -136,6 +138,7 @@ function ModalContent({ member, onClose }) {
           <div className="modal-social">
             {member.linkedin && (
               <a
+                aria-label="Interactive element"
                 href={member.linkedin}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -149,6 +152,7 @@ function ModalContent({ member, onClose }) {
               <div style={{ position: 'relative' }}>
                 {whatsappValue.startsWith('http') ? (
                   <a
+                    aria-label="Interactive element"
                     href={whatsappValue}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -165,6 +169,7 @@ function ModalContent({ member, onClose }) {
                 ) : (
                   <>
                     <button
+                      aria-label="Interactive element"
                       className="modal-social-btn btn-whatsapp"
                       onClick={(e) => {
                         e.stopPropagation();
@@ -200,6 +205,7 @@ function ModalContent({ member, onClose }) {
 
             {member.instagram && (
               <a
+                aria-label="Interactive element"
                 href={member.instagram}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -212,6 +218,7 @@ function ModalContent({ member, onClose }) {
             {member.email && (
               <div style={{ position: "relative" }}>
                 <button
+                  aria-label="Interactive element"
                   className="modal-social-btn btn-contact"
                   onClick={(e) => {
                     e.stopPropagation();
