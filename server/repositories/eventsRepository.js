@@ -79,6 +79,41 @@ export const eventsRepository = {
         const params = [];
         let conditions = [];
 
+        if (status) {
+          conditions.push(`status = $${params.length + 1}`);
+          params.push(status);
+        }
+
+        if (category) {
+          conditions.push(`LOWER(array_to_string(tags, ',')) LIKE LOWER($${params.length + 1})`);
+          params.push(`%${category}%`);
+        }
+
+        if (location) {
+          conditions.push(`LOWER(description) LIKE LOWER($${params.length + 1})`);
+          params.push(`%${location}%`);
+        }
+
+        if (search) {
+          conditions.push(
+            `(LOWER(name) LIKE LOWER($${params.length + 1})
+      OR LOWER(description) LIKE LOWER($${params.length + 2}))`
+          );
+
+          params.push(`%${search}%`);
+          params.push(`%${search}%`);
+        }
+
+        if (startDate) {
+          conditions.push(`date_text >= $${params.length + 1}`);
+          params.push(startDate);
+        }
+
+        if (endDate) {
+          conditions.push(`date_text <= $${params.length + 1}`);
+          params.push(endDate);
+        }
+
         if (studentGroups === undefined) {
           // If no groups provided, only show public events
           conditions.push(`(restricted_groups IS NULL OR jsonb_array_length(restricted_groups) = 0 OR restricted_groups = '[]'::jsonb)`);

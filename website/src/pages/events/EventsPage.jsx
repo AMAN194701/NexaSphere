@@ -93,8 +93,10 @@ export default function EventsPage({
         const db = parseDate(b.startDate ?? b.date)?.getTime() ?? 0;
        const db = parseDate(b.startDate ?? b.date)?.getTime() ?? 0;
         return aIsUpcoming ? da - db : db - da;
+
+        return da - db;
       });
-  }, [events, now]);
+  }, [filteredEvents]);
 
         return da - db;
         return aIsUpcoming ? da - db : db - da;

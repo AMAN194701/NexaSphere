@@ -83,6 +83,17 @@ export const listEvents = wrapAsync(async (req, res) => {
   res.setHeader('X-Cache', hit ? 'HIT' : 'MISS');
   return sendSuccess(res, data);
   const { rows, total } = await eventsService.listEvents({ page, limit, status, studentGroups });
+  const { rows, total } = await eventsService.listEvents({
+    page,
+    limit,
+    status,
+    studentGroups,
+    startDate,
+    endDate,
+    category,
+    location,
+    search,
+  });
   return res.json({ events: rows, pagination: buildPaginationMeta(page, limit, total) });
   return res.json(data);
 });
@@ -102,6 +113,7 @@ export const adminListEvents = wrapAsync(async (req, res) => {
     search,
   });
   return sendSuccess(res, { events: rows, pagination: buildPaginationMeta(page, limit, total) });
+  return res.json({ events: rows, pagination: buildPaginationMeta(page, limit, total) });
 });
 
 export const adminCreateEvent = wrapAsync(async (req, res) => {
