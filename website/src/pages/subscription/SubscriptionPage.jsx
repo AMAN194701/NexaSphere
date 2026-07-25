@@ -60,6 +60,8 @@ export default function SubscriptionPage({ onBack }) {
   const isMountedRef = useRef(true);
   useEffect(() => {
     isMountedRef.current = true;
+
+  useEffect(() => {
     return () => {
       isMountedRef.current = false;
     };
