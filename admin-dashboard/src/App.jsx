@@ -55,6 +55,7 @@ import { EventScanner } from './pages/EventScanner';
 import { EventAttendanceReport } from './pages/EventAttendanceReport';
 import { FunnelAnalysis } from './pages/FunnelAnalysis';
 import { ImpersonationBanner } from './components/ImpersonationBanner';
+import { UserEngagementReport } from './pages/UserEngagementReport';
 import './styles/admin.css';
 
 import ScheduledReports from './pages/dashboard/ScheduledReports';
@@ -138,6 +139,7 @@ export default function App() {
             <Route path="/dashboard/audit-logs" element={<AuditLogViewer />} />
             <Route path="/dashboard/reports" element={<UserEngagementReport />} />
             <Route path="/dashboard/security" element={<SecurityCenter />} />
+            <Route path="/dashboard/reports" element={<UserEngagementReport />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />

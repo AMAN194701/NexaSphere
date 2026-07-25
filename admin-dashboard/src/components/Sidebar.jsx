@@ -210,6 +210,9 @@ const links = [
     label: 'Security',
     icon: 'Globe',
     requiredScope: 'settings:admin',
+    to: '/dashboard/reports',
+    label: 'Reports',
+    icon: 'Target',
   },
 ];
 
