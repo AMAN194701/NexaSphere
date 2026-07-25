@@ -2490,6 +2490,115 @@ app.post(
 
 // Admin membership responses
 app.get('/api/admin/membership', adminAuth, async (req, res) => {
+app.get("/api/admin/core-team", adminAuth, async (req, res) => {
+  try {
+    return res.json(await listCoreTeamStore());
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ error: e?.message || "Failed to load core team" });
+  }
+});
+
+app.post("/api/admin/core-team", adminAuth, async (req, res) => {
+  try {
+    const body = req.body || {};
+    const adminEmail = req.adminSession?.username || "admin";
+
+    const member = {
+      name: toSafeString(body.name, 100),
+      role: toSafeString(body.role, 100),
+      year: toSafeString(body.year, 20),
+      branch: toSafeString(body.branch, 100),
+      section: validateSection(body.section),
+      email: toSafeString(body.email, 140),
+      whatsapp: validateWhatsApp(body.whatsapp),
+      linkedin: toSafeString(body.linkedin, 255) || null,
+      instagram: toSafeString(body.instagram, 255) || null,
+      photoUrl: toSafeString(body.photoUrl, 500) || null,
+    };
+
+    if (
+      !member.name ||
+      !member.role ||
+      !member.year ||
+      !member.branch ||
+      !member.email
+    ) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+    if (!isEmail(member.email)) {
+      return res.status(400).json({ error: "Invalid email format" });
+    }
+
+    const saved = await createCoreTeamStore(member);
+    adminEvents.emit("CORE_TEAM_MEMBER_ADDED", {
+      adminEmail,
+      member: saved,
+      timestamp: new Date().toISOString(),
+    });
+
+    return res.status(201).json(saved);
+  } catch (e) {
+    return res.status(400).json({ error: e?.message || "Validation failed" });
+  }
+});
+
+app.delete("/api/admin/core-team/:id", adminAuth, async (req, res) => {
+  try {
+    const id = String(req.params.id || "").trim();
+    const adminEmail = req.adminSession?.username || "admin";
+
+    const deleted = await deleteCoreTeamStore(id);
+    if (!deleted) return res.status(404).json({ error: "Member not found" });
+
+    adminEvents.emit("CORE_TEAM_MEMBER_REMOVED", {
+      adminEmail,
+      memberId: id,
+      timestamp: new Date().toISOString(),
+    });
+
+    return res.json({ ok: true });
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ error: e?.message || "Unable to delete member" });
+  }
+});
+
+let membershipCache = null;
+let membershipCacheTime = 0;
+let inFlightMembershipFetch = null;
+
+async function fetchMembershipData(scriptUrl, secret, timeoutMs = 5000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(scriptUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "getResponses", token: secret }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Google Apps Script returned ${response.status}`);
+    }
+
+    const data = await response.json();
+    const responses = data.responses || [];
+
+    membershipCache = responses;
+    membershipCacheTime = Date.now();
+
+    return responses;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+app.get("/api/admin/membership", adminAuth, async (req, res) => {
   const scriptUrl = process.env.MEMBERSHIP_SCRIPT_URL;
   const secret = process.env.MEMBERSHIP_SECRET;
 
@@ -2503,15 +2612,36 @@ app.get('/api/admin/membership', adminAuth, async (req, res) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'getResponses', token: secret }),
     });
+  const cacheTtl = Number(process.env.MEMBERSHIP_CACHE_TTL_MS) || 30000;
+  const timeoutMs = Number(process.env.MEMBERSHIP_TIMEOUT_MS) || 5000;
+  const now = Date.now();
 
-    if (!response.ok) {
-      throw new Error(`Google Apps Script returned ${response.status}`);
+  // 1. Return fresh cache if within TTL
+  if (membershipCache && now - membershipCacheTime < cacheTtl) {
+    res.setHeader("X-Cache", "HIT");
+    return res.json({ responses: membershipCache });
+  }
+
+  try {
+    let data;
+
+    // 2. Request Deduplication: collapse concurrent fetches
+    if (inFlightMembershipFetch) {
+      res.setHeader("X-Cache", "COLLAPSED");
+      data = await inFlightMembershipFetch;
+    } else {
+      res.setHeader("X-Cache", "MISS");
+      inFlightMembershipFetch = fetchMembershipData(scriptUrl, secret, timeoutMs);
+      try {
+        data = await inFlightMembershipFetch;
+      } finally {
+        inFlightMembershipFetch = null;
+      }
     }
   }
 );
 
-    const data = await response.json();
-    return res.json({ responses: data.responses || [] });
+    return res.json({ responses: data });
   } catch (err) {
     console.error('[Membership] Failed to fetch responses:', err.message);
     return res.status(500).json({ error: 'Failed to fetch membership responses' });
@@ -2715,6 +2845,17 @@ app.post("/api/notifications/subscribe", (req, res) => {
     return sendSuccess(res, { notifications: list });
   } catch (err) {
     return sendError(req, res, err.message, 500, 'INTERNAL_ERROR');
+    console.error("[Membership] Failed to fetch responses:", err.message);
+
+    // 3. Stale Fallback: return stale cache if external request fails or times out
+    if (membershipCache) {
+      res.setHeader("X-Cache", "STALE");
+      return res.json({ responses: membershipCache });
+    }
+
+    return res
+      .status(500)
+      .json({ error: "Failed to fetch membership responses" });
   }
 });
 
@@ -3536,6 +3677,19 @@ if (!process.env.VERCEL) {
   const boot = HAS_SUPABASE ? Promise.resolve() : ensureContentFile();
   boot.then(() => {
     server.listen(port, () => {
+if (process.env.NODE_ENV !== "test") {
+  if (!process.env.VERCEL) {
+    const boot = HAS_SUPABASE ? Promise.resolve() : ensureContentFile();
+    boot.then(() => {
+      const server = app.listen(port, () => {
+        // eslint-disable-next-line no-console
+        console.log(`NexaSphere server listening on http://localhost:${port}`);
+      });
+      initializeSocketIO(server);
+    });
+  } else {
+    // Vercel/Render style deployments rely on the platform to start the server.
+    const server = app.listen(port, () => {
       // eslint-disable-next-line no-console
       console.log(`NexaSphere server listening on http://localhost:${port}`);
     });
@@ -3698,6 +3852,19 @@ app.use('*', (req, res) => {
     console.log(`NexaSphere server listening on http://localhost:${port}`);
   });
   initializeSocketIO(server);
+}
+
+export function _getMembershipCache() {
+  return membershipCache;
+}
+export function _setMembershipCache(cache, time = Date.now()) {
+  membershipCache = cache;
+  membershipCacheTime = time;
+}
+export function _clearMembershipCache() {
+  membershipCache = null;
+  membershipCacheTime = 0;
+  inFlightMembershipFetch = null;
 }
 
 export default app;
