@@ -17,6 +17,7 @@ import { adminAuditMiddleware, attachOldState } from '../middleware/adminAuditMi
 import { eventsRepository } from '../repositories/eventsRepository.js';
 import { coreTeamService } from '../services/coreTeamService.js';
 import { authRateLimiter, protectedActionRateLimiter } from '../middleware/authRateLimiter.js';
+import { eventRegistrationUserLimiter, eventRegistrationIpLimiter } from '../middleware/rateLimiter.js';
 import { portfolioRepository } from '../repositories/portfolioRepository.js';
 import { achievementsRepository } from '../repositories/achievementsRepository.js';
 import { portfolioService } from '../services/portfolioService.js';
@@ -105,7 +106,8 @@ router.post(
 router.get('/api/content/banners', bannersController.listActiveBanners);
 router.post(
   '/api/content/events/:eventId/register',
-  eventRegistrationLimiter,
+  eventRegistrationUserLimiter,
+  eventRegistrationIpLimiter,
   eventRegistrationController.registerForEvent
 );
 router.get('/api/content/events/:eventId/calendar', eventRegistrationController.getEventCalendar);
