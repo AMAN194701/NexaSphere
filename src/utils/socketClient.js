@@ -47,6 +47,17 @@ export function initializeSocket(serverUrl = getSocketServerUrl()) {
     timeout: 5000,
   });
 
+const socketOptions = {
+  path: getSocketPath(),
+  reconnection: true,
+  reconnectionDelay: 1000,
+  reconnectionDelayMax: 5000,
+  reconnectionAttempts: 8,
+  transports: ['websocket', 'polling'],
+  timeout: 5000,
+};
+
+socket = io(resolvedUrl, socketOptions);
   // Global event handlers - connection lifecycle monitoring
   socket.on('connect', () => {
     console.log('[Socket.IO] Connected:', socket.id);
@@ -69,6 +80,25 @@ export function initializeSocket(serverUrl = getSocketServerUrl()) {
     console.error('[Socket.IO] Reconnection failed');
   socket.on("connect", () => {
     identifyUser(); // try to identify if user info is available locally
+  
+
+ 
+  socket.on('connect_error', (error) => {
+    console.error('[Socket.IO] Connection Error:', error);
+    captureHandledException(error, 'Socket.IO connect_error:');
+  });
+  
+  socket.on('error', (error) => {
+    console.error('[Socket.IO] Error:', error);
+    captureHandledException(error, 'Socket.IO error:');
+  });
+  
+  socket.on('reconnect_failed', () => {
+    console.error('[Socket.IO] Reconnection failed after max attempts');
+    captureHandledException(
+      new Error('Socket.IO reconnect attempts exhausted'),
+      'Socket.IO reconnect failed:'
+    );
   });
 
   socket.on("reconnect_failed", () => {
