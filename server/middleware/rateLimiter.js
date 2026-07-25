@@ -328,6 +328,25 @@ export const portfolioRateLimiter = rateLimit({
     prefix: "rl:activity:",
   }),
   handler: (req, res, next, options) => {
+    logger.warn('Activity auth rate limit exceeded', {
+      ip: req.ip,
+      path: req.originalUrl || req.path,
+      method: req.method,
+    });
+    res.status(options.statusCode).json({
+      error: 'Too many activity authentication attempts. Please try again later.',
+    });
+  },
+});
+
+// Sync rate limiter: 30 requests per minute per IP.
+export const syncRateLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 30, // 30 requests per minute
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: createRateLimitStore('rate-limit:sync:'),
+  handler: (req, res, next, options) => {
     logger.warn('Sync batch rate limit exceeded', {
     logger.warn("Portfolio update rate limit exceeded", {
       ip: req.ip,

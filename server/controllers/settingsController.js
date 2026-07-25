@@ -25,12 +25,14 @@ try {
 }
 
 const prisma = new PrismaClient();
+const redis = getRedisClient();
 
 // ─── Redis cache helpers ────────────────────────────────────────────────────
 
 const CACHE_TTL = 300; // 5 minutes
 
 async function getCached(key) {
+  if (!redis) return null;
   try {
     const client = getRedisClient();
     const val = client && (await client.get(key));
@@ -41,6 +43,7 @@ async function getCached(key) {
 }
 
 async function setCache(key, value) {
+  if (!redis) return;
   try {
     const client = getRedisClient();
     if (client) await client.set(key, JSON.stringify(value), 'EX', CACHE_TTL);
@@ -50,6 +53,7 @@ async function setCache(key, value) {
 }
 
 async function invalidateCache(env) {
+  if (!redis) return;
   try {
     const client = getRedisClient();
     if (client) await client.del(`settings:${env}`);

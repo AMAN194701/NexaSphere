@@ -36,33 +36,27 @@ import { createClient } from 'redis';
 import logger from '../utils/logger.js';
 
 // ── config ──────────────────────────────────────────────────────────────────
-const ABUSE_THRESHOLD   = 300;      // requests within the window that trigger auto-block
-const ABUSE_WINDOW_SEC  = 60;
-const AUTOBLOCK_TTL_SEC = 3600;     // 1 hour auto-block
-const DELAY_80_MS       = 100;
-const DELAY_90_MS       = 500;
+const ABUSE_THRESHOLD = 300; // requests within the window that trigger auto-block
+const ABUSE_WINDOW_SEC = 60;
+const AUTOBLOCK_TTL_SEC = 3600; // 1 hour auto-block
+const DELAY_80_MS = 100;
+const DELAY_90_MS = 500;
 
-// ── redis client (shared singleton) ─────────────────────────────────────────
-let redisClient = null;
-
+// ── redis client helper ─────────────────────────────────────────────────────
 async function getRedis() {
-  if (redisClient) return redisClient;
   try {
-    redisClient = createClient({ url: process.env.REDIS_URL });
-    redisClient.on('error', (err) => logger.warn('ThrottleMiddleware Redis error', { err: err.message }));
-    await redisClient.connect();
+    return getRedisClient();
   } catch {
     logger.warn('ThrottleMiddleware: Redis unavailable, falling back to in-memory');
-    redisClient = null;
+    return null;
   }
-  return redisClient;
 }
 
 // ── in-memory fallback stores ────────────────────────────────────────────────
-const memWhitelist  = new Set((process.env.RATE_LIMIT_WHITELIST || '').split(',').filter(Boolean));
-const memBlacklist  = new Set((process.env.RATE_LIMIT_BLACKLIST || '').split(',').filter(Boolean));
-const memAbuse      = new Map();   // ip → { count, resetAt }
-const memAutoblock  = new Map();   // ip → unblocksAt (ms)
+const memWhitelist = new Set((process.env.RATE_LIMIT_WHITELIST || '').split(',').filter(Boolean));
+const memBlacklist = new Set((process.env.RATE_LIMIT_BLACKLIST || '').split(',').filter(Boolean));
+const memAbuse = new Map(); // ip → { count, resetAt }
+const memAutoblock = new Map(); // ip → unblocksAt (ms)
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 function delay(ms) {
@@ -142,10 +136,6 @@ async function recordAndCheckAbuse(ip, redis) {
  * Reads X-RateLimit-Limit and X-RateLimit-Remaining headers that have already
  * been set by the upstream rate-limiter (e.g. tierRateLimiter) and applies
  * gradual delays at 80 % / 90 % usage.
- *
- * Usage:
- *   import { throttleMiddleware } from './throttleMiddleware.js';
- *   router.use(throttleMiddleware);
  */
 export async function throttleMiddleware(req, res, next) {
   const ip = clientIp(req);
@@ -198,7 +188,7 @@ export async function throttleMiddleware(req, res, next) {
     const remaining = parseInt(res.getHeader('X-RateLimit-Remaining') || limit.toString(), 10);
 
     if (limit > 0) {
-      const used    = limit - remaining;
+      const used = limit - remaining;
       const pctUsed = used / limit;
 
       if (pctUsed >= 0.9) {

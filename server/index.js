@@ -6,6 +6,13 @@ import { setTraceIdResolver } from './utils/logContext.js';
 import { getActiveTraceId } from './observability/tracing.js';
 import helmet from 'helmet';
 import express from 'express';
+import cors from 'cors';
+import csrf from 'csurf';
+import { createBullBoard } from '@bull-board/api';
+import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
+import { ExpressAdapter } from '@bull-board/express';
+import fs, { promises as fsp } from 'fs';
+import { body, validationResult } from 'express-validator';
 import { EventEmitter } from 'events';
 import cors from 'cors';
 import { google } from 'googleapis';
@@ -32,6 +39,8 @@ import { initializeSocketIO } from './config/socket.js';
 import adminStreamRouter from './routes/adminStream.js';
 import documentationRouter from './routes/documentation.js';
 import monitoringRouter from './routes/monitoring.js';
+import healthDashboardRouter from './routes/healthDashboard.js';
+import { logEvent } from './controllers/analyticsController.js';
 import healthRouter from './routes/health.js';
 import coreTeamRouter from './routes/coreTeam.js';
 import formsRouter from './routes/forms.js';
@@ -47,6 +56,7 @@ import notificationsRouter from './routes/notifications.js';
 import adminRouter from './routes/admin.js';
 import announcementsRouter from './routes/announcements.js';
 import bulkRouter from './routes/bulk.js';
+import complianceRouter from './routes/compliance.js';
 import { validateEnvironment } from './utils/envValidator.js';
 import { performanceMonitor } from './middleware/performanceMonitor.js';
 import { enhancedTracingMiddleware } from './middleware/enhancedTracingMiddleware.js';
@@ -104,6 +114,7 @@ import { tierRateLimiter } from './middleware/tierRateLimiter.js';
 import { startWebhookRetryProcessor } from './services/webhookRetryProcessor.js';
 import { csrfProtection } from './middleware/csrfMiddleware.js';
 import compression from 'compression';
+import morgan from 'morgan';
 import syncRouter from './routes/sync.js';
 import multer from 'multer';
 import learningPathRouter from './routes/learningPaths.js';
@@ -113,8 +124,10 @@ import * as backupController from './controllers/backupController.js';
 import scheduledTasksRouter from './routes/scheduledTasks.js';
 import financialsRouter from './routes/financials.js';
 import { schedulerService } from './services/schedulerService.js';
+import { eventRemindersQueue } from './services/queueService.js';
 import feedbackRouter from './routes/feedbackRoutes.js';
 import * as slackController from './controllers/slackController.js';
+import formSubmissionsRouter from './routes/smartForms.js';
 
 import { portfolioRepository } from './repositories/portfolioRepository.js';
 
@@ -271,6 +284,17 @@ app.use(
         frameSrc: ["'self'", 'https://challenges.cloudflare.com', 'https://maps.google.com'],
         childSrc: ["'none'"],
         upgradeInsecureRequests: [],
+        // ✅ CRITICAL FIX: Missing directives added below
+        baseUri: ["'self'"], // Prevents <base> tag injection
+        frameAncestors: ["'none'"], // Prevents clickjacking
+        formAction: ["'self'"], // Prevents form submission to external sites
+        workerSrc: ["'self'", 'blob:'], // Restricts web worker sources
+        manifestSrc: ["'self'"], // Restricts manifest sources
+        mediaSrc: ["'self'"], // Restricts media sources
+        frameSrc: ["'self'", 'https://challenges.cloudflare.com', 'https://maps.google.com'], // Restricts iframe sources
+        childSrc: ["'none'"], // Restricts child browsing contexts
+        upgradeInsecureRequests: [], // Upgrades HTTP to HTTPS
+
         reportUri: '/api/v1/csp-violation',
       },
     },
@@ -310,6 +334,13 @@ app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin || allowedOrigins.includes(origin)) {
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) {
+        return callback(null, true);
+      }
+      if (origin && allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
       if (process.env.NODE_ENV === 'test') {
@@ -342,6 +373,12 @@ app.use(enhancedTracingMiddleware);
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(xssSanitizer);
+const useStructuredHttpLog = process.env.USE_STRUCTURED_HTTP_LOG === 'true';
+if (useStructuredHttpLog) {
+  app.use(apiLogger);
+} else {
+  app.use(morgan('combined'));
+}
 app.use(apiLogger);
 app.use(performanceMonitor);
 app.use(cookieParser());
@@ -381,6 +418,8 @@ app.use('/api', formsRouter);
 app.use('/api', portfolioRouter);
 app.use('/api', userGroupsRouter);
 app.use('/', notificationsRouter);
+app.use('/api', recoveryRouter);
+app.use('/api', notificationsRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api', learningPathRouter);
 app.use('/', syncRouter);
@@ -1034,8 +1073,8 @@ app.get('/api/auth/me', requireStudentAuth, studentAuthController.getMe);
 app.post('/api/auth/theme', requireStudentAuth, studentAuthController.updateTheme);
 
 // Student Profile Endpoints
-app.get('/api/auth/profile',       requireStudentAuth, studentAuthController.getProfile);
-app.put('/api/auth/profile',       requireStudentAuth, studentAuthController.updateProfile);
+app.get('/api/auth/profile', requireStudentAuth, studentAuthController.getProfile);
+app.put('/api/auth/profile', requireStudentAuth, studentAuthController.updateProfile);
 app.get('/api/auth/registrations', requireStudentAuth, studentAuthController.getRegistrations);
 app.post('/api/auth/logout', studentAuthController.logout);
 

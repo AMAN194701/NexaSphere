@@ -17,6 +17,8 @@ if (process.env.REDIS_URL) {
   connection = new IORedis(process.env.REDIS_URL, { maxRetriesPerRequest: null });
   connection = new IORedis(process.env.REDIS_URL, {
     maxRetriesPerRequest: null, // Required by BullMQ
+  connection = new IORedis(process.env.REDIS_URL, {
+    maxRetriesPerRequest: null,
   });
 }
 
@@ -250,6 +252,30 @@ class BulkOperationsService {
         } catch (auditErr) {
           logger.error('Failed to insert audit log for bulk operations', { err: auditErr.message });
         }
+              [
+                user.display_name || existing.display_name,
+                user.username,
+                user.role,
+                user.status,
+                user.major || null,
+                user.year || null,
+                updatedTags,
+                existing.id,
+              ]
+            );
+            newState.push({
+              type: 'update',
+              table: 'users',
+              key: existing.id,
+              data: updatedRows[0],
+            });
+          } else {
+            // Create new user with password
+            const id = `user-${crypto.randomUUID()}`;
+            const updatedTags = JSON.stringify(user.tags);
+            const plainPassword = crypto.randomBytes(4).toString('hex'); // 8 char temp password
+            const passwordHash = await bcrypt.hash(plainPassword, 10);
+
               [
                 user.display_name || existing.display_name,
                 user.username,

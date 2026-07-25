@@ -34,7 +34,7 @@ import logger from '../utils/logger.js';
 import { getScopesForRole } from '../config/rbac.js';
 
 function safeEqual(a, b) {
-  if (!a || !b) return false;
+  if (a === undefined || a === null || b === undefined || b === null) return false;
   const hashA = crypto.createHash('sha256').update(String(a)).digest();
   const hashB = crypto.createHash('sha256').update(String(b)).digest();
   const bufA = Buffer.from(String(a));
@@ -201,6 +201,15 @@ async function recordLoginAttempt(ip) {
       attempts: attempts + 1,
       expiresAt: now + LOGIN_WINDOW_MS,
     };
+
+    // Evict oldest insertion if size exceeds 5 to bound memory usage (FIFO)
+    if (!existing && loginAttemptsByIp.size >= 5) {
+      const oldestKey = loginAttemptsByIp.keys().next().value;
+      if (oldestKey !== undefined) {
+        loginAttemptsByIp.delete(oldestKey);
+      }
+    }
+
     loginAttemptsByIp.set(ip, entry);
 
     return entry;
@@ -680,6 +689,8 @@ async function login(req, res) {
         secret,
         backupCodes,
         graceEndsAt: securityAccount?.grace_ends_at,
+
+      });
 
       return res.status(200).json({
         requiresTwoFactorSetup: true,

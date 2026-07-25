@@ -395,6 +395,14 @@ export default function AdminPage({ onBack }) {
       {activeTab === 'heatmaps' && <HeatmapView />}
       {activeTab === 'recordings' && <SessionPlayer />}
       {activeTab === 'segments' && <SegmentationDashboard />}
+      {loading && <div className="loader-overlay">Loading...</div>}
+
+      <DashboardStats stats={data.stats} />
+
+      <div className="charts-grid">
+        <UserGrowthChart data={data.growth} />
+        <EventAttendanceChart data={data.events} />
+      </div>
     </div>
   );
 }

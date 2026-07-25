@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, lazy, memo, useLayoutEffect, useRef } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { BrowserRouter, useLocation, useNavigate } from 'react-router-dom';
 import {
   useState,
@@ -36,6 +37,7 @@ import './i18n';
 
 // Core structural elements
 import AppProviders from './providers/AppProviders';
+import AppRoutes from './router/routes';
 import useAppBootstrap from './hooks/useAppBootstrap';
 import { useTheme } from './hooks/useTheme';
 import { useDeveloperMode } from './hooks/useDeveloperMode';
@@ -87,6 +89,7 @@ const DNH = 64;
 
 import ErrorBoundary from './components/common/ErrorBoundary';
 import ErrorBoundary from './components/ErrorBoundary';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 // Lazy-loaded heavy pages
 const RecruitmentPage = lazy(() => import('./pages/recruitment/RecruitmentPage'));
@@ -133,6 +136,7 @@ const MNH = 88,
   DNH = 64;
 
 /* ── Page wipe transition ── */
+/* â”€â”€ Page wipe transition â”€â”€ */
 const Wipe = memo(function Wipe({ on: wipeOn, ph }) {
   if (!wipeOn) return null;
   return (
