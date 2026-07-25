@@ -1,5 +1,13 @@
 import { withDb } from './db.js';
 
+function safeParseJSON(str, fallback = {}) {
+  try {
+    return JSON.parse(str);
+  } catch (e) {
+    return fallback;
+  }
+}
+
 function mapBudgetRow(row) {
   if (!row) return null;
   return {
@@ -11,7 +19,7 @@ function mapBudgetRow(row) {
     endDate: row.end_date,
     categoryAllocations:
       typeof row.category_allocations === 'string'
-        ? JSON.parse(row.category_allocations)
+        ? safeParseJSON(row.category_allocations)
         : (row.category_allocations ?? {}),
     createdBy: row.created_by,
     createdAt: row.created_at,
@@ -65,7 +73,7 @@ function mapAuditRow(row) {
     recordType: row.record_type,
     recordId: row.record_id,
     userId: row.user_id,
-    changes: typeof row.changes === 'string' ? JSON.parse(row.changes) : (row.changes ?? {}),
+    changes: typeof row.changes === 'string' ? safeParseJSON(row.changes) : (row.changes ?? {}),
     createdAt: row.created_at,
   };
 }
