@@ -56,15 +56,16 @@ model WorkspaceMember {
 }
 
 model Workspace {
-  id          String            @id @default(uuid())
-  name        String
-  slug        String            @unique
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  members     WorkspaceMember[]
-  roles       Role[]
-  posts       Post[]
-  logs        Log[]
+  id               String            @id @default(uuid())
+  name             String
+  slug             String            @unique
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  members          WorkspaceMember[]
+  roles            Role[]
+  posts            Post[]
+  logs             Log[]
+  webhookEndpoints WebhookEndpoint[]
 }
 
 model WorkspaceMember {
@@ -250,4 +251,33 @@ model SettingsChangeLog {
   user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 }
+<<<<<<< HEAD
 >>>>>>> origin/pr/1398
+=======
+
+model WebhookEndpoint {
+  id          String            @id @default(uuid())
+  workspaceId String
+  url         String
+  secret      String
+  active      Boolean           @default(true)
+  events      String[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  workspace   Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  deliveries  WebhookDelivery[]
+}
+
+model WebhookDelivery {
+  id           String          @id @default(uuid())
+  endpointId   String
+  payload      Json
+  responseCode Int?
+  success      Boolean
+  attempts     Int             @default(1)
+  createdAt    DateTime        @default(now())
+
+  endpoint     WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+}
+>>>>>>> origin/pr/1829

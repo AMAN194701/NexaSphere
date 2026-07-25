@@ -152,6 +152,8 @@
     "vitest": "^0.34.6"
     "lint-staged": "^17.0.6",
     "prettier": "^3.8.4"
+    "prettier": "^3.8.3",
+    "prisma": "^5.12.1"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
@@ -237,5 +239,6 @@
     "next-pwa": "^5.6.0",
     "dexie": "^4.0.10",
     "dexie-react-hooks": "^1.1.7"
+    "@prisma/client": "^5.12.1"
   }
 }
