@@ -69,7 +69,7 @@ export function StreamManager() {
         method: 'PATCH',
         body: JSON.stringify({ status }),
       });
-      await load();
+      setStreams((prev) => prev.map((s) => (s.id === id ? { ...s, status } : s)));
     } catch (e) {
       setError(e.message);
     }
@@ -79,7 +79,7 @@ export function StreamManager() {
     if (!window.confirm('Delete this stream?')) return;
     try {
       await fetchWithAuth(`/api/streams/${id}`, { method: 'DELETE' });
-      await load();
+      setStreams((prev) => prev.filter((s) => s.id !== id));
     } catch (e) {
       setError(e.message);
     }
