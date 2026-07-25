@@ -8,6 +8,9 @@ exports.trackEvents = async (req, res) => {
 
     if (!events || !Array.isArray(events) || events.length === 0) {
       return sendError(req, res, 'Invalid payload: "events" array is required.', 400, 'VALIDATION_ERROR');
+      return res
+        .status(400)
+        .json({ success: false, message: 'Invalid payload: "events" array is required.' });
     }
 
     // Validate and sanitize data items inside the batch
@@ -28,5 +31,11 @@ exports.trackEvents = async (req, res) => {
   } catch (error) {
     console.error('Analytics Backend Error:', error.message);
     return sendError(req, res, 'Internal server error tracking analytics.', 500, 'INTERNAL_ERROR');
+    return res.status(201).json({ success: true, message: 'Batch events recorded successfully.' });
+  } catch (error) {
+    console.error('Analytics Backend Error:', error.message);
+    return res
+      .status(500)
+      .json({ success: false, message: 'Internal server error tracking analytics.' });
   }
 };
