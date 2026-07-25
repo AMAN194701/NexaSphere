@@ -70,6 +70,7 @@ export default function DashboardPage({ onBack }) {
     } catch (err) {
       setError('Failed to load dashboard data');
 import React, { useState, useEffect } from "react";
+import apiClient from "../../utils/apiClient.js";
 import InterestSelector from "../../components/dashboard/InterestSelector";
 import QuestTracker from "../../components/dashboard/QuestTracker";
 import Leaderboard from "../../components/dashboard/Leaderboard";
@@ -226,6 +227,7 @@ export default function DashboardPage({ onBack }) {
         const data = await res.json();
       const base = import.meta.env.VITE_API_BASE || 'http://localhost:8000';
       const data = await apiClient(`${base}/recommend/events/${currentUser.id}`);
+      const data = await apiClient(recommendationsUrl);
       if (data) {
         setRecommendations(data.recommended_events || []);
       } else {
