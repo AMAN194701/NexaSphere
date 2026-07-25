@@ -134,6 +134,28 @@ const CONTENT_FILE = path.join(__dirname, 'data', 'content.json');
 
 validateEnvironment();
 
+function requiredStrongPassword(name) {
+  const value = String(process.env[name] || '').trim();
+  if (!value) {
+    throw new Error(`Missing environment variable: ${name}`);
+  }
+  const hasLower = /[a-z]/.test(value);
+  const hasUpper = /[A-Z]/.test(value);
+  const hasNumber = /\d/.test(value);
+  const hasSymbol = /[^A-Za-z0-9]/.test(value);
+  if (value.length < 12 || !hasLower || !hasUpper || !hasNumber || !hasSymbol) {
+    throw new Error(
+      `${name} must be at least 12 characters and include uppercase, lowercase, number, and symbol`
+    );
+  }
+  return value;
+}
+const ADMIN_EVENT_PASSWORD = requiredStrongPassword('ADMIN_EVENT_PASSWORD');
+const SESSION_SECRET = requiredStrongPassword('SESSION_SECRET');
+const ADMIN_PASSWORD = requiredStrongPassword('ADMIN_PASSWORD');
+
+
+
 const app = express();
 
 app.use(cors({
