@@ -473,6 +473,11 @@ export default function Navbar({ activeTab, onTabChange, onApply, onJoin, onTogg
           aria-label="Go to homepage"
         >
           <img src={BRAND_LOGO_ICON} alt="NexaSphere" className="ns-mobile-logo-ns" />
+          <img
+            src={BRAND_LOGO_ICON}
+            alt="NexaSphere"
+            className="ns-mobile-logo-ns"
+          />
 
           <span className="ns-mobile-brand">
             <span>NexaSphere</span>

@@ -78,6 +78,9 @@ const RoadmapBuilderInner: React.FC<RoadmapBuilderInnerProps> = ({ onBack }) => 
       y: 100 + nodes.length * 60, // staggered visual stacking
       status: 'Not Started',
       notes: '',
+        "Click the edit button (✎) to add a description, prerequisites, and resource links.",
+      status: "Not Started",
+      notes: "",
       resources: [],
       prerequisites: [],
     });
