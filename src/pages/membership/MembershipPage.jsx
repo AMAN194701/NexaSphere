@@ -494,6 +494,22 @@ export default function MembershipPage({ onBack }) {
     topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
+  
+  const CACHE_KEY = 'ns_membership_draft';
+
+  // Restore cached draft on mount
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && typeof parsed === 'object') {
+          setForm(parsed);
+        }
+      }
+    } catch { /* ignore */ }
+  }, []);
+
   async function submit() {
     setErr("");
     setBusy(true);
@@ -515,6 +531,25 @@ export default function MembershipPage({ onBack }) {
       const url = base ? `${base}/api/submissions/membership` : '/api/submissions/membership';
 
       const res = await fetch(url, {
+
+    const payload = {
+      fullName:       form.fullName.trim(),
+      collegeEmail:   form.collegeEmail.trim().toLowerCase(),
+      rollNumber:     form.rollNumber.trim(),
+      course:         form.course === 'Other' ? (form.courseOther.trim() || 'Other') : form.course,
+      branch:         form.branch === 'Other' ? (form.branchOther.trim() || 'Other') : form.branch,
+      section:        form.section === 'Other' ? form.sectionOther : form.section,
+      semester:       form.semester,
+      whatsapp:       form.whatsapp,
+      groupsSelected: form.groups.join(', '),
+      whyJoin:        form.whyJoin.trim(),
+    };
+
+    // Cache the payload before submitting so partial data is not lost on error
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify(form)); } catch { /* ignore */ }
+
+    try {
+      const data = await apiClient(MEMBERSHIP_SCRIPT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -551,6 +586,8 @@ export default function MembershipPage({ onBack }) {
       if (!res.ok) {
         throw new Error(data?.error || "Membership form submission failed");
       }
+      // Clear cached draft on success
+      try { localStorage.removeItem(CACHE_KEY); } catch { /* ignore */ }
 
       setSubmittedEmail(payload.collegeEmail);
       clearDraft();
