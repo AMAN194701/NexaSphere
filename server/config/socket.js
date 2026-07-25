@@ -280,6 +280,7 @@ export function initializeSocketIO(httpServer) {
   io = new Server(httpServer, {
     cors: {
       origin: resolveSocketCorsOrigin(),
+      origin: process.env.FRONTEND_URL || "http://localhost:5173",
       credentials: true,
     },
     reconnection: true,
@@ -354,6 +355,14 @@ export function _onConnection(socket) {
       username: socket.adminSession?.username,
       rooms: adminRooms,
     });
+  logger.info("User connected", {
+    socketId: socket.id,
+    admin: !!socket.adminAuthenticated,
+  });
+
+  // Auto-join authenticated admin sockets to admin room
+  if (socket.adminAuthenticated) {
+    socket.join("admin-room");
   }
 
   let identifyCount = 0;
@@ -362,6 +371,12 @@ export function _onConnection(socket) {
     identifyCount++;
     if (identifyCount > 3) {
       logger.warn('Socket identification flood detected, forcing disconnect', {
+  // Store connected user
+  socket.on("user:identify", (userData) => {
+    // 1. Enforce Per-Socket Identification Rate Limiting
+    identifyCount++;
+    if (identifyCount > 3) {
+      logger.warn("Socket identification flood detected, forcing disconnect", {
         socketId: socket.id,
       });
       socket.disconnect(true);
@@ -370,6 +385,11 @@ export function _onConnection(socket) {
 
     if (!userData || typeof userData !== 'object') {
       logger.warn('Invalid user identification payload type rejected', { socketId: socket.id });
+    // 2. Defensive Payload Structure & Type Validation
+    if (!userData || typeof userData !== "object") {
+      logger.warn("Invalid user identification payload type rejected", {
+        socketId: socket.id,
+      });
       return;
     }
 
@@ -379,11 +399,19 @@ export function _onConnection(socket) {
       logger.warn('User identification payload fields must be primitive strings', {
         socketId: socket.id,
       });
+    // Validate fields exist and are strictly primitive strings
+    if (typeof userId !== "string" || typeof email !== "string") {
+      logger.warn(
+        "User identification payload fields must be primitive strings",
+        { socketId: socket.id }
+      );
       return;
     }
 
     if (userId.length > 128 || email.length > 256) {
-      logger.warn('Oversized user identification payload values rejected', { socketId: socket.id });
+      logger.warn("Oversized user identification payload values rejected", {
+        socketId: socket.id,
+      });
       return;
     }
 
@@ -408,6 +436,27 @@ export function _onConnection(socket) {
   socket.on('room:join', (roomName) => {
     if (typeof roomName !== 'string') {
       logger.warn('Socket room:join payload must be a string', { socketId: socket.id });
+    logger.info("User identified successfully", {
+      userId: String(userId),
+      socketId: socket.id,
+    });
+  });
+
+  // Approved public-facing rooms that standard users can join
+  const ALLOWED_PUBLIC_ROOMS = [
+    "notifications-room",
+    "events-room",
+    "admin-room",
+  ];
+  const MAX_ROOMS_PER_SOCKET = 10;
+
+  // Join notification room
+  socket.on("room:join", (roomName) => {
+    // 1. Primitive Type Validation
+    if (typeof roomName !== "string") {
+      logger.warn("Socket room:join payload must be a string", {
+        socketId: socket.id,
+      });
       return;
     }
 
@@ -517,7 +566,9 @@ export function _onConnection(socket) {
     }
     attempts.count += 1;
     if (attempts.count > MAX_JOIN_ROOM_ATTEMPTS) {
-      logger.warn('Socket join_room rate limit exceeded', { socketId: socket.id });
+      logger.warn("Socket join_room rate limit exceeded", {
+        socketId: socket.id,
+      });
       return;
     }
 
@@ -545,6 +596,14 @@ export function _onConnection(socket) {
         ? {
             name: typeof user.name === 'string' ? user.name.slice(0, 100) : 'Anonymous',
             email: typeof user.email === 'string' ? user.email.slice(0, 150) : '',
+      user && typeof user === "object"
+        ? {
+            name:
+              typeof user.name === "string"
+                ? user.name.slice(0, 100)
+                : "Anonymous",
+            email:
+              typeof user.email === "string" ? user.email.slice(0, 150) : "",
           }
         : {};
 
@@ -581,15 +640,28 @@ export function _onConnection(socket) {
   // Leave workspace room
   socket.on("leave_room", (roomId) => {
     if (typeof roomId !== "string") return;
+      .emit("user_joined", {
+        socketId: socket.id,
+        user: sanitizedUser,
+        timestamp: Date.now(),
+      });
+  });
+
+  // Leave workspace room
+  socket.on("leave_room", (roomId) => {
+    if (typeof roomId !== "string") return;
+    _removeWorkspaceMember(roomId, socket.id);
     socket.leave(roomId);
     logger.info("User left workspace room", { socketId: socket.id, roomId });
     socket.to(roomId).emit("user_left", { socketId: socket.id });
   });
 
   socket.on('workspace_update', (data) => {
+  // Workspace synchronization events — only relay if sender is a room member
+  socket.on("workspace_update", (data) => {
     const { roomId, ...payload } = data;
     if (roomId && _isWorkspaceMember(roomId, socket.id)) {
-      socket.to(roomId).emit('workspace_update', payload);
+      socket.to(roomId).emit("workspace_update", payload);
     }
   });
 
@@ -597,6 +669,10 @@ export function _onConnection(socket) {
   socket.on('planning:join', (eventId) => {
     if (typeof eventId === 'string' && /^[a-zA-Z0-9\-_]{1,100}$/.test(eventId)) {
       socket.join(`planning:${eventId}`);
+  socket.on("document_change", (data) => {
+    const { roomId, ...payload } = data;
+    if (roomId && _isWorkspaceMember(roomId, socket.id)) {
+      socket.to(roomId).emit("document_change", payload);
     }
   });
   socket.on('planning:leave', (eventId) => {
@@ -623,7 +699,9 @@ export function _onConnection(socket) {
   socket.on("cursor_moved", (data) => {
     const { roomId, ...payload } = data;
     if (roomId && _isWorkspaceMember(roomId, socket.id)) {
-      socket.to(roomId).emit('cursor_moved', { socketId: socket.id, ...payload });
+      socket
+        .to(roomId)
+        .emit("cursor_moved", { socketId: socket.id, ...payload });
     }
   });
 
@@ -631,6 +709,12 @@ export function _onConnection(socket) {
     const { roomId, user, ...payload } = data;
     if (roomId && _isWorkspaceMember(roomId, socket.id)) {
       socket.to(roomId).emit('typing_start', { socketId: socket.id, user, ...payload });
+  socket.on("typing_start", (data) => {
+    const { roomId, ...payload } = data;
+    if (roomId && _isWorkspaceMember(roomId, socket.id)) {
+      socket
+        .to(roomId)
+        .emit("typing_start", { socketId: socket.id, ...payload });
     }
     if (roomId)
       socket
@@ -649,7 +733,9 @@ export function _onConnection(socket) {
   socket.on("typing_stop", (data) => {
     const { roomId, ...payload } = data;
     if (roomId && _isWorkspaceMember(roomId, socket.id)) {
-      socket.to(roomId).emit('typing_stop', { socketId: socket.id, ...payload });
+      socket
+        .to(roomId)
+        .emit("typing_stop", { socketId: socket.id, ...payload });
     }
   });
 
@@ -833,6 +919,16 @@ export function _onConnection(socket) {
     logger.info("User disconnected", { socketId: socket.id });
   });
 
+    if (socket.data) {
+      socket.data.firstQueuedTime = null;
+      socket.data.lastEmitTimes = null;
+      if (socket.data.drainListener && socket.conn) {
+        socket.conn.off("drain", socket.data.drainListener);
+      }
+    }
+    logger.info("User disconnected", { socketId: socket.id });
+  });
+
   // Error handling
   socket.on("error", (error) => {
     logger.error("Socket error", { error: error.message, socketId: socket.id });
@@ -850,6 +946,12 @@ export function broadcastEvent(eventName, data) {
   if (!io) return;
   io.emit(eventName, data);
   logger.debug("Broadcast event", { event: eventName });
+}
+
+export let emitToRoomOverride = null;
+
+export function setEmitToRoomOverride(fn) {
+  emitToRoomOverride = fn;
 }
 
 export let emitToRoomOverride = null;
@@ -976,3 +1078,7 @@ export default {
   _onConnection,
 };
 export default { initializeSocketIO, getIO, broadcastEvent, emitToRoom, emitToUser, _clearConnectedUsers, _clearWorkspaceRoomMembers, _clearJoinRoomAttempts, _onConnection, startSocketValidation, stopSocketValidation };
+  setEmitToRoomOverride,
+  applyBackpressureProtection,
+  getQueuePressureMetrics,
+};

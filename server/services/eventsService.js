@@ -34,6 +34,8 @@ import { readContent, writeContent } from "../storage/contentFileStore.js";
 import { sanitizeEventRecord } from "../utils/sanitize.js";
 
 const isDbConfigured = () => Boolean(process.env.DATABASE_URL);
+import { eventsRepository } from "../repositories/eventsRepository.js";
+import { eventSchema, eventPatchSchema } from "../validators/eventSchemas.js";
 
 export const eventsService = {
   async listEvents({ page = 1, limit = 20 } = {}) {
@@ -212,6 +214,7 @@ export const eventsService = {
     };
     await writeContent(content);
     return sanitizeEventRecord(content.events[idx]);
+    return eventsRepository.update(id, patch);
   },
 
   async deleteEvent(id) {

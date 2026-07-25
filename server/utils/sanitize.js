@@ -1,12 +1,12 @@
 import DOMPurify from 'isomorphic-dompurify';
 
 const HTML_ESCAPE_MAP = {
-  '&': '&amp;',
-  '<': '&lt;',
-  '>': '&gt;',
-  '"': '&quot;',
-  "'": '&#39;',
-  '`': '&#96;',
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+  "'": "&#39;",
+  "`": "&#96;",
 };
 
 function escapeHtml(value) {
@@ -27,13 +27,30 @@ function sanitizeText(value, max = 4000) {
 
 function sanitizeNullableText(value, max = 4000) {
   const text = toSafeString(value, max);
+  return String(value ?? "")
+    .replace(/[&<>"'`]/g, (character) => HTML_ESCAPE_MAP[character])
+    .trim();
+}
+
+function sanitizeText(value, max = 4000) {
+  return escapeHtml(
+    String(value ?? "")
+      .trim()
+      .slice(0, max)
+  );
+}
+
+function sanitizeNullableText(value, max = 4000) {
+  const text = String(value ?? "")
+    .trim()
+    .slice(0, max);
   return text ? escapeHtml(text) : null;
 }
 
 function sanitizeTextArray(values, max = 40) {
   if (!Array.isArray(values)) {
-    return String(values || '')
-      .split(',')
+    return String(values || "")
+      .split(",")
       .map((entry) => sanitizeText(entry, max))
       .filter(Boolean)
       .slice(0, 12);
@@ -68,7 +85,7 @@ export function sanitizeEventRecord(event = {}) {
     shortName: sanitizeText(event.shortName || event.name, 60),
     date: sanitizeText(event.date, 80),
     description: sanitizeText(event.description, 1200),
-    icon: sanitizeText(event.icon || 'Pin', 32),
+    icon: sanitizeText(event.icon || "Pin", 32),
     tags: sanitizeTextArray(event.tags, 40),
   };
 }
@@ -138,6 +155,7 @@ export function normalizePhone(value) {
 
 export function validateWhatsApp(str) {
   const v = String(str || "").trim();
+  const v = String(str || "").replace(/[^\d]/g, "");
   if (!/^\d{10}$/.test(v))
     throw new Error("WhatsApp must be exactly 10 digits");
   return v;
@@ -167,8 +185,7 @@ export function normalizePhone(value) {
 //   * validate every URL field against an https?:// allowlist
 //   * apply the same rules recursively to JSONB array/object
 //     fields (skills, projects, roadmaps, badges, seoMetadata)
-// ============================================================
-
+// =====================================================
 function validateWhatsApp(value) {
   return String(value ?? '')
     .replace(/\D/g, '')
@@ -466,5 +483,6 @@ export {
   validateSection,
   validateWhatsApp,
 };
+=======
 =======
 export { escapeHtml, sanitizeNullableText, sanitizeText, sanitizeTextArray };
