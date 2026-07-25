@@ -330,6 +330,28 @@ export const portfolioRepository = {
           const result = mapRow(rows[0]);
           await setCache(cacheKey, result);
           return result;
+          const portfolio = mapRow(rows[0]);
+
+          // Fetch endorsements
+          const { rows: endorsementRows } = await client.query(
+            'SELECT skill_name, COUNT(*) as count FROM portfolio_skill_endorsements WHERE portfolio_username = $1 GROUP BY skill_name',
+            [sanitizedUsername]
+          );
+          const endorsementsMap = {};
+          endorsementRows.forEach((r) => {
+            endorsementsMap[r.skill_name] = parseInt(r.count, 10);
+          });
+
+          if (Array.isArray(portfolio.skills)) {
+            portfolio.skills = portfolio.skills.map((skill) => {
+              if (typeof skill === 'string') {
+                return { name: skill, endorsements: endorsementsMap[skill] || 0 };
+              }
+              return { ...skill, endorsements: endorsementsMap[skill.name] || 0 };
+            });
+          }
+
+          return portfolio;
         });
       } catch (err) {
         console.error('Database query failed. Falling back to local file.', err);

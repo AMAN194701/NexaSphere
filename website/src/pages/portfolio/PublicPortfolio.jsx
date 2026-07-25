@@ -8,7 +8,7 @@ import { Helmet } from 'react-helmet-async';
 import { generatePortfolioMeta } from '../../utils/seoUtils';
 import { safeHref } from '../../utils/safeHref';
 import '../../styles/print.css';
-import ProfileBadges from '../../components/profile/ProfileBadges';
+import { useStudentAuth } from '../../context/StudentAuthContext';
 
 export default function PublicPortfolio({ username, onBack }) {
   const { user } = useStudentAuth();

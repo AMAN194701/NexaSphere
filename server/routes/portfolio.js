@@ -221,6 +221,7 @@ router.post(
 
       if (!username || !skillName) {
         return sendError(req, res, 'Username and skillName are required', 400, 'VALIDATION_ERROR');
+        return res.status(400).json({ error: 'Username and skillName are required' });
       }
 
       // Prevent self-endorsements (comparing lowercased usernames/ids, but usually endorserId is ID, portfolio is username. Wait!
@@ -231,6 +232,7 @@ router.post(
         req.studentUser.username.toLowerCase() === username.toLowerCase()
       ) {
         return sendError(req, res, 'You cannot endorse your own skills', 400, 'VALIDATION_ERROR');
+        return res.status(400).json({ error: 'You cannot endorse your own skills' });
       }
 
       await portfolioRepository.endorseSkill(username, skillName, endorserId);
@@ -249,6 +251,7 @@ router.post(
       }
 
       return sendSuccess(res, { success: true, message: 'Skill endorsed successfully' });
+      return res.json({ success: true, message: 'Skill endorsed successfully' });
     } catch (err) {
       if (
         err.message === 'You have already endorsed this skill' ||
@@ -259,6 +262,10 @@ router.post(
       }
       console.error('Error endorsing skill:', err);
       return sendError(req, res, 'Internal server error', 500, 'INTERNAL_ERROR');
+        return res.status(400).json({ error: err.message });
+      }
+      console.error('Error endorsing skill:', err);
+      return res.status(500).json({ error: 'Internal server error' });
     }
   }
 );
