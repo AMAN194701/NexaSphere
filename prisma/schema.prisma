@@ -326,6 +326,10 @@ model PriceHistory {
 }
 
 model PlatformSetting {
+  pricing EventPricing @relation(fields: [pricingId], references: [id], onDelete: Cascade)
+}
+
+model ArchivedReport {
   id          String   @id @default(cuid())
   environment String   @default("development")
   key         String
