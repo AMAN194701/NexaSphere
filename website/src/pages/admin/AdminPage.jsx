@@ -12,6 +12,7 @@ import SyncDashboard from './SyncDashboard';
 import SegmentationDashboard from './analytics/SegmentationDashboard';
 import CertificateTemplateEditor from './CertificateTemplateEditor';
 import CertificateTemplateEditor from './CertificateTemplateEditor';
+import PortfolioModerationQueue from './PortfolioModerationQueue';
 
 export default function AdminPage({ onBack }) {
   const [loading, setLoading] = useState(false);
@@ -469,6 +470,7 @@ export default function AdminPage({ onBack }) {
         {['overview', 'heatmaps', 'recordings', 'segments', 'security'].map((tab) => (
         {['overview', 'heatmaps', 'recordings', 'segments', 'sync'].map((tab) => (
         {['overview', 'heatmaps', 'recordings', 'segments', 'certificates'].map((tab) => (
+        {['overview', 'heatmaps', 'recordings', 'segments', 'moderation'].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -670,6 +672,7 @@ function AdminSecuritySettings({ token }) {
       </div>
       {activeTab === 'sync' && <SyncDashboard token={token} />}
       {activeTab === 'certificates' && <CertificateTemplateEditor token={token} />}
+      {activeTab === 'moderation' && <PortfolioModerationQueue token={token} />}
     </div>
   );
 }
