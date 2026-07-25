@@ -28,15 +28,15 @@ export default function CheckInStatsChart({ stats }) {
   }));
 
   const COLORS = {
-    checked_in: '#10b981',
-    registered: '#f59e0b',
-    cancelled: '#ef4444',
-    no_show: '#6b7280',
+    checked_in: 'var(--chart-success)',
+    registered: 'var(--chart-warning)',
+    cancelled: 'var(--chart-danger)',
+    no_show: 'var(--chart-text)',
   };
 
   const getStatusColor = (status) => {
     const statusKey = status.toLowerCase().replace(/\s+/g, '_');
-    return COLORS[statusKey] || '#3b82f6';
+    return COLORS[statusKey] || 'var(--chart-primary)';
   };
 
   const CustomTooltip = ({ active, payload }) => {
@@ -68,7 +68,7 @@ export default function CheckInStatsChart({ stats }) {
               cy="50%"
               innerRadius={60}
               outerRadius={100}
-              fill="#8884d8"
+              fill="var(--chart-primary)"
               paddingAngle={2}
               dataKey="value"
               label={(entry) => `${entry.name} (${entry.value})`}

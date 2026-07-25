@@ -220,9 +220,9 @@ export default function RealTimeDashboard() {
         </h2>
         <ResponsiveContainer width="100%" height={250}>
           <LineChart data={trendData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#ffffff0f" />
-            <XAxis dataKey="time" stroke="#555" fontSize={11} />
-            <YAxis stroke="#555" fontSize={11} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+            <XAxis dataKey="time" stroke="var(--chart-text)" fontSize={11} />
+            <YAxis stroke="var(--chart-text)" fontSize={11} />
             <Tooltip
               contentStyle={{
                 background: '#1a1a2e',
@@ -234,11 +234,17 @@ export default function RealTimeDashboard() {
             <Line
               type="monotone"
               dataKey="registrations"
-              stroke="#e63946"
+              stroke="var(--chart-danger)"
               strokeWidth={2}
               dot={false}
             />
-            <Line type="monotone" dataKey="checkIns" stroke="#00ff88" strokeWidth={2} dot={false} />
+            <Line
+              type="monotone"
+              dataKey="checkIns"
+              stroke="var(--chart-success)"
+              strokeWidth={2}
+              dot={false}
+            />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -257,9 +263,9 @@ export default function RealTimeDashboard() {
         </h2>
         <ResponsiveContainer width="100%" height={250}>
           <BarChart data={eventChartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#ffffff0f" />
-            <XAxis dataKey="name" stroke="#555" fontSize={11} />
-            <YAxis stroke="#555" fontSize={11} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+            <XAxis dataKey="name" stroke="var(--chart-text)" fontSize={11} />
+            <YAxis stroke="var(--chart-text)" fontSize={11} />
             <Tooltip
               contentStyle={{
                 background: '#1a1a2e',
@@ -268,9 +274,9 @@ export default function RealTimeDashboard() {
               }}
             />
             <Legend />
-            <Bar dataKey="registrations" fill="#e63946" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="attendees" fill="#00b4d8" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="checkIns" fill="#00ff88" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="registrations" fill="var(--chart-danger)" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="attendees" fill="var(--chart-primary)" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="checkIns" fill="var(--chart-success)" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>

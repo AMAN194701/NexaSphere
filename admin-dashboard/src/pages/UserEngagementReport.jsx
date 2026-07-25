@@ -93,7 +93,13 @@ export function UserEngagementReport() {
     loadRevenue();
   }, []);
 
-  const COLORS = ['#22c55e', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899'];
+  const COLORS = [
+    'var(--chart-success)',
+    'var(--chart-primary)',
+    'var(--chart-warning)',
+    'var(--chart-danger)',
+    '#ec4899',
+  ];
 
   return (
     <div className="page">
@@ -432,29 +438,21 @@ export function UserEngagementReport() {
                       <AreaChart data={revenueData.revenueTrend}>
                         <defs>
                           <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                            <stop
-                              offset="5%"
-                              stopColor="var(--admin-accent, #CC1111)"
-                              stopOpacity={0.4}
-                            />
-                            <stop
-                              offset="95%"
-                              stopColor="var(--admin-accent, #CC1111)"
-                              stopOpacity={0}
-                            />
+                            <stop offset="5%" stopColor="var(--chart-primary)" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="var(--chart-primary)" stopOpacity={0} />
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
                         <XAxis
                           dataKey="date"
-                          stroke="var(--admin-text-muted, #888)"
-                          fontSize={11}
-                          tickLine={false}
+                          stroke="var(--chart-text)"
+                          tick={{ fontSize: 12, fill: 'var(--chart-text)' }}
+                          tickMargin={10}
                         />
                         <YAxis
-                          stroke="var(--admin-text-muted, #888)"
-                          fontSize={11}
-                          tickLine={false}
+                          stroke="var(--chart-text)"
+                          tick={{ fontSize: 12, fill: 'var(--chart-text)' }}
+                          tickFormatter={(value) => `$${value}`}
                         />
                         <Tooltip
                           contentStyle={{
@@ -467,8 +465,8 @@ export function UserEngagementReport() {
                         <Area
                           type="monotone"
                           dataKey="revenue"
-                          stroke="var(--admin-accent, #CC1111)"
-                          strokeWidth={2}
+                          stroke="var(--chart-primary)"
+                          strokeWidth={3}
                           fillOpacity={1}
                           fill="url(#colorRevenue)"
                         />
