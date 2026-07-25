@@ -898,6 +898,7 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
   const [regSubmitting, setRegSubmitting] = useState(false);
   const [localQrDataUrl, setLocalQrDataUrl] = useState(null);
   const [downloading, setDownloading] = useState(false);
+  const registrationKey = `ns_event_registration_${event.id}`;
   useEffect(() => {
     window.scrollTo({ top: 0 });
     const mountTimer = setTimeout(() => setMounted(true), 60);
@@ -935,20 +936,40 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
   const handleRegistration = async (e) => {
     e.preventDefault();
     if (regSubmitting) return;
+    if (typeof window !== 'undefined' && sessionStorage.getItem(registrationKey) === 'confirmed') {
+      setRegStatus('confirmed');
+      setRegError('');
+      return;
+    }
     setRegError('');
     setRegSubmitting(true);
     try {
       const base = getApiBase();
       const base = API_BASE || '';
       const url = `${base}/api/content/events/${event.id}/register`;
+      const idempotencyKey =
+        typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `reg-${event.id}-${Date.now().toString(36)}`;
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem(registrationKey, idempotencyKey);
+      }
       const data = await apiClient(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        timeout: 5000,
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': idempotencyKey,
+          'X-Idempotency-Key': idempotencyKey,
+        },
         body: JSON.stringify(regForm),
       });
       if (data.ticket) {
         setRegTicket(data.ticket);
         setRegStatus('confirmed');
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem(registrationKey, 'confirmed');
+        }
       } else {
         // Create a local ticket when backend doesn't return one
         const localTicket = {
@@ -959,6 +980,9 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
         };
         setRegTicket(localTicket);
         setRegStatus('confirmed');
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem(registrationKey, 'confirmed');
+        }
         // Store in localStorage for retrieval
         try {
           const stored = JSON.parse(localStorage.getItem('ns_registrations') || '[]');
@@ -978,6 +1002,9 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
         setRegStatus('waitlisted');
       } else {
         setRegError(err.message || 'Registration failed');
+        if (typeof window !== 'undefined') {
+          sessionStorage.removeItem(registrationKey);
+        }
       }
     } finally {
       setRegSubmitting(false);
