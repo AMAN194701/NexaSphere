@@ -2414,6 +2414,428 @@ async function appendToSupabaseForms(formType, payload) {
   }
 }
 
+// Parses ?page and ?limit from a request query object, clamps to safe bounds,
+// and returns normalised integers. Defaults: page=1, limit=20, cap=100.
+function parsePagination(query = {}) {
+  const page = Math.max(1, parseInt(query.page, 10) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(query.limit, 10) || 20));
+  return { page, limit };
+}
+
+function validateWhatsApp(str) {
+  const v = String(str || "").trim();
+  if (!/^\d{10}$/.test(v))
+    throw new Error("WhatsApp must be exactly 10 digits");
+  return v;
+}
+
+function validateSection(str) {
+  const v = String(str || "")
+    .trim()
+    .toUpperCase();
+  if (!/^[A-Z]$/.test(v))
+    throw new Error("Section must be a single letter (A-Z)");
+  return v;
+}
+
+function sanitizeEvent(input = {}) {
+  const status = input.status === "upcoming" ? "upcoming" : "completed";
+  const tags = Array.isArray(input.tags)
+    ? input.tags
+        .map((t) => toSafeString(t, 40))
+        .filter(Boolean)
+        .slice(0, 12)
+    : String(input.tags || "")
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean)
+        .slice(0, 12);
+
+  return {
+    id:
+      toSafeString(input.id || input.shortName || input.name, 80)
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "") || `event-${Date.now()}`,
+    name: toSafeString(input.name, 120),
+    shortName: toSafeString(input.shortName || input.name, 60),
+    date: toSafeString(input.date, 80),
+    description: toSafeString(input.description, 1200),
+    status,
+    icon: toSafeString(input.icon || "Pin", 32),
+    tags,
+  };
+}
+
+function normalizePhone(value) {
+  return String(value || "").replace(/[^\d]/g, "");
+}
+
+async function canManageActivityEvent({ name, email, phone, password }) {
+  const expectedPassword = process.env.ADMIN_EVENT_PASSWORD;
+  if (String(password || "") !== expectedPassword) return false;
+  const n = String(name || "")
+    .trim()
+    .toLowerCase();
+  const e = String(email || "")
+    .trim()
+    .toLowerCase();
+  const p = normalizePhone(phone);
+
+  // Fetch all members (no pagination cap) so the identity check is exhaustive.
+  const { members } = await listCoreTeamStore({ page: 1, limit: 1000 });
+  return members.some(
+    (m) =>
+      m.name.toLowerCase() === n &&
+      m.email.toLowerCase() === e &&
+      normalizePhone(m.whatsapp) === p,
+  );
+}
+
+async function listEventsStore() {
+  if (HAS_SUPABASE) {
+    const rows = await supabaseRequest("events?select=*&order=created_at.desc");
+    return rows.map((r) =>
+      sanitizeEventRecord({
+        id: r.id,
+        name: r.name,
+        shortName: r.short_name || r.shortName || r.name,
+        date: r.date_text || r.date,
+        description: r.description,
+        status: r.status,
+        icon: r.icon || "Pin",
+        tags: Array.isArray(r.tags) ? r.tags : [],
+        createdAt: r.created_at,
+        updatedAt: r.updated_at,
+      }),
+    );
+  }
+  const content = await readContent();
+  return (content.events || []).map((event) => sanitizeEventRecord(event));
+}
+
+function sanitizeEventRecord(event) {
+  return event;
+}
+
+async function createEventStore(event) {
+  if (HAS_SUPABASE) {
+    let payload = {
+      id: event.id,
+      name: event.name,
+      short_name: event.shortName,
+      date_text: event.date,
+      description: event.description,
+      status: event.status,
+      icon: event.icon,
+      tags: event.tags,
+    };
+
+    let row;
+    try {
+      [row] = await supabaseRequest("events", {
+        method: "POST",
+        body: [payload],
+      });
+    } catch (e) {
+      // Retry with suffix if id collision occurs.
+      payload = { ...payload, id: `${event.id}-${Date.now()}` };
+      [row] = await supabaseRequest("events", {
+        method: "POST",
+        body: [payload],
+      });
+    }
+    return sanitizeEventRecord({
+      id: row.id,
+      name: row.name,
+      shortName: row.short_name || row.name,
+      date: row.date_text,
+      description: row.description,
+      status: row.status,
+      icon: row.icon || "Pin",
+      tags: Array.isArray(row.tags) ? row.tags : [],
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    });
+  }
+
+  // Safe atomic fallback operation preventing data loss using async-mutex
+  return withContentLock(async () => {
+    const content = await readContent();
+    content.events.unshift({
+      ...event,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    await writeContent(content);
+    return sanitizeEventRecord(content.events[0]);
+  });
+}
+async function updateEventStore(id, patch) {
+  if (HAS_SUPABASE) {
+    const [row] = await supabaseRequest(
+      `events?id=eq.${encodeURIComponent(id)}`,
+      {
+        method: "PATCH",
+        body: {
+          name: patch.name,
+          short_name: patch.shortName,
+          date_text: patch.date,
+          description: patch.description,
+          status: patch.status,
+          icon: patch.icon,
+          tags: patch.tags,
+          updated_at: new Date().toISOString(),
+        },
+      },
+    );
+    if (!row) return null;
+    return sanitizeEventRecord({
+      id: row.id,
+      name: row.name,
+      shortName: row.short_name || row.name,
+      date: row.date_text,
+      description: row.description,
+      status: row.status,
+      icon: row.icon || "Pin",
+      tags: Array.isArray(row.tags) ? row.tags : [],
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    });
+  }
+  return withContentLock(async () => {
+    const content = await readContent();
+    const idx = content.events.findIndex((e) => e.id === id);
+    if (idx < 0) return null;
+    content.events[idx] = {
+      ...content.events[idx],
+      ...patch,
+      id,
+      updatedAt: new Date().toISOString(),
+    };
+    await writeContent(content);
+    return sanitizeEventRecord(content.events[idx]);
+  });
+}
+
+async function deleteEventStore(id) {
+  if (HAS_SUPABASE) {
+    const rows = await supabaseRequest(
+      `events?id=eq.${encodeURIComponent(id)}`,
+      { method: "DELETE" },
+    );
+    return Array.isArray(rows) && rows.length > 0;
+  }
+  return withContentLock(async () => {
+    const content = await readContent();
+    const before = content.events.length;
+    content.events = content.events.filter((e) => e.id !== id);
+    if (content.events.length === before) return false;
+    await writeContent(content);
+    return true;
+  });
+}
+
+async function listActivityEventsStore(activityKey) {
+  if (HAS_SUPABASE) {
+    const rows = await supabaseRequest(
+      `activity_events?activity_key=eq.${encodeURIComponent(activityKey)}&select=*&order=created_at.desc`,
+    );
+    return rows.map((r) =>
+      sanitizeActivityEventRecord({
+        id: r.id,
+        name: r.name,
+        date: r.date_text || r.date,
+        tagline: r.tagline,
+        description: r.description,
+        status: r.status || "completed",
+        createdAt: r.created_at,
+      }),
+    );
+  }
+  const content = await readContent();
+  return (content.activityEvents?.[activityKey] || []).map((event) =>
+    sanitizeActivityEventRecord(event),
+  );
+}
+
+function sanitizeActivityEventRecord(event) {
+  if (!event || typeof event !== "object") return event;
+  const { createdBy, ...safe } = event;
+  return safe;
+}
+
+async function createActivityEventStore(activityKey, event) {
+  if (HAS_SUPABASE) {
+    const [row] = await supabaseRequest("activity_events", {
+      method: "POST",
+      body: [
+        {
+          id: event.id,
+          activity_key: activityKey,
+          name: event.name,
+          date_text: event.date,
+          tagline: event.tagline,
+          description: event.description,
+          status: event.status,
+          created_by_name: event.createdBy?.name || "",
+          created_by_email: event.createdBy?.email || "",
+          created_by_phone: event.createdBy?.phone || "",
+        },
+      ],
+    });
+    return sanitizeActivityEventRecord({
+      id: row.id,
+      name: row.name,
+      date: row.date_text,
+      tagline: row.tagline,
+      description: row.description,
+      status: row.status || "completed",
+      createdAt: row.created_at,
+    });
+  }
+  return withContentLock(async () => {
+    const content = await readContent();
+    content.activityEvents = content.activityEvents || {};
+    content.activityEvents[activityKey] =
+      content.activityEvents[activityKey] || [];
+    content.activityEvents[activityKey].unshift(event);
+    await writeContent(content);
+    return sanitizeActivityEventRecord(event);
+  });
+}
+
+async function deleteActivityEventStore(activityKey, eventId) {
+  if (HAS_SUPABASE) {
+    const rows = await supabaseRequest(
+      `activity_events?activity_key=eq.${encodeURIComponent(activityKey)}&id=eq.${encodeURIComponent(eventId)}`,
+      { method: "DELETE" },
+    );
+    return Array.isArray(rows) && rows.length > 0;
+  }
+  return withContentLock(async () => {
+    const content = await readContent();
+    content.activityEvents = content.activityEvents || {};
+    const list = content.activityEvents[activityKey] || [];
+    const next = list.filter((e) => e.id !== eventId);
+    if (next.length === list.length) return false;
+    content.activityEvents[activityKey] = next;
+    await writeContent(content);
+    return true;
+  });
+}
+
+async function listCoreTeamStore({ page = 1, limit = 20 } = {}) {
+  if (HAS_SUPABASE) {
+    const { rows, total } = await supabasePaginatedRequest(
+      "core_team_members?select=*&order=created_at.asc",
+      page,
+      limit,
+    );
+    return {
+      members: rows.map((r) =>
+        sanitizeCoreTeamMemberRecord({
+          id: r.id,
+          name: r.name,
+          role: r.role,
+          year: r.year,
+          branch: r.branch,
+          section: r.section,
+          email: r.email,
+          whatsapp: r.whatsapp,
+          linkedin: r.linkedin,
+          instagram: r.instagram,
+          photoUrl: r.photo_url,
+          createdAt: r.created_at,
+        }),
+      ),
+      total,
+    };
+  }
+  const content = await readContent();
+  const all = (content.coreTeam || []).map((member) =>
+    sanitizeCoreTeamMemberRecord(member),
+  );
+  const total = all.length;
+  const start = (page - 1) * limit;
+  return { members: all.slice(start, start + limit), total };
+}
+
+function sanitizeCoreTeamMemberRecord(member) {
+  return member;
+}
+
+async function createCoreTeamStore(member) {
+  if (HAS_SUPABASE) {
+    const [row] = await supabaseRequest("core_team_members", {
+      method: "POST",
+      body: [
+        {
+          name: member.name,
+          role: member.role,
+          year: member.year,
+          branch: member.branch,
+          section: member.section,
+          email: member.email,
+          whatsapp: member.whatsapp,
+          linkedin: member.linkedin,
+          instagram: member.instagram,
+          photo_url: member.photoUrl,
+        },
+      ],
+    });
+    return sanitizeCoreTeamMemberRecord({
+      id: row.id,
+      name: row.name,
+      role: row.role,
+      year: row.year,
+      branch: row.branch,
+      section: row.section,
+      email: row.email,
+      whatsapp: row.whatsapp,
+      linkedin: row.linkedin,
+      instagram: row.instagram,
+      photoUrl: row.photo_url,
+      createdAt: row.created_at,
+    });
+  }
+  return withContentLock(async () => {
+    const content = await readContent();
+    content.coreTeam = content.coreTeam || [];
+    const newMember = {
+      ...member,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+    };
+    content.coreTeam.push(newMember);
+    await writeContent(content);
+    return sanitizeCoreTeamMemberRecord(newMember);
+  });
+}
+
+async function deleteCoreTeamStore(id) {
+  if (HAS_SUPABASE) {
+    const rows = await supabaseRequest(
+      `core_team_members?id=eq.${encodeURIComponent(id)}`,
+      { method: "DELETE" },
+    );
+    return Array.isArray(rows) && rows.length > 0;
+  }
+  return withContentLock(async () => {
+    const content = await readContent();
+    content.coreTeam = content.coreTeam || [];
+    const before = content.coreTeam.length;
+    content.coreTeam = content.coreTeam.filter(
+      (m) => String(m.id) !== String(id),
+    );
+    if (content.coreTeam.length === before) return false;
+    await writeContent(content);
+    return true;
+  });
+}
+
+async function appendToSupabaseForms(formType, payload) {
+  if (!HAS_SUPABASE) return false;
 // REST Endpoints
 app.get('/healthz', async (req, res) => {
   try {
@@ -3917,6 +4339,24 @@ app.get('/api/notifications', adminAuth, notificationRateLimiter, (req, res) => 
 app.post('/api/notifications/mark-read', adminAuth, notificationRateLimiter, (req, res) => {
   try {
     const { id } = req.body || {};
+    const { page, limit } = parsePagination(req.query);
+    const { members, total } = await listCoreTeamStore({ page, limit });
+    // Strip PII (email, whatsapp) for the unauthenticated public endpoint.
+    const publicMembers = members.map(({ email, whatsapp, ...safeData }) => safeData);
+    return res.json({
+      members: publicMembers,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
+    });
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ error: e?.message || "Failed to load core team" });
+    const { id, userId } = req.body || {};
     if (!id) return res.status(400).json({ error: 'id required' });
     const uid = req.adminSession?.username || 'global';
     const ok = notificationsService.markAsRead(uid, id);
@@ -3930,6 +4370,23 @@ app.post('/api/notifications/mark-all-read', adminAuth, notificationRateLimiter,
   try {
     const uid = req.adminSession?.username || 'global';
     notificationsService.markAllAsRead(uid);
+    const { page, limit } = parsePagination(req.query);
+    const { members, total } = await listCoreTeamStore({ page, limit });
+    return res.json({
+      members,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
+    });
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ error: e?.message || "Failed to load core team" });
+    const { userId } = req.body || {};
+    notificationsService.markAllAsRead(userId || 'global');
     return res.json({ success: true });
   } catch (err) {
     return res.status(500).json({ error: err.message });
