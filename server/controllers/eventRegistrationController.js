@@ -7,14 +7,12 @@ import { emitToRole } from '../config/socket.js';
 import { broadcastSSEEvent } from '../services/sseService.js';
 import { recordEventRegistration } from '../observability/metrics.js';
 import { supabaseRequest } from '../storage/supabaseClient.js';
-import { scheduleWaitlistExpiryJob } from '../services/queueService.js';
-import { sendSuccess, sendError, sendNoContent } from '../utils/responseHelper.js';
 
 function wrapAsync(fn) {
   return (req, res) =>
     Promise.resolve(fn(req, res)).catch((e) => {
       const status = e.status || 500;
-      sendError(req, res, e?.message || 'Internal server error', status);
+      res.status(status).json({ error: e?.message || 'Internal server error' });
     });
 }
 
@@ -46,18 +44,17 @@ export const registerForEvent = wrapAsync(async (req, res) => {
   const customFields = req.body.customFields || null;
 
   if (!eventId || !EVENT_ID_REGEX.test(eventId)) {
-    return sendError(req, res, 'Invalid event ID', 400, 'VALIDATION_ERROR');
+    return res.status(400).json({ error: 'Invalid event ID' });
   }
   if (!sanitizedFullName) {
-    return sendError(req, res, 'Full name is required', 400, 'VALIDATION_ERROR');
+    return res.status(400).json({ error: 'Full name is required' });
   }
   if (!sanitizedEmail || !EMAIL_REGEX.test(sanitizedEmail)) {
-    return sendError(req, res, 'Valid email address is required', 400, 'VALIDATION_ERROR');
+    return res.status(400).json({ error: 'Valid email address is required' });
   }
 
   const event = await eventsRepository.getById(eventId);
   if (!event) {
-    return sendError(req, res, 'Event not found', 404, 'NOT_FOUND');
     return res.status(404).json({ error: 'Event not found' });
   }
 
@@ -112,23 +109,6 @@ export const registerForEvent = wrapAsync(async (req, res) => {
         );
       }
       throw pgErr;
-    await registrationsRepository.create({
-      eventId,
-      fullName: sanitizedFullName,
-      email: sanitizedEmail,
-      department,
-      year,
-      teamName,
-      teamSize,
-      customFields,
-      waitlist: false,
-    });
-
-    if (ticket.token) {
-      await registrationsRepository.updateTicketToken(
-        result.id || result.registration_id,
-        ticket.token
-      );
     }
 
     try {
@@ -147,7 +127,6 @@ export const registerForEvent = wrapAsync(async (req, res) => {
     }
 
     recordEventRegistration();
-    return sendSuccess(res, { ...result, ticket }, 201);
     return res.status(201).json({ ...result, ticket });
   } catch (e) {
     if (e.message?.includes('Event capacity has been reached')) {
@@ -185,11 +164,6 @@ export const registerForEvent = wrapAsync(async (req, res) => {
 export const getEventCalendar = wrapAsync(async (req, res) => {
   const eventId = String(req.params.eventId || '').trim();
   if (!eventId || !EVENT_ID_REGEX.test(eventId)) {
-    return sendError(req, res, 'Invalid event ID', 400, 'VALIDATION_ERROR');
-  }
-  const event = await eventsRepository.getById(eventId);
-  if (!event) {
-    return sendError(req, res, 'Event not found', 404, 'NOT_FOUND');
     return res.status(400).json({ error: 'Invalid event ID' });
   }
   const event = await eventsRepository.getById(eventId);
@@ -208,36 +182,6 @@ export const getEventCalendar = wrapAsync(async (req, res) => {
   return res.send(ics);
 });
 
-export const getFullCalendarFeed = wrapAsync(async (req, res) => {
-  const events = await eventsRepository.list({ page: 1, limit: 100 });
-  const allEvents = events?.rows || [];
-
-  const calendarContent = allEvents
-    .map((ev) =>
-      calendarService.generateIcsEvent({
-        name: ev.name,
-        dateText: ev.date_text,
-        description: ev.description,
-        location: ev.location,
-        eventId: ev.id,
-      })
-    )
-    .join('\n');
-  const calendarContent = allEvents.map(ev => calendarService.generateIcsEvent({
-    name: ev.name,
-    dateText: ev.date_text,
-    description: ev.description,
-    location: ev.location,
-    eventId: ev.id,
-  })).join('\n');
-
-  const ics = `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//NexaSphere//Events//EN\n${calendarContent}\nEND:VCALENDAR`;
-
-  res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
-  res.setHeader('Content-Disposition', 'attachment; filename="nexasphere-events.ics"');
-  return res.send(ics);
-});
-
 export const cancelRegistration = wrapAsync(async (req, res) => {
   const eventId = String(req.params.eventId || '').trim();
   const sanitizedEmail = String(req.body.email || '')
@@ -246,136 +190,34 @@ export const cancelRegistration = wrapAsync(async (req, res) => {
     .slice(0, 140);
 
   if (!eventId || !EVENT_ID_REGEX.test(eventId)) {
-    return sendError(req, res, 'Invalid event ID', 400, 'VALIDATION_ERROR');
+    return res.status(400).json({ error: 'Invalid event ID' });
   }
   if (!sanitizedEmail || !EMAIL_REGEX.test(sanitizedEmail)) {
-    return sendError(req, res, 'Valid email address is required', 400, 'VALIDATION_ERROR');
+    return res.status(400).json({ error: 'Valid email address is required' });
   }
 
   // Ownership check — authenticated user can only cancel their own registration
   const authenticatedEmail = (req.studentUser?.email || '').toLowerCase();
   if (authenticatedEmail !== sanitizedEmail) {
-    return sendError(
-      req,
-      res,
-      'Forbidden: you can only cancel your own registration',
-      403,
-      'FORBIDDEN'
-    );
+    return res.status(403).json({ error: 'Forbidden: you can only cancel your own registration' });
   }
 
   const event = await eventsRepository.getById(eventId);
   if (!event) {
-    return sendError(req, res, 'Event not found', 404, 'NOT_FOUND');
+    return res.status(404).json({ error: 'Event not found' });
   }
 
-  const cancelled = await registrationsRepository.cancelConfirmedRegistration(
-    eventId,
-    sanitizedEmail
-  );
-  if (!cancelled) {
-    return sendError(req, res, 'No confirmed registration found for this email', 404, 'NOT_FOUND');
+  const registration = await registrationsRepository.findByEmailAndEvent(sanitizedEmail, eventId);
+  if (!registration || registration.status !== 'confirmed') {
+    return res.status(404).json({ error: 'No confirmed registration found for this email' });
   }
+
+  await registrationsRepository.updateStatus(registration.id, 'cancelled');
 
   const promoted = await registrationsRepository.promoteFromWaitlist(eventId);
 
-  if (promoted) {
-    try {
-
-      emitToRole('events_admin', 'admin:waitlist-promoted', {
-        eventId,
-        userName: promoted.full_name,
-        email: promoted.email,
-        timestamp: new Date(),
-      });
-      broadcastSSEEvent('waitlist_promotion', {
-        eventId,
-        email: promoted.email,
-        timestamp: new Date().toISOString(),
-      });
-    } catch (realtimeErr) {
-      console.error('[EventRegistration] Failed to broadcast promotion:', realtimeErr);
-    }
-  }
-
-  return sendSuccess(res, {
+  return res.status(200).json({
     cancelled: true,
     promoted: promoted ? { fullName: promoted.full_name, email: promoted.email } : null,
   });
-});
-
-export const getWaitlistPosition = wrapAsync(async (req, res) => {
-  const eventId = String(req.params.eventId || '').trim();
-  const email = String(req.query.email || '')
-    .trim()
-    .toLowerCase()
-    .slice(0, 140);
-
-  if (!eventId || !EVENT_ID_REGEX.test(eventId)) {
-    return sendError(req, res, 'Invalid event ID', 400, 'VALIDATION_ERROR');
-  }
-  if (!email || !EMAIL_REGEX.test(email)) {
-    return sendError(req, res, 'Valid email address is required', 400, 'VALIDATION_ERROR');
-  }
-
-  const [position, totalWaitlisted] = await Promise.all([
-    registrationsRepository.getPosition(eventId, email),
-    registrationsRepository.getWaitlistCount(eventId),
-  ]);
-
-  if (position === null) {
-    return sendError(req, res, 'Not on the waitlist for this event', 404, 'NOT_FOUND');
-  }
-
-  return sendSuccess(res, { position, totalWaitlisted });
-});
-
-export const leaveWaitlist = wrapAsync(async (req, res) => {
-  const eventId = String(req.params.eventId || '').trim();
-  const sanitizedEmail = String(req.body.email || '')
-    .trim()
-    .toLowerCase()
-    .slice(0, 140);
-
-  if (!eventId || !EVENT_ID_REGEX.test(eventId)) {
-    return sendError(req, res, 'Invalid event ID', 400, 'VALIDATION_ERROR');
-  }
-  if (!sanitizedEmail || !EMAIL_REGEX.test(sanitizedEmail)) {
-    return sendError(req, res, 'Valid email address is required', 400, 'VALIDATION_ERROR');
-  }
-
-  const removed = await registrationsRepository.removeFromWaitlist(eventId, sanitizedEmail);
-  if (!removed) {
-    return sendError(req, res, 'No waitlist entry found for this email', 404, 'NOT_FOUND');
-  }
-
-  return sendSuccess(res, { success: true, message: 'Removed from waitlist' });
-});
-
-export const confirmWaitlistSpot = wrapAsync(async (req, res) => {
-  const eventId = String(req.params.eventId || '').trim();
-  const sanitizedEmail = String(req.body.email || '')
-    .trim()
-    .toLowerCase()
-    .slice(0, 140);
-
-  if (!eventId || !EVENT_ID_REGEX.test(eventId)) {
-    return sendError(req, res, 'Invalid event ID', 400, 'VALIDATION_ERROR');
-  }
-  if (!sanitizedEmail || !EMAIL_REGEX.test(sanitizedEmail)) {
-    return sendError(req, res, 'Valid email address is required', 400, 'VALIDATION_ERROR');
-  }
-
-  const confirmed = await registrationsRepository.confirmWaitlistSpot(eventId, sanitizedEmail);
-  if (!confirmed) {
-    return sendError(
-      req,
-      res,
-      'No pending waitlist promotion found for this email',
-      404,
-      'NOT_FOUND'
-    );
-  }
-
-  return sendSuccess(res, { success: true, message: 'Spot confirmed successfully' });
 });
