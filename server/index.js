@@ -225,6 +225,12 @@ const allowedOrigins = corsOrigin
   .split(',')
   .map((s) => s.trim())
   .filter(Boolean);
+// FEATURE #3259: Wrap requestLogger to prevent duplicate logging executions
+const useStructuredHttpLog = process.env.NODE_ENV === 'production' || process.env.USE_STRUCTURED_LOG === 'true';
+
+if (useStructuredHttpLog) {
+  app.use(requestLogger);
+}
 
 app.use(
   helmet({
