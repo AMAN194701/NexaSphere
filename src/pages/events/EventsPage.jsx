@@ -28,7 +28,17 @@ export default function EventsPage({ onBack, onEventClick, events = fallbackEven
     'fired',
     { threshold: 0, rootMargin: '0px 0px -10px 0px' }
   );
+import { useState, useEffect } from "react";
+import { events as fallbackEvents } from "../../data/eventsData";
+import { BannerOrbs } from "../../shared/MotionLayer";
+import Footer from "../../shared/Footer";
+import { DynamicIcon } from "../../shared/Icons";
+import BookmarkButton from "../../components/common/BookmarkButton";
+import ErrorBoundary from "../../components/common/ErrorBoundary";
 
+function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
+  const [viewMode, setViewMode] = useState("list");
+  const safeEvents = Array.isArray(events) ? events : [];
   useEffect(() => {
     window.scrollTo({ top: 0 });
 function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
@@ -41,6 +51,7 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
         entries.forEach((e) => {
           if (e.isIntersecting) {
             e.target.classList.add('fired');
+            e.target.classList.add("fired");
             obs.unobserve(e.target);
           }
         });
@@ -50,6 +61,11 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
     document
       .querySelectorAll(
         '#events-page .pop-in, #events-page .pop-left, #events-page .pop-right, #events-page .pop-word'
+      { threshold: 0, rootMargin: "0px 0px -10px 0px" }
+    );
+    document
+      .querySelectorAll(
+        "#events-page .pop-in, #events-page .pop-left, #events-page .pop-right, #events-page .pop-word"
       )
       .forEach((el) => obs.observe(el));
     return () => obs.disconnect();
@@ -67,6 +83,18 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
           marginBottom: '60px',
           position: 'relative',
           overflow: 'hidden',
+    <div id="events-page" style={{ minHeight: "100vh", padding: "0 0 100px" }}>
+      <div
+        className="page-banner"
+        style={{
+          background:
+            "linear-gradient(135deg, rgba(0,212,255,.06), rgba(123,111,255,.04))",
+          borderBottom: "1px solid var(--bdr)",
+          padding: "70px 0 50px",
+          textAlign: "center",
+          marginBottom: "60px",
+          position: "relative",
+          overflow: "hidden",
         }}
       >
         <div
@@ -78,6 +106,12 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
             right: 0,
             height: '3px',
             background: 'linear-gradient(90deg,var(--c1),var(--c2),var(--c3))',
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: "3px",
+            background: "linear-gradient(90deg,var(--c1),var(--c2),var(--c3))",
           }}
         />
         <BannerOrbs color="rgba(123,111,255,.06)" />
@@ -98,6 +132,19 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
+            position: "absolute",
+            top: "24px",
+            left: "28px",
+            background: "var(--card)",
+            border: "1px solid var(--bdr)",
+            borderRadius: "50px",
+            padding: "7px 16px",
+            color: "var(--t2)",
+            fontSize: ".8rem",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
             fontFamily: "'Rajdhani', sans-serif",
             fontWeight: 600,
           }}
@@ -106,11 +153,20 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
         </button>
 
         <span className="cin-section-label pop-in" style={{ position: 'relative', zIndex: 1 }}>
+        <span
+          className="cin-section-label pop-in"
+          style={{ position: "relative", zIndex: 1 }}
+        >
           NexaSphere · GL Bajaj
         </span>
         <h1
           className="section-title pop-word"
           style={{ fontSize: 'clamp(2rem, 5vw, 3.2rem)', position: 'relative', zIndex: 1 }}
+          style={{
+            fontSize: "clamp(2rem, 5vw, 3.2rem)",
+            position: "relative",
+            zIndex: 1,
+          }}
         >
           Our Events
         </h1>
@@ -166,10 +222,51 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
               fontWeight: 500,
               transition: 'all 0.2s ease',
               fontFamily: "'Rajdhani', sans-serif",
+            animationDelay: ".1s",
+            maxWidth: "520px",
+            margin: "0 auto",
+            position: "relative",
+            zIndex: 1,
+          }}
+        >
+          Where ideas come to life. Every event is a milestone in the NexaSphere
+          journey.
+        </p>
+
+      <div
+        className="container"
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          marginBottom: "30px",
+          position: "relative",
+          zIndex: 10,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            background: "var(--card)",
+            borderRadius: "30px",
+            padding: "4px",
+            border: "1px solid var(--bdr)",
+            backdropFilter: "blur(10px)",
+          }}
+        >
+          <button
+            onClick={() => setViewMode("list")}
+            style={{
+              padding: "8px 24px",
+              borderRadius: "26px",
+              border: "none",
+              background: viewMode === "list" ? "var(--c1a)" : "transparent",
+              color: viewMode === "list" ? "var(--c1)" : "var(--t2)",
+              fontWeight: 600,
+              cursor: "pointer",
+              transition: "all .2s",
             }}
           >
-            <DynamicIcon name="List" size={16} />
-            Timeline View
+            List View
           </button>
           <button
             onClick={() => {
@@ -255,6 +352,19 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
               fontWeight: 600,
               cursor: 'pointer',
               transition: 'all .2s',
+            }}
+          >
+            onClick={() => setViewMode("calendar")}
+            style={{
+              padding: "8px 24px",
+              borderRadius: "26px",
+              border: "none",
+              background:
+                viewMode === "calendar" ? "var(--c1a)" : "transparent",
+              color: viewMode === "calendar" ? "var(--c1)" : "var(--t2)",
+              fontWeight: 600,
+              cursor: "pointer",
+              transition: "all .2s",
             }}
           >
             Calendar View
@@ -348,6 +458,27 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
               }}
             >
               <div style={{ color: 'var(--c1)', marginBottom: '20px', opacity: 0.8 }}>
+        <div className="events-timeline ns-reveal">
+          {safeEvents.length === 0 ? (
+            <div
+              style={{
+                textAlign: "center",
+                padding: "80px 24px",
+                margin: "40px auto",
+                maxWidth: "500px",
+                background: "var(--card)",
+                borderRadius: "16px",
+                border: "1px solid var(--bdr)",
+                boxShadow: "0 8px 32px rgba(0,0,0,0.08)",
+              }}
+            >
+              <div
+                style={{
+                  color: "var(--c1)",
+                  marginBottom: "20px",
+                  opacity: 0.8,
+                }}
+              >
                 <DynamicIcon name="Calendar" size={56} />
               </div>
               <h3
@@ -355,6 +486,9 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
                   fontSize: '1.4rem',
                   marginBottom: '12px',
                   color: 'var(--t1)',
+                  fontSize: "1.4rem",
+                  marginBottom: "12px",
+                  color: "var(--t1)",
                   fontWeight: 600,
                 }}
               >
@@ -370,6 +504,14 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
               >
                 We currently don't have any events to show. Please check back later for new updates
                 and exciting activities!
+                  color: "var(--t2)",
+                  fontSize: "0.95rem",
+                  lineHeight: 1.6,
+                  marginBottom: "24px",
+                }}
+              >
+                We currently don't have any events to show. Please check back
+                later for new updates and exciting activities!
               </p>
               <button
                 onClick={() => window.location.reload()}
@@ -379,6 +521,10 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '8px',
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px",
                 }}
               >
                 <DynamicIcon name="RefreshCw" size={16} /> Refresh
@@ -392,16 +538,25 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
                 String(ev.shortName || '')
                   .toLowerCase()
                   .includes('kss');
+                ev.id === "kss-153" ||
+                String(ev.shortName || "")
+                  .toLowerCase()
+                  .includes("kss");
               return (
                 <div className="timeline-item" key={ev.id}>
-                  <div className={`timeline-dot${ev.status === 'upcoming' ? ' upcoming' : ''}`} />
                   <div
-                    className={`timeline-card shimmer ${i % 2 === 0 ? 'pop-left' : 'pop-right'} fired`}
+                    className={`timeline-dot${ev.status === "upcoming" ? " upcoming" : ""}`}
+                  />
+                  <div
+                    className={`timeline-card shimmer ${i % 2 === 0 ? "pop-left" : "pop-right"} fired`}
                     style={{
                       animationDelay: `${i * 0.11}s`,
                       cursor: isKSS ? 'none' : 'default',
                       transition: 'all .28s ease',
                       position: 'relative',
+                      cursor: isKSS ? "none" : "default",
+                      transition: "all .28s ease",
+                      position: "relative",
                     }}
                     onClick={isKSS ? () => onEventClick(ev) : undefined}
                     onMouseEnter={
@@ -410,6 +565,12 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
                             e.currentTarget.style.borderColor = 'rgba(168,85,247,.45)';
                             e.currentTarget.style.boxShadow = '0 8px 32px rgba(168,85,247,.15)';
                             e.currentTarget.style.transform = 'translateY(-4px)';
+                            e.currentTarget.style.borderColor =
+                              "rgba(168,85,247,.45)";
+                            e.currentTarget.style.boxShadow =
+                              "0 8px 32px rgba(168,85,247,.15)";
+                            e.currentTarget.style.transform =
+                              "translateY(-4px)";
                           }
                         : undefined
                     }
@@ -419,6 +580,9 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
                             e.currentTarget.style.borderColor = '';
                             e.currentTarget.style.boxShadow = '';
                             e.currentTarget.style.transform = '';
+                            e.currentTarget.style.borderColor = "";
+                            e.currentTarget.style.boxShadow = "";
+                            e.currentTarget.style.transform = "";
                           }
                         : undefined
                     }
@@ -441,6 +605,33 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
                       <div
                         className="timeline-event-name"
                         style={isKSS ? { color: '#a855f7' } : {}}
+                      item={{
+                        id: `event-${ev.id}`,
+                        type: "Event",
+                        title: ev.name,
+                        date: ev.date,
+                      }}
+                      style={{
+                        position: "absolute",
+                        top: "12px",
+                        right: "12px",
+                        zIndex: 20,
+                      }}
+                    />
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px",
+                        marginBottom: "7px",
+                      }}
+                    >
+                      <span style={{ display: "flex", color: "var(--c1)" }}>
+                        <DynamicIcon name={ev.icon || "Calendar"} size={24} />
+                      </span>
+                      <div
+                        className="timeline-event-name"
+                        style={isKSS ? { color: "#a855f7" } : {}}
                       >
                         {ev.name}
                       </div>
@@ -456,6 +647,15 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
                             border: '1px solid rgba(168,85,247,.3)',
                             fontFamily: "'Space Mono', monospace",
                             whiteSpace: 'nowrap',
+                            marginLeft: "auto",
+                            fontSize: ".6rem",
+                            padding: "2px 8px",
+                            borderRadius: "10px",
+                            background: "rgba(168,85,247,.12)",
+                            color: "#a855f7",
+                            border: "1px solid rgba(168,85,247,.3)",
+                            fontFamily: "'Space Mono', monospace",
+                            whiteSpace: "nowrap",
                           }}
                         >
                           View Details →
@@ -465,6 +665,11 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
                     <div
                       className="timeline-event-date"
                       style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                      }}
                     >
                       <DynamicIcon name="Calendar" size={14} /> {ev.date}
                     </div>
@@ -479,17 +684,32 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
                     >
                       <span className={`timeline-badge ${ev.status}`}>
                         {ev.status === 'completed' ? (
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "7px",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <span className={`timeline-badge ${ev.status}`}>
+                        {ev.status === "completed" ? (
                           <>
                             <DynamicIcon
                               name="CheckCircle"
                               size={14}
                               style={{ marginRight: '4px' }}
                             />{' '}
+                              style={{ marginRight: "4px" }}
+                            />{" "}
                             Completed
                           </>
                         ) : (
                           <>
                             <DynamicIcon name="Calendar" size={14} style={{ marginRight: '4px' }} />{' '}
+                            <DynamicIcon
+                              name="Calendar"
+                              size={14}
+                              style={{ marginRight: "4px" }}
+                            />{" "}
                             Upcoming
                           </>
                         )}
@@ -504,6 +724,12 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
                             background: 'var(--c2a)',
                             color: 'var(--c2)',
                             border: '1px solid var(--c2b)',
+                            fontSize: ".68rem",
+                            padding: "2px 8px",
+                            borderRadius: "10px",
+                            background: "var(--c2a)",
+                            color: "var(--c2)",
+                            border: "1px solid var(--c2b)",
                             fontWeight: 600,
                           }}
                         >
@@ -653,6 +879,10 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
                 style={{
                   textAlign: 'center',
                   color: 'var(--t3)',
+                className="timeline-card pop-in fired"
+                style={{
+                  textAlign: "center",
+                  color: "var(--t3)",
                   animationDelay: `${safeEvents.length * 0.11}s`,
                 }}
               >
@@ -662,6 +892,9 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
                   style={{ color: 'var(--c1)', marginBottom: '8px' }}
                 />
                 <p style={{ marginTop: '6px', fontSize: '.84rem' }}>
+                  style={{ color: "var(--c1)", marginBottom: "8px" }}
+                />
+                <p style={{ marginTop: "6px", fontSize: ".84rem" }}>
                   More events coming soon. Watch this space!
                 </p>
               </div>

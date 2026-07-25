@@ -493,6 +493,19 @@ export default function Navbar({
               <span />
             </button>
           </div>
+
+          <ThemeToggle />
+
+          <button
+            className={`ns-nav-menu-toggle${menuOpen ? " open" : ""}`}
+            onClick={() => compact && setMenuOpen((open) => !open)}
+            aria-label="Toggle navigation menu"
+            aria-expanded={menuOpen}
+          >
+            <span />
+            <span />
+            <span />
+          </button>
         </div>
       </div>
     </nav>
