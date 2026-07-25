@@ -91,6 +91,9 @@ function initializeSentry(app) {
   return Sentry;
 };
 
+  return Sentry;
+}
+
 function addSentryErrorHandler(app) {
   // The error handler must be the last middleware on the app
   if (typeof Sentry.setupExpressErrorHandler === 'function') {

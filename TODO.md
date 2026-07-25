@@ -13,6 +13,8 @@
 - [ ] Run e2e tests that cover offline/registration flows (if feasible)
 # TODO - Event Stream Processing & Real-Time Analytics (#1776)
 
+# TODO - Event Stream Processing & Real-Time Analytics (#1776)
+
 - [ ] Create plan + confirm approach (done)
 - [ ] Add streaming abstraction layer (Queue interface + implementations)
 - [ ] Add outbox dispatcher worker (poll outbox, publish, mark delivered, idempotency)

@@ -71,7 +71,14 @@ function MentorsPage() {
 
   const showToast = useCallback((message, type) => {
     setToast({ message, type });
-    setTimeout(() => setToast(null), 4000);
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    toastTimeoutRef.current = setTimeout(() => setToast(null), 4000);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    };
   }, []);
 
   const fetchMentors = useCallback(async () => {

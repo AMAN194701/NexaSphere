@@ -24,6 +24,8 @@ try {
   }
 }
 
+const prisma = new PrismaClient();
+
 // ─── Redis cache helpers ────────────────────────────────────────────────────
 
 const CACHE_TTL = 300; // 5 minutes
@@ -225,6 +227,7 @@ export async function getSettings(req, res) {
 
   const cached = await getCached(`settings:${env}`);
   if (cached) return sendSuccess(res, { env, settings: maskSecrets(cached) });
+  if (cached) return res.json({ env, settings: maskSecrets(cached) });
 
   const rows = await prisma.platformSetting.findMany({ where: { environment: env } });
 
@@ -235,6 +238,7 @@ export async function getSettings(req, res) {
 
   await setCache(`settings:${env}`, settings);
   return sendSuccess(res, { env, settings: maskSecrets(settings) });
+  return res.json({ env, settings: maskSecrets(settings) });
 }
 
 /**
@@ -253,6 +257,13 @@ export async function updateSettings(req, res) {
   if (Object.keys(errors).length) return sendError(req, res, 'Validation failed', 422, 'VALIDATION_ERROR', errors);
 
   if (preview) return sendSuccess(res, { valid: true, preview: updates });
+    return res.status(400).json({ error: 'updates must be an object' });
+  }
+
+  const errors = validateSettings(updates);
+  if (Object.keys(errors).length) return res.status(422).json({ errors });
+
+  if (preview) return res.json({ valid: true, preview: updates });
 
   const userId = req.user?.id;
 
@@ -295,6 +306,7 @@ export async function updateSettings(req, res) {
   await invalidateCache(env);
 
   return sendSuccess(res, { success: true, updated: Object.keys(updates) });
+  return res.json({ success: true, updated: Object.keys(updates) });
 }
 
 /**
@@ -327,6 +339,7 @@ export async function getHistory(req, res) {
   }));
 
   return sendSuccess(res, { logs: sanitized, total, page: Number(page), pages: Math.ceil(total / take) });
+  return res.json({ logs: sanitized, total, page: Number(page), pages: Math.ceil(total / take) });
 }
 
 /**
@@ -341,6 +354,12 @@ export async function rollbackSetting(req, res) {
   if (!log) return sendError(req, res, 'Log entry not found', 404, 'NOT_FOUND');
   if (log.previousValue === null)
     return sendError(req, res, 'No previous value to roll back to', 400, 'VALIDATION_ERROR');
+  if (!logId) return res.status(400).json({ error: 'logId required' });
+
+  const log = await prisma.settingsChangeLog.findUnique({ where: { id: logId } });
+  if (!log) return res.status(404).json({ error: 'Log entry not found' });
+  if (log.previousValue === null)
+    return res.status(400).json({ error: 'No previous value to roll back to' });
 
   const userId = req.user?.id;
 
@@ -364,6 +383,7 @@ export async function rollbackSetting(req, res) {
 
   await invalidateCache(log.environment);
   return sendSuccess(res, { success: true, key: log.key, environment: log.environment });
+  return res.json({ success: true, key: log.key, environment: log.environment });
 }
 
 /**
@@ -382,6 +402,7 @@ export async function exportSettings(req, res) {
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Content-Disposition', `attachment; filename="settings-${env}-${Date.now()}.json"`);
   return sendSuccess(res, { env, exportedAt: new Date().toISOString(), settings });
+  return res.json({ env, exportedAt: new Date().toISOString(), settings });
 }
 
 /**
@@ -392,6 +413,7 @@ export async function exportSettings(req, res) {
 export async function importSettings(req, res) {
   const { env = 'development', settings } = req.body;
   if (!settings) return sendError(req, res, 'settings object required', 400, 'VALIDATION_ERROR');
+  if (!settings) return res.status(400).json({ error: 'settings object required' });
 
   // Drop redacted secrets
   const toImport = Object.fromEntries(
@@ -400,6 +422,7 @@ export async function importSettings(req, res) {
 
   const errors = validateSettings(toImport);
   if (Object.keys(errors).length) return sendError(req, res, 'Validation failed', 422, 'VALIDATION_ERROR', errors);
+  if (Object.keys(errors).length) return res.status(422).json({ errors });
 
   // Re-use updateSettings logic
   req.body = { env, updates: toImport };

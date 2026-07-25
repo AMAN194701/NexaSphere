@@ -2,6 +2,7 @@ import React, { Suspense } from 'react';
 import RateLimitMonitor from './pages/dashboard/RateLimitMonitor';
 const AuditLogViewer = React.lazy(() => import('./pages/dashboard/AuditLogViewer'));
 import RateLimitMonitor from './pages/dashboard/RateLimitMonitor';
+import PlatformSettings from './pages/dashboard/PlatformSettings';
 import AuditLogViewer from './pages/dashboard/AuditLogViewer';
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
@@ -142,6 +143,8 @@ export default function App() {
             <Route path="/dashboard/reports" element={<UserEngagementReport />} />
             <Route path="/dashboard/security" element={<SecurityCenter />} />
             <Route path="/dashboard/reports" element={<UserEngagementReport />} />
+            <Route path="/dashboard/sponsorships" element={<SponsorshipsManager />} />
+            <Route path="/dashboard/audit-logs" element={<AuditLogViewer />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />
@@ -149,3 +152,4 @@ export default function App() {
     </BrowserRouter>
   );
 }
+

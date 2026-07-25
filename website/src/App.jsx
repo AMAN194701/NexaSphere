@@ -1422,5 +1422,6 @@ function MainRouter({
         }}
       />
     </SessionRecordingProvider>
+    </>
   );
 }

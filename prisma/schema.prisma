@@ -324,3 +324,30 @@ model PriceHistory {
 
   pricing   EventPricing @relation(fields: [pricingId], references: [id], onDelete: Cascade)
 }
+
+model PlatformSetting {
+  id          String   @id @default(cuid())
+  environment String   @default("development")
+  key         String
+  value       String   @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([environment, key], name: "environment_key")
+  @@index([environment])
+}
+
+model SettingsChangeLog {
+  id            String   @id @default(cuid())
+  environment   String
+  key           String
+  previousValue String?  @db.Text
+  newValue      String   @db.Text
+  isRollback    Boolean  @default(false)
+  changedById   String?
+  changedBy     User?    @relation(fields: [changedById], references: [id])
+  createdAt     DateTime @default(now())
+
+  @@index([environment, key])
+  @@index([changedById])
+}

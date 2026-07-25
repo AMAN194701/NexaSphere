@@ -742,6 +742,9 @@
  */
 
 
+ * ...
+ */
+
 /**
  * @swagger
  * /api/announcements:
@@ -1290,6 +1293,8 @@
  *       - in: path
  *         name: category
  * /api/search/trending:
+ * /api/search/trending:
+ *   get:
  *     summary: Trending Searches
  *     description: Returns the most popular search queries.
  *     tags:
@@ -1312,6 +1317,35 @@
  * /api/search/suggestions:
  *     summary: Instant Search Suggestions
  *     description: Returns autocomplete suggestions while typing.
+ *     responses:
+ *       200:
+ *         description: Trending searches retrieved successfully.
+ */
+
+/**
+ * @swagger
+ * /api/search/recent:
+ *   get:
+ *     summary: Recent Searches
+ *     description: Returns the user's recent search history.
+ *     tags:
+ *       - Global Search
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Recent searches returned successfully.
+ */
+
+/**
+ * @swagger
+ * /api/search/suggestions:
+ *   get:
+ *     summary: Instant Search Suggestions
+ *     description: Returns autocomplete suggestions while typing.
+ *     tags:
+ *       - Global Search
+ *     parameters:
  *       - in: query
  *         name: q
  *         required: true
@@ -1823,4 +1857,23 @@
  *     summary: Get workspace analytics
  *     tags: [Workspaces]
  *         description: Analytics retrieved successfully
+ *     responses:
+ *       200:
+ *         description: Suggestions returned successfully.
+ */
+
+/**
+ * @swagger
+ * /api/admin/search/analytics:
+ *   get:
+ *     summary: Search Analytics Dashboard
+ *     description: Returns analytics about search usage, popular keywords and categories.
+ *     tags:
+ *       - Global Search
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Analytics retrieved successfully.
+ */
 export default {};

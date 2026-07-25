@@ -126,6 +126,10 @@ export default function EventsPage({
     return sortedEvents.slice(start, start + EVENTS_PER_PAGE);
   }, [sortedEvents, currentPage]);
 
+        return da - db;
+      });
+  }, [filteredEvents]);
+
   const { recommendations, loading: recsLoading } = useRecommendations(user?.sub || user?.id || '');
 
   const buildGradient = (ev) => {

@@ -9,6 +9,7 @@ import { generatePortfolioMeta } from '../../utils/seoUtils';
 import { safeHref } from '../../utils/safeHref';
 import '../../styles/print.css';
 import { useStudentAuth } from '../../context/StudentAuthContext';
+import ProfileBadges from '../../components/profile/ProfileBadges';
 
 export default function PublicPortfolio({ username, onBack }) {
   const { user } = useStudentAuth();

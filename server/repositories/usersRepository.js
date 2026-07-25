@@ -100,6 +100,7 @@ export const usersRepository = {
     return withDb(async (client) => {
       const { rows } = await client.query(
         'SELECT id, username, display_name, email, phone_number, admin_roles, created_at FROM users WHERE id = $1',
+        'SELECT id, username, display_name, email, admin_roles, created_at FROM users WHERE id = $1',
         [id]
       );
       return rows[0] || null;

@@ -23,6 +23,7 @@ import {
 import PrivacySettings from '../../components/profile/PrivacySettings';
 import ProfileBadges from '../../components/profile/ProfileBadges';
 import SkeletonCard from '../../components/SkeletonCard';
+import ProfileBadges from '../../components/profile/ProfileBadges';
 
 const ACHIEVEMENT_ICONS: Record<
   string,
@@ -520,6 +521,7 @@ export default function UserDashboard() {
         ) : (
           <ProfileBadges badges={achievements} />
         )}
+        <ProfileBadges badges={achievements} />
 
         {/* Profile Completion */}
         <div className="bg-[#1A1A1A] rounded-xl border border-[#2A2A2A] p-6 mb-8">

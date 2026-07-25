@@ -6,6 +6,8 @@ export const getConflicts = async (req, res) => {
     const conflicts = await eventConflictService.checkConflicts();
 
     return sendSuccess(res, {
+    return res.json({
+      success: true,
       total: conflicts.length,
       conflicts,
     });
@@ -13,6 +15,10 @@ export const getConflicts = async (req, res) => {
     console.error(err);
 
     return sendError(req, res, "Failed to check event conflicts.", 500, 'INTERNAL_ERROR');
+    return res.status(500).json({
+      success: false,
+      message: "Failed to check event conflicts.",
+    });
   }
 };
 
@@ -27,12 +33,29 @@ export const getVenueAvailability = async (req, res) => {
     const result = await eventConflictService.checkVenueAvailability(venue, date);
 
     return sendSuccess(res, {
+      return res.status(400).json({
+        success: false,
+        message: "Venue and date are required.",
+      });
+    }
+
+    const result = await eventConflictService.checkVenueAvailability(
+      venue,
+      date
+    );
+
+    return res.json({
+      success: true,
       data: result,
     });
   } catch (err) {
     console.error(err);
 
     return sendError(req, res, "Failed to check venue availability.", 500, 'INTERNAL_ERROR');
+    return res.status(500).json({
+      success: false,
+      message: "Failed to check venue availability.",
+    });
   }
 };
 
@@ -41,12 +64,18 @@ export const getAttendanceImpact = async (req, res) => {
     const impact = await eventConflictService.attendanceImpact();
 
     return sendSuccess(res, {
+    return res.json({
+      success: true,
       data: impact,
     });
   } catch (err) {
     console.error(err);
 
     return sendError(req, res, "Failed to generate attendance analysis.", 500, 'INTERNAL_ERROR');
+    return res.status(500).json({
+      success: false,
+      message: "Failed to generate attendance analysis.",
+    });
   }
 };
 
@@ -55,12 +84,21 @@ export const getScheduleRecommendations = async (req, res) => {
     const recommendations = await eventConflictService.scheduleRecommendation();
 
     return sendSuccess(res, {
+    const recommendations =
+      await eventConflictService.scheduleRecommendation();
+
+    return res.json({
+      success: true,
       data: recommendations,
     });
   } catch (err) {
     console.error(err);
 
     return sendError(req, res, "Failed to generate recommendations.", 500, 'INTERNAL_ERROR');
+    return res.status(500).json({
+      success: false,
+      message: "Failed to generate recommendations.",
+    });
   }
 };
 
@@ -69,12 +107,18 @@ export const getCalendarEvents = async (req, res) => {
     const events = await eventConflictService.calendarEvents();
 
     return sendSuccess(res, {
+    return res.json({
+      success: true,
       data: events,
     });
   } catch (err) {
     console.error(err);
 
     return sendError(req, res, "Failed to load calendar events.", 500, 'INTERNAL_ERROR');
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load calendar events.",
+    });
   }
 };
 
@@ -83,6 +127,8 @@ export const getOrganizerAlerts = async (req, res) => {
     const alerts = await eventConflictService.getAlerts();
 
     return sendSuccess(res, {
+    return res.json({
+      success: true,
       total: alerts.length,
       alerts,
     });
@@ -90,5 +136,11 @@ export const getOrganizerAlerts = async (req, res) => {
     console.error(err);
 
     return sendError(req, res, "Failed to load organizer alerts.", 500, 'INTERNAL_ERROR');
+  }
+};
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load organizer alerts.",
+    });
   }
 };
