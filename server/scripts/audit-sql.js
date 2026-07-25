@@ -56,6 +56,11 @@ for (const file of files) {
         console.log('--------------------------------------------------');
         vulnerabilitiesFound++;
       }
+    if (firstPart.includes('${') || firstPart.includes('+')) {
+      console.log(`[Vulnerable] File: ${file}`);
+      console.log(`  Query: ${firstPart}`);
+      console.log('--------------------------------------------------');
+      vulnerabilitiesFound++;
     }
   }
 }

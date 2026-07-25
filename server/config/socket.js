@@ -688,6 +688,14 @@ export function _onConnection(socket) {
           }
         : {};
 
+            id: typeof user.id === 'string' ? user.id.slice(0, 100) : undefined,
+            name: typeof user.name === 'string' ? user.name.slice(0, 100) : 'Anonymous',
+            email: typeof user.email === 'string' ? user.email.slice(0, 150) : '',
+            color: typeof user.color === 'string' ? user.color.slice(0, 50) : '#888',
+            initials: typeof user.initials === 'string' ? user.initials.slice(0, 2) : 'U',
+          }
+        : { name: 'Anonymous', color: '#888', initials: 'U' };
+
     socket
       .to(roomId)
       .emit('user_joined', { socketId: socket.id, user: sanitizedUser, timestamp: Date.now() });

@@ -64,6 +64,8 @@ export const syncController = {
         );
 
         return sendSuccess(res, {
+
+        return res.json({
           serverTime: new Date().toISOString(),
           events: eventsRes.rows,
           portfolios: portfolioRes.rows,
@@ -211,6 +213,7 @@ export const syncController = {
       });
 
       return sendSuccess(res, {
+      return res.status(hasConflicts ? 409 : 200).json({
         serverTime: new Date().toISOString(),
         results,
       });

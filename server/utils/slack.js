@@ -373,6 +373,12 @@ async function sendPerformanceAlert(metrics) {
 
     if (!response.ok) {
       logger.error('Failed to send performance alert');
+      logger.error('Failed to send performance alert', {
+        status: response.status,
+        statusText: response.statusText,
+      });
+    } else {
+      logger.info('Performance alert sent successfully');
     }
   } catch (error) {
     logger.error('Error sending performance alert', { error: error.message });

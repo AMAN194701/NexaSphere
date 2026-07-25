@@ -27,8 +27,12 @@ def _verify_service_auth(
 ) -> None:
     """Dependency that validates the internal service auth header string securely."""
     if not INTERNAL_SERVICE_SECRET:
-        return
-    
+        logger.critical("INTERNAL_SERVICE_SECRET is not configured — blocking all requests")
+        raise HTTPException(
+            status_code=500,
+            detail="Server misconfiguration: internal auth secret is not set",
+        )
+
     if not x_service_auth or not hmac.compare_digest(x_service_auth, INTERNAL_SERVICE_SECRET):
         raise HTTPException(
             status_code=401, 

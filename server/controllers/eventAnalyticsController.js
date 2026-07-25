@@ -40,6 +40,7 @@ export const getEventStats = wrapAsync(async (req, res) => {
               100
           )
         )
+      ? Math.min(100, Math.round((stats.confirmed / (stats.confirmed + waitlist.length)) * 100))
       : 0;
 
   const resourceRecommendation =

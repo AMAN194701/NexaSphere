@@ -84,6 +84,293 @@ test('Security + Concurrency Validation', async (t) => {
     adminAuthMiddleware._clearAllLoginAttempts();
 
     assert.equal(adminAuthMiddleware._getLoginAttemptsMapSize(), 0);
+    const { adminAuthMiddleware } =
+      await import(
+        "../middleware/adminAuthMiddleware.js"
+      );
+
+    await t.test(
+      "Initial map is empty",
+      () => {
+
+        adminAuthMiddleware
+          ._clearAllLoginAttempts();
+
+        assert.equal(
+          adminAuthMiddleware
+            ._getLoginAttemptsMapSize(),
+          0
+        );
+      }
+    );
+
+    await t.test(
+      "Expired entries cleanup works",
+      async () => {
+
+        adminAuthMiddleware
+          ._clearAllLoginAttempts();
+
+        const { req, res } =
+          createMockReqRes(
+            "192.168.0.1",
+            "admin",
+            "wrongpass"
+          );
+
+        await adminAuthMiddleware.login(
+          req,
+          res
+        );
+
+        assert.equal(
+          res.statusCode(),
+          401
+        );
+
+        assert.equal(
+          adminAuthMiddleware
+            ._getLoginAttemptsMapSize(),
+          1
+        );
+
+        await new Promise((resolve) =>
+          setTimeout(resolve, 150)
+        );
+
+        adminAuthMiddleware
+          ._cleanupExpiredAttempts();
+
+        assert.equal(
+          adminAuthMiddleware
+            ._getLoginAttemptsMapSize(),
+          0
+        );
+      }
+    );
+
+    await t.test(
+      "Successful login clears attempts",
+      async () => {
+
+        adminAuthMiddleware
+          ._clearAllLoginAttempts();
+
+        const ip = "192.168.0.2";
+
+        const failed =
+          createMockReqRes(
+            ip,
+            "admin",
+            "wrongpass"
+          );
+
+        await adminAuthMiddleware.login(
+          failed.req,
+          failed.res
+        );
+
+        assert.equal(
+          adminAuthMiddleware
+            ._getLoginAttemptsMapSize(),
+          1
+        );
+
+        const success =
+          createMockReqRes(
+            ip,
+            "admin",
+            "AdminStrongPass123!"
+          );
+
+        await adminAuthMiddleware.login(
+          success.req,
+          success.res
+        );
+
+        assert.equal(
+          adminAuthMiddleware
+            ._getLoginAttemptsMapSize(),
+          0
+        );
+      }
+    );
+
+    await t.test(
+      "Rate limiting blocks brute force",
+      async () => {
+
+        adminAuthMiddleware
+          ._clearAllLoginAttempts();
+
+        const ip = "192.168.0.3";
+
+        for (let i = 0; i < 3; i++) {
+
+          const { req, res } =
+            createMockReqRes(
+              ip,
+              "admin",
+              "wrongpass"
+            );
+
+          await adminAuthMiddleware.login(
+            req,
+            res
+          );
+
+          assert.equal(
+            res.statusCode(),
+            401
+          );
+        }
+
+        const blocked =
+          createMockReqRes(
+            ip,
+            "admin",
+            "wrongpass"
+          );
+
+        await adminAuthMiddleware.login(
+          blocked.req,
+          blocked.res
+        );
+
+        assert.equal(
+          blocked.res.statusCode(),
+          429
+        );
+      }
+    );
+
+    await t.test(
+      "FIFO eviction stays bounded",
+      async () => {
+
+        adminAuthMiddleware
+          ._clearAllLoginAttempts();
+
+        for (let i = 1; i <= 6; i++) {
+
+          const { req, res } =
+            createMockReqRes(
+              `10.0.0.${i}`,
+              "admin",
+              "wrongpass"
+            );
+
+          await adminAuthMiddleware.login(
+            req,
+            res
+          );
+        }
+
+        assert.equal(
+          adminAuthMiddleware
+            ._getLoginAttemptsMapSize(),
+          5
+        );
+      }
+    );
+
+    await t.test(
+      "Massive forwarded header is safe",
+      async () => {
+
+        adminAuthMiddleware
+          ._clearAllLoginAttempts();
+
+        const req = {
+          body: {
+            username: "admin",
+            password: "wrongpass",
+          },
+
+          headers: {
+            "x-forwarded-for":
+              "1.1.1.1," +
+              "A".repeat(50000),
+          },
+
+          get: () => "",
+        };
+
+        let code = 200;
+
+        const res = {
+
+          status(status) {
+            code = status;
+            return this;
+          },
+
+          json() {
+            return this;
+          },
+        };
+
+        await adminAuthMiddleware.login(
+          req,
+          res
+        );
+
+        assert.equal(code, 401);
+      }
+    );
+
+    await t.test(
+      "Concurrent request stress test",
+      async () => {
+
+        adminAuthMiddleware
+          ._clearAllLoginAttempts();
+
+        const total = 1000;
+
+        const jobs = [];
+
+        const start = Date.now();
+
+        for (let i = 0; i < total; i++) {
+
+          const { req, res } =
+            createMockReqRes(
+              `172.16.0.${i % 255}`,
+              "admin",
+              "wrongpass"
+            );
+
+          jobs.push(
+            adminAuthMiddleware.login(
+              req,
+              res
+            )
+          );
+        }
+
+        await Promise.all(jobs);
+
+        const duration =
+          Date.now() - start;
+
+        console.log(
+          `[Stress Test] ${total} requests processed in ${duration}ms`
+        );
+
+        assert.equal(
+          adminAuthMiddleware
+            ._getLoginAttemptsMapSize(),
+          5
+        );
+
+        assert.ok(duration < 500);
+      }
+    );
+  }
+);
+    assert.equal(res.statusCode(), 401);
+    assert.equal(res.responseData().error, 'No active session to revoke');
   });
 
   await t.test('Expired entries cleanup works', async () => {
