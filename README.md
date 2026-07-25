@@ -286,6 +286,82 @@ Some dependencies compile native C/C++ code. If compilation fails:
 
 > **3 steps to get NexaSphere running locally.**
 
+### Node Version Management
+
+To ensure consistency across development, testing, and production environments, NexaSphere strictly enforces the use of **Node.js v20 (LTS)**. Standardizing on Node v20 allows the development team to leverage modern V8 engine optimizations, stable ESM support, native fetch APIs, and consistent execution across our monorepo's React/Vite frontend and Node/Express backend runtimes. This prevents the classic "works on my machine" bugs caused by minor version differences or deprecated APIs.
+
+We use **NVM (Node Version Manager)** to manage multiple active Node.js versions. A `.nvmrc` file is located in the project root to automate Node version selection.
+
+#### 📦 Installing NVM (macOS / Linux)
+
+On macOS and Linux, you can install the official POSIX-compliant NVM via cURL or Wget:
+
+```bash
+# Install via cURL
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+
+# Or install via Wget
+wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+```
+
+After the installation script finishes, reload your shell configuration by running `source ~/.zshrc` (or `source ~/.bashrc` depending on your active shell), or restart your terminal.
+
+Verify the installation by querying the NVM version:
+```bash
+nvm --version
+```
+
+#### 🪟 Installing NVM on Windows (nvm-windows)
+
+Since NVM does not officially support Windows, developers on Windows should use the [nvm-windows](https://github.com/coreybutler/nvm-windows) utility:
+
+1. **Uninstall Existing Node.js Versions**: Before installing, uninstall any existing standalone Node.js installations to prevent PATH environment conflicts. Delete any residual folders like `C:\Program Files\nodejs` or `%APPDATA%\npm`.
+2. **Download the Installer**: Visit the [nvm-windows releases page](https://github.com/coreybutler/nvm-windows/releases), download the latest `nvm-setup.exe` installer, and run it.
+3. **Verify Installation**: Open a new Command Prompt or PowerShell window as Administrator and run:
+   ```cmd
+   nvm version
+   ```
+
+#### 🚀 Activating the Project Node Version
+
+Once NVM is successfully installed, navigate to the NexaSphere repository root and run the following commands to install and switch to Node v20:
+
+```bash
+# 1. Install Node.js v20 (reads the version defined in .nvmrc)
+nvm install 20
+
+# 2. Switch the current shell to Node.js v20
+nvm use
+```
+
+If you have NVM installed, running `nvm use` in the repository root will automatically detect the `.nvmrc` file and switch to the correct version.
+
+#### 🔧 Troubleshooting Common Setup Issues
+
+* **Error: `command not found: nvm` (macOS/Linux)**
+  This occurs when your shell profile script does not export the path variables. Ensure the following configuration is appended to your shell configuration file (`~/.zshrc`, `~/.bashrc`, or `~/.bash_profile`):
+  ```bash
+  export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && echo "$HOME/.nvm" || echo "$XDG_CONFIG_HOME/nvm")"
+  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
+  ```
+  After adding the lines, run `source ~/.zshrc` to reload.
+
+* **Error: `nvm is not recognized as an internal or external command` (Windows)**
+  Make sure you closed and reopened your terminal emulator (Command Prompt, PowerShell, or Git Bash) after installing `nvm-windows`. If the error persists, check your User and System environment variables to verify that the `NVM_HOME` and `NVM_SYMLINK` paths have been set correctly.
+
+* **Version Mismatch or Symlink Errors (Windows)**
+  If running `nvm use 20` outputs a success message but `node -v` still shows a different version, it means an old Node.js installation is shadowing the NVM symlink in your system's `PATH`. Ensure the NVM directories in your environment variables are placed higher than any other Node.js references.
+
+* **Download Failures or Network Timeout (Global)**
+  If downloading Node.js through NVM fails due to network restrictions or firewalls, you can configure NVM to use official mirrors:
+  ```bash
+  # For macOS/Linux
+  export NVM_NODEJS_ORG_MIRROR=https://nodejs.org/dist
+  
+  # For Windows (cmd)
+  nvm node_mirror https://npmmirror.com/mirrors/node/
+  ```
+
 ### 1. Clone & Install
 
 ```bash
