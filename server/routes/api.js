@@ -80,6 +80,7 @@ import multer from 'multer';
 const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
 });
+import {z} from 'zod'
 
 import apiAnalyticsRoutes from './apiAnalytics.js';
 import budgetRoutes from './budget.js';
@@ -606,6 +607,15 @@ router.get(
     }
   }
 );
+  // creating the zod schema 
+const achievementSchema = z.object({
+  name: z.string().trim().min(1, 'Achievement name is required').max(120),
+  description: z.string().trim().max(1000).optional(),
+  tier: z.string().trim().max(40).optional(),
+  iconUrl: z.string().trim().max(500).optional(),
+  source: z.string().trim().max(60).optional(),
+});
+
 router.post(
   '/api/admin/portfolios/:username/achievements',
   adminAuthMiddleware.requireScope('events:write'),
@@ -613,12 +623,28 @@ router.post(
   validate(achievementSchema),
   async (req, res) => {
     try {
+      // validating the data arrived from req.body via zod validation
+      const parsed = achievementSchema.safeParse(req.body);
+      
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: parsed.error.flatten(),
+        });
+      }
       const username = String(req.params.username || '')
         .trim()
         .toLowerCase();
 
       const achievement = await portfolioService.awardAchievement(username, req.body);
       return sendSuccess(res, { achievement }, 201);
+      const achievement = await portfolioService.awardAchievement(username, {
+        name: parsed.data.name,
+        description: parsed.data.description ?? null,
+        tier: parsed.data.tier ?? 'bronze',
+        iconUrl: parsed.data.iconUrl ?? null,
+        source: parsed.data.source ?? 'admin',
+      });
+      return res.status(201).json({ achievement });
     } catch (err) {
       return sendError(req, res, err.message, 500, 'INTERNAL_ERROR');
     }
