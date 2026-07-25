@@ -16,16 +16,28 @@ function isValidRoomId(value) {
   return typeof value === 'string' && /^[a-zA-Z0-9\-_]{1,100}$/.test(value);
 }
 
+//  RECTIFIED BLOCK 1: Safely calculates active rooms, accounting for uninitialized states
 function roomsCount(socket) {
-  return socket.rooms ? socket.rooms.size - 1 : 0;
+  if (!socket.rooms) return 0;
+  
+  // If the implicit private room (socket.id) is already in the Set, exclude it.
+  // If it hasn't been added yet by Socket.io, the size represents only custom joined rooms.
+  const hasPrivateRoom = socket.rooms.has(socket.id);
+  return hasPrivateRoom ? socket.rooms.size - 1 : socket.rooms.size;
 }
 
 export function setupWorkspaceSocket(io) {
   io.on('connection', (socket) => {
     const handshakeRoomId = socket.handshake.auth?.roomId || socket.handshake.query?.roomId || null;
 
+    //  RECTIFIED BLOCK 2: Safely validates room safety allocations before auto-joining
     if (handshakeRoomId && isValidRoomId(handshakeRoomId)) {
-      if (roomsCount(socket) < MAX_ROOMS_PER_SOCKET) {
+      const currentRooms = roomsCount(socket);
+      
+      // Ensure the socket hasn't already joined this room somehow, and sits under the cap
+      const alreadyJoined = socket.rooms && socket.rooms.has(handshakeRoomId);
+      
+      if (!alreadyJoined && currentRooms < MAX_ROOMS_PER_SOCKET) {
         socket.join(handshakeRoomId);
         logger.info('Socket auto-joined room via handshake', {
           socketId: socket.id,
