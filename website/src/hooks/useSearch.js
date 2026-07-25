@@ -424,3 +424,5 @@ export function useSearch(activities, events) {
 }
 return { query, setQuery, filter, setFilter, results, loading, clearSearch, apiError };
 }
+export { useEventSearch as useSearch } from './useEventSearch';
+export { useEventSearch as default } from './useEventSearch';
