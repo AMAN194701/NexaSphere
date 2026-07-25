@@ -76,9 +76,8 @@ export async function getOpenBadge(req, res) {
 }
 
 export async function getCertificateVerificationShare(req, res) {
-  // TODO: generate proper share URLs containing certificate verify route.
   const { id } = req.params;
-  const verifyUrl = `${process.env.PUBLIC_APP_URL || ''}/certificates/verify/${id}`;
+  const verifyUrl = `${process.env.PUBLIC_APP_URL || 'https://nexasphere.com'}/verify/cert/${id}`;
 
   return sendSuccess(res, {
   return res.json({
