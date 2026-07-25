@@ -81,12 +81,14 @@ export default function DashboardPage({ onBack }) {
     // Simulated data based on timeframe
     const data = {
       all: [
-        { id: 'u1', userId: 'user_123', username: 'Explorer', xp: 450, level: 3 },
-        { id: 'u2', userId: 'user_456', username: 'TechNinja', xp: 850, level: 5 },
-        { id: 'u3', userId: 'user_789', username: 'CodeMaster', xp: 320, level: 2 },
+        { id: 'u1', userId: 'user_123', username: 'Explorer', xp: 450, level: 3, streak: 5 },
+        { id: 'u2', userId: 'user_456', username: 'TechNinja', xp: 850, level: 5, streak: 12 },
+        { id: 'u3', userId: 'user_789', username: 'CodeMaster', xp: 320, level: 2, streak: 0 },
       ].sort((a, b) => b.xp - a.xp),
-      week: [{ id: 'u2', userId: 'user_456', username: 'TechNinja', xp: 200, level: 5 }],
-      month: [{ id: 'u1', userId: 'user_123', username: 'Explorer', xp: 350, level: 3 }],
+      week: [
+        { id: 'u2', userId: 'user_456', username: 'TechNinja', xp: 200, level: 5, streak: 12 },
+      ],
+      month: [{ id: 'u1', userId: 'user_123', username: 'Explorer', xp: 350, level: 3, streak: 5 }],
     };
     setLeaderboard(data[timeframe] || data.all);
   }, [timeframe]);
