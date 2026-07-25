@@ -200,6 +200,13 @@ export const getFullCalendarFeed = wrapAsync(async (req, res) => {
       })
     )
     .join('\n');
+  const calendarContent = allEvents.map(ev => calendarService.generateIcsEvent({
+    name: ev.name,
+    dateText: ev.date_text,
+    description: ev.description,
+    location: ev.location,
+    eventId: ev.id,
+  })).join('\n');
 
   const ics = `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//NexaSphere//Events//EN\n${calendarContent}\nEND:VCALENDAR`;
 
