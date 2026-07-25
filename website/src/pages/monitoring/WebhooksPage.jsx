@@ -69,6 +69,18 @@ export default function WebhooksPage() {
       const statsRes = await statsPromise;
       if (statsRes.ok) {
         const statsData = await statsRes.json();
+      const [delResult, statsResult] = await Promise.allSettled([
+        fetch(buildUrl(`/api/webhooks/${webhook.id}/deliveries`)),
+        fetch(buildUrl(`/api/webhooks/${webhook.id}/stats`)),
+      ]);
+
+      if (delResult.status === 'fulfilled' && delResult.value.ok) {
+        const delData = await delResult.value.json();
+        setDeliveries(delData.data || []);
+      }
+
+      if (statsResult.status === 'fulfilled' && statsResult.value.ok) {
+        const statsData = await statsResult.value.json();
         setStats(statsData.data || null);
       }
     } catch (err) {
