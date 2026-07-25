@@ -18,6 +18,22 @@ export const XP_VALUES = {
   COMMENT_POSTED: 5, // for dashboard/tests
   REFERRAL: 100, // for dashboard
   SKILL_VERIFIED: 200, // XP for verifying a skill
+  ORGANIZE_EVENT: 200,
+  COMPLETE_MENTORSHIP: 500,
+  ADD_PORTFOLIO_PROJECT: 100,
+  GIVE_FEEDBACK: 25,
+  HELP_SOMEONE: 30, // Answered a question
+  DAILY_STREAK: 20,
+  EVENT_REGISTRATION: 10,
+  FIRST_BLOG_POST: 50,
+  LEARN_NEW_TECH: 40,
+  SKILL_ASSESSMENT: 100,
+  VOLUNTEER: 150,
+  HACKATHON_WIN: 1000,
+  SPEAKER: 500,
+  BETA_TESTER: 100,
+  COMMENT_POSTED: 5,
+  SHARE_EVENT: 15,
 };
 
 // Achievement tiers and requirements
@@ -117,6 +133,73 @@ export const ACHIEVEMENTS = {
     xpReward: 25,
     requirement: { type: 'comments', count: 1 },
   },
+  FIRST_CONNECTION: {
+    id: 'first_connection',
+    title: 'Networker',
+    description: 'Make your first connection',
+    icon: '🤝',
+    tier: 'bronze',
+    xpReward: 25,
+    requirement: { type: 'connections', count: 1 },
+  },
+  MENTOR: {
+    id: 'mentor',
+    title: 'Guide',
+    description: 'Become a mentor',
+    icon: '🎓',
+    tier: 'silver',
+    xpReward: 500,
+    requirement: { type: 'mentorships_given', count: 1 },
+  },
+
+  // Content
+  FIRST_PROJECT: {
+    id: 'first_project',
+    title: 'Innovator',
+    description: 'Add your first portfolio project',
+    icon: '🚀',
+    tier: 'bronze',
+    xpReward: 100,
+    requirement: { type: 'content_created', count: 1 },
+  },
+  PORTFOLIO_MASTER: {
+    id: 'portfolio_master',
+    title: 'Portfolio Master',
+    description: 'Showcase 5 portfolio projects',
+    icon: '📁',
+    tier: 'silver',
+    xpReward: 500,
+    requirement: { type: 'content_created', count: 5 },
+  },
+
+  // Skills
+  TECH_LEARNER: {
+    id: 'tech_learner',
+    title: 'Always Learning',
+    description: 'Learn a new technology',
+    icon: '🧠',
+    tier: 'bronze',
+    xpReward: 50,
+    requirement: { type: 'tech_learned', count: 1 },
+  },
+
+  // Community
+  ORGANIZER: {
+    id: 'organizer',
+    title: 'Initiator',
+    description: 'Organize your first event',
+    icon: '📣',
+    tier: 'gold',
+    xpReward: 1000,
+    requirement: { type: 'events_organized', count: 1 },
+  },
+  FEEDBACK_GIVER: {
+    id: 'feedback_giver',
+    title: 'Helpful Voice',
+    description: 'Give your first event feedback',
+    icon: '💬',
+    tier: 'bronze',
+    xpReward: 25,
   FIRST_CONNECTION: {
     id: 'first_connection',
     title: 'Networker',
@@ -427,6 +510,9 @@ class GamificationService {
         break;
       case 'GIVE_FEEDBACK':
       case 'FEEDBACK_GIVEN':
+        stats.content_created++;
+        break;
+      case 'GIVE_FEEDBACK':
         stats.feedback++;
         break;
       case 'MAKE_CONNECTION':
