@@ -22,6 +22,8 @@ export async function verifyCertificate(req, res) {
   // TODO: lookup certificate by code.
   // Placeholder response shape per acceptance criteria.
   return sendSuccess(res, {
+  return res.json({
+    ok: true,
     certificate: {
       code,
       attendeeName: 'Demo Attendee',
@@ -39,6 +41,7 @@ export async function verifyCertificate(req, res) {
 export async function getMyCertificates(req, res) {
   // TODO: use req.studentUser / DB
   return sendSuccess(res, {
+  return res.json({
     certificates: [],
   });
 }
@@ -46,12 +49,16 @@ export async function getMyCertificates(req, res) {
 export async function downloadCertificatePdf(req, res) {
   // TODO: stream from S3
   return sendError(req, res, 'PDF download not implemented yet (S3 + storage layer TODO).', 501, 'NOT_IMPLEMENTED');
+  return res
+    .status(501)
+    .json({ error: 'PDF download not implemented yet (S3 + storage layer TODO).' });
 }
 
 export async function getOpenBadge(req, res) {
   // TODO: return OpenBadges compliant JSON from stored badge assertion.
   const { id } = req.params;
   return sendSuccess(res, {
+  return res.json({
     id,
     openBadges: {
       '@context': 'https://w3.org/2018/credentials/v1',
@@ -68,6 +75,7 @@ export async function getCertificateVerificationShare(req, res) {
   const verifyUrl = `${process.env.PUBLIC_APP_URL || ''}/certificates/verify/${id}`;
 
   return sendSuccess(res, {
+  return res.json({
     id,
     linkedin: {
       shareUrl: verifyUrl,
@@ -89,6 +97,7 @@ export async function issueCertificates(req, res) {
 
   if (!eventId || attendeeIds.length === 0) {
     return sendError(req, res, 'eventId and attendeeIds[] are required', 400, 'VALIDATION_ERROR');
+    return res.status(400).json({ error: 'eventId and attendeeIds[] are required' });
   }
 
   // TODO: generate PDF/QR/badge and persist
@@ -103,4 +112,5 @@ export async function issueCertificates(req, res) {
   });
 
   return sendSuccess(res, { issued });
+  return res.json({ ok: true, issued });
 }
