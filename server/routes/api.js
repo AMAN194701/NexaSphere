@@ -99,6 +99,7 @@ import * as gamificationController from '../controllers/gamificationController.j
 
 import { impersonationService } from '../services/impersonationService.js';
 
+import { studentAuthService } from '../services/studentAuthService.js';
 import multer from 'multer';
 import * as analyticsController from '../controllers/analyticsController.js';
 const workflowAutomationRoutes = require("./workflowAutomation"); 
