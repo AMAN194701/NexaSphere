@@ -218,6 +218,23 @@ export default function ProjectsPage({ onBack, loading = false }) {
                             {tech}
                           </span>
                         ))}
+                <div className="project-modal-section">
+                  <h4 className="section-title">
+                    <Users size={16} /> Team
+                  </h4>
+                  <div className="project-team-list">
+                    {selectedProject.team.map((member, idx) => (
+                      <div key={member.name} className="team-member">
+                        <SafeImage
+                          src={member.photo}
+                          alt={member.name}
+                          className="team-member-photo"
+                          fallbackType="avatar"
+                        />
+                        <div className="team-member-info">
+                          <span className="team-member-name">{member.name}</span>
+                          <span className="team-member-role">{member.role}</span>
+                        </div>
                       </div>
                     </div>
 
