@@ -12,6 +12,7 @@ document.documentElement.setAttribute('data-theme', savedTheme);
 
 // Validate environment configurations
 validateEnvironment();
+import { HelmetProvider } from 'react-helmet-async';
 
 // Register service worker
 registerSW({ immediate: true });
@@ -42,4 +43,13 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>
+);
+    <HelmetProvider>
+      <GlobalErrorBoundary>
+        <ThemeProvider>
+          <App />
+        </ThemeProvider>
+      </GlobalErrorBoundary>
+    </HelmetProvider>
+  </StrictMode>
 );
