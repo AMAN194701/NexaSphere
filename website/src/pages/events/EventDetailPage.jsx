@@ -998,6 +998,13 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
         } catch (err) {
           if (import.meta.env.DEV) {
             console.warn('Failed to persist event registration ticket locally:', err);
+        } 
+        catch (error) {
+          if (import.meta.env.DEV) {
+            console.warn(
+              "Failed to store event registration in localStorage:",
+              error
+            );
           }
         }
       }
