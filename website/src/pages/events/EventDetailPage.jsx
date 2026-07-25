@@ -6,6 +6,15 @@ import { downloadICS } from '../../utils/icsExport';
 import { API_BASE } from '../../data/config';
 import apiClient from '../../utils/apiClient';
 import DOMPurify from 'dompurify';
+import {
+  downloadICS,
+  generateGoogleCalendarUrl,
+  generateOutlookCalendarUrl,
+} from '../../utils/icsExport';
+import {
+  showNotification,
+  requestNotificationPermission,
+} from '../../utils/pushNotificationClient';
 
 import {
   showNotification,
@@ -492,6 +501,9 @@ function MediaBtn({ href, icon, label, color }) {
 function QRTicketCard({ event, ticket, color, rgb, onCalendarDownload }) {
   const canvasRef = useRef(null);
   const ticketRef = useRef(null);
+  const [showCalendarMenu, setShowCalendarMenu] = useState(false);
+  const [showReminderMenu, setShowReminderMenu] = useState(false);
+  const [reminderSet, setReminderSet] = useState('');
   const [downloading, setDownloading] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -1286,6 +1298,12 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
                       background: reminderSet ? `rgba(34,197,94,0.15)` : `rgba(${rgb},0.1)`,
                       border: reminderSet ? `1px solid #22c55e` : `1px solid rgba(${rgb},0.3)`,
                       color: reminderSet ? '#22c55e' : color,
+                    onClick={() => setShowCalendarMenu(!showCalendarMenu)}
+                    title="Export to Calendar"
+                    style={{
+                      background: `rgba(${rgb},0.1)`,
+                      border: `1px solid rgba(${rgb},0.3)`,
+                      color: color,
                       borderRadius: '50%',
                       width: '28px',
                       height: '28px',
@@ -1305,11 +1323,23 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
                     <DynamicIcon name="Bell" size={14} />
                   </button>
                   {showReminderMenu && (
+                      e.currentTarget.style.background = `rgba(${rgb},0.2)`;
+                      e.currentTarget.style.transform = 'scale(1.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = `rgba(${rgb},0.1)`;
+                      e.currentTarget.style.transform = '';
+                    }}
+                  >
+                    <DynamicIcon name="CalendarPlus" size={14} />
+                  </button>
+                  {showCalendarMenu && (
                     <div
                       style={{
                         position: 'absolute',
                         top: '36px',
                         left: 0,
+                        right: 0,
                         background: 'var(--bg-card)',
                         border: '1px solid var(--border-subtle)',
                         borderRadius: '8px',
@@ -1317,6 +1347,7 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
                         zIndex: 10,
                         boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
                         minWidth: '160px',
+                        minWidth: '200px',
                       }}
                     >
                       <div
@@ -1335,6 +1366,17 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
                         onClick={() => handleSetReminder(15, '15 minutes')}
                         style={{
                           display: 'block',
+                        Add to Calendar
+                      </div>
+                      <button
+                        onClick={() => {
+                          setShowCalendarMenu(false);
+                          window.open(generateGoogleCalendarUrl(event), '_blank');
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
                           width: '100%',
                           textAlign: 'left',
                           padding: '8px 16px',
@@ -1353,6 +1395,17 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
                         onClick={() => handleSetReminder(60, '1 hour')}
                         style={{
                           display: 'block',
+                        <DynamicIcon name="Chrome" size={14} /> Google Calendar
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowCalendarMenu(false);
+                          window.open(generateOutlookCalendarUrl(event), '_blank');
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
                           width: '100%',
                           textAlign: 'left',
                           padding: '8px 16px',
@@ -1371,6 +1424,17 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
                         onClick={() => handleSetReminder(24 * 60, '1 day')}
                         style={{
                           display: 'block',
+                        <DynamicIcon name="Mail" size={14} /> Outlook
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowCalendarMenu(false);
+                          downloadICS(event);
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
                           width: '100%',
                           textAlign: 'left',
                           padding: '8px 16px',
@@ -1384,6 +1448,7 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
                         onMouseLeave={(e) => (e.target.style.background = 'none')}
                       >
                         1 day before
+                        <DynamicIcon name="Download" size={14} /> Apple / ICS
                       </button>
                     </div>
                   )}
