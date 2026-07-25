@@ -34,6 +34,11 @@ export default function GamificationDashboard() {
     }, 4000);
   };
 
+  const formatAchievementDate = (value) => {
+    const date = value ? new Date(value) : null;
+    return date && !Number.isNaN(date.getTime()) ? date.toLocaleDateString() : 'Unknown date';
+  };
+
   const loadData = async () => {
     const stats = gamificationService.getUserStats();
     setUserStats(stats);
