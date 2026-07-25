@@ -38,6 +38,8 @@ export const initializeWorkspaces = () => {
   try {
     return JSON.parse(stored);
   } catch (error) {
+    logger.error('Malformed workspace data in localStorage, resetting to defaults:', error);
+    localStorage.setItem(WORKSPACES_KEY, JSON.stringify(DEFAULT_WORKSPACES));
     return DEFAULT_WORKSPACES;
   }
 };
