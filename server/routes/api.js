@@ -760,6 +760,8 @@ router.use('/budgets', budgetRoutes);
 router.use("/maintenance", maintenanceRoutes);
 router.use("/workspaces", workspaceRoutes);
 router.use('/api/announcements', announcementPriorityRouter);
+router.use("/api/events", eventConflictRouter);
+
 router.use(
   "/api/admin/waitlist",
   waitlistRoutes
