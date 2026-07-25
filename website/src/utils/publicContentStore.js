@@ -89,6 +89,9 @@ export function mergeEvents(fallbackEvents = [], liveEvents = []) {
   // The spread operator order (...previous, ...event) gives live values precedence.
   const filteredFallback = fallbackEvents.filter((event) => !tombstones.includes(String(event.id)));
   const filteredLive = liveEvents.filter((event) => !tombstones.includes(String(event.id)));
+
+  // Merge events by ID, with live data taking priority over fallback data.
+  // The spread operator order (...previous, ...event) gives live values precedence.
   return mergeById(filteredFallback, toArray(filteredLive), (previous, event, key) => ({
     ...previous,
     ...event,
