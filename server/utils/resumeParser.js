@@ -5,6 +5,11 @@ const pdfParse = require('pdf-parse');
 /**
  * Parses buffer of a PDF file to extract raw text content.
  * @param {Buffer} buffer
+import pdfParse from 'pdf-parse';
+
+/**
+ * Parses buffer of a PDF file to extract raw text content.
+ * @param {Buffer} buffer 
  * @returns {Promise<string>}
  */
 export async function parseResumePDF(buffer) {

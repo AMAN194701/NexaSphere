@@ -98,6 +98,8 @@ const LiveStreamPage = lazy(() => import('./pages/streaming/LiveStreamPage'));
 const ResourcesPage = lazy(() => import('./pages/resources/ResourcesPage'));
 const NotificationHistoryPage = lazy(() => import('./pages/notifications/NotificationHistoryPage'));
 const SponsorsPage = lazy(() => import('./pages/sponsors/SponsorsPage'));
+const RecommendationsPage = lazy(() => import('./pages/resume/RecommendationsPage'));
+
 
 const ResourcesPage = lazy(() => import('./pages/resources/ResourcesPage')); //issue #1861
 const MNH = 88,
@@ -605,6 +607,11 @@ function MainRouter({
       '/analytics': 'Analytics',
       '/explore': 'Explore',
       '/forum': 'Forum',
+      '/mentorship': 'Mentorship',
+      '/mentorship/mentors': 'Mentorship',
+      '/mentorship/dashboard': 'Mentorship',
+      '/sponsors': 'Sponsors',
+      '/recommendations': 'Recommendations',
     };
     const tab = pathMap[location.pathname] || 'Home';
     setActiveTab(tab);
@@ -672,6 +679,9 @@ function MainRouter({
         'Core Team': '/team',
         Contact: '/contact',
         Forum: '/forum',
+        Mentorship: '/mentorship',
+        Sponsors: '/sponsors',
+        Recommendations: '/recommendations',
       };
       const targetPath = routeMap[tab];
       if (targetPath) {
@@ -1146,6 +1156,16 @@ function MainRouter({
                     <ResourcesPage onBack={onBackHome} />
                   </PageIn>
                 </ErrorBoundary>
+              }
+            />
+
+            {/* ── Recommendations ── */}
+            <Route
+              path="/recommendations"
+              element={
+                <PageIn k="recommendations">
+                  <RecommendationsPage onBack={onBackHome} />
+                </PageIn>
               }
             />
 

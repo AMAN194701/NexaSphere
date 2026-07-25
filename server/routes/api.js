@@ -114,6 +114,8 @@ router.use(throttleMiddleware);
 
 router.use(rateLimitAdminRoutes);
 router.use(throttleMiddleware);
+import * as recommendationsController from '../controllers/recommendationsController.js';
+import multer from 'multer';
 
 const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
@@ -147,6 +149,11 @@ router.post(
   upload.single('file'),
   recommendationsController.getProjectRecommendations
 );
+
+const router = Router();
+
+// Public
+router.post('/api/assistant/recommend', upload.single('file'), recommendationsController.getProjectRecommendations);
 router.get('/api/users', usersController.getPublicUsers);
 router.post('/api/whiteboard/export-pdf', whiteboardController.exportPDF);
 /**
