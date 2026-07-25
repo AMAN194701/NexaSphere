@@ -341,6 +341,6 @@ export function useSearch(activities, events, apiBase = '') {
     setApiError(null);
   }, []);
 
-  return { query, setQuery, filter, setFilter, results, loading, clearSearch };
+  return { query, setQuery, filter, setFilter, results, loading, apiError, clearSearch };
 }
 return { query, setQuery, filter, setFilter, results, loading, clearSearch, apiError };
