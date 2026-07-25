@@ -34,6 +34,7 @@ export const webhookService = {
       events: data.events,
       isActive: data.isActive !== false,
       createdBy: user?.username || 'unknown',
+      createdBy: user.id,
     });
   },
 
