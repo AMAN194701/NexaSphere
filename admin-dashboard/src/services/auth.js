@@ -6,11 +6,9 @@ let _scopes = [];
 let _impersonatingUser = null;
 
 let refreshPromise = null;
+import { API_BASE_URL } from "../config";
 
-export const auth = {
-  async login(email, password) {
-    const cleanEmail = email.trim().toLowerCase();
-    const cleanPassword = password.trim();
+export const adminLogin = async (email, password) => {
 
     const res = await fetch(`${API_BASE}/api/admin/login`, {
       method: 'POST',
@@ -94,8 +92,21 @@ export const auth = {
       return await refreshPromise;
     } finally {
       refreshPromise = null;
+  const response = await fetch(
+    `${API_BASE_URL}/api/admin/login`,
+    {
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json",
+      },
+
+      body: JSON.stringify({
+        email,
+        password,
+      }),
     }
-  },
+  );
 
   async verifySession() {
     try {
@@ -210,4 +221,12 @@ export const adminSecurity = {
   getAuditExportUrl(query = '') {
     return `${API_BASE}/api/admin/audit-logs/export?search=${encodeURIComponent(query)}`;
   },
+};
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Login Failed");
+  }
+
+  return data;
 };

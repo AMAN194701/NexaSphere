@@ -570,3 +570,5 @@ Thanks to all contributors ❤️
 ## 📄 License
 
 [MIT](LICENSE) © NexaSphere Core Team
+ADMIN_EMAIL=your_admin_email
+ADMIN_PASSWORD=your_secure_password
