@@ -239,10 +239,15 @@ function mapRow(row) {
   return {
     username: row.username,
     theme: row.theme,
-    visibleSections: typeof row.visible_sections === 'string' ? JSON.parse(row.visible_sections) : row.visible_sections || {},
-    socialLinks: typeof row.social_links === 'string' ? JSON.parse(row.social_links) : row.social_links || {},
+    visibleSections:
+      typeof row.visible_sections === 'string'
+        ? JSON.parse(row.visible_sections)
+        : row.visible_sections || {},
+    socialLinks:
+      typeof row.social_links === 'string' ? JSON.parse(row.social_links) : row.social_links || {},
     customDomain: row.custom_domain || '',
-    seoMetadata: typeof row.seo_metadata === 'string' ? JSON.parse(row.seo_metadata) : row.seo_metadata || {},
+    seoMetadata:
+      typeof row.seo_metadata === 'string' ? JSON.parse(row.seo_metadata) : row.seo_metadata || {},
     skills: typeof row.skills === 'string' ? JSON.parse(row.skills) : row.skills || [],
     badges: typeof row.badges === 'string' ? JSON.parse(row.badges) : row.badges || [],
     projects: typeof row.projects === 'string' ? JSON.parse(row.projects) : row.projects || [],
@@ -313,6 +318,9 @@ export const portfolioRepository = {
             'SELECT * FROM portfolios WHERE LOWER(username) = $1',
             [sanitizedUsername]
           );
+          const { rows } = await client.query('SELECT * FROM portfolios WHERE username = $1', [
+            sanitizedUsername,
+          ]);
           if (!rows.length) return null;
           return mapRow(rows[0]);
         });
@@ -481,7 +489,12 @@ export const portfolioRepository = {
     const passkeyHash = hashPasskey(data.passkey);
 
     const theme = data.theme || 'glassmorphic';
-    const visibleSections = data.visibleSections || { quests: true, roadmaps: true, projects: true, analytics: false };
+    const visibleSections = data.visibleSections || {
+      quests: true,
+      roadmaps: true,
+      projects: true,
+      analytics: false,
+    };
     const socialLinks = data.socialLinks || {};
     const customDomain = data.customDomain || '';
     const seoMetadata = data.seoMetadata || {};
@@ -650,6 +663,7 @@ export const portfolioRepository = {
       delete portfolios[username].deletedAt;
       await writeLocalPortfolios(portfolios);
     }
+    throw new Error('Portfolio storage is unavailable. Please try again later.');
   },
 };
 

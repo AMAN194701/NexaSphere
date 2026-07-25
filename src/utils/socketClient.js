@@ -8,6 +8,7 @@ import { captureHandledException } from './errorTracking';
 import { getSocketPath, getSocketServerUrl } from './runtimeConfig';
 
 let socket = null;
+const eventHandlers = {};
 let currentSocketUrl = '';
 let warnedMissingSocketConfig = false;
 
@@ -85,6 +86,8 @@ export function initializeSocket(serverUrl = getSocketServerUrl()) {
       'Socket.IO reconnect failed:'
     );
   });
+  // Setup custom event listeners
+  setupEventListeners();
 
   return socket;
 }

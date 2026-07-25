@@ -86,6 +86,8 @@ test('Security + Concurrency Validation', async (t) => {
     adminAuthMiddleware._clearAllLoginAttempts();
 
     const { req, res } = createMockReqRes('192.168.0.1', 'admin', 'wrongpass');
+    const ip = '192.168.1.50';
+    const { req, res } = createMockReqRes(ip, 'admin', 'wrongpass');
 
     await adminAuthMiddleware.login(req, res);
 
@@ -115,6 +117,26 @@ test('Security + Concurrency Validation', async (t) => {
 
     await adminAuthMiddleware.login(success.req, success.res);
 
+    const ip = '192.168.1.60';
+
+    // Failed attempt 1
+    const { req: reqFail, res: resFail } = createMockReqRes(ip, 'admin', 'wrongpass');
+    await adminAuthMiddleware.login(reqFail, resFail);
+    assert.equal(resFail.statusCode(), 401);
+    assert.equal(adminAuthMiddleware._getLoginAttemptsMapSize(), 1);
+
+    // Successful attempt
+    const { req: reqSuccess, res: resSuccess } = createMockReqRes(
+      ip,
+      'admin',
+      'AdminStrongPass123!'
+    );
+    await adminAuthMiddleware.login(reqSuccess, resSuccess);
+
+    // The credentials match and success returns 200 (or calls createAdminSession which fails because DB isn't connected, returning 500 but it should have cleared the attempts first!)
+    // Yes! clearLoginAttempts(ip) is called before createAdminSession:
+    // 113: clearLoginAttempts(ip);
+    // 115: const session = await createAdminSession({...})
     assert.equal(adminAuthMiddleware._getLoginAttemptsMapSize(), 0);
   });
 
@@ -122,6 +144,12 @@ test('Security + Concurrency Validation', async (t) => {
     adminAuthMiddleware._clearAllLoginAttempts();
 
     const ip = '192.168.0.3';
+    const ip = '192.168.1.70';
+
+    // Attempt 1: Failed (Attempts set to 1)
+    const { req: req1, res: res1 } = createMockReqRes(ip, 'admin', 'wrongpass');
+    await adminAuthMiddleware.login(req1, res1);
+    assert.equal(res1.statusCode(), 401);
 
     for (let i = 0; i < 3; i++) {
       const { req, res } = createMockReqRes(ip, 'admin', 'wrongpass');
@@ -153,6 +181,7 @@ test('Security + Concurrency Validation', async (t) => {
   await t.test('Massive forwarded header is safe', async () => {
     adminAuthMiddleware._clearAllLoginAttempts();
 
+    const massiveHeader = '1.1.1.1,' + 'A'.repeat(50000);
     const req = {
       body: {
         username: 'admin',
@@ -174,6 +203,12 @@ test('Security + Concurrency Validation', async (t) => {
         return this;
       },
 
+    let statusCode = 200;
+    const res = {
+      status(code) {
+        statusCode = code;
+        return this;
+      },
       json() {
         return this;
       },
@@ -207,6 +242,84 @@ test('Security + Concurrency Validation', async (t) => {
 
     assert.equal(adminAuthMiddleware._getLoginAttemptsMapSize(), 5);
 
+  await t.test(
+    'Adversarial: Eviction priority evicts blocked IPs before unblocked ones',
+    async () => {
+      adminAuthMiddleware._clearAllLoginAttempts();
+
+      const blockedIp = '10.0.0.1';
+      const unblockedIp = '10.0.0.2';
+
+      // Block blockedIp with 3 failed attempts (> max 2)
+      for (let i = 0; i < 3; i++) {
+        const { req, res } = createMockReqRes(blockedIp, 'admin', 'wrongpass');
+        await adminAuthMiddleware.login(req, res);
+      }
+      const { req: reqCheckBlocked, res: resCheckBlocked } = createMockReqRes(
+        blockedIp,
+        'admin',
+        'wrongpass'
+      );
+      await adminAuthMiddleware.login(reqCheckBlocked, resCheckBlocked);
+      assert.equal(resCheckBlocked.statusCode(), 429);
+
+      // Add unblockedIp with 1 failed attempt
+      const { req: reqUnblocked, res: resUnblocked } = createMockReqRes(
+        unblockedIp,
+        'admin',
+        'wrongpass'
+      );
+      await adminAuthMiddleware.login(reqUnblocked, resUnblocked);
+      assert.equal(resUnblocked.statusCode(), 401);
+
+      // Flood map with 8 more unique IPs to fill past capacity (5) and trigger eviction
+      for (let i = 3; i <= 10; i++) {
+        const { req, res } = createMockReqRes(`10.0.0.${i}`, 'admin', 'wrongpass');
+        await adminAuthMiddleware.login(req, res);
+      }
+
+      assert.equal(adminAuthMiddleware._getLoginAttemptsMapSize(), 5);
+
+      // blockedIp must be evicted (blocked IPs are evicted first)
+      const { req: reqVerifyEvicted, res: resVerifyEvicted } = createMockReqRes(
+        blockedIp,
+        'admin',
+        'wrongpass'
+      );
+      await adminAuthMiddleware.login(reqVerifyEvicted, resVerifyEvicted);
+      assert.equal(resVerifyEvicted.statusCode(), 401);
+
+      // unblockedIp must still be in map (unblocked IPs preserved)
+      const { req: reqVerifyPreserved, res: resVerifyPreserved } = createMockReqRes(
+        unblockedIp,
+        'admin',
+        'wrongpass'
+      );
+      await adminAuthMiddleware.login(reqVerifyPreserved, resVerifyPreserved);
+      assert.equal(resVerifyPreserved.statusCode(), 401);
+    }
+  );
+
+  await t.test('Stress & Concurrency: 1000 Concurrent Requests', async () => {
+    adminAuthMiddleware._clearAllLoginAttempts();
+
+    const startTime = Date.now();
+    const concurrentRequests = 1000;
+    const promises = [];
+
+    for (let i = 0; i < concurrentRequests; i++) {
+      const ip = `172.16.0.${i % 254}`;
+      const { req, res } = createMockReqRes(ip, 'admin', 'wrongpass');
+      promises.push(adminAuthMiddleware.login(req, res));
+    }
+
+    await Promise.all(promises);
+    const duration = Date.now() - startTime;
+
+    console.log(
+      `[Combined Concurrency Test] Processed ${concurrentRequests} requests in ${duration}ms`
+    );
+    assert.equal(adminAuthMiddleware._getLoginAttemptsMapSize(), 5);
     assert.ok(duration < 500);
   });
 });

@@ -70,6 +70,10 @@ test('activityEventsService.addActivityEvent accepts authorized requests', async
     coreTeamName: TEST_MEMBER.name,
     coreTeamEmail: TEST_MEMBER.email,
     coreTeamPhone: TEST_MEMBER.whatsapp,
+    // Matching one of the core team fallback members defined in coreTeamService.js
+    coreTeamName: 'Ayush Sharma',
+    coreTeamEmail: 'ayush@example.com',
+    coreTeamPhone: '9876543210',
   };
 
   const result = await activityEventsService.addActivityEvent('hackathons', authorizedInput);

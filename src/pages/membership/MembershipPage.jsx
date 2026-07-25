@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFormDraft } from '../../hooks/useFormDraft';
+import apiClient from '../../utils/apiClient.js';
+import useFormValidation from '../../hooks/useFormValidation';
 import {
   DynamicIcon,
   IconArrowLeft,
@@ -276,6 +278,23 @@ export default function MembershipPage({ onBack }) {
     INITIAL_FORM
   );
 
+  const [form, setForm] = useState({
+    fullName: '',
+    collegeEmail: '',
+    rollNumber: '',
+    course: '',
+    courseOther: '',
+    branch: '',
+    branchOther: '',
+    section: '',
+    sectionOther: '',
+    semester: '',
+    whatsapp: '',
+
+    groups: [],
+    whyJoin: '',
+  });
+
   function set(key, val) {
     setForm((f) => ({ ...f, [key]: val }));
   }
@@ -452,6 +471,14 @@ export default function MembershipPage({ onBack }) {
                 { icon: 'Megaphone', label: 'Management & Events' },
                 { icon: 'Briefcase', label: 'Career & Placement' },
                 { icon: 'Palette', label: 'Design & Media' },
+                { icon: '🔐', label: 'Cybersecurity' },
+                { icon: '🤖', label: 'AI / Machine Learning' },
+                { icon: '🌐', label: 'Web Development' },
+                { icon: '☁️', label: 'Cloud & AWS' },
+                { icon: '📱', label: 'Android Development' },
+                { icon: '📢', label: 'Management & Events' },
+                { icon: '💼', label: 'Career & Placement' },
+                { icon: '🎨', label: 'Design & Media' },
               ].map((d) => (
                 <div
                   key={d.label}
@@ -544,6 +571,7 @@ export default function MembershipPage({ onBack }) {
               <span style={{ display: 'flex', color: 'var(--c2)' }}>
                 <DynamicIcon name="Link" size={20} />
               </span>
+              <span style={{ fontSize: '1.1rem' }}>🔗</span>
               <span style={{ fontSize: '.88rem', color: 'var(--t2)', flex: 1 }}>
                 Before filling the form, please follow our official LinkedIn page:
               </span>
@@ -1029,6 +1057,7 @@ export default function MembershipPage({ onBack }) {
                   >
                     <DynamicIcon name="Rocket" size={38} />
                   </div>
+                  <div style={{ fontSize: '2.4rem', marginBottom: 14 }}>🚀</div>
                   <div
                     style={{
                       fontFamily: 'Orbitron,monospace',
@@ -1175,6 +1204,7 @@ export default function MembershipPage({ onBack }) {
                     style={{ display: 'inline', verticalAlign: '-2px', marginRight: 4 }}
                   />{' '}
                   Questions? Reach us at{' '}
+                  📌 Questions? Reach us at{' '}
                   <a
                     href="mailto:nexasphere@glbajajgroup.org"
                     style={{ color: 'var(--c1)', textDecoration: 'none' }}

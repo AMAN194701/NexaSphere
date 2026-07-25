@@ -222,6 +222,7 @@ import CollabPage from './pages/collab/CollabPage';
 import PortfolioBuilder from './components/portfolio/PortfolioBuilder';
 import PublicPortfolio from './pages/portfolio/PublicPortfolio';
 import DashboardPage from './pages/dashboard/DashboardPage';
+import AnalyticsPage from './pages/analytics/AnalyticsPage';
 
 import { activityPages } from './data/activities/index';
 import { events as fallbackEvents } from './data/eventsData';
@@ -357,6 +358,26 @@ const INTERVIEW_SUBPAGES = ['dashboard', 'quiz', 'code', 'analytics'];
 
 const MNH = 88, DNH = 64;
 const TABS = ['Home','Dashboard','Activities','Events','Projects','Roadmaps','Portfolio','Collab','About','Team','Contact'];
+import MoveToTop from './shared/MoveToTop';
+import OfflineBanner from './components/pwa/OfflineBanner.jsx';
+import InstallPrompt from './components/pwa/InstallPrompt.jsx';
+import UpdatePrompt from './components/pwa/UpdatePrompt.jsx';
+
+const MNH = 88,
+  DNH = 86;
+const TABS = [
+  'Home',
+  'Dashboard',
+  'Activities',
+  'Events',
+  'Projects',
+  'Roadmaps',
+  'Portfolio',
+  'Collab',
+  'About',
+  'Team',
+  'Contact',
+];
 
 import BookmarksDrawer   from './components/bookmarks/BookmarksDrawer';
 // src/App.jsx
@@ -537,6 +558,12 @@ function PageIn({ children, k }) {
     return () => cancelAnimationFrame(raf);
   }, [k]);
   return (
+  const [r, setR] = useState(false);
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setR(true));
+    return () => cancelAnimationFrame(raf);
+  }, [k]);
+  return (
     <div
       style={{
         opacity: r ? 1 : 0,
@@ -618,6 +645,15 @@ function Cursor() {
   const trailRef = useRef(null);
   const glowRef = useRef(null);
   const stateRef = useRef({
+    mx: 0,
+    my: 0,
+    ox: 0,
+    oy: 0,
+    floatY: 0,
+    floatPhase: 0,
+    hovering: false,
+    clicking: false,
+    visible: true,
     mx: 0,
     my: 0,
     ox: 0,
@@ -1077,6 +1113,11 @@ export default function App() {
     );
   }
 
+  return <MainApp />;
+}
+
+/* ── Main app — all hooks live here, always called unconditionally ── */
+function MainApp() {
   const [cinDone, setCinDone] = useState(false);
   const [activeTab, setActiveTab] = useState('Home');
   const [mobile, setMobile] = useState(window.innerWidth <= 768);
@@ -1089,6 +1130,7 @@ export default function App() {
   const [page, setPage] = useState(null);
   const [eventsData, setEventsData] = useState(fallbackEvents);
   const [searchOpen, setSearchOpen] = useState(false); // ← Search state
+  const [searchOpen, setSearchOpen] = useState(false); // 🔍 Search state
   const [bookmarksOpen, setBookmarksOpen] = useState(false);
   const { resolvedTheme: theme, setTheme } = useTheme();
   const { isOpen: isTerminalOpen, closeTerminal } = useDeveloperMode();
@@ -1265,6 +1307,7 @@ export default function App() {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
       })
+    apiClient(url)
       .then((data) => {
         if (!alive) return;
         if (data && Array.isArray(data.events)) {
@@ -1359,6 +1402,14 @@ export default function App() {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
     window.addEventListener("resize", fn, { passive: true });
     return () => window.removeEventListener("resize", fn);
+    const fn = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setSearchOpen((s) => !s);
+      }
+    };
+    window.addEventListener('keydown', fn);
+    return () => window.removeEventListener('keydown', fn);
   }, []);
 
   /* ── Ctrl+K / Cmd+K opens search ── */
@@ -1545,6 +1596,7 @@ export default function App() {
             : "";
       });
       document.querySelectorAll(".activity-card").forEach((card) => {
+      document.querySelectorAll('.activity-card').forEach((card) => {
         const rect = card.getBoundingClientRect();
         const cx = rect.left + rect.width / 2;
         const cy = rect.top + rect.height / 2;
@@ -1635,6 +1687,8 @@ export default function App() {
     setWipePh('out');
     setWipeOn(true);
     setWipePh("out");
+    setWipeOn(true);
+    setWipePh('out');
     setTimeout(() => {
       fn();
       window.scrollTo({ top: 0 });
@@ -1692,14 +1746,62 @@ export default function App() {
   const onNavigate = useCallback((type, title) => {
     if (type === 'activity') nav(() => setPage({ type: 'activity', activityKey: title }));
   }, [nav]);
+  const onTab = useCallback(
+    (tab) => {
+      if (
+        [
+          'Dashboard',
+          'Analytics',
+          'Activities',
+          'Events',
+          'Projects',
+          'Roadmaps',
+          'Portfolio',
+          'Collab',
+          'About',
+          'Team',
+          'Contact',
+        ].includes(tab)
+      ) {
+        nav(() => {
+          setPage({ type: 'section', section: tab });
+          setActiveTab(tab);
+        });
+        return;
+      }
+      nav(() => {
+        setPage(null);
+        setActiveTab(tab);
+        setTimeout(() => {
+          const el = document.getElementById(`section-${tab.toLowerCase()}`);
+          if (!el) return;
+          window.scrollTo({ top: el.offsetTop - (mobile ? MNH : DNH), behavior: 'smooth' });
+        }, 50);
+      });
+    },
+    [nav, mobile]
+  );
 
-  const onEvent = useCallback(ev => {
-    nav(() => setPage(p => ({ ...p, type: 'event', event: ev })));
-  }, [nav]);
+  const onNavigate = useCallback(
+    (type, title) => {
+      if (type === 'activity') nav(() => setPage({ type: 'activity', activityKey: title }));
+    },
+    [nav]
+  );
 
-  const onKSSClick = useCallback(ev => {
-    nav(() => setPage({ type: 'event', activityKey: 'Insight Session', event: ev }));
-  }, [nav]);
+  const onEvent = useCallback(
+    (ev) => {
+      nav(() => setPage((p) => ({ ...p, type: 'event', event: ev })));
+    },
+    [nav]
+  );
+
+  const onKSSClick = useCallback(
+    (ev) => {
+      nav(() => setPage({ type: 'event', activityKey: 'Insight Session', event: ev }));
+    },
+    [nav]
+  );
 
   const onBackAct = useCallback(() => {
     nav(() => setPage(p => ({ type: 'activity', activityKey: p.activityKey })));
@@ -1892,6 +1994,7 @@ export default function App() {
     nav(() =>
       setPage((p) => ({ type: "activity", activityKey: p.activityKey }))
     );
+    nav(() => setPage((p) => ({ type: 'activity', activityKey: p.activityKey })));
   }, [nav]);
 
   const onBackMain = useCallback(() => {
@@ -1993,9 +2096,7 @@ export default function App() {
       <Cursor />
       <Wipe on={wipeOn} ph={wipePh} />
 
-      {!cinDone && (
-        <CinematicOpening theme={theme} onDone={() => setCinDone(true)} />
-      )}
+      {!cinDone && <CinematicOpening theme={theme} onDone={() => setCinDone(true)} />}
 
       {cinDone && <ScrollProgress />}
       <Cursor />
@@ -2194,6 +2295,36 @@ export default function App() {
               <PublicPortfolio username={page.username} onBack={onBackHome} />
             )}
             {page.section === 'Dashboard' && <DashboardPage onBack={onBackHome} />}
+            {page.section === 'Activities' && (
+              <ActivitiesPage onNavigate={onNavigate} onBack={onBackHome} />
+            )}
+            {page.section === 'Events' && (
+              <EventsPage onBack={onBackHome} onEventClick={onKSSClick} events={eventsData} />
+            )}
+            {page.section === 'Projects' && <ProjectsPage onBack={onBackHome} />}
+            {page.section === 'Roadmaps' && <RoadmapsPage onBack={onBackHome} />}
+            {page.section === 'Portfolio' && <PortfolioBuilder />}
+            {page.section === 'Collab' && <CollabPage onBack={onBackHome} />}
+            {page.section === 'About' && <AboutPage onBack={onBackHome} />}
+            {page.section === 'Team' && <TeamPage onBack={onBackHome} onApply={openApply} />}
+            {page.section === 'Contact' && <ContactPage onBack={onBackHome} />}
+            {page.type === 'activity' && cur && (
+              <ActivityDetailPage activity={cur} onBack={onBackMain} onSelectEvent={onEvent} />
+            )}
+            {page.type === 'apply' && <RecruitmentPage onBack={onBackHome} />}
+            {page.type === 'join' && <MembershipPage onBack={onBackHome} />}
+            {page.type === 'admin' && <AdminPage onBack={onBackHome} />}
+            {page.type === 'event' && page.event && (
+              <EventDetailPage
+                event={page.event}
+                onBack={page.activityKey ? onBackAct : onBackMain}
+              />
+            )}
+            {page.type === 'portfolio' && (
+              <PublicPortfolio username={page.username} onBack={onBackHome} />
+            )}
+            {page.section === 'Dashboard' && <DashboardPage onBack={onBackHome} />}
+            {page.section === 'Analytics' && <AnalyticsPage onBack={onBackHome} />}
             {page.section === 'Activities' && (
               <ActivitiesPage onNavigate={onNavigate} onBack={onBackHome} />
             )}
@@ -2472,6 +2603,7 @@ export default function App() {
         onClose={closeTerminal}
         theme={theme}
         setTheme={setTheme}
+        setTheme={() => {}}
         onNavigate={onTab}
       />
 

@@ -26,7 +26,10 @@ pg.Pool = class MockPool {
 
         const sqlLower = sql.toLowerCase();
         if (sqlLower.includes('select token_hash')) {
-          return { rows: mockQueriesResult.select, rowCount: mockQueriesResult.select.length };
+          return {
+            rows: mockQueriesResult.select,
+            rowCount: mockQueriesResult.select.length,
+          };
         }
         if (sqlLower.includes('update admin_sessions')) {
           if (sqlLower.includes('returning token_hash')) {

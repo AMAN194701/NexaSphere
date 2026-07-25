@@ -151,6 +151,7 @@ export const getPinnedPrompts = async (workspace = null) => {
   } catch (error) {
     logger.error('Error retrieving pinned prompts:', error);
     return getPinnedPromptsFromLocalStorage(workspace);
+    return [];
   }
 };
 

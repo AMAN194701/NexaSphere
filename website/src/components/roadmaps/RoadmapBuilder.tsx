@@ -16,15 +16,27 @@ import { roadmapData } from '../../data/roadmapData';
 // when accessing domain keys and title fields in the builder.
 type RoadmapDataMap = Record<string, StaticRoadmap>;
 import {
+import { parseStaticRoadmap } from '../../utils/roadmapParser';
+import {
+  exportToJSON,
+  validateRoadmapJSON,
+  downloadSVG,
+  downloadPNG,
+} from '../../utils/exportRoadmap';
+import { roadmapData } from '../../data/roadmapData';
+import type { RoadmapDataMap } from '../../types/roadmap';
+import {
   ArrowLeft,
   Plus,
   Download,
   Upload,
   RotateCcw,
+  Sparkles,
   Layers,
   BookOpen,
   AlertCircle,
   Edit,
+  Save,
   Check,
 } from 'lucide-react';
 
@@ -32,6 +44,7 @@ interface RoadmapBuilderInnerProps {
   onBack: () => void;
 }
 
+const typedRoadmapData = roadmapData as RoadmapDataMap;
 const RoadmapBuilderInner: React.FC<RoadmapBuilderInnerProps> = ({ onBack }) => {
   const {
     nodes,
@@ -103,6 +116,15 @@ const RoadmapBuilderInner: React.FC<RoadmapBuilderInnerProps> = ({ onBack }) => 
     if (!domainKey) return;
     if (nodes.length > 0) {
       setPendingImportKey(domainKey);
+    const staticData = typedRoadmapData[domainKey];
+    if (!staticData) return;
+
+    if (
+      nodes.length > 0 &&
+      !confirm(
+        'Loading this base template will overwrite your active workspace. Do you wish to continue?'
+      )
+    ) {
       return;
     }
     applyImport(domainKey);

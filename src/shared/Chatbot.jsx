@@ -15,9 +15,16 @@ const Chatbot = () => {
       text: aiApiUrl
         ? 'Nexa-Intelligence Online. How can I assist your journey?'
         : 'Our AI assistant is currently offline. Please reach out via the Contact page.',
+  const [isSending, setIsSending] = useState(false);
+  const [messages, setMessages] = useState([
+    {
+      role: 'bot',
+      text: 'Nexa-Intelligence Online. How can I assist your journey?',
     },
     { role: 'bot', text: 'Nexa-Intelligence Online. How can I assist your journey?' },
   ]);
+  const [showSidebar, setShowSidebar] = useState(false);
+  const [currentWorkspace, setCurrentWorkspace] = useState('default');
   const scrollRef = useRef(null);
 
   // Auto-scroll to bottom when new messages arrive
@@ -29,6 +36,28 @@ const Chatbot = () => {
 
   const handleSend = async () => {
     if (!input.trim()) return;
+  // Auto-save last prompt-response pair when new bot message arrives
+  useEffect(() => {
+    if (messages.length >= 2) {
+      const lastBotMsg = [...messages].reverse().find((m) => m.role === 'bot');
+      const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user');
+
+      if (lastBotMsg && lastUserMsg) {
+        const lastBotIndex = messages.indexOf(lastBotMsg);
+        const lastUserIndex = messages.indexOf(lastUserMsg);
+
+        // Only save if the bot message is more recent than the last saved one
+        if (lastBotIndex > lastUserIndex) {
+          savePrompt(lastUserMsg.text, lastBotMsg.text, currentWorkspace).catch((err) => {
+            console.error('Error saving prompt:', err);
+          });
+        }
+      }
+    }
+  }, [messages, currentWorkspace]);
+
+  const handleSend = async () => {
+    if (!input.trim() || isSending) return;
     const userMsg = { role: 'user', text: input };
     setMessages((prev) => [...prev, userMsg]);
     const currentInput = input;
@@ -65,6 +94,9 @@ const Chatbot = () => {
       const data = await response.json();
       setMessages((prev) => [...prev, { role: 'bot', text: data.reply }]);
     } catch (e) {
+      setMessages((prev) => [...prev, { role: 'bot', text: data.reply }]);
+    } catch (e) {
+      console.error('AI chat request failed', e);
       setMessages((prev) => [
         ...prev,
         {
@@ -91,6 +123,21 @@ const Chatbot = () => {
     <div className="ns-chatbot-wrapper">
       {!isOpen ? (
         <button className="chat-trigger-btn" onClick={() => setIsOpen(true)} aria-label="Open chat">
+  const handleSelectPrompt = (prompt) => {
+    setMessages([
+      {
+        role: 'bot',
+        text: 'Nexa-Intelligence Online. How can I assist your journey?',
+      },
+      { role: 'user', text: prompt.userPrompt },
+      { role: 'bot', text: prompt.botResponse },
+    ]);
+    setShowSidebar(false);
+  };
+
+  return (
+    <div className="ns-chatbot-wrapper">
+      {!isOpen ? (
         <button
           className="chat-trigger-btn"
           onClick={() => setIsOpen(true)}

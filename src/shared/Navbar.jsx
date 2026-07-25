@@ -46,20 +46,22 @@ const TABS = [
 ];
 
 import { ThemeToggle } from "../components/common/ThemeToggle";
+import { BRAND_LOGO_FULL, BRAND_LOGO_ICON } from './brandAssets';
+import NotificationBell from '../components/NotificationBell';
 
 const TABS = [
-  "Home",
-  "Activities",
-  "Events",
-  "Projects",
-  "Roadmaps",
-  "Portfolio",
-  "About",
-  "Team",
-  "Contact",
+  'Home',
+  'Activities',
+  'Events',
+  'Projects',
+  'Roadmaps',
+  'Portfolio',
+  'About',
+  'Team',
+  'Contact',
 ];
 
-import { ThemeToggle } from "../components/common/ThemeToggle";
+import { ThemeToggle } from '../components/common/ThemeToggle';
 
   let label = t('nav.switch_dark', 'Switch to dark mode');
   let title = t('nav.light_mode', 'Light mode');
@@ -123,16 +125,16 @@ function BookmarkToggle({ isOpen = false, onToggle, controlsId = BOOKMARKS_DRAWE
       aria-controls={controlsId}
       title="Saved Bookmarks"
       style={{
-        background: "none",
-        border: "none",
-        color: "var(--t1)",
-        cursor: "pointer",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "6px",
-        borderRadius: "50%",
-        transition: "background 0.2s",
+        background: 'none',
+        border: 'none',
+        color: 'var(--t1)',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '6px',
+        borderRadius: '50%',
+        transition: 'background 0.2s',
       }}
       onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
       onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
@@ -213,6 +215,7 @@ export default function Navbar({
   bookmarksOpen = false,
   onToggleBookmarks,
 }) {
+export default function Navbar({ activeTab, onTabChange, onApply, onJoin, onToggleBookmarks }) {
   const [scrolled, setScrolled] = useState(false);
   const [mobile, setMobile] = useState(window.innerWidth <= 768);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -229,9 +232,11 @@ export default function Navbar({
     window.addEventListener('resize', r, { passive: true });
     window.addEventListener("scroll", s, { passive: true });
     window.addEventListener("resize", r, { passive: true });
+    window.addEventListener('scroll', s, { passive: true });
+    window.addEventListener('resize', r, { passive: true });
     return () => {
-      window.removeEventListener("scroll", s);
-      window.removeEventListener("resize", r);
+      window.removeEventListener('scroll', s);
+      window.removeEventListener('resize', r);
     };
   }, []);
 
@@ -509,21 +514,17 @@ export default function Navbar({
       <nav className="ns-navbar-mobile">
         <div
           className="ns-mobile-top"
-          onClick={() => handleTab("Home")}
-          style={{ cursor: "pointer" }}
+          onClick={() => handleTab('Home')}
+          style={{ cursor: 'pointer' }}
           aria-label="Go to homepage"
         >
-          <img
-            src={BRAND_LOGO_ICON}
-            alt="NexaSphere"
-            className="ns-mobile-logo-ns"
-          />
+          <img src={BRAND_LOGO_ICON} alt="NexaSphere" className="ns-mobile-logo-ns" />
 
           <span className="ns-mobile-brand">
             <span>NexaSphere</span>
           </span>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <NotificationBell />
             <BookmarkToggle onToggle={onToggleBookmarks} />
             <ThemeToggle />
@@ -535,8 +536,8 @@ export default function Navbar({
             <button
               key={t}
               className={`ns-mobile-tab${
-                activeTab === t ? " active" : ""
-              }${t === "Contact" ? " contact-tab" : ""}`}
+                activeTab === t ? ' active' : ''
+              }${t === 'Contact' ? ' contact-tab' : ''}`}
               onClick={() => handleTab(t)}
             >
               {t}
@@ -562,13 +563,13 @@ export default function Navbar({
       </nav>
     );
   return (
-    <nav className={`ns-navbar${scrolled ? " scrolled" : ""}`}>
+    <nav className={`ns-navbar${scrolled ? ' scrolled' : ''}`}>
       <div className="container">
         <div className="ns-nav-top">
           <div
             className="ns-nav-logos"
-            onClick={() => handleTab("Home")}
-            style={{ cursor: "pointer" }}
+            onClick={() => handleTab('Home')}
+            style={{ cursor: 'pointer' }}
             aria-label="Go to homepage"
           >
             <img

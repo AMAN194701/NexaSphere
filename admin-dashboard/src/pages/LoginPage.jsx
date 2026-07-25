@@ -7,11 +7,12 @@ import { useNavigate } from "react-router-dom";
 import { auth } from "../services/auth";
 
 export function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [allowOffline, setAllowOffline] = useState(false);
   const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [twoFactor, setTwoFactor] = useState(null);
   const [verificationCode, setVerificationCode] = useState('');
@@ -42,6 +43,11 @@ export default function Login() {
     try {
       await auth.login(email, password, allowOffline);
       navigate("/dashboard");
+    setError('');
+    setLoading(true);
+    try {
+      await auth.login(email, password);
+      navigate(adminPath('/dashboard'));
     } catch (err) {
       setError(err.message);
     } finally {
@@ -225,33 +231,33 @@ export default function Login() {
           </div>
           <div className="form-row">
             <label>Password</label>
-            <div style={{ position: "relative" }}>
+            <div style={{ position: 'relative' }}>
               <input
-                type={showPassword ? "text" : "password"}
+                type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                style={{ width: "100%", paddingRight: "40px" }}
+                style={{ width: '100%', paddingRight: '40px' }}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 style={{
-                  position: "absolute",
-                  right: "10px",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  background: "none",
-                  border: "none",
-                  color: "var(--t3)",
-                  cursor: "pointer",
-                  padding: "4px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
+                  position: 'absolute',
+                  right: '10px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--t3)',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}
-                title={showPassword ? "Hide password" : "Show password"}
+                title={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? (
                   <svg
@@ -298,12 +304,8 @@ export default function Login() {
           </div>
 
           {error && <div className="form-error">{error}</div>}
-          <button
-            type="submit"
-            className="btn-primary full-width"
-            disabled={loading}
-          >
-            {loading ? "Signing in..." : "Sign In"}
+          <button type="submit" className="btn-primary full-width" disabled={loading}>
+            {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
       </div>

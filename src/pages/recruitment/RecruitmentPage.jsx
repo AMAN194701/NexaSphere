@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFormDraft } from '../../hooks/useFormDraft';
+import apiClient from '../../utils/apiClient.js';
 import {
   DynamicIcon,
   IconArrowLeft,
@@ -395,6 +396,7 @@ function Input({
   ...rest
 }) {
   const isInvalid = rest['aria-invalid'] === 'true';
+}) {
   return (
     <input
       value={value}
@@ -793,6 +795,16 @@ export default function RecruitmentPage({ onBack }) {
     5: ['whyJoin'],
     6: ['declarations'],
   };
+    whyJoin: '',
+    anythingElse: '',
+
+    declarations: {
+      truth: false,
+      time: false,
+      participate: false,
+      disagree: false,
+    },
+  });
 
   const steps = useMemo(
     () => [

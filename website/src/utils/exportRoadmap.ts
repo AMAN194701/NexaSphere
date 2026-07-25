@@ -14,11 +14,17 @@ export interface ValidatedRoadmap {
  * Throws a specific descriptive error if anything is malformed.
  */
 export const validateRoadmapJSON = (data: unknown): ValidatedRoadmap => {
+export const validateRoadmapJSON = (
+  data: any
+): { title: string; description: string; nodes: RoadmapNode[] } => {
   if (!data || typeof data !== 'object') {
     throw new Error('Import failed: Data is not a valid JSON object.');
   }
 
   const raw = data as Record<string, unknown>;
+  const title = typeof data.title === 'string' ? data.title : 'Imported Custom Path';
+  const description =
+    typeof data.description === 'string' ? data.description : 'Custom imported path.';
 
   const title = typeof raw.title === 'string' ? raw.title : 'Imported Custom Path';
   const description =
@@ -45,16 +51,23 @@ export const validateRoadmapJSON = (data: unknown): ValidatedRoadmap => {
     const n = node as Record<string, unknown>;
 
     if (!n.id || typeof n.id !== 'string') {
+  data.nodes.forEach((node: any, index: number) => {
+    if (!node.id || typeof node.id !== 'string') {
       throw new Error(
         `Node validation failed at index ${index}: "id" is missing or is not a string.`
       );
     }
     if (!n.title || typeof n.title !== 'string') {
+    if (!node.title || typeof node.title !== 'string') {
       throw new Error(
         `Node validation failed (ID: ${n.id || index}): "title" is missing or is not a string.`
       );
     }
     if (typeof n.x !== 'number' || typeof n.y !== 'number') {
+    if (typeof node.description !== 'string') {
+      node.description = '';
+    }
+    if (typeof node.x !== 'number' || typeof node.y !== 'number') {
       throw new Error(
         `Node validation failed (ID: ${n.id}): Coordinates "x" or "y" must be numbers.`
       );
@@ -67,6 +80,15 @@ export const validateRoadmapJSON = (data: unknown): ValidatedRoadmap => {
     const rawResources = Array.isArray(n.resources) ? n.resources : [];
     const resources = rawResources.map((r: unknown, rIdx: number) => {
       if (!r || typeof r !== 'object') {
+    const validStatuses = ['Not Started', 'In Progress', 'Completed', 'Stuck'];
+    const status = validStatuses.includes(node.status) ? node.status : 'Not Started';
+
+    if (node.resources && !Array.isArray(node.resources)) {
+      node.resources = [];
+    }
+
+    const resources = (node.resources || []).map((r: any, rIdx: number) => {
+      if (!r.title || typeof r.title !== 'string' || !r.url || typeof r.url !== 'string') {
         throw new Error(
           `Node "${n.title}" resource at index ${rIdx} is malformed. Resources need a "title" and a "url".`
         );
@@ -91,6 +113,20 @@ export const validateRoadmapJSON = (data: unknown): ValidatedRoadmap => {
       y: n.y,
       status,
       notes: typeof n.notes === 'string' ? n.notes : '',
+    if (node.prerequisites && !Array.isArray(node.prerequisites)) {
+      node.prerequisites = [];
+    }
+
+    const prerequisites = (node.prerequisites || []).filter((p: any) => typeof p === 'string');
+
+    validatedNodes.push({
+      id: node.id,
+      title: node.title,
+      description: node.description,
+      x: node.x,
+      y: node.y,
+      status: status as any,
+      notes: typeof node.notes === 'string' ? node.notes : '',
       resources,
       prerequisites,
     });
@@ -194,11 +230,17 @@ export const buildStandaloneSVG = (
         return '#4CAF50';
       case 'Stuck':
         return '#E63946';
+        return '#FFC107'; // amber
+      case 'Completed':
+        return '#4CAF50'; // emerald
+      case 'Stuck':
+        return '#E63946'; // ruby
       default:
         return theme === 'dark' ? '#6B6B6B' : '#8A8A8A';
     }
   };
 
+  // Compile SVGs and Lines
   let linePaths = '';
   nodes.forEach((node) => {
     node.prerequisites.forEach((preId) => {
@@ -223,6 +265,7 @@ export const buildStandaloneSVG = (
     const statusColor = getStatusColor(node.status);
     const cardBgHex = theme === 'dark' ? '#1E1E1E' : '#F9F9F9';
 
+    // Safe XML text
     const safeTitle = node.title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const safeDesc =
       node.description
@@ -308,17 +351,20 @@ export const downloadPNG = (
   const width = parseFloat(svgEl.getAttribute('width') || '1200');
   const height = parseFloat(svgEl.getAttribute('height') || '1000');
 
+  // Convert SVG string to Data URL
   const svgBlob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
   const url = URL.createObjectURL(svgBlob);
 
   const image = new Image();
   image.onload = () => {
     const canvas = document.createElement('canvas');
+    // Set high-resolution output scaling
     canvas.width = width * 1.5;
     canvas.height = height * 1.5;
 
     const ctx = canvas.getContext('2d');
     if (ctx) {
+      // Clear canvas
       ctx.fillStyle = theme === 'dark' ? '#0A0A0A' : '#FFFFFF';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.scale(1.5, 1.5);

@@ -357,5 +357,12 @@ export const adminSecurity = {
    */
   isOffline() {
     return this.isOfflineMode();
+    return localStorage.getItem(EMAIL_KEY);
+  },
+  isOffline() {
+    return false;
+  },
+  isOfflineMode() {
+    return false;
   },
 };

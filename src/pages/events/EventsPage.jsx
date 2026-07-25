@@ -35,6 +35,29 @@ import Footer from "../../shared/Footer";
 import { DynamicIcon } from "../../shared/Icons";
 import BookmarkButton from "../../components/common/BookmarkButton";
 import ErrorBoundary from "../../components/common/ErrorBoundary";
+  const now = Date.now();
+  const parseDate = (ev) => {
+    const raw = ev.dateText ?? ev.date ?? '';
+    const d = new Date(raw);
+    return isNaN(d) ? null : d;
+  };
+  const getEffectiveStatus = (ev) => {
+    if (ev.status === 'completed') return 'completed';
+    const d = parseDate(ev);
+    if (d && d.getTime() < now) return 'completed';
+    return ev.status || 'upcoming';
+  };
+
+  const sortedEvents = [...events]
+    .map((ev) => ({ ...ev, status: getEffectiveStatus(ev) }))
+    .sort((a, b) => {
+      const aIsUpcoming = a.status !== 'completed';
+      const bIsUpcoming = b.status !== 'completed';
+      if (aIsUpcoming !== bIsUpcoming) return bIsUpcoming ? 1 : -1;
+      const da = parseDate(a)?.getTime() ?? 0;
+      const db = parseDate(b)?.getTime() ?? 0;
+      return aIsUpcoming ? da - db : db - da;
+    });
 
 function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
   const [viewMode, setViewMode] = useState("list");
@@ -599,6 +622,7 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
                     style={{
                       animationDelay: `${i * 0.11}s`,
                       cursor: isKSS ? 'none' : 'default',
+                      cursor: hasDetailPage ? 'pointer' : 'default',
                       transition: 'all .28s ease',
                       position: 'relative',
                       cursor: isKSS ? "none" : "default",
@@ -608,6 +632,9 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
                     onClick={isKSS ? () => onEventClick(ev) : undefined}
                     onMouseEnter={
                       isKSS
+                    onClick={hasDetailPage ? () => onEventClick(ev) : undefined}
+                    onMouseEnter={
+                      hasDetailPage
                         ? (e) => {
                             e.currentTarget.style.borderColor = 'rgba(168,85,247,.45)';
                             e.currentTarget.style.boxShadow = '0 8px 32px rgba(168,85,247,.15)';
@@ -623,6 +650,7 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
                     }
                     onMouseLeave={
                       isKSS
+                      hasDetailPage
                         ? (e) => {
                             e.currentTarget.style.borderColor = '';
                             e.currentTarget.style.boxShadow = '';
@@ -683,6 +711,11 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
                         {ev.name}
                       </div>
                       {isKSS && (
+                        style={hasDetailPage ? { color: '#a855f7' } : {}}
+                      >
+                        {ev.name}
+                      </div>
+                      {hasDetailPage && (
                         <span
                           style={{
                             marginLeft: 'auto',
@@ -925,6 +958,7 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
               <div className="timeline-dot upcoming" />
               <div
                 className="timeline-card pop-in"
+                className="timeline-card pop-in fired"
                 style={{
                   textAlign: 'center',
                   color: 'var(--t3)',

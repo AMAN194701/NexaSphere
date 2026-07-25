@@ -107,6 +107,10 @@ function requiredStrongPassword(name) {
 
 function getClientIp(req) {
   const ip = String(req.ip || 'unknown').trim();
+  const ip =
+    String(req.ip || req.headers['x-forwarded-for'] || 'unknown')
+      .split(',')[0]
+      .trim() || 'unknown';
   // Truncate to maximum 128 characters to prevent extremely large malicious headers from causing memory exhaustion
   return ip.slice(0, 128);
 }
@@ -279,6 +283,7 @@ async function requireAdmin(req, res, next) {
       req.cookies?.ns_admin_token ||
       getCookie(req, 'ns_admin_token') ||
       parseBearer(req.headers.authorization || '');
+    const session = await getAdminSession(token);
 
     if (!token) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -600,6 +605,10 @@ async function verifyTwoFactorSetup(req, res) {
 async function logout(req, res) {
   try {
     const token = req.adminSession?.token;
+    const token =
+      req.cookies?.ns_admin_token ||
+      getCookie(req, 'ns_admin_token') ||
+      parseBearer(req.headers.authorization || '');
     if (token) {
       // Revoke from PostgreSQL audit store
       await revokeAdminSession(token);
@@ -741,3 +750,4 @@ export const requirePermission = (permission) => {
 export { login, logout, requireAdmin, requireRole, requireScope };
 
 // DCO sign-off commit
+};

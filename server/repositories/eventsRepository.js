@@ -23,6 +23,7 @@ function mapRow(row) {
     status: row.status,
     icon: row.icon,
     tags: parsePostgresArray(row.tags),
+    tags: Array.isArray(row.tags) ? row.tags : (row.tags ?? []),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -47,6 +48,8 @@ export const eventsRepository = {
          order by created_at desc 
          limit $1 offset $2`,
         [limit, offset],
+        'select * from events order by created_at desc limit $1 offset $2',
+        [limit, offset]
       );
       
       const total = rows.length > 0 ? rows[0].total : 0;
@@ -144,6 +147,29 @@ export const eventsRepository = {
         returning *`;
 
       const { rows } = await client.query(queryText, values);
+      const { rows } = await client.query(
+        `update events set
+           name = coalesce($2, name),
+           short_name = coalesce($3, short_name),
+           date_text = coalesce($4, date_text),
+           description = coalesce($5, description),
+           status = coalesce($6, status),
+           icon = coalesce($7, icon),
+           tags = coalesce($8, tags),
+           updated_at = now()
+         where id = $1
+         returning *`,
+        [
+          id,
+          patch.name ?? null,
+          patch.shortName ?? null,
+          patch.date ?? null,
+          patch.description ?? null,
+          patch.status ?? null,
+          patch.icon ?? null,
+          patch.tags ?? null,
+        ]
+      );
       if (!rows.length) return null;
       
       return mapRow(rows[0]);

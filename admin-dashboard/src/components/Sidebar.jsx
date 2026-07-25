@@ -143,6 +143,22 @@ const links = [
     icon: 'Settings',
     requiredScope: 'settings:admin',
   },
+import { NavLink } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
+import { AdminIcon } from './AdminIcon';
+import { adminPath } from '../utils/adminBasePath';
+
+const links = [
+  { to: '/dashboard', label: 'Dashboard', icon: 'Dashboard' },
+  { to: '/dashboard/events', label: 'Events', icon: 'Calendar' },
+  {
+    to: '/dashboard/activity-events',
+    label: 'Activity Events',
+    icon: 'Target',
+  },
+  { to: '/dashboard/core-team', label: 'Core Team', icon: 'Users' },
+  { to: '/dashboard/membership', label: 'Membership', icon: 'FileText' },
+  { to: '/dashboard/certificates', label: 'Certificates', icon: 'Award' },
 ];
 
 export function Sidebar() {
@@ -356,6 +372,18 @@ export function Sidebar() {
             onClick={toggleTheme}
             aria-label="Toggle theme"
             style={{ marginBottom: '10px' }}
+    <aside className="sidebar">
+      <div className="sidebar-brand">
+        <span className="brand-dot" />
+        <span>NexaSphere Admin</span>
+      </div>
+      <nav className="sidebar-nav">
+        {links.map(({ to, label, icon }) => (
+          <NavLink
+            key={to}
+            to={adminPath(to)}
+            end={to === '/dashboard'}
+            className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
           >
             Switch to {theme === 'dark' ? 'Light' : 'Dark'} Mode
           </button>

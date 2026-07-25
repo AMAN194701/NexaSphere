@@ -95,6 +95,7 @@ export const NodeCanvas: React.FC<NodeCanvasProps> = ({ theme }) => {
         return 'var(--error, #E63946)';
       default:
         return theme === 'dark' ? '#6B6B6B' : '#8A8A8A';
+        return theme === 'dark' ? '#8F8F8F' : '#5F5F5F';
     }
   };
 

@@ -127,6 +127,14 @@ function InfoRow({ icon, label, value }) {
         style={{ color: "#CC1111", flexShrink: 0, marginTop: "2px" }}
         aria-hidden="true"
       >
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: '12px',
+        padding: '16px 20px',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
+      }}
+    >
+      <span style={{ color: '#CC1111', flexShrink: 0, marginTop: '2px' }} aria-hidden="true">
         {icon}
       </span>
       <div>
@@ -137,6 +145,11 @@ function InfoRow({ icon, label, value }) {
             textTransform: "uppercase",
             letterSpacing: "0.1em",
             marginBottom: "3px",
+            fontSize: '0.7rem',
+            color: 'rgba(255,255,255,0.72)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.1em',
+            marginBottom: '3px',
             fontFamily: "'Rajdhani', sans-serif",
           }}
         >
@@ -145,6 +158,7 @@ function InfoRow({ icon, label, value }) {
         <div style={{ fontSize: "1rem", color: "#fff", fontWeight: 600 }}>
           {value}
         </div>
+        <div style={{ fontSize: '1rem', color: '#fff', fontWeight: 600 }}>{value}</div>
       </div>
     </div>
   );
@@ -159,6 +173,11 @@ function LoadingSpinner() {
         alignItems: "center",
         gap: "20px",
         padding: "60px 20px",
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '20px',
+        padding: '60px 20px',
       }}
     >
       <div
@@ -169,6 +188,12 @@ function LoadingSpinner() {
           borderTop: "3px solid #CC1111",
           borderRadius: "50%",
           animation: "ns-spin 0.8s linear infinite",
+          width: '48px',
+          height: '48px',
+          border: '3px solid rgba(204,17,17,0.2)',
+          borderTop: '3px solid #CC1111',
+          borderRadius: '50%',
+          animation: 'ns-spin 0.8s linear infinite',
         }}
         role="status"
         aria-label="Loading"
@@ -180,6 +205,7 @@ function LoadingSpinner() {
           margin: 0,
         }}
       >
+      <p style={{ color: 'rgba(255,255,255,0.72)', fontSize: '0.9rem', margin: 0 }}>
         Verifying certificate…
       </p>
       <style>{`@keyframes ns-spin { to { transform: rotate(360deg); } }`}</style>
@@ -215,6 +241,7 @@ export default function CertificateVerifyPage({ certificateId, onGoHome }) {
     async function fetchVerification() {
       try {
         const apiBase = getAiApiBase();
+        const apiBase = getApiBase();
         const res = await fetch(
           `${apiBase}/certificates/verify/${encodeURIComponent(certificateId)}`,
           {
@@ -281,6 +308,15 @@ export default function CertificateVerifyPage({ certificateId, onGoHome }) {
           background:
             "radial-gradient(circle, rgba(204,17,17,0.07) 0%, transparent 70%)",
           pointerEvents: "none",
+          position: 'absolute',
+          top: '-15%',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '700px',
+          height: '700px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(204,17,17,0.07) 0%, transparent 70%)',
+          pointerEvents: 'none',
         }}
       />
 
@@ -303,6 +339,20 @@ export default function CertificateVerifyPage({ certificateId, onGoHome }) {
           alignItems: "center",
           gap: "6px",
           transition: "all 0.2s",
+          position: 'absolute',
+          top: '24px',
+          left: '24px',
+          background: 'rgba(255,255,255,0.05)',
+          border: '1px solid rgba(255,255,255,0.12)',
+          borderRadius: '20px',
+          color: 'rgba(255,255,255,0.7)',
+          padding: '8px 18px',
+          fontSize: '0.85rem',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          transition: 'all 0.2s',
           fontFamily: "'Rajdhani', sans-serif",
           fontWeight: 600,
         }}
@@ -311,6 +361,10 @@ export default function CertificateVerifyPage({ certificateId, onGoHome }) {
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+          e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
         }}
       >
         <svg
@@ -342,6 +396,18 @@ export default function CertificateVerifyPage({ certificateId, onGoHome }) {
             backgroundClip: "text",
             letterSpacing: "0.12em",
             marginBottom: "4px",
+      <div style={{ marginBottom: '40px', textAlign: 'center' }}>
+        <div
+          style={{
+            fontFamily: "'Orbitron', monospace",
+            fontSize: 'clamp(1.1rem, 3vw, 1.4rem)',
+            fontWeight: 900,
+            background: 'linear-gradient(135deg, #CC1111, #EE4444)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            letterSpacing: '0.12em',
+            marginBottom: '4px',
           }}
         >
           NexaSphere
@@ -352,6 +418,10 @@ export default function CertificateVerifyPage({ certificateId, onGoHome }) {
             color: "rgba(255,255,255,0.3)",
             textTransform: "uppercase",
             letterSpacing: "0.2em",
+            fontSize: '0.7rem',
+            color: 'rgba(255,255,255,0.3)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.2em',
             fontFamily: "'Rajdhani', sans-serif",
           }}
         >
@@ -381,6 +451,9 @@ export default function CertificateVerifyPage({ certificateId, onGoHome }) {
             padding: "28px 28px 20px",
             borderBottom: "1px solid rgba(255,255,255,0.06)",
             textAlign: "center",
+            padding: '28px 28px 20px',
+            borderBottom: '1px solid rgba(255,255,255,0.06)',
+            textAlign: 'center',
           }}
         >
           <div
@@ -394,6 +467,14 @@ export default function CertificateVerifyPage({ certificateId, onGoHome }) {
             }}
           >
             Certificate ID: {certificateId || "—"}
+              fontSize: '0.78rem',
+              color: 'rgba(255,255,255,0.3)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.2em',
+              marginBottom: '16px',
+            }}
+          >
+            Certificate ID: {certificateId || '—'}
           </div>
 
           {status === "loading" && <LoadingSpinner />}
@@ -497,6 +578,15 @@ export default function CertificateVerifyPage({ certificateId, onGoHome }) {
               fontSize: "0.85rem",
               lineHeight: 1.6,
               borderTop: cert ? "1px solid rgba(255,255,255,0.06)" : "none",
+        {status !== 'loading' && (
+          <div
+            style={{
+              padding: '20px 28px',
+              textAlign: 'center',
+              color: status === 'valid' ? 'rgba(34,197,94,0.8)' : 'rgba(239,68,68,0.8)',
+              fontSize: '0.85rem',
+              lineHeight: 1.6,
+              borderTop: cert ? '1px solid rgba(255,255,255,0.06)' : 'none',
             }}
           >
             {message}
@@ -539,6 +629,14 @@ export default function CertificateVerifyPage({ certificateId, onGoHome }) {
                 e.currentTarget.style.boxShadow =
                   "0 4px 20px rgba(204,17,17,0.4)";
               }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 8px 28px rgba(204,17,17,0.55)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = '';
+                e.currentTarget.style.boxShadow = '0 4px 20px rgba(204,17,17,0.4)';
+              }}
             >
               <svg
                 width="16"
@@ -568,6 +666,10 @@ export default function CertificateVerifyPage({ certificateId, onGoHome }) {
           color: "rgba(255,255,255,0.2)",
           fontSize: "0.75rem",
           textAlign: "center",
+          marginTop: '32px',
+          color: 'rgba(255,255,255,0.2)',
+          fontSize: '0.75rem',
+          textAlign: 'center',
           lineHeight: 1.6,
         }}
       >
@@ -576,6 +678,8 @@ export default function CertificateVerifyPage({ certificateId, onGoHome }) {
         <span style={{ fontSize: "0.7rem" }}>
           Certificates are tamper-proof and cryptographically linked to our
           records.
+        <span style={{ fontSize: '0.7rem' }}>
+          Certificates are tamper-proof and cryptographically linked to our records.
         </span>
       </p>
     </div>

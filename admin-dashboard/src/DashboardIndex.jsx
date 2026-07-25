@@ -14,6 +14,7 @@ import { AnnouncementsManager } from './pages/AnnouncementsManager';
 import { BannersManager } from './pages/BannersManager';
 import { useAuth } from './hooks/useAuth';
 import { PermissionGuard } from './components/PermissionGuard';
+import { useAuth } from './hooks/useAuth';
 import './styles/admin.css';
 
 function RequireAuth() {
@@ -102,6 +103,11 @@ export default function DashboardIndex() {
               </PermissionGuard>
             }
           />
+          <Route path="dashboard/events" element={<EventsManager />} />
+          <Route path="dashboard/activity-events" element={<ActivityEventsManager />} />
+          <Route path="dashboard/core-team" element={<CoreTeamManager />} />
+          <Route path="dashboard/membership" element={<MembershipResponsesManager />} />
+          <Route path="dashboard/certificates" element={<CertificateManager />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="login" replace />} />

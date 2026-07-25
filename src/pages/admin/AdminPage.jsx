@@ -9,6 +9,9 @@ export default function AdminPage({ onBack }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [token, setToken] = useLocalStorage('ns_admin_token', null);
+  const [isLoggedIn, setIsLoggedIn] = useState(
+    () => localStorage.getItem('ns_admin_logged_in') === 'true'
+  );
   const [loginData, setLoginData] = useState({ username: '', password: '' });
   const [data, setData] = useState({
     stats: null,
@@ -41,6 +44,11 @@ export default function AdminPage({ onBack }) {
         statsRes.json(),
         growthRes.json(),
         eventsRes.json(),
+
+      const [stats, growth, events] = await Promise.all([
+        apiClient(`${base}/api/admin/analytics/stats`, { headers }),
+        apiClient(`${base}/api/admin/analytics/growth`, { headers }),
+        apiClient(`${base}/api/admin/analytics/events`, { headers }),
       ]);
 
       setData({ stats, growth, events });
@@ -96,15 +104,98 @@ export default function AdminPage({ onBack }) {
             ...currentStats,
             totalUsers: (currentStats.totalUsers || 0) + 1,
             activeRegistrations: (currentStats.activeRegistrations || 0) + 1
+    const listeners = {};
+    let closed = false;
+    let reconnectTimeout;
+
+    async function connect() {
+      if (closed) return;
+      try {
+        const response = await fetch(url, {
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            setIsLoggedIn(false);
+            localStorage.removeItem('ns_admin_logged_in');
+            return;
+          }
+          throw new Error(`SSE connection failed: ${response.status}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let currentEvent = '';
+        let currentData = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.startsWith('event: ')) {
+              currentEvent = line.slice(7).trim();
+            } else if (line.startsWith('data: ')) {
+              currentData = line.slice(6);
+            } else if (line === '' && currentEvent && currentData) {
+              const event = { data: currentData };
+              (listeners[currentEvent] || []).forEach((fn) => fn(event));
+              currentEvent = '';
+              currentData = '';
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Admin SSE metrics stream connection interrupted or reconnecting...', err);
+      }
+
+      if (!closed) {
+        reconnectTimeout = setTimeout(connect, 3000);
+      }
+    }
+
+    const sseClient = {
+      addEventListener(event, fn) {
+        if (!listeners[event]) listeners[event] = [];
+        listeners[event].push(fn);
+      },
+      close() {
+        closed = true;
+        clearTimeout(reconnectTimeout);
+      },
+    };
+
+    sseClient.addEventListener('registration', (event) => {
+      try {
+        const parsed = JSON.parse(event.data);
+        const payload = parsed.data;
+
+        setData((prev) => {
+          const currentStats = prev.stats || {
+            totalUsers: null,
+            activeRegistrations: null,
+            upcomingEvents: null,
+            conversionRate: null,
+          };
+          const nextStats = {
+            ...currentStats,
+            totalUsers: currentStats.totalUsers !== null ? currentStats.totalUsers + 1 : 1,
+            activeRegistrations:
+              currentStats.activeRegistrations !== null ? currentStats.activeRegistrations + 1 : 1,
           };
 
           const todayStr = new Date().toISOString().split('T')[0];
           const updatedGrowth = [...(prev.growth || [])];
-          const todayIdx = updatedGrowth.findIndex(g => g.date === todayStr);
+          const todayIdx = updatedGrowth.findIndex((g) => g.date === todayStr);
           if (todayIdx >= 0) {
             updatedGrowth[todayIdx] = {
               ...updatedGrowth[todayIdx],
-              registrations: (updatedGrowth[todayIdx].registrations || 0) + 1
+              registrations: (updatedGrowth[todayIdx].registrations || 0) + 1,
             };
           } else {
             updatedGrowth.push({ date: todayStr, registrations: 1 });
@@ -113,7 +204,7 @@ export default function AdminPage({ onBack }) {
           return {
             ...prev,
             stats: nextStats,
-            growth: updatedGrowth
+            growth: updatedGrowth,
           };
         });
       } catch (err) {
@@ -147,6 +238,7 @@ export default function AdminPage({ onBack }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(loginData),
+        credentials: 'include',
       });
 
       const result = await res.json();
@@ -161,6 +253,18 @@ export default function AdminPage({ onBack }) {
 
   const handleLogout = () => {
     setToken(null);
+  const handleLogout = async () => {
+    try {
+      const base = (import.meta?.env?.VITE_API_BASE || '').replace(/\/+$/, '');
+      await fetch(`${base}/api/admin/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch (err) {
+      console.error(err);
+    }
+    localStorage.removeItem('ns_admin_logged_in');
+    setIsLoggedIn(false);
     setData({ stats: null, growth: [], events: [] });
   };
 
@@ -240,6 +344,7 @@ export default function AdminPage({ onBack }) {
             onClick={() => fetchAnalytics(token)}
             disabled={loading}
           >
+          <button className="btn btn-outline" onClick={fetchAnalytics} disabled={loading}>
             Refresh
           </button>
           <button

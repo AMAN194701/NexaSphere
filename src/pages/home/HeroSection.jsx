@@ -148,6 +148,13 @@ function Logo3D({ ready, isLight }) {
     >
       <OrbitRings isLight={isLight} />
       <img src={BRAND_LOGO_ICON} alt="NexaSphere" className="hero-logo-img" />
+      <Image
+        src={BRAND_LOGO_ICON}
+        alt="NexaSphere"
+        className="hero-logo-img"
+        width={220}
+        height={220}
+      />
       <div
         style={{
           position: 'absolute',
@@ -174,6 +181,11 @@ function StatsBar({ vis, isLight }) {
     { v: '8', l: t('hero.stats.activities'), i: 'Activity' },
     { v: '1', l: t('hero.stats.events_done'), i: 'Calendar' },
     { v: '∞', l: t('hero.stats.ideas'), i: 'Lightbulb' },
+  const items = [
+    { v: '12', l: 'Members', i: 'Users' },
+    { v: '8', l: 'Activities', i: 'Activity' },
+    { v: '1', l: 'Events Done', i: 'Calendar' },
+    { v: '∞', l: 'Ideas', i: 'Lightbulb' },
   ];
   return (
     <div
@@ -181,6 +193,7 @@ function StatsBar({ vis, isLight }) {
         display: 'flex',
         maxWidth: '500px',
         margin: '40px auto 0',
+        margin: '56px auto 0',
         background: isLight ? 'rgba(26,26,26,.04)' : 'rgba(204,17,17,.04)',
         border: `1px solid ${isLight ? 'rgba(26,26,26,.09)' : 'rgba(204,17,17,.12)'}`,
         borderRadius: '14px',
@@ -265,6 +278,7 @@ function Atmosphere({ isLight }) {
     );
   return (
     <>
+      {/* Binary data streams — visible in both themes */}
       <div
         style={{
           position: 'absolute',
@@ -284,11 +298,17 @@ function Atmosphere({ isLight }) {
               fontFamily: "'Space Mono',monospace",
               fontSize: '8px',
               color: 'var(--c1)',
+              left: `${8 + i * 10}%`,
+              top: 0,
+              fontFamily: "'Space Mono',monospace",
+              fontSize: '8px',
+              color: isLight ? 'rgba(180,20,20,0.45)' : 'var(--c1)',
               lineHeight: 1.9,
               userSelect: 'none',
               animation: `dataStream ${4.2 + i * 0.65}s linear infinite`,
               animationDelay: `${-i * 1.3}s`,
               opacity: 0.06,
+              opacity: isLight ? 0.5 : 0.06,
             }}
           >
             {Array.from({ length: 28 }, () => (Math.random() > 0.5 ? '1' : '0')).join('\n')}
@@ -296,6 +316,7 @@ function Atmosphere({ isLight }) {
         ))}
       </div>
 
+      {/* Scanline */}
       <div
         style={{
           position: 'absolute',
@@ -313,6 +334,9 @@ function Atmosphere({ isLight }) {
             height: '1px',
             background:
               'linear-gradient(90deg,transparent,rgba(204,17,17,.38),rgba(136,0,0,.38),transparent)',
+            background: isLight
+              ? 'linear-gradient(90deg,transparent,rgba(204,17,17,.25),rgba(136,0,0,.25),transparent)'
+              : 'linear-gradient(90deg,transparent,rgba(204,17,17,.38),rgba(136,0,0,.38),transparent)',
             animation: 'scanline 8s linear infinite',
           }}
         />
@@ -325,6 +349,25 @@ function Atmosphere({ isLight }) {
           }}
         />
       </div>
+            backgroundImage: isLight
+              ? 'repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(204,17,17,.003) 2px,rgba(204,17,17,.003) 4px)'
+              : 'repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(204,17,17,.005) 2px,rgba(204,17,17,.005) 4px)',
+          }}
+        />
+      </div>
+
+      {/* Light mode atmosphere gradient */}
+      {isLight && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 0,
+            pointerEvents: 'none',
+            backgroundImage: `radial-gradient(circle at 60% 38%,rgba(194,119,10,.05) 0%,transparent 55%),radial-gradient(circle at 30% 68%,rgba(109,40,217,.04) 0%,transparent 48%)`,
+          }}
+        />
+      )}
     </>
   );
 }
@@ -353,11 +396,14 @@ export default function HeroSection({ onTabChange, onApply, onJoin, theme = 'dar
           zIndex: 0,
           pointerEvents: 'none',
           background: isLight ? '#FFFFFF' : '#0A0A0A',
+          background: isLight ? 'transparent' : '#0A0A0A',
           transition: 'background 1.2s cubic-bezier(.4,0,.2,1)',
         }}
       />
       {/* Logo glow — subtle radial red only around center */}
       <div
+        className="hero-glow"
+        aria-hidden="true"
         style={{
           position: 'absolute',
           top: '50%',
@@ -375,6 +421,19 @@ export default function HeroSection({ onTabChange, onApply, onJoin, theme = 'dar
           animation: 'cinGlow 4s ease-in-out infinite',
         }}
       />
+        // inline background kept here so it adapts to theme
+      >
+        <div
+          style={{
+            width: '100%',
+            height: '100%',
+            borderRadius: '50%',
+            background: isLight
+              ? 'radial-gradient(circle, rgba(230,57,70,0.10) 0%, transparent 65%)'
+              : 'radial-gradient(circle, rgba(230,57,70,0.18) 0%, transparent 65%)',
+          }}
+        />
+      </div>
       <Atmosphere isLight={isLight} />
 
       <div
@@ -396,6 +455,7 @@ export default function HeroSection({ onTabChange, onApply, onJoin, theme = 'dar
           }}
         >
           {t('hero.tagline')}
+          GL Bajaj&apos;s Student-Driven Tech Ecosystem
           <span
             style={{
               animation: 'blink 1s step-end infinite',
@@ -437,6 +497,7 @@ export default function HeroSection({ onTabChange, onApply, onJoin, theme = 'dar
           <div
             style={{
               marginTop: '6px',
+              marginTop: '16px',
               padding: '14px 24px',
               background: isLight ? 'rgba(204,17,17,.05)' : 'rgba(204,17,17,.07)',
               border: `1px solid ${isLight ? 'rgba(204,17,17,.18)' : 'rgba(204,17,17,.18)'}`,
@@ -454,6 +515,7 @@ export default function HeroSection({ onTabChange, onApply, onJoin, theme = 'dar
               }}
             >
               {t('hero.want_to_be_part')}
+              Want to be part of the NexaSphere Core Team?
             </p>
             <RippleBtn cls="btn-join" onClick={() => (onApply ? onApply() : onTabChange('Team'))}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
@@ -503,6 +565,7 @@ export default function HeroSection({ onTabChange, onApply, onJoin, theme = 'dar
           }}
         >
           {t('hero.scroll')}
+          SCROLL
         </div>
         <div
           className="scroll-indicator-line"

@@ -10,6 +10,7 @@ import logger from '../utils/logger.js';
 // specific proxy hop count) is explicitly initialized in the main server app entry file.
 // ---------------------------------------------------------------------------
 
+import logger from '../utils/logger.js';
 
 // ---------------------------------------------------------------------------
 // Shared env-var config for the general API limiter
@@ -37,6 +38,13 @@ const FORM_MAX_REQUESTS = parsePositiveInt(process.env.RATE_LIMIT_MAX_REQUESTS, 
 const createLimiterHandler = (logMessage, clientErrorMessage) => {
   return (req, res, _next, options) => {
     logger.warn(logMessage, {
+export const apiRateLimiter = rateLimit({
+  windowMs: API_WINDOW_MS,
+  max: API_MAX_REQUESTS,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res, _next, options) => {
+    logger.warn('Global API rate limit exceeded', {
       ip: req.ip,
       path: req.originalUrl || req.path,
       method: req.method,
@@ -134,6 +142,10 @@ export const authRateLimiter = rateLimit({
     'Authentication rate limit exceeded',
     'Too many login attempts, please try again after 15 minutes.'
   ),
+  legacyHeaders: false,
+  message: {
+    error: 'Too many login attempts, please try again after a minute.',
+  },
 });
 
 // Notification mutation rate limiter — 60 requests per IP per 15 minutes
@@ -146,6 +158,10 @@ export const notificationRateLimiter = rateLimit({
     'Notification mutation rate limit exceeded',
     'Too many notification requests, please try again later.'
   ),
+  legacyHeaders: false,
+  message: {
+    error: 'Too many notification requests, please try again later.',
+  },
 });
 
 // Activity-event auth rate limiter: 10 requests per IP per 15 minutes.
@@ -154,6 +170,24 @@ export const notificationRateLimiter = rateLimit({
 // when the server restarts the IP-level window survives in the rate-limit
 // store.
 export const activityAuthRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res, next, options) => {
+    logger.warn('Activity-event auth rate limit exceeded', {
+      ip: req.ip,
+      path: req.originalUrl || req.path,
+      method: req.method,
+    });
+    res.status(options.statusCode).json({
+      error: 'Too many attempts from this IP, please try again later.',
+    });
+  },
+});
+
+// Portfolio update rate limiter — 10 requests per IP per 15 minutes
+export const portfolioRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
   standardHeaders: true,
@@ -248,6 +282,8 @@ export const searchRateLimiter = rateLimit({
     res.status(options.statusCode).json({
       error: 'Too many search requests. Please slow down.',
     });
+  message: {
+    error: 'Too many portfolio update attempts from this IP, please try again after 15 minutes.',
   },
 });
 

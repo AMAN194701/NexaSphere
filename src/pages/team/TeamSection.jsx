@@ -26,6 +26,8 @@ function MemberCard({ member, idx, onClick }) {
     setTimeout(() => {
       if (c) c.style.transform = '';
     }, 150);
+    c.style.transform = '';
+    c.style.animationPlayState = '';
   };
   const click = () => {
     const c = ref.current;
@@ -99,6 +101,7 @@ export default function TeamSection({ onApply }) {
     setLoading(true);
     fetch(url)
       .then((r) => (r.ok ? r.json() : Promise.reject()))
+    apiClient(url)
       .then((data) => {
         if (!alive) return;
         if (Array.isArray(data?.members)) {
@@ -109,6 +112,7 @@ export default function TeamSection({ onApply }) {
       .finally(() => {
         if (alive) setLoading(false);
       });
+      .catch(() => {});
     return () => {
       alive = false;
     };
@@ -175,6 +179,9 @@ export default function TeamSection({ onApply }) {
           {loading
             ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} type="team" />)
             : members.map((m, i) => <MemberCard key={m.id} member={m} idx={i} onClick={setSel} />)}
+          {members.map((m, i) => (
+            <MemberCard key={m.id} member={m} idx={i} onClick={setSel} />
+          ))}
         </div>
 
         <div

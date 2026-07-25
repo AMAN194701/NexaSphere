@@ -194,6 +194,25 @@ function EventCard({ event, activityColor, onSelect }) {
               flexWrap: 'wrap',
             }}
           >
+          <button
+            className="btn btn-outline btn-sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete && onDelete(event.id);
+            }}
+            style={{ marginBottom: '8px' }}
+          >
+            Delete this event
+          </button>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              marginBottom: '8px',
+              flexWrap: 'wrap',
+            }}
+          >
             <h3
               style={{
                 fontFamily: 'Orbitron, monospace',
@@ -265,6 +284,16 @@ function EventCard({ event, activityColor, onSelect }) {
               ))}
             </div>
           )}
+          <button
+            className="btn btn-outline btn-sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete && onDelete(event.id);
+            }}
+            style={{ marginTop: '12px' }}
+          >
+            Delete this event
+          </button>
         </div>
         <div
           style={{
@@ -386,6 +415,12 @@ export default function ActivityDetailPage({ activity, onBack, onSelectEvent }) 
     } finally {
       setLoading(false);
     }
+  const fetchManualEvents = async () => {
+    const url = apiBase
+      ? `${apiBase}/api/content/activity-events/${activityKey}`
+      : `/api/content/activity-events/${activityKey}`;
+    const data = await apiClient(url).catch(() => ({}));
+    if (Array.isArray(data?.events)) setManualEvents(data.events);
   };
 
   useEffect(() => {
@@ -412,6 +447,72 @@ export default function ActivityDetailPage({ activity, onBack, onSelectEvent }) 
     return () => obs.disconnect();
   }, [activity.title]);
 
+  const askAuth = () => {
+    const name = window.prompt('Enter your full name (core team):');
+    if (!name) return null;
+    const email = window.prompt('Enter your email:');
+    if (!email) return null;
+    const phone = window.prompt('Enter your phone number:');
+    if (!phone) return null;
+    const password = window.prompt('Enter password:');
+    if (!password) return null;
+    return { name, email, phone, password };
+  };
+
+  const handleAddEvent = async () => {
+    const auth = askAuth();
+    if (!auth) return;
+    const eventName = window.prompt('Event name:');
+    if (!eventName) return;
+    const eventDate = window.prompt('Event date (e.g. May 20, 2026):');
+    if (!eventDate) return;
+    const eventTagline = window.prompt('Short tagline (optional):') || '';
+    const eventDescription = window.prompt('Event description:');
+    if (!eventDescription) return;
+    setBusy(true);
+    try {
+      const url = apiBase
+        ? `${apiBase}/api/content/activity-events/${activityKey}`
+        : `/api/content/activity-events/${activityKey}`;
+      const data = await apiClient(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...auth, eventName, eventDate, eventTagline, eventDescription }),
+      });
+      alert('Event added successfully.');
+      await fetchManualEvents();
+    } catch (e) {
+      alert(e?.message || 'Unable to add event.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDeleteEvent = async (eventId) => {
+    const auth = askAuth();
+    if (!auth) return;
+    if (!window.confirm('Delete this event?')) return;
+    setBusy(true);
+    try {
+      const url = apiBase
+        ? `${apiBase}/api/content/activity-events/${activityKey}/${eventId}`
+        : `/api/content/activity-events/${activityKey}/${eventId}`;
+      const res = await fetch(url, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(auth),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || 'Failed to delete event');
+      alert('Event deleted.');
+      await fetchManualEvents();
+    } catch (e) {
+      alert(e?.message || 'Unable to delete event.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const color = activity.color || 'var(--cyan)';
   const rgb = color.startsWith('#') ? hexToRgb(color) : '0,212,255';
 
@@ -420,6 +521,7 @@ export default function ActivityDetailPage({ activity, onBack, onSelectEvent }) 
       id="activity-detail-page"
       style={{ minHeight: '100vh', paddingBottom: '100px', overflow: 'hidden' }}
     >
+    <div style={{ minHeight: '100vh', paddingBottom: '100px', overflow: 'hidden' }}>
       <div
         style={{
           position: 'relative',
@@ -453,6 +555,7 @@ export default function ActivityDetailPage({ activity, onBack, onSelectEvent }) 
             }}
             onMouseEnter={(e) => {
               e.target.style.background = `rgba(${rgb},0.15)`;
+              e.target.style.background = `rgba(${rgb},0.1)`;
               e.target.style.transform = 'translateX(-4px)';
             }}
             onMouseLeave={(e) => {
@@ -541,6 +644,10 @@ export default function ActivityDetailPage({ activity, onBack, onSelectEvent }) 
 
         {!loading && conductedEvents.length > 0 && (
           <div style={{ marginBottom: '56px' }} className="pop-in">
+      <div className="container" style={{ paddingTop: '56px' }}>
+        {((activity.conductedEvents && activity.conductedEvents.length > 0) ||
+          manualEvents.length > 0) && (
+          <div style={{ marginBottom: '56px' }}>
             <h2
               style={{
                 fontFamily: 'Orbitron, monospace',
@@ -569,6 +676,15 @@ export default function ActivityDetailPage({ activity, onBack, onSelectEvent }) 
               style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '760px' }}
             >
               {conductedEvents.map((event, i) => (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
+              <button className="btn btn-primary btn-sm" onClick={handleAddEvent} disabled={busy}>
+                {busy ? 'Please wait...' : '+ Add Event'}
+              </button>
+            </div>
+            <div
+              style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '760px' }}
+            >
+              {[...manualEvents, ...(activity.conductedEvents || [])].map((event) => (
                 <EventCard
                   key={event.id || i}
                   event={event}
@@ -582,6 +698,8 @@ export default function ActivityDetailPage({ activity, onBack, onSelectEvent }) 
 
         {!loading && upcomingEvents.length > 0 && (
           <div style={{ maxWidth: '760px' }} className="pop-in">
+        {activity.upcomingEvents && activity.upcomingEvents.length > 0 && (
+          <div style={{ maxWidth: '760px' }}>
             <h2
               style={{
                 fontFamily: 'Orbitron, monospace',
@@ -623,6 +741,14 @@ export default function ActivityDetailPage({ activity, onBack, onSelectEvent }) 
             <p>Events coming soon. Watch this space!</p>
           </div>
         )}
+        {(!activity.conductedEvents || activity.conductedEvents.length === 0) &&
+          (!manualEvents || manualEvents.length === 0) &&
+          (!activity.upcomingEvents || activity.upcomingEvents.length === 0) && (
+            <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '80px 0' }}>
+              <div style={{ fontSize: '4rem', marginBottom: '16px' }}>{activity.icon}</div>
+              <p>Events coming soon. Watch this space!</p>
+            </div>
+          )}
       </div>
     </div>
   );
