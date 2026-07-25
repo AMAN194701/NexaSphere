@@ -1807,6 +1807,7 @@ function MainApp() {
   const [activeTab, setActiveTab] = useState(() => urlToState(window.location.pathname).activeTab);
   const [page, setPage] = useState(() => urlToState(window.location.pathname).page);
   const [mobile, setMobile] = useState(window.innerWidth <= 768);
+  const [fontSize, setFontSize] = useState(() => localStorage.getItem('nexa-fontsize') || 'normal');
 
   const { theme, toggleTheme } = useThemeManagement();
   const eventsData = useDynamicEvents(fallbackEvents);
@@ -1831,13 +1832,10 @@ function MainApp() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Sync state changes to browser history
   useEffect(() => {
-    const url = stateToUrl(page);
-    if (window.location.pathname !== url) {
-      window.history.pushState(null, '', url);
-    }
-  }, [page]);
+    document.documentElement.setAttribute('data-fontsize', fontSize);
+    localStorage.setItem('nexa-fontsize', fontSize);
+  }, [fontSize]);
 
   // Handle browser back/forward buttons
   useEffect(() => {
@@ -2223,6 +2221,13 @@ export default function App() {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, [performTransition]);
+  const toggleFontSize = () => {
+    setFontSize((prev) => {
+      if (prev === 'normal') return 'large';
+      if (prev === 'large') return 'extra-large';
+      return 'normal';
+    });
+  };
 
   useInteractionEffects(cinDone, page);
   useBackToTop();
@@ -4120,6 +4125,8 @@ export default function App() {
             onTabChange={handleTabChange}
             onToggleTheme={toggleTheme}
             theme={theme}
+            fontSize={fontSize}
+            onToggleFontSize={toggleFontSize}
           />
         </>
           <svg
