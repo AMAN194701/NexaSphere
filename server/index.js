@@ -2389,6 +2389,9 @@ app.use('/api/compliance', complianceRouter);
 // Event Certification & Digital Badges (#1787)
 app.use('/api', certificatesRouter);
 
+// Event Certification & Digital Badges (#1787)
+app.use('/api', certificatesRouter);
+
 // Admin Analytics & Metrics (mounted with admin auth)
 app.use('/api/admin/analytics', adminAuth, analyticsRouter);
 app.use('/api/admin/custom-events', adminAuth, customEventsRouter);
