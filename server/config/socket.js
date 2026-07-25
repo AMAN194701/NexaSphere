@@ -377,6 +377,7 @@ export function _onConnection(socket) {
     identifyCount++;
     if (identifyCount > 3) {
       logger.warn("Socket identification flood detected, forcing disconnect", {
+      logger.warn('Socket identification flood detected, forcing disconnect', {
         socketId: socket.id,
       });
       socket.disconnect(true);

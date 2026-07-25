@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { projectsData } from '../../data/projectsData';
 import { roadmapData } from '../../data/roadmapData';
+import React, { useState, useEffect, useRef } from "react";
+import apiClient from "../../utils/apiClient.js";
+import { useReactToPrint } from "react-to-print";
+import { projectsData } from "../../data/projectsData";
+import { roadmapData } from "../../data/roadmapData";
+import ResumePrintTemplate from "../../components/portfolio/ResumePrintTemplate";
+import { Helmet } from "react-helmet-async";
+import { generatePortfolioMeta } from "../../utils/seoUtils";
+import "../../styles/print.css";
 
 export default function PublicPortfolio({ username, onBack }) {
   const [portfolio, setPortfolio] = useState(null);
@@ -23,6 +32,13 @@ export default function PublicPortfolio({ username, onBack }) {
         }
         
         const data = await res.json();
+        const base = (import.meta?.env?.VITE_API_BASE || "").replace(
+          /\/+$/,
+          ""
+        );
+        const url = base
+          ? `${base}/api/portfolio/${username}`
+          : `/api/portfolio/${username}`;
 
         const data = await apiClient(url);
         if (alive) {
@@ -125,6 +141,13 @@ export default function PublicPortfolio({ username, onBack }) {
           justifyContent: 'center',
           textAlign: 'center',
           padding: '40px 24px',
+          minHeight: "80vh",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          textAlign: "center",
+          padding: "40px 24px",
         }}
       >
         <div
@@ -138,6 +161,15 @@ export default function PublicPortfolio({ username, onBack }) {
             backgroundClip: 'text',
             lineHeight: 1,
             marginBottom: '16px',
+            fontSize: "clamp(4rem, 15vw, 8rem)",
+            fontWeight: 900,
+            background:
+              "linear-gradient(135deg, #CC1111 0%, #EE2222 50%, #FF4444 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+            lineHeight: 1,
+            marginBottom: "16px",
           }}
         >
           404
@@ -149,6 +181,10 @@ export default function PublicPortfolio({ username, onBack }) {
             fontWeight: 700,
             color: 'var(--t1)',
             marginBottom: '12px',
+            fontSize: "clamp(1.2rem, 3vw, 1.8rem)",
+            fontWeight: 700,
+            color: "var(--t1)",
+            marginBottom: "12px",
           }}
         >
           Showcase Registry Unresolved
@@ -166,6 +202,17 @@ export default function PublicPortfolio({ username, onBack }) {
           moved from NexaSphere's catalog.
         </p>
         <div style={{ display: 'flex', gap: '12px' }}>
+            color: "var(--t2)",
+            fontSize: "1rem",
+            maxWidth: "420px",
+            lineHeight: 1.7,
+            marginBottom: "32px",
+          }}
+        >
+          The developer portfolio for <strong>@{username}</strong> hasn't been
+          built yet or has been moved from NexaSphere's catalog.
+        </p>
+        <div style={{ display: "flex", gap: "12px" }}>
           <button className="btn btn-outline" onClick={onBack}>
             ← Back Home
           </button>
@@ -195,6 +242,9 @@ export default function PublicPortfolio({ username, onBack }) {
 
   const allProjects = [
     ...(projects || []).map((id) => projectsData.find((p) => p.id === id)).filter(Boolean),
+    ...(projects || [])
+      .map((id) => projectsData.find((p) => p.id === id))
+      .filter(Boolean),
     ...(customProjects || []),
   ];
 
@@ -226,12 +276,16 @@ export default function PublicPortfolio({ username, onBack }) {
         <meta name="twitter:image" content={meta.image} />
       </Helmet>
 
-      <div style={{ display: 'none' }}>
+      <div style={{ display: "none" }}>
         <ResumePrintTemplate ref={printRef} portfolio={portfolio} />
       </div>
       {/* Dynamic floating toolbar above showcase */}
       <div className="action-floating-header">
-        <button className="btn btn-outline" onClick={onBack} aria-label="Back to main page">
+        <button
+          className="btn btn-outline"
+          onClick={onBack}
+          aria-label="Back to main page"
+        >
           ← Back
         </button>
         <button className="btn btn-outline" onClick={handlePrint} aria-label="Export portfolio to PDF">
@@ -250,12 +304,14 @@ export default function PublicPortfolio({ username, onBack }) {
             stroke="currentColor"
             strokeWidth="2.5"
             style={{ marginRight: '6px', verticalAlign: 'middle' }}
+            style={{ marginRight: "6px", verticalAlign: "middle" }}
           >
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
             <polyline points="7 10 12 15 17 10" />
             <line x1="12" y1="15" x2="12" y2="3" />
           </svg>
           Export PDF
+          {isExporting ? "Exporting..." : "Export PDF"}
         </button>
         <button
           className="btn btn-primary"
@@ -279,10 +335,13 @@ export default function PublicPortfolio({ username, onBack }) {
           />
           <div className="portfolio-bio-col">
             <h1 className="portfolio-name">@{username}</h1>
-            <div className="portfolio-title">{profTitle || 'Tech Specialist & Developer'}</div>
+            <div className="portfolio-title">
+              {profTitle || "Tech Specialist & Developer"}
+            </div>
             <p className="portfolio-bio-text">
               {bio ||
                 'Welcome to my verified NexaSphere profile. Here is a live showcase of my certified skills, curriculum progress milestones, and collaborative projects synchronized directly from our active developer workspace.'}
+                "Welcome to my verified NexaSphere profile. Here is a live showcase of my certified skills, curriculum progress milestones, and collaborative projects synchronized directly from our active developer workspace."}
             </p>
 
             {/* Social connections links */}
@@ -393,7 +452,10 @@ export default function PublicPortfolio({ username, onBack }) {
         <main className="portfolio-grid">
           {/* Section A: Certified Skills & Badges */}
           {visibleSections?.quests && skills && skills.length > 0 && (
-            <section className="portfolio-panel" aria-labelledby="skills-heading">
+            <section
+              className="portfolio-panel"
+              aria-labelledby="skills-heading"
+            >
               <h2 id="skills-heading" className="portfolio-section-title">
                 <svg
                   width="18"
@@ -403,6 +465,7 @@ export default function PublicPortfolio({ username, onBack }) {
                   stroke="currentColor"
                   strokeWidth="2.5"
                   style={{ color: 'var(--accent-portfolio)' }}
+                  style={{ color: "var(--accent-portfolio)" }}
                 >
                   <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2" />
                   <line x1="12" y1="22" x2="12" y2="15.5" />
@@ -424,7 +487,10 @@ export default function PublicPortfolio({ username, onBack }) {
 
           {/* Section B: Curriculum Progress & Node Graphs */}
           {visibleSections?.roadmaps && roadmaps && roadmaps.length > 0 && (
-            <section className="portfolio-panel" aria-labelledby="roadmaps-heading">
+            <section
+              className="portfolio-panel"
+              aria-labelledby="roadmaps-heading"
+            >
               <h2 id="roadmaps-heading" className="portfolio-section-title">
                 <svg
                   width="18"
@@ -434,6 +500,7 @@ export default function PublicPortfolio({ username, onBack }) {
                   stroke="currentColor"
                   strokeWidth="2.5"
                   style={{ color: 'var(--accent-portfolio)' }}
+                  style={{ color: "var(--accent-portfolio)" }}
                 >
                   <circle cx="12" cy="12" r="10" />
                   <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
@@ -449,7 +516,8 @@ export default function PublicPortfolio({ username, onBack }) {
                       <div className="roadmap-card-info">
                         <span className="roadmap-card-title">{data.title}</span>
                         <span className="roadmap-card-status">
-                          Completed: {data.nodes?.length || 0} Core modules mastered
+                          Completed: {data.nodes?.length || 0} Core modules
+                          mastered
                         </span>
                       </div>
                       <span
@@ -458,6 +526,9 @@ export default function PublicPortfolio({ username, onBack }) {
                           textTransform: 'uppercase',
                           fontSize: '0.75rem',
                           letterSpacing: '0.05em',
+                          textTransform: "uppercase",
+                          fontSize: "0.75rem",
+                          letterSpacing: "0.05em",
                         }}
                       >
                         Active Curriculum
@@ -472,6 +543,11 @@ export default function PublicPortfolio({ username, onBack }) {
           {/* Section C: Federated Team Projects */}
           {visibleSections?.projects && projects && projects.length > 0 && (
             <section className="portfolio-panel" aria-labelledby="projects-heading">
+          {visibleSections?.projects && allProjects.length > 0 && (
+            <section
+              className="portfolio-panel"
+              aria-labelledby="projects-heading"
+            >
               <h2 id="projects-heading" className="portfolio-section-title">
                 <svg
                   width="18"
@@ -481,6 +557,7 @@ export default function PublicPortfolio({ username, onBack }) {
                   stroke="currentColor"
                   strokeWidth="2.5"
                   style={{ color: 'var(--accent-portfolio)' }}
+                  style={{ color: "var(--accent-portfolio)" }}
                 >
                   <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
                   <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
@@ -498,6 +575,7 @@ export default function PublicPortfolio({ username, onBack }) {
                         src={
                           proj.image ||
                           'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=800'
+                          "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=800"
                         }
                         alt={proj.title}
                         className="project-card-thumbnail"
@@ -511,18 +589,28 @@ export default function PublicPortfolio({ username, onBack }) {
                             padding: '2px 8px',
                             fontSize: '0.7rem',
                             textTransform: 'uppercase',
+                            alignSelf: "flex-start",
+                            padding: "2px 8px",
+                            fontSize: "0.7rem",
+                            textTransform: "uppercase",
                           }}
                         >
                           {proj.category}
                         </span>
                         <h3 className="project-card-heading">{proj.title}</h3>
-                        <p className="project-card-description">{proj.shortDesc}</p>
-                        <div className="portfolio-pills-list" style={{ gap: '6px' }}>
+                        <p className="project-card-description">
+                          {proj.shortDesc}
+                        </p>
+                        <div
+                          className="portfolio-pills-list"
+                          style={{ gap: "6px" }}
+                        >
                           {proj.techStack?.slice(0, 4).map((tech, idx) => (
                             <span
                               key={idx}
                               className="portfolio-pill"
                               style={{ padding: '2px 6px', fontSize: '0.7rem' }}
+                              style={{ padding: "2px 6px", fontSize: "0.7rem" }}
                             >
                               {tech}
                             </span>
@@ -531,12 +619,14 @@ export default function PublicPortfolio({ username, onBack }) {
                       </div>
                       <div className="project-card-footer">
                         {proj.github && proj.github !== '#' && (
+                        {proj.github && proj.github !== "#" && (
                           <a
                             href={proj.github}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="portfolio-social-btn"
                             style={{ width: '32px', height: '32px' }}
+                            style={{ width: "32px", height: "32px" }}
                             aria-label={`View source code for ${proj.title}`}
                           >
                             <svg
@@ -552,12 +642,14 @@ export default function PublicPortfolio({ username, onBack }) {
                           </a>
                         )}
                         {proj.demo && proj.demo !== '#' && (
+                        {proj.demo && proj.demo !== "#" && (
                           <a
                             href={proj.demo}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="portfolio-social-btn"
                             style={{ width: '32px', height: '32px' }}
+                            style={{ width: "32px", height: "32px" }}
                             aria-label={`Open demo for ${proj.title}`}
                           >
                             <svg
@@ -596,6 +688,17 @@ export default function PublicPortfolio({ username, onBack }) {
           <p>
             © {new Date().getFullYear()} NexaSphere Registry. All developer achievements are
             verified and cryptographically stamped.
+            marginTop: "auto",
+            paddingTop: "30px",
+            textAlign: "center",
+            fontSize: "0.8rem",
+            color: "var(--text-sub-portfolio, var(--t3))",
+            borderTop: "1px solid var(--border-portfolio, var(--bdr2))",
+          }}
+        >
+          <p>
+            © {new Date().getFullYear()} NexaSphere Registry. All developer
+            achievements are verified and cryptographically stamped.
           </p>
         </footer>
       </div>

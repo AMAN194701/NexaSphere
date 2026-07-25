@@ -107,6 +107,28 @@ export const eventSchema = eventBaseSchema.transform((data) => {
       .replace(/^-+|-+$/g, "") ||
     generatePrefixedId("event");
 
+export const baseEventSchema = z.object({
+  id: z.string().trim().min(1).optional(),
+  name: z.string().trim().min(1).max(120),
+  shortName: z.string().trim().min(1).max(60).optional(),
+  date: z.string().trim().min(1).max(80),
+  description: z.string().trim().min(1).max(1200),
+  status: z.enum(["upcoming", "completed"]).optional().default("completed"),
+  icon: z.string().trim().max(32).optional().default("Pin"),
+  tags: tagsSchema,
+});
+
+export const eventSchema = baseEventSchema.transform((data) => {
+  // Normalize fields to match DB expectations used previously.
+  const status = data.status === "upcoming" ? "upcoming" : "completed";
+  const id =
+    data.id ||
+    String(data.shortName || data.name)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") ||
+    generatePrefixedId("event");
+
   return {
     ...data,
     id,

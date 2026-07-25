@@ -645,6 +645,14 @@ export default function CertificateVerifyPage({ certificateId, onGoHome }) {
                 e.currentTarget.style.transform = '';
                 e.currentTarget.style.boxShadow = '0 4px 20px rgba(204,17,17,0.4)';
               }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 8px 28px rgba(204,17,17,0.55)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = '';
+                e.currentTarget.style.boxShadow = '0 4px 20px rgba(204,17,17,0.4)';
+              }}
             >
               <svg
                 width="16"

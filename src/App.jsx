@@ -187,6 +187,37 @@ import Chatbot from "./shared/Chatbot";
 import {
   AmbientOrbs,
   SectionDivider,
+import { useState, useEffect, useRef, useCallback } from "react";
+
+import "./styles/themes.css";
+import "./styles/globals.css";
+import "./styles/animations.css";
+import "./styles/chatbot.css";
+import "./styles/components.css";
+import "./styles/portfolio.css";
+
+import "./styles/aurora.css";
+import "./styles/motion.css";
+import WorkspacePage from "./pages/workspace/WorkspacePage";
+import SearchBar from "./components/SearchBar";
+import FloatingDock from "./components/common/FloatingDock";
+import ParticleBackground from "./shared/ParticleBackground";
+import GeometricGridBackground from "./shared/GeometricGridBackground";
+import ScrollProgress from "./shared/ScrollProgress";
+import Navbar from "./shared/Navbar";
+import HeroSection from "./pages/home/HeroSection";
+import ActivitiesSection from "./pages/activities/ActivitiesSection";
+import EventsSection from "./pages/events/EventsSection";
+import AboutSection from "./pages/about/AboutSection";
+import TeamSection from "./pages/team/TeamSection";
+import Footer from "./shared/Footer";
+import ActivityDetailPage from "./pages/activities/ActivityDetailPage";
+import EventDetailPage from "./pages/events/EventDetailPage";
+import CinematicOpening from "./shared/CinematicOpening";
+import Chatbot from "./shared/Chatbot";
+import {
+  AmbientOrbs,
+  SectionDivider,
   PageFlash,
   BannerOrbs,
   useNsReveal,
@@ -254,10 +285,38 @@ import PortfolioBuilder from './components/portfolio/PortfolioBuilder';
 import PublicPortfolio from './pages/portfolio/PublicPortfolio';
 import DashboardPage from './pages/dashboard/DashboardPage';
 import AnalyticsPage from './pages/analytics/AnalyticsPage';
+} from "./shared/MotionLayer";
+import ActivitiesPage from "./pages/activities/ActivitiesPage";
+import EventsPage from "./pages/events/EventsPage";
+import AboutPage from "./pages/about/AboutPage";
+import TeamPage from "./pages/team/TeamPage";
+import ContactPage from "./pages/contact/ContactPage";
+import dynamic from "next/dynamic";
+import apiClient from "./utils/apiClient.js";
 
-import { activityPages } from './data/activities/index';
-import { events as fallbackEvents } from './data/eventsData';
-import nexasphereLogo from './assets/images/logos/nexasphere-logo.png';
+const RecruitmentPage = dynamic(
+  () => import("./pages/recruitment/RecruitmentPage"),
+  { ssr: false }
+);
+const MembershipPage = dynamic(
+  () => import("./pages/membership/MembershipPage"),
+  { ssr: false }
+);
+const AdminPage = dynamic(() => import("./pages/admin/AdminPage"), {
+  ssr: false,
+});
+import RoadmapsPage from "./pages/roadmaps/RoadmapsPage";
+import ProjectsPage from "./pages/projects/ProjectsPage";
+import CertificateVerifyPage from "./pages/certificates/CertificateVerifyPage";
+import CollabPage from "./pages/collab/CollabPage";
+import PortfolioBuilder from "./components/portfolio/PortfolioBuilder";
+import PublicPortfolio from "./pages/portfolio/PublicPortfolio";
+import DashboardPage from "./pages/dashboard/DashboardPage";
+import AnalyticsPage from "./pages/analytics/AnalyticsPage";
+
+import { activityPages } from "./data/activities/index";
+import { events as fallbackEvents } from "./data/eventsData";
+import nexasphereLogo from "./assets/images/logos/nexasphere-logo.png";
 
 import { useInteractionEffects } from './hooks/useInteractionEffects';
 import { useBackToTop, useActiveTabObserver } from './hooks/useScrollLogic';
@@ -387,6 +446,9 @@ import nexasphereLogo from "./assets/images/logos/nexasphere-logo.png";
 import Terminal from "./components/developer/Terminal";
 import { useDeveloperMode } from "./hooks/useDeveloperMode";
 
+import Terminal from "./components/developer/Terminal";
+import { useDeveloperMode } from "./hooks/useDeveloperMode";
+
 import { BookmarkProvider } from "./context/BookmarkContext";
 import BookmarksDrawer from "./components/bookmarks/BookmarksDrawer";
 import { useTheme } from "./hooks/useTheme";
@@ -431,6 +493,23 @@ import MoveToTop from './shared/MoveToTop';
 import OfflineBanner from './components/pwa/OfflineBanner.jsx';
 import InstallPrompt from './components/pwa/InstallPrompt.jsx';
 import UpdatePrompt from './components/pwa/UpdatePrompt.jsx';
+
+const MNH = 88,
+  DNH = 64;
+const TABS = [
+  "Home",
+  "Dashboard",
+  "Analytics",
+  "Activities",
+  "Events",
+  "Projects",
+  "Roadmaps",
+  "Portfolio",
+  "Collab",
+  "About",
+  "Team",
+  "Contact",
+];
 
 const MNH = 88,
   DNH = 86;
@@ -690,6 +769,12 @@ function PageIn({ children, k }) {
     return () => cancelAnimationFrame(raf);
   }, [k]);
   return (
+  const [r, setR] = useState(false);
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setR(true));
+    return () => cancelAnimationFrame(raf);
+  }, [k]);
+  return (
     <div
       style={{
         opacity: r ? 1 : 0,
@@ -798,6 +883,15 @@ function Cursor() {
     hovering: false,
     clicking: false,
     visible: true,
+    mx: 0,
+    my: 0,
+    ox: 0,
+    oy: 0,
+    floatY: 0,
+    floatPhase: 0,
+    hovering: false,
+    clicking: false,
+    visible: true,
     raf: null,
   });
 
@@ -833,6 +927,9 @@ function Cursor() {
       s.hovering = !!e.target.closest('button,a,[role="button"],[tabindex]');
     };
     const onLeave = () => {
+    const s = stateRef.current;
+    if (window.matchMedia("(hover:none)").matches) return;
+    document.body.style.cursor = "none";
     const s = stateRef.current;
     if (window.matchMedia("(hover:none)").matches) return;
     document.body.style.cursor = "none";
@@ -983,10 +1080,17 @@ function Cursor() {
         trailRef.current.style.left = s.ox + 'px';
         trailRef.current.style.top = s.oy + s.floatY * 0.4 + 'px';
         trailRef.current.style.opacity = s.visible ? (s.hovering ? 0 : 0.35) : 0;
+        trailRef.current.style.left = s.ox + "px";
+        trailRef.current.style.top = s.oy + s.floatY * 0.4 + "px";
+        trailRef.current.style.opacity = s.visible
+          ? s.hovering
+            ? 0
+            : 0.35
+          : 0;
       }
       if (glowRef.current) {
-        glowRef.current.style.left = s.mx + 'px';
-        glowRef.current.style.top = s.my + 'px';
+        glowRef.current.style.left = s.mx + "px";
+        glowRef.current.style.top = s.my + "px";
         glowRef.current.style.opacity = s.visible ? 1 : 0;
         trailRef.current.style.left = s.ox + 'px';
         trailRef.current.style.top = s.oy + s.floatY * 0.4 + 'px';
@@ -1298,7 +1402,7 @@ export default function App() {
 /* ── Main app — all hooks live here, always called unconditionally ── */
 function MainApp() {
   const [cinDone, setCinDone] = useState(false);
-  const [activeTab, setActiveTab] = useState('Home');
+  const [activeTab, setActiveTab] = useState("Home");
   const [mobile, setMobile] = useState(window.innerWidth <= 768);
   const [wipeOn, setWipeOn] = useState(false);
   const [wipePh, setWipePh] = useState('out');
@@ -1310,6 +1414,9 @@ function MainApp() {
   const [page, setPage] = useState(null);
   const [eventsData, setEventsData] = useState(fallbackEvents);
   const [searchOpen, setSearchOpen] = useState(false); // ← Search state
+  const [wipePh, setWipePh] = useState("out");
+  const [page, setPage] = useState(null);
+  const [eventsData, setEventsData] = useState(fallbackEvents);
   const [searchOpen, setSearchOpen] = useState(false); // 🔍 Search state
   const [bookmarksOpen, setBookmarksOpen] = useState(false);
   const { resolvedTheme: theme, setTheme } = useTheme();
@@ -1503,6 +1610,8 @@ export default function App() {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
       })
+    const base = (import.meta?.env?.VITE_API_BASE || "").replace(/\/+$/, "");
+    const url = base ? `${base}/api/content/events` : "/api/content/events";
     apiClient(url)
       .then((data) => {
         if (!alive) return;
@@ -1584,8 +1693,8 @@ export default function App() {
 
   useEffect(() => {
     const fn = () => setMobile(window.innerWidth <= 768);
-    window.addEventListener('resize', fn, { passive: true });
-    return () => window.removeEventListener('resize', fn);
+    window.addEventListener("resize", fn, { passive: true });
+    return () => window.removeEventListener("resize", fn);
   }, []);
 
   useEffect(()=>{
@@ -1603,6 +1712,15 @@ export default function App() {
     window.addEventListener("scroll", fn, { passive: true });
     return () => window.removeEventListener("scroll", fn);
   }, [mobile, page]);
+    const fn = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+        e.preventDefault();
+        setSearchOpen((s) => !s);
+      }
+    };
+    window.addEventListener("keydown", fn);
+    return () => window.removeEventListener("keydown", fn);
+  }, []);
 
   useEffect(() => {
     const fn = () => setMobile(window.innerWidth <= 768);
@@ -1703,6 +1821,16 @@ export default function App() {
               () => {
                 e.target.style.opacity = '1';
                 e.target.style.transform = 'none';
+    const obs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting && !e.target.classList.contains("fired")) {
+            e.target.classList.add("fired");
+            e.target.addEventListener(
+              "animationend",
+              () => {
+                e.target.style.opacity = "1";
+                e.target.style.transform = "none";
               },
               { once: true }
             );
@@ -1717,6 +1845,15 @@ export default function App() {
       .forEach((el) => obs.observe(el));
 
     const btns = document.querySelectorAll('.mag-btn');
+      { threshold: 0.09, rootMargin: "0px 0px -36px 0px" }
+    );
+    document
+      .querySelectorAll(
+        ".pop-in,.pop-left,.pop-right,.pop-scale,.pop-flip,.pop-word,.pop-num"
+      )
+      .forEach((el) => obs.observe(el));
+
+    const btns = document.querySelectorAll(".mag-btn");
     const onMove = (e) => {
       btns.forEach((btn) => {
         const rect = btn.getBoundingClientRect();
@@ -1844,6 +1981,8 @@ export default function App() {
         btn.style.transform =
           d < 88
             ? `translate(${((dx * (88 - d)) / 88) * 0.32}px,${((dy * (88 - d)) / 88) * 0.32}px)`
+            : "";
+      });
             : "";
       });
       document.querySelectorAll(".activity-card").forEach((card) => {
@@ -2150,6 +2289,60 @@ export default function App() {
     [nav]
   );
 
+  const onTab = useCallback(
+    (tab) => {
+      if (
+        [
+          "Dashboard",
+          "Analytics",
+          "Activities",
+          "Events",
+          "Projects",
+          "Roadmaps",
+          "Portfolio",
+          "Collab",
+          "About",
+          "Team",
+          "Contact",
+        ].includes(tab)
+      ) {
+        nav(() => {
+          setPage({ type: "section", section: tab });
+          setActiveTab(tab);
+        });
+        return;
+      }
+      nav(() => {
+        setPage(null);
+        setActiveTab(tab);
+        setTimeout(() => {
+          const el = document.getElementById(`section-${tab.toLowerCase()}`);
+          if (!el) return;
+          window.scrollTo({
+            top: el.offsetTop - (mobile ? MNH : DNH),
+            behavior: "smooth",
+          });
+        }, 50);
+      });
+    },
+    [nav, mobile]
+  );
+
+  const onNavigate = useCallback(
+    (type, title) => {
+      if (type === "activity")
+        nav(() => setPage({ type: "activity", activityKey: title }));
+    },
+    [nav]
+  );
+
+  const onEvent = useCallback(
+    (ev) => {
+      nav(() => setPage((p) => ({ ...p, type: "event", event: ev })));
+    },
+    [nav]
+  );
+
   const onKSSClick = useCallback(
     (ev) => {
       nav(() =>
@@ -2398,11 +2591,11 @@ export default function App() {
   /* ── Derived ── */
   const nh  = mobile ? MNH : DNH;
   const openApply = useCallback(() => {
-    nav(() => setPage({ type: 'apply' }));
+    nav(() => setPage({ type: "apply" }));
   }, [nav]);
 
   const openJoin = useCallback(() => {
-    nav(() => setPage({ type: 'join' }));
+    nav(() => setPage({ type: "join" }));
   }, [nav]);
 
   const onBackHome = useCallback(() => {
@@ -2447,6 +2640,7 @@ export default function App() {
 
   return (
     <BookmarkProvider>
+      {/* Chatbot – kept at very top */}
       <Chatbot />
       <Chatbot/>
 
@@ -2641,6 +2835,12 @@ export default function App() {
             )}
             {page.section === "Dashboard" && (
               <DashboardPage onBack={onBackHome} />
+            )}
+            {page.section === "Dashboard" && (
+              <DashboardPage onBack={onBackHome} />
+            )}
+            {page.section === "Analytics" && (
+              <AnalyticsPage onBack={onBackHome} />
             )}
             {page.section === "Activities" && (
               <ActivitiesPage onNavigate={onNavigate} onBack={onBackHome} />
@@ -2946,6 +3146,29 @@ export default function App() {
             justifyContent: "center",
             boxShadow: "0 4px 20px rgba(204,17,17,0.5)",
             transition: "transform 0.2s, box-shadow 0.2s",
+            position: "fixed",
+            bottom: "80px",
+            left: "24px",
+            zIndex: 8500,
+            width: "46px",
+            height: "46px",
+            borderRadius: "50%",
+            background: "linear-gradient(135deg,#CC1111,#880000)",
+            border: "none",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: "0 4px 20px rgba(204,17,17,0.5)",
+            transition: "transform 0.2s, box-shadow 0.2s",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = "scale(1.12)";
+            e.currentTarget.style.boxShadow = "0 6px 28px rgba(204,17,17,0.75)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = "scale(1)";
+            e.currentTarget.style.boxShadow = "0 4px 20px rgba(204,17,17,0.5)";
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.transform = "scale(1.12)";

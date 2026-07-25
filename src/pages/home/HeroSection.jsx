@@ -2,6 +2,10 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BRAND_LOGO_ICON } from '../../shared/brandAssets';
 import { IconArrowRight, IconSpark, DynamicIcon } from '../../shared/Icons';
+import { useEffect, useRef, useState, useCallback } from "react";
+
+import { BRAND_LOGO_ICON } from "../../shared/brandAssets";
+import { IconArrowRight, IconSpark, DynamicIcon } from "../../shared/Icons";
 
 /* â”€â”€ Ripple Button â”€â”€ */
 function RippleBtn({ cls, children, href, onClick }) {
@@ -14,6 +18,10 @@ function RippleBtn({ cls, children, href, onClick }) {
     el.className = 'rpl';
     el.style.left = e.clientX - r.left + 'px';
     el.style.top = e.clientY - r.top + 'px';
+    const el = document.createElement("span");
+    el.className = "rpl";
+    el.style.left = e.clientX - r.left + "px";
+    el.style.top = e.clientY - r.top + "px";
     b.appendChild(el);
     setTimeout(() => el.remove(), 700);
     onClick && onClick(e);
@@ -67,6 +75,22 @@ function OrbitRings({ isLight }) {
     'rotate(14 250 250)',
     'rotate(55 250 250)',
     'rotate(-35 250 250)',
+        { rx: 105, ry: 48, dur: 8, r: 2, col: "204,17,17", d: "0s" },
+        { rx: 58, ry: 182, dur: 13, r: 1.5, col: "136,0,0", d: "-5s" },
+        { rx: 162, ry: 37, dur: 17, r: 1, col: "238,34,34", d: "-9s" },
+        { rx: 78, ry: 158, dur: 6, r: 2, col: "255,68,68", d: "-2s" },
+      ]
+    : [
+        { rx: 105, ry: 48, dur: 8, r: 2, col: "204,17,17", d: "0s" },
+        { rx: 58, ry: 182, dur: 13, r: 1.5, col: "136,0,0", d: "-5s" },
+        { rx: 162, ry: 37, dur: 17, r: 1, col: "238,34,34", d: "-9s" },
+        { rx: 78, ry: 158, dur: 6, r: 2, col: "255,68,68", d: "-2s" },
+      ];
+  const tilts = [
+    "rotate(-22 250 250)",
+    "rotate(14 250 250)",
+    "rotate(55 250 250)",
+    "rotate(-35 250 250)",
   ];
   return (
     <svg
@@ -82,6 +106,13 @@ function OrbitRings({ isLight }) {
         pointerEvents: 'none',
         zIndex: 0,
         overflow: 'visible',
+        position: "absolute",
+        top: "50%",
+        left: "50%",
+        transform: "translate(-50%,-50%)",
+        pointerEvents: "none",
+        zIndex: 0,
+        overflow: "visible",
       }}
     >
       {rings.map((rg, i) => (
@@ -101,6 +132,15 @@ function OrbitRings({ isLight }) {
             style={{ filter: `drop-shadow(0 0 ${rg.r * 5}px rgba(${rg.col},.9))` }}
           >
             <animateMotion dur={`${rg.dur}s`} repeatCount="indefinite" begin={rg.d}>
+            style={{
+              filter: `drop-shadow(0 0 ${rg.r * 5}px rgba(${rg.col},.9))`,
+            }}
+          >
+            <animateMotion
+              dur={`${rg.dur}s`}
+              repeatCount="indefinite"
+              begin={rg.d}
+            >
               <mpath href={`#hr${i}`} />
             </animateMotion>
           </circle>
@@ -128,6 +168,7 @@ function Logo3D({ ready, isLight }) {
   }, []);
   const onLeave = () => {
     if (ref.current) ref.current.style.transform = '';
+    if (ref.current) ref.current.style.transform = "";
   };
 
   return (
@@ -149,6 +190,17 @@ function Logo3D({ ready, isLight }) {
       <OrbitRings isLight={isLight} />
       <img src={BRAND_LOGO_ICON} alt="NexaSphere" className="hero-logo-img" />
       <Image
+        transformStyle: "preserve-3d",
+        transition: "transform .14s ease",
+        opacity: 1,
+        transform: ready ? "scale(1)" : "scale(.3) rotateY(180deg)",
+        transitionProperty: "opacity,transform",
+        transitionDuration: "1s",
+        transitionTimingFunction: "cubic-bezier(.34,1.56,.64,1)",
+      }}
+    >
+      <OrbitRings isLight={isLight} />
+      <img
         src={BRAND_LOGO_ICON}
         alt="NexaSphere"
         className="hero-logo-img"
@@ -167,6 +219,16 @@ function Logo3D({ ready, isLight }) {
           background: `radial-gradient(ellipse,${isLight ? 'rgba(204,17,17,.22)' : 'rgba(204,17,17,.32)'},transparent 70%)`,
           filter: 'blur(5px)',
           animation: 'float 5s ease-in-out infinite',
+          position: "absolute",
+          bottom: "-8px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          width: "90px",
+          height: "14px",
+          borderRadius: "50%",
+          background: `radial-gradient(ellipse,${isLight ? "rgba(204,17,17,.22)" : "rgba(204,17,17,.32)"},transparent 70%)`,
+          filter: "blur(5px)",
+          animation: "float 5s ease-in-out infinite",
         }}
       />
     </div>
@@ -186,6 +248,11 @@ function StatsBar({ vis, isLight }) {
     { v: '8', l: 'Activities', i: 'Activity' },
     { v: '1', l: 'Events Done', i: 'Calendar' },
     { v: '∞', l: 'Ideas', i: 'Lightbulb' },
+  const items = [
+    { v: "12", l: "Members", i: "Users" },
+    { v: "8", l: "Activities", i: "Activity" },
+    { v: "1", l: "Events Done", i: "Calendar" },
+    { v: "∞", l: "Ideas", i: "Lightbulb" },
   ];
   return (
     <div
@@ -202,6 +269,17 @@ function StatsBar({ vis, isLight }) {
         transform: vis ? 'none' : 'translateY(22px)',
         transition: 'all .85s cubic-bezier(.22,1,.36,1)',
         transitionDelay: '.4s',
+        display: "flex",
+        maxWidth: "500px",
+        margin: "56px auto 0",
+        background: isLight ? "rgba(26,26,26,.04)" : "rgba(204,17,17,.04)",
+        border: `1px solid ${isLight ? "rgba(26,26,26,.09)" : "rgba(204,17,17,.12)"}`,
+        borderRadius: "14px",
+        overflow: "hidden",
+        opacity: vis ? 1 : 0,
+        transform: vis ? "none" : "translateY(22px)",
+        transition: "all .85s cubic-bezier(.22,1,.36,1)",
+        transitionDelay: ".4s",
       }}
     >
       {items.map((s, i) => (
@@ -226,6 +304,31 @@ function StatsBar({ vis, isLight }) {
           onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
         >
           <div style={{ fontSize: '.9rem', marginBottom: '2px', color: 'var(--c1)' }}>
+            padding: "13px 6px",
+            textAlign: "center",
+            cursor: "default",
+            borderRight:
+              i < 3
+                ? `1px solid ${isLight ? "rgba(26,26,26,.07)" : "rgba(204,17,17,.10)"}`
+                : "none",
+            transition: "background .2s",
+          }}
+          onMouseEnter={(e) =>
+            (e.currentTarget.style.background = isLight
+              ? "rgba(26,26,26,.06)"
+              : "rgba(204,17,17,.09)")
+          }
+          onMouseLeave={(e) =>
+            (e.currentTarget.style.background = "transparent")
+          }
+        >
+          <div
+            style={{
+              fontSize: ".9rem",
+              marginBottom: "2px",
+              color: "var(--c1)",
+            }}
+          >
             <DynamicIcon name={s.i} size={18} />
           </div>
           <div
@@ -240,6 +343,16 @@ function StatsBar({ vis, isLight }) {
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
               animation: vis ? `countUp .5s ${0.4 + i * 0.1}s both` : 'none',
+              fontFamily: "Orbitron,monospace",
+              fontSize: "clamp(1.1rem,3vw,1.75rem)",
+              fontWeight: 900,
+              backgroundImage: isLight
+                ? "linear-gradient(135deg,#CC1111,#880000)"
+                : "linear-gradient(135deg,#EE2222,#CC1111)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+              animation: vis ? `countUp .5s ${0.4 + i * 0.1}s both` : "none",
             }}
           >
             {s.v}
@@ -251,6 +364,11 @@ function StatsBar({ vis, isLight }) {
               textTransform: 'uppercase',
               letterSpacing: '.1em',
               marginTop: '1px',
+              fontSize: ".58rem",
+              color: isLight ? "#6B6B6B" : "var(--t2)",
+              textTransform: "uppercase",
+              letterSpacing: ".1em",
+              marginTop: "1px",
               fontFamily: "'Space Mono',monospace",
             }}
           >
@@ -286,6 +404,11 @@ function Atmosphere({ isLight }) {
           overflow: 'hidden',
           zIndex: 0,
           pointerEvents: 'none',
+          position: "absolute",
+          inset: 0,
+          overflow: "hidden",
+          zIndex: 0,
+          pointerEvents: "none",
         }}
       >
         {Array.from({ length: 9 }, (_, i) => (
@@ -312,6 +435,22 @@ function Atmosphere({ isLight }) {
             }}
           >
             {Array.from({ length: 28 }, () => (Math.random() > 0.5 ? '1' : '0')).join('\n')}
+              position: "absolute",
+              left: `${8 + i * 10}%`,
+              top: 0,
+              fontFamily: "'Space Mono',monospace",
+              fontSize: "8px",
+              color: isLight ? "rgba(180,20,20,0.45)" : "var(--c1)",
+              lineHeight: 1.9,
+              userSelect: "none",
+              animation: `dataStream ${4.2 + i * 0.65}s linear infinite`,
+              animationDelay: `${-i * 1.3}s`,
+              opacity: isLight ? 0.5 : 0.06,
+            }}
+          >
+            {Array.from({ length: 28 }, () =>
+              Math.random() > 0.5 ? "1" : "0"
+            ).join("\n")}
           </div>
         ))}
       </div>
@@ -324,6 +463,11 @@ function Atmosphere({ isLight }) {
           overflow: 'hidden',
           zIndex: 1,
           pointerEvents: 'none',
+          position: "absolute",
+          inset: 0,
+          overflow: "hidden",
+          zIndex: 1,
+          pointerEvents: "none",
         }}
       >
         <div
@@ -338,6 +482,14 @@ function Atmosphere({ isLight }) {
               ? 'linear-gradient(90deg,transparent,rgba(204,17,17,.25),rgba(136,0,0,.25),transparent)'
               : 'linear-gradient(90deg,transparent,rgba(204,17,17,.38),rgba(136,0,0,.38),transparent)',
             animation: 'scanline 8s linear infinite',
+            position: "absolute",
+            left: 0,
+            right: 0,
+            height: "1px",
+            background: isLight
+              ? "linear-gradient(90deg,transparent,rgba(204,17,17,.25),rgba(136,0,0,.25),transparent)"
+              : "linear-gradient(90deg,transparent,rgba(204,17,17,.38),rgba(136,0,0,.38),transparent)",
+            animation: "scanline 8s linear infinite",
           }}
         />
         <div
@@ -352,6 +504,11 @@ function Atmosphere({ isLight }) {
             backgroundImage: isLight
               ? 'repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(204,17,17,.003) 2px,rgba(204,17,17,.003) 4px)'
               : 'repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(204,17,17,.005) 2px,rgba(204,17,17,.005) 4px)',
+            position: "absolute",
+            inset: 0,
+            backgroundImage: isLight
+              ? "repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(204,17,17,.003) 2px,rgba(204,17,17,.003) 4px)"
+              : "repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(204,17,17,.005) 2px,rgba(204,17,17,.005) 4px)",
           }}
         />
       </div>
@@ -364,6 +521,10 @@ function Atmosphere({ isLight }) {
             inset: 0,
             zIndex: 0,
             pointerEvents: 'none',
+            position: "absolute",
+            inset: 0,
+            zIndex: 0,
+            pointerEvents: "none",
             backgroundImage: `radial-gradient(circle at 60% 38%,rgba(194,119,10,.05) 0%,transparent 55%),radial-gradient(circle at 30% 68%,rgba(109,40,217,.04) 0%,transparent 48%)`,
           }}
         />
@@ -374,9 +535,15 @@ function Atmosphere({ isLight }) {
 
 export default function HeroSection({ onTabChange, onApply, onJoin, theme = 'dark' }) {
   const { t } = useTranslation();
+export default function HeroSection({
+  onTabChange,
+  onApply,
+  onJoin,
+  theme = "dark",
+}) {
   const [ready, setReady] = useState(false);
   const [statsVis, setStatsVis] = useState(false);
-  const isLight = theme === 'light';
+  const isLight = theme === "light";
 
   useEffect(() => {
     const t1 = setTimeout(() => setReady(true), 80);
@@ -398,6 +565,19 @@ export default function HeroSection({ onTabChange, onApply, onJoin, theme = 'dar
           background: isLight ? '#FFFFFF' : '#0A0A0A',
           background: isLight ? 'transparent' : '#0A0A0A',
           transition: 'background 1.2s cubic-bezier(.4,0,.2,1)',
+    <section
+      className="hero-section"
+      id="section-home"
+      style={{ position: "relative", zIndex: 2 }}
+    >
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: "none",
+          background: isLight ? "transparent" : "#0A0A0A",
+          transition: "background 1.2s cubic-bezier(.4,0,.2,1)",
         }}
       />
       {/* Logo glow — subtle radial red only around center */}
@@ -421,6 +601,15 @@ export default function HeroSection({ onTabChange, onApply, onJoin, theme = 'dar
           animation: 'cinGlow 4s ease-in-out infinite',
         }}
       />
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%,-58%)",
+          pointerEvents: "none",
+          zIndex: 0,
+          filter: "blur(32px)",
+          animation: "cinGlow 4s ease-in-out infinite",
+        }}
         // inline background kept here so it adapts to theme
       >
         <div
@@ -431,6 +620,12 @@ export default function HeroSection({ onTabChange, onApply, onJoin, theme = 'dar
             background: isLight
               ? 'radial-gradient(circle, rgba(230,57,70,0.10) 0%, transparent 65%)'
               : 'radial-gradient(circle, rgba(230,57,70,0.18) 0%, transparent 65%)',
+            width: "100%",
+            height: "100%",
+            borderRadius: "50%",
+            background: isLight
+              ? "radial-gradient(circle, rgba(230,57,70,0.10) 0%, transparent 65%)"
+              : "radial-gradient(circle, rgba(230,57,70,0.18) 0%, transparent 65%)",
           }}
         />
       </div>
@@ -439,6 +634,7 @@ export default function HeroSection({ onTabChange, onApply, onJoin, theme = 'dar
       <div
         className="hero-content"
         style={{ position: 'relative', zIndex: 2, paddingBottom: '80px' }}
+        style={{ position: "relative", zIndex: 2, paddingBottom: "80px" }}
       >
         <Logo3D ready={ready} isLight={isLight} />
         <HeroTitle isLight={isLight} />
@@ -461,6 +657,20 @@ export default function HeroSection({ onTabChange, onApply, onJoin, theme = 'dar
               animation: 'blink 1s step-end infinite',
               color: 'var(--c1)',
               marginLeft: '2px',
+            animationName: "letterDrop",
+            animationDuration: ".75s",
+            animationDelay: ".5s",
+            animationFillMode: "forwards",
+            animationTimingFunction: "cubic-bezier(.22,1,.36,1)",
+            opacity: 1,
+          }}
+        >
+          GL Bajaj&apos;s Student-Driven Tech Ecosystem
+          <span
+            style={{
+              animation: "blink 1s step-end infinite",
+              color: "var(--c1)",
+              marginLeft: "2px",
             }}
           >
             _
@@ -490,6 +700,40 @@ export default function HeroSection({ onTabChange, onApply, onJoin, theme = 'dar
             <RippleBtn cls="btn-outline" onClick={() => onTabChange('Team')}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 {t('hero.core_team')} <IconArrowRight />
+            animationName: "letterDrop",
+            animationDuration: ".75s",
+            animationDelay: ".75s",
+            animationFillMode: "forwards",
+            animationTimingFunction: "cubic-bezier(.22,1,.36,1)",
+            opacity: 1,
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "10px",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              gap: "12px",
+              flexWrap: "wrap",
+              justifyContent: "center",
+            }}
+          >
+            <RippleBtn
+              cls="btn-primary"
+              onClick={() => (onJoin ? onJoin() : onTabChange("Team"))}
+            >
+              <span
+                style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
+              >
+                Join as Member <IconArrowRight />
+              </span>
+            </RippleBtn>
+            <RippleBtn cls="btn-outline" onClick={() => onTabChange("Team")}>
+              <span
+                style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
+              >
+                Core Team <IconArrowRight />
               </span>
             </RippleBtn>
           </div>
@@ -504,6 +748,15 @@ export default function HeroSection({ onTabChange, onApply, onJoin, theme = 'dar
               borderRadius: '16px',
               maxWidth: '420px',
               textAlign: 'center',
+              marginTop: "16px",
+              padding: "14px 24px",
+              background: isLight
+                ? "rgba(204,17,17,.05)"
+                : "rgba(204,17,17,.07)",
+              border: `1px solid ${isLight ? "rgba(204,17,17,.18)" : "rgba(204,17,17,.18)"}`,
+              borderRadius: "16px",
+              maxWidth: "420px",
+              textAlign: "center",
             }}
           >
             <p
@@ -520,6 +773,22 @@ export default function HeroSection({ onTabChange, onApply, onJoin, theme = 'dar
             <RippleBtn cls="btn-join" onClick={() => (onApply ? onApply() : onTabChange('Team'))}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 {t('hero.apply_for_core_team')} <IconSpark />
+                fontSize: ".82rem",
+                color: "var(--t2)",
+                marginBottom: "10px",
+                lineHeight: 1.5,
+              }}
+            >
+              Want to be part of the NexaSphere Core Team?
+            </p>
+            <RippleBtn
+              cls="btn-join"
+              onClick={() => (onApply ? onApply() : onTabChange("Team"))}
+            >
+              <span
+                style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
+              >
+                Apply for Core Team <IconSpark />
               </span>
             </RippleBtn>
           </div>
@@ -537,6 +806,13 @@ export default function HeroSection({ onTabChange, onApply, onJoin, theme = 'dar
           height: '150px',
           background: 'linear-gradient(to bottom,transparent,var(--bg))',
           pointerEvents: 'none',
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: "150px",
+          background: "linear-gradient(to bottom,transparent,var(--bg))",
+          pointerEvents: "none",
           zIndex: 2,
         }}
       />
@@ -554,6 +830,17 @@ export default function HeroSection({ onTabChange, onApply, onJoin, theme = 'dar
           gap: '4px',
           opacity: 0.42,
           animation: 'float 2.5s ease-in-out infinite',
+          position: "absolute",
+          bottom: "16px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 2,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "4px",
+          opacity: 0.42,
+          animation: "float 2.5s ease-in-out infinite",
         }}
       >
         <div
@@ -565,6 +852,12 @@ export default function HeroSection({ onTabChange, onApply, onJoin, theme = 'dar
           }}
         >
           {t('hero.scroll')}
+            fontSize: ".56rem",
+            color: isLight ? "#78716c" : "var(--t2)",
+            letterSpacing: ".22em",
+            fontFamily: "'Space Mono',monospace",
+          }}
+        >
           SCROLL
         </div>
         <div
@@ -572,6 +865,8 @@ export default function HeroSection({ onTabChange, onApply, onJoin, theme = 'dar
           style={{
             width: '1px',
             height: '28px',
+            width: "1px",
+            height: "28px",
             background: `linear-gradient(to bottom,var(--c1),transparent)`,
           }}
         />

@@ -6,6 +6,12 @@ const MAX_REQUESTS = 100;
 
 export const rateLimiter = (req: Request, res: Response, next: NextFunction) => {
   const ip = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+export const rateLimiter = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const ip = req.ip || req.headers["x-forwarded-for"] || "unknown";
   const now = Date.now();
   const record = ipRequestCounts.get(ip as string);
 
@@ -16,6 +22,9 @@ export const rateLimiter = (req: Request, res: Response, next: NextFunction) => 
 
   if (record.count >= MAX_REQUESTS) {
     return res.status(429).json({ error: 'Too many requests. Please try again later.' });
+    return res
+      .status(429)
+      .json({ error: "Too many requests. Please try again later." });
   }
 
   record.count += 1;

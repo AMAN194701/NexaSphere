@@ -12,6 +12,13 @@ import TeamMemberModal from './TeamMemberModal';
 import { IconSpark } from '../../shared/Icons';
 import type { CoreTeamMember } from '../../types/api';
 import type { TeamSectionProps } from '../../types/components';
+} from "react";
+import apiClient from "../../utils/apiClient.js";
+import { createPortal } from "react-dom";
+import TeamMemberModal from "./TeamMemberModal";
+import { IconSpark } from "../../shared/Icons";
+import type { CoreTeamMember } from "../../types/api";
+import type { TeamSectionProps } from "../../types/components";
 
 const ANTI_GRAVITY_DELAYS = [
   -0.0, -2.1, -4.2, -1.0, -3.3, -5.5, -0.7, -6.1, -2.8, -4.9, -1.6, -3.8,
@@ -36,7 +43,7 @@ function MemberCard({
     const x = (e.clientX - rect.left) / rect.width - 0.5;
     const y = (e.clientY - rect.top) / rect.height - 0.5;
 
-    card.style.animationPlayState = 'paused';
+    card.style.animationPlayState = "paused";
     card.style.transform = `translateY(-14px) rotateX(${-y * 18}deg) rotateY(${x * 18}deg) scale(1.06)`;
   };
 
@@ -44,16 +51,16 @@ function MemberCard({
     const card = ref.current;
     if (!card) return;
 
-    card.style.transform = '';
-    card.style.animationPlayState = '';
+    card.style.transform = "";
+    card.style.animationPlayState = "";
   };
 
   const handleClick = (): void => {
     const card = ref.current;
     if (card) {
-      card.style.transform = 'scale(.9)';
+      card.style.transform = "scale(.9)";
       window.setTimeout(() => {
-        card.style.transform = '';
+        card.style.transform = "";
       }, 140);
     }
 
@@ -61,7 +68,7 @@ function MemberCard({
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>): void => {
-    if (e.key === 'Enter' || e.key === ' ') {
+    if (e.key === "Enter" || e.key === " ") {
       handleClick();
     }
   };
@@ -70,7 +77,9 @@ function MemberCard({
     <div
       ref={ref}
       className="team-card shimmer mag-card"
-      style={{ animationDelay: `${ANTI_GRAVITY_DELAYS[idx % ANTI_GRAVITY_DELAYS.length]}s` }}
+      style={{
+        animationDelay: `${ANTI_GRAVITY_DELAYS[idx % ANTI_GRAVITY_DELAYS.length]}s`,
+      }}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       onClick={handleClick}
@@ -95,13 +104,15 @@ function MemberCard({
 }
 
 export default function TeamSection({ onApply }: TeamSectionProps): ReactNode {
-  const [selectedMember, setSelectedMember] = useState<CoreTeamMember | null>(null);
+  const [selectedMember, setSelectedMember] = useState<CoreTeamMember | null>(
+    null
+  );
   const [members, setMembers] = useState<CoreTeamMember[]>([]);
 
   useEffect(() => {
     let alive = true;
-    const base = (import.meta?.env?.VITE_API_BASE || '').replace(/\/+$/, '');
-    const url = base ? `${base}/api/content/team` : '/api/content/team';
+    const base = (import.meta?.env?.VITE_API_BASE || "").replace(/\/+$/, "");
+    const url = base ? `${base}/api/content/team` : "/api/content/team";
 
     apiClient(url)
       .then((data) => {
@@ -121,17 +132,20 @@ export default function TeamSection({ onApply }: TeamSectionProps): ReactNode {
   useEffect(() => {
     const elements = document.querySelectorAll(
       '#section-team .pop-flip, #section-team .pop-in, #section-team .pop-word'
+      "#section-team .pop-flip, #section-team .pop-in, #section-team .pop-word"
     );
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             entry.target.classList.add('fired');
+            entry.target.classList.add("fired");
             observer.unobserve(entry.target);
           }
         });
       },
       { threshold: 0, rootMargin: '0px 0px -10px 0px' }
+      { threshold: 0, rootMargin: "0px 0px -10px 0px" }
     );
 
     elements.forEach((element) => observer.observe(element));
@@ -140,7 +154,7 @@ export default function TeamSection({ onApply }: TeamSectionProps): ReactNode {
       elements.forEach((element) => {
         const rect = element.getBoundingClientRect();
         if (rect.top < window.innerHeight + 100) {
-          element.classList.add('fired');
+          element.classList.add("fired");
         }
       });
     }, 120);
@@ -155,16 +169,26 @@ export default function TeamSection({ onApply }: TeamSectionProps): ReactNode {
     <section className="section" id="section-team">
       <div className="container">
         <div className="section-heading ns-reveal">
-          <span className="cin-section-label pop-in">GL Bajaj Group of Institutions · Mathura</span>
+          <span className="cin-section-label pop-in">
+            GL Bajaj Group of Institutions · Mathura
+          </span>
           <h2 className="section-title pop-word">Core Team</h2>
-          <p className="section-subtitle pop-in" style={{ animationDelay: '0.1s' }}>
+          <p
+            className="section-subtitle pop-in"
+            style={{ animationDelay: "0.1s" }}
+          >
             The Minds Behind NexaSphere
           </p>
         </div>
 
         <div className="team-grid cin-container">
           {members.map((member, index) => (
-            <MemberCard key={member.id} member={member} idx={index} onClick={setSelectedMember} />
+            <MemberCard
+              key={member.id}
+              member={member}
+              idx={index}
+              onClick={setSelectedMember}
+            />
           ))}
         </div>
 
@@ -175,12 +199,14 @@ export default function TeamSection({ onApply }: TeamSectionProps): ReactNode {
           <p>
             We&apos;re looking for passionate students to drive NexaSphere forward. Fill in the form
             and we&apos;ll reach out!
+            We&apos;re looking for passionate students to drive NexaSphere
+            forward. Fill in the form and we&apos;ll reach out!
           </p>
           <button
             type="button"
             onClick={() => onApply && onApply()}
             className="btn btn-join btn-ripple"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
+            style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
           >
             Apply Here <IconSpark />
           </button>
@@ -189,6 +215,10 @@ export default function TeamSection({ onApply }: TeamSectionProps): ReactNode {
 
       {selectedMember ? (
         <TeamMemberModal member={selectedMember} onClose={() => setSelectedMember(null)} />
+        <TeamMemberModal
+          member={selectedMember}
+          onClose={() => setSelectedMember(null)}
+        />
       ) : null}
     </section>
   );

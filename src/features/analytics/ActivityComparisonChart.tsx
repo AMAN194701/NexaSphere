@@ -1,7 +1,18 @@
-import React from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
-import { ChartWrapper, CustomTooltip } from '../../components/analytics/ChartComponents';
-import { ComparisonDataPoint } from '../../utils/chartDataFormatters';
+import React from "react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+} from "recharts";
+import {
+  ChartWrapper,
+  CustomTooltip,
+} from "../../components/analytics/ChartComponents";
+import { ComparisonDataPoint } from "../../utils/chartDataFormatters";
 
 interface ActivityComparisonChartProps {
   data: ComparisonDataPoint[];
@@ -12,6 +23,9 @@ export const ActivityComparisonChart: React.FC<ActivityComparisonChartProps> = (
   data,
   loading,
 }) => {
+export const ActivityComparisonChart: React.FC<
+  ActivityComparisonChartProps
+> = ({ data, loading }) => {
   return (
     <ChartWrapper
       title="Activity Comparison"
@@ -31,6 +45,21 @@ export const ActivityComparisonChart: React.FC<ActivityComparisonChartProps> = (
         <YAxis stroke="#888" tick={{ fill: '#888' }} tickLine={false} axisLine={false} />
         <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
         <Legend wrapperStyle={{ paddingTop: '20px' }} />
+          tick={{ fill: "#888" }}
+          tickLine={false}
+          axisLine={false}
+        />
+        <YAxis
+          stroke="#888"
+          tick={{ fill: "#888" }}
+          tickLine={false}
+          axisLine={false}
+        />
+        <Tooltip
+          content={<CustomTooltip />}
+          cursor={{ fill: "rgba(255,255,255,0.05)" }}
+        />
+        <Legend wrapperStyle={{ paddingTop: "20px" }} />
         <Bar
           dataKey="contributions"
           name="Contributions"
@@ -40,6 +69,13 @@ export const ActivityComparisonChart: React.FC<ActivityComparisonChartProps> = (
           radius={[0, 0, 4, 4]}
         />
         <Bar dataKey="issues" name="Issues" stackId="a" fill="#82ca9d" animationDuration={1000} />
+        <Bar
+          dataKey="issues"
+          name="Issues"
+          stackId="a"
+          fill="#82ca9d"
+          animationDuration={1000}
+        />
         <Bar
           dataKey="pullRequests"
           name="Pull Requests"

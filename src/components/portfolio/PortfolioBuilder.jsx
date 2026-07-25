@@ -9,6 +9,19 @@ export default function PortfolioBuilder() {
   const [bio, setBio] = useState('');
   const [theme, setTheme] = useState('glassmorphic');
   const [customDomain, setCustomDomain] = useState('');
+import React, { useState, useEffect } from "react";
+import apiClient from "../../utils/apiClient.js";
+import { projectsData } from "../../data/projectsData";
+import { roadmapData } from "../../data/roadmapData";
+import { RepoCardSkeleton } from "../ui/skeleton/RepoCardSkeleton";
+
+export default function PortfolioBuilder() {
+  const [username, setUsername] = useState("");
+  const [passkey, setPasskey] = useState("");
+  const [title, setTitle] = useState("");
+  const [bio, setBio] = useState("");
+  const [theme, setTheme] = useState("glassmorphic");
+  const [customDomain, setCustomDomain] = useState("");
 
   // Section Visibilities
   const [visibleSections, setVisibleSections] = useState({
@@ -23,23 +36,36 @@ export default function PortfolioBuilder() {
     linkedin: '',
     twitter: '',
     resume: '',
+    github: "",
+    linkedin: "",
+    twitter: "",
+    resume: "",
   });
 
   // SEO Metadata
   const [seoMetadata, setSeoMetadata] = useState({
     title: '',
     description: '',
+    title: "",
+    description: "",
   });
 
   // Selected Data Elements to showcase
   const [selectedSkills, setSelectedSkills] = useState([]);
   const [selectedRoadmaps, setSelectedRoadmaps] = useState([]);
   const [selectedProjects, setSelectedProjects] = useState([]);
+  const [customProjects, setCustomProjects] = useState([]);
+
+  // GitHub Fetching States
+  const [ghUsername, setGhUsername] = useState("");
+  const [isFetchingGh, setIsFetchingGh] = useState(false);
+  const [ghRepos, setGhRepos] = useState([]);
+  const [ghError, setGhError] = useState("");
 
   // States
   const [isSaving, setIsSaving] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
+  const [errorMsg, setErrorMsg] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
   const [copied, setCopied] = useState(false);
 
   // Extract all unique skills from roadmapData
@@ -69,8 +95,8 @@ export default function PortfolioBuilder() {
   // Fetch initial config if username changes
   const handleLoadConfig = async () => {
     if (!username || username.length < 3) return;
-    setErrorMsg('');
-    setSuccessMsg('');
+    setErrorMsg("");
+    setSuccessMsg("");
     try {
       const base = (import.meta?.env?.VITE_API_BASE || '').replace(/\/+$/, '');
       const url = base ? `${base}/api/portfolio/${username}` : `/api/portfolio/${username}`;
@@ -90,6 +116,37 @@ export default function PortfolioBuilder() {
         setSelectedRoadmaps(data.roadmaps || []);
         setSelectedProjects(data.projects || []);
         setSuccessMsg('Existing portfolio configuration found and loaded!');
+      const base = (import.meta?.env?.VITE_API_BASE || "").replace(/\/+$/, "");
+      const url = base
+        ? `${base}/api/portfolio/${username}`
+        : `/api/portfolio/${username}`;
+      const data = await apiClient(url);
+      if (data) {
+        setTitle(data.title || "");
+        setBio(data.bio || "");
+        setTheme(data.theme || "glassmorphic");
+        setCustomDomain(data.customDomain || "");
+        setVisibleSections(
+          data.visibleSections || {
+            quests: true,
+            roadmaps: true,
+            projects: true,
+          }
+        );
+        setSocialLinks(
+          data.socialLinks || {
+            github: "",
+            linkedin: "",
+            twitter: "",
+            resume: "",
+          }
+        );
+        setSeoMetadata(data.seoMetadata || { title: "", description: "" });
+        setSelectedSkills(data.skills || []);
+        setSelectedRoadmaps(data.roadmaps || []);
+        setSelectedProjects(data.projects || []);
+        setCustomProjects(data.customProjects || []);
+        setSuccessMsg("Existing portfolio configuration found and loaded!");
       }
     } catch (err) {
       // Portfolio doesn't exist yet, ignore
@@ -99,16 +156,16 @@ export default function PortfolioBuilder() {
   const handleSave = async (e) => {
     e.preventDefault();
     if (!username || username.length < 3) {
-      setErrorMsg('Username must be at least 3 characters long.');
+      setErrorMsg("Username must be at least 3 characters long.");
       return;
     }
     if (!passkey || passkey.length < 4) {
-      setErrorMsg('Passkey must be at least 4 characters long.');
+      setErrorMsg("Passkey must be at least 4 characters long.");
       return;
     }
 
-    setErrorMsg('');
-    setSuccessMsg('');
+    setErrorMsg("");
+    setSuccessMsg("");
     setIsSaving(true);
 
     try {
@@ -129,7 +186,7 @@ export default function PortfolioBuilder() {
         customProjects,
       };
 
-      const base = (import.meta?.env?.VITE_API_BASE || '').replace(/\/+$/, '');
+      const base = (import.meta?.env?.VITE_API_BASE || "").replace(/\/+$/, "");
       const url = base ? `${base}/api/portfolio` : `/api/portfolio`;
       
       const res = await fetch(url, {
@@ -146,8 +203,16 @@ export default function PortfolioBuilder() {
       }
 
       setSuccessMsg('Portfolio built and synchronized successfully!');
+
+      const data = await apiClient(url, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      setSuccessMsg("Portfolio built and synchronized successfully!");
     } catch (err) {
-      setErrorMsg(err.message || 'Something went wrong while saving.');
+      setErrorMsg(err.message || "Something went wrong while saving.");
     } finally {
       setIsSaving(false);
     }
@@ -162,19 +227,25 @@ export default function PortfolioBuilder() {
   const toggleRoadmap = (roadmapKey) => {
     setSelectedRoadmaps((prev) =>
       prev.includes(roadmapKey) ? prev.filter((r) => r !== roadmapKey) : [...prev, roadmapKey]
+      prev.includes(roadmapKey)
+        ? prev.filter((r) => r !== roadmapKey)
+        : [...prev, roadmapKey]
     );
   };
 
   const toggleProject = (projectId) => {
     setSelectedProjects((prev) =>
       prev.includes(projectId) ? prev.filter((p) => p !== projectId) : [...prev, projectId]
+      prev.includes(projectId)
+        ? prev.filter((p) => p !== projectId)
+        : [...prev, projectId]
     );
   };
 
   const fetchGithubRepos = async () => {
     if (!ghUsername) return;
     setIsFetchingGh(true);
-    setGhError('');
+    setGhError("");
     try {
       const data = await apiClient(
         `https://api.github.com/users/${ghUsername}/repos?sort=updated&per_page=30`
@@ -196,11 +267,12 @@ export default function PortfolioBuilder() {
         const customProj = {
           id: repo.id,
           title: repo.name,
-          shortDesc: repo.description || 'GitHub Repository',
-          category: 'Open Source',
+          shortDesc: repo.description || "GitHub Repository",
+          category: "Open Source",
           techStack: repo.language ? [repo.language] : [],
           github: repo.html_url,
           demo: repo.homepage || '#',
+          demo: repo.homepage || "#",
           stars: repo.stargazers_count,
         };
         return [...prev, customProj];
@@ -225,6 +297,8 @@ export default function PortfolioBuilder() {
         <p className="builder-subtitle">
           Instantly generate and customize a stunning developer showcase page directly from your
           NexaSphere metrics and community milestones.
+          Instantly generate and customize a stunning developer showcase page
+          directly from your NexaSphere metrics and community milestones.
         </p>
       </div>
 
@@ -242,6 +316,7 @@ export default function PortfolioBuilder() {
                 stroke="currentColor"
                 strokeWidth="2.5"
                 style={{ color: 'var(--c1b)' }}
+                style={{ color: "var(--c1b)" }}
               >
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                 <circle cx="12" cy="7" r="4" />
@@ -260,6 +335,9 @@ export default function PortfolioBuilder() {
                 className="form-input"
                 value={username}
                 onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ''))}
+                onChange={(e) =>
+                  setUsername(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ""))
+                }
                 onBlur={handleLoadConfig}
                 required
               />
@@ -298,6 +376,7 @@ export default function PortfolioBuilder() {
                 stroke="currentColor"
                 strokeWidth="2.5"
                 style={{ color: 'var(--c1b)' }}
+                style={{ color: "var(--c1b)" }}
               >
                 <path d="M12 20h9" />
                 <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
@@ -345,6 +424,7 @@ export default function PortfolioBuilder() {
                 stroke="currentColor"
                 strokeWidth="2.5"
                 style={{ color: 'var(--c1b)' }}
+                style={{ color: "var(--c1b)" }}
               >
                 <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" />
                 <path d="M12 18C15.3137 18 18 15.3137 18 12C18 8.68629 15.3137 6 12 6V18Z" />
@@ -357,11 +437,14 @@ export default function PortfolioBuilder() {
                 { id: 'glassmorphic', label: 'Glassmorphic' },
                 { id: 'cyberpunk', label: 'Cyberpunk' },
                 { id: 'minimalist-light', label: 'Light' },
+                { id: "glassmorphic", label: "Glassmorphic" },
+                { id: "cyberpunk", label: "Cyberpunk" },
+                { id: "minimalist-light", label: "Light" },
               ].map((t) => (
                 <button
                   key={t.id}
                   type="button"
-                  className={`theme-card ${theme === t.id ? 'active' : ''}`}
+                  className={`theme-card ${theme === t.id ? "active" : ""}`}
                   onClick={() => setTheme(t.id)}
                 >
                   {t.label}
@@ -381,6 +464,7 @@ export default function PortfolioBuilder() {
                 stroke="currentColor"
                 strokeWidth="2.5"
                 style={{ color: 'var(--c1b)' }}
+                style={{ color: "var(--c1b)" }}
               >
                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
                 <line x1="9" y1="3" x2="9" y2="21" />
@@ -391,6 +475,7 @@ export default function PortfolioBuilder() {
             <div className="switch-group">
               <div className="switch-label-container">
                 <span className="form-label" style={{ fontSize: '0.85rem' }}>
+                <span className="form-label" style={{ fontSize: "0.85rem" }}>
                   Skills & Quests
                 </span>
                 <span className="switch-subtext">
@@ -403,6 +488,10 @@ export default function PortfolioBuilder() {
                   checked={visibleSections.quests}
                   onChange={(e) =>
                     setVisibleSections((prev) => ({ ...prev, quests: e.target.checked }))
+                    setVisibleSections((prev) => ({
+                      ...prev,
+                      quests: e.target.checked,
+                    }))
                   }
                 />
                 <span className="slider"></span>
@@ -415,6 +504,12 @@ export default function PortfolioBuilder() {
                   Active Roadmaps
                 </span>
                 <span className="switch-subtext">Display curriculum progress graphics</span>
+                <span className="form-label" style={{ fontSize: "0.85rem" }}>
+                  Active Roadmaps
+                </span>
+                <span className="switch-subtext">
+                  Display curriculum progress graphics
+                </span>
               </div>
               <label className="switch">
                 <input
@@ -422,6 +517,10 @@ export default function PortfolioBuilder() {
                   checked={visibleSections.roadmaps}
                   onChange={(e) =>
                     setVisibleSections((prev) => ({ ...prev, roadmaps: e.target.checked }))
+                    setVisibleSections((prev) => ({
+                      ...prev,
+                      roadmaps: e.target.checked,
+                    }))
                   }
                 />
                 <span className="slider"></span>
@@ -434,6 +533,12 @@ export default function PortfolioBuilder() {
                   Collaborative Projects
                 </span>
                 <span className="switch-subtext">Feature completed workspace projects</span>
+                <span className="form-label" style={{ fontSize: "0.85rem" }}>
+                  Collaborative Projects
+                </span>
+                <span className="switch-subtext">
+                  Feature completed workspace projects
+                </span>
               </div>
               <label className="switch">
                 <input
@@ -441,6 +546,10 @@ export default function PortfolioBuilder() {
                   checked={visibleSections.projects}
                   onChange={(e) =>
                     setVisibleSections((prev) => ({ ...prev, projects: e.target.checked }))
+                    setVisibleSections((prev) => ({
+                      ...prev,
+                      projects: e.target.checked,
+                    }))
                   }
                 />
                 <span className="slider"></span>
@@ -459,6 +568,7 @@ export default function PortfolioBuilder() {
                 stroke="currentColor"
                 strokeWidth="2.5"
                 style={{ color: 'var(--c1b)' }}
+                style={{ color: "var(--c1b)" }}
               >
                 <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
                 <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
@@ -477,6 +587,12 @@ export default function PortfolioBuilder() {
                 className="form-input"
                 value={socialLinks.github}
                 onChange={(e) => setSocialLinks((prev) => ({ ...prev, github: e.target.value }))}
+                onChange={(e) =>
+                  setSocialLinks((prev) => ({
+                    ...prev,
+                    github: e.target.value,
+                  }))
+                }
               />
             </div>
 
@@ -491,6 +607,12 @@ export default function PortfolioBuilder() {
                 className="form-input"
                 value={socialLinks.linkedin}
                 onChange={(e) => setSocialLinks((prev) => ({ ...prev, linkedin: e.target.value }))}
+                onChange={(e) =>
+                  setSocialLinks((prev) => ({
+                    ...prev,
+                    linkedin: e.target.value,
+                  }))
+                }
               />
             </div>
 
@@ -505,6 +627,12 @@ export default function PortfolioBuilder() {
                 className="form-input"
                 value={socialLinks.twitter}
                 onChange={(e) => setSocialLinks((prev) => ({ ...prev, twitter: e.target.value }))}
+                onChange={(e) =>
+                  setSocialLinks((prev) => ({
+                    ...prev,
+                    twitter: e.target.value,
+                  }))
+                }
               />
             </div>
 
@@ -519,6 +647,12 @@ export default function PortfolioBuilder() {
                 className="form-input"
                 value={socialLinks.resume}
                 onChange={(e) => setSocialLinks((prev) => ({ ...prev, resume: e.target.value }))}
+                onChange={(e) =>
+                  setSocialLinks((prev) => ({
+                    ...prev,
+                    resume: e.target.value,
+                  }))
+                }
               />
             </div>
           </div>
@@ -534,6 +668,7 @@ export default function PortfolioBuilder() {
                 stroke="currentColor"
                 strokeWidth="2.5"
                 style={{ color: 'var(--c1b)' }}
+                style={{ color: "var(--c1b)" }}
               >
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                 <polyline points="22 4 12 14.01 9 11.01" />
@@ -544,10 +679,18 @@ export default function PortfolioBuilder() {
             <div className="form-group">
               <label className="form-label">Select Skills to Showcase</label>
               <div className="checklist-grid" role="group" aria-label="Skills options">
+              <div
+                className="checklist-grid"
+                role="group"
+                aria-label="Skills options"
+              >
                 {availableSkills.map((skill) => {
                   const isActive = selectedSkills.includes(skill);
                   return (
-                    <label key={skill} className={`checklist-item ${isActive ? 'active' : ''}`}>
+                    <label
+                      key={skill}
+                      className={`checklist-item ${isActive ? "active" : ""}`}
+                    >
                       <input
                         type="checkbox"
                         checked={isActive}
@@ -560,15 +703,21 @@ export default function PortfolioBuilder() {
               </div>
             </div>
 
-            <div className="form-group" style={{ marginTop: '14px' }}>
+            <div className="form-group" style={{ marginTop: "14px" }}>
               <label className="form-label">Select Active Roadmaps</label>
               <div className="checklist-grid" role="group" aria-label="Roadmaps options">
+              <div
+                className="checklist-grid"
+                role="group"
+                aria-label="Roadmaps options"
+              >
                 {availableRoadmaps.map((roadmap) => {
                   const isActive = selectedRoadmaps.includes(roadmap.key);
                   return (
                     <label
                       key={roadmap.key}
                       className={`checklist-item ${isActive ? 'active' : ''}`}
+                      className={`checklist-item ${isActive ? "active" : ""}`}
                     >
                       <input
                         type="checkbox"
@@ -582,15 +731,21 @@ export default function PortfolioBuilder() {
               </div>
             </div>
 
-            <div className="form-group" style={{ marginTop: '14px' }}>
+            <div className="form-group" style={{ marginTop: "14px" }}>
               <label className="form-label">Select Featured Projects</label>
               <div className="checklist-grid" role="group" aria-label="Projects options">
+              <div
+                className="checklist-grid"
+                role="group"
+                aria-label="Projects options"
+              >
                 {availableProjects.map((project) => {
                   const isActive = selectedProjects.includes(project.id);
                   return (
                     <label
                       key={project.id}
                       className={`checklist-item ${isActive ? 'active' : ''}`}
+                      className={`checklist-item ${isActive ? "active" : ""}`}
                     >
                       <input
                         type="checkbox"
@@ -607,6 +762,11 @@ export default function PortfolioBuilder() {
             <div
               className="form-group"
               style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px dashed var(--bdr2)' }}
+              style={{
+                marginTop: "24px",
+                paddingTop: "20px",
+                borderTop: "1px dashed var(--bdr2)",
+              }}
             >
               <label className="form-label">
                 <svg
@@ -617,12 +777,15 @@ export default function PortfolioBuilder() {
                   stroke="currentColor"
                   strokeWidth="2.5"
                   style={{ marginRight: '6px', verticalAlign: 'middle' }}
+                  style={{ marginRight: "6px", verticalAlign: "middle" }}
                 >
                   <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
                 </svg>
                 Sync with GitHub (Optional)
               </label>
-              <div style={{ display: 'flex', gap: '10px', marginBottom: '12px' }}>
+              <div
+                style={{ display: "flex", gap: "10px", marginBottom: "12px" }}
+              >
                 <input
                   type="text"
                   placeholder="GitHub username..."
@@ -637,12 +800,19 @@ export default function PortfolioBuilder() {
                   onClick={fetchGithubRepos}
                   disabled={isFetchingGh || !ghUsername}
                 >
-                  {isFetchingGh ? 'Fetching...' : 'Fetch Repos'}
+                  {isFetchingGh ? "Fetching..." : "Fetch Repos"}
                 </button>
               </div>
 
               {ghError && (
                 <div style={{ color: '#ef4444', fontSize: '0.85rem', marginBottom: '12px' }}>
+                <div
+                  style={{
+                    color: "#ef4444",
+                    fontSize: "0.85rem",
+                    marginBottom: "12px",
+                  }}
+                >
                   {ghError}
                 </div>
               )}
@@ -672,6 +842,33 @@ export default function PortfolioBuilder() {
                           }}
                         >
                           <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                  <div
+                    className="checklist-grid"
+                    role="group"
+                    aria-label="GitHub Repositories"
+                  >
+                    {ghRepos.map((repo) => {
+                      const isActive = customProjects.some(
+                        (p) => p.id === repo.id
+                      );
+                      return (
+                        <label
+                          key={repo.id}
+                          className={`checklist-item ${isActive ? "active" : ""}`}
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "flex-start",
+                            padding: "10px",
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              width: "100%",
+                            }}
+                          >
                             <input
                               type="checkbox"
                               checked={isActive}
@@ -681,6 +878,16 @@ export default function PortfolioBuilder() {
                             {repo.stargazers_count > 0 && (
                               <span
                                 style={{ marginLeft: 'auto', fontSize: '0.75rem', opacity: 0.8 }}
+                            <span style={{ fontWeight: "bold" }}>
+                              {repo.name}
+                            </span>
+                            {repo.stargazers_count > 0 && (
+                              <span
+                                style={{
+                                  marginLeft: "auto",
+                                  fontSize: "0.75rem",
+                                  opacity: 0.8,
+                                }}
                               >
                                 ★ {repo.stargazers_count}
                               </span>
@@ -693,6 +900,10 @@ export default function PortfolioBuilder() {
                                 opacity: 0.7,
                                 marginTop: '4px',
                                 paddingLeft: '24px',
+                                fontSize: "0.75rem",
+                                opacity: 0.7,
+                                marginTop: "4px",
+                                paddingLeft: "24px",
                               }}
                             >
                               {repo.language}
@@ -718,6 +929,7 @@ export default function PortfolioBuilder() {
                 stroke="currentColor"
                 strokeWidth="2.5"
                 style={{ color: 'var(--c1b)' }}
+                style={{ color: "var(--c1b)" }}
               >
                 <circle cx="11" cy="11" r="8" />
                 <line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -736,6 +948,9 @@ export default function PortfolioBuilder() {
                 className="form-input"
                 value={seoMetadata.title}
                 onChange={(e) => setSeoMetadata((prev) => ({ ...prev, title: e.target.value }))}
+                onChange={(e) =>
+                  setSeoMetadata((prev) => ({ ...prev, title: e.target.value }))
+                }
               />
             </div>
 
@@ -751,6 +966,10 @@ export default function PortfolioBuilder() {
                 value={seoMetadata.description}
                 onChange={(e) =>
                   setSeoMetadata((prev) => ({ ...prev, description: e.target.value }))
+                  setSeoMetadata((prev) => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
                 }
               />
             </div>
@@ -767,6 +986,12 @@ export default function PortfolioBuilder() {
                 padding: '12px',
                 borderRadius: 'var(--r2)',
                 fontWeight: 'bold',
+                background: "rgba(239, 68, 68, 0.1)",
+                border: "1px solid rgba(239, 68, 68, 0.3)",
+                color: "#ef4444",
+                padding: "12px",
+                borderRadius: "var(--r2)",
+                fontWeight: "bold",
               }}
             >
               ⚠️ {errorMsg}
@@ -783,6 +1008,12 @@ export default function PortfolioBuilder() {
                 padding: '12px',
                 borderRadius: 'var(--r2)',
                 fontWeight: 'bold',
+                background: "rgba(34, 197, 94, 0.1)",
+                border: "1px solid rgba(34, 197, 94, 0.3)",
+                color: "#22c55e",
+                padding: "12px",
+                borderRadius: "var(--r2)",
+                fontWeight: "bold",
               }}
             >
               ✓ {successMsg}
@@ -803,20 +1034,29 @@ export default function PortfolioBuilder() {
                 letterSpacing: '0.05em',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
+                width: "100%",
+                padding: "14px",
+                fontSize: "1.05rem",
+                fontFamily: "Orbitron, monospace",
+                letterSpacing: "0.05em",
+                fontWeight: "bold",
+                textTransform: "uppercase",
               }}
             >
-              {isSaving ? 'Synchronizing Workspace...' : 'Build & Publish Portfolio'}
+              {isSaving
+                ? "Synchronizing Workspace..."
+                : "Build & Publish Portfolio"}
             </button>
 
             {successMsg && username && (
-              <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+              <div style={{ display: "flex", gap: "10px", marginTop: "4px" }}>
                 <button
                   type="button"
                   className="btn btn-outline"
                   onClick={handleCopyLink}
-                  style={{ flex: 1, padding: '10px' }}
+                  style={{ flex: 1, padding: "10px" }}
                 >
-                  {copied ? 'Copied Showcase Link!' : 'Copy Public URL'}
+                  {copied ? "Copied Showcase Link!" : "Copy Public URL"}
                 </button>
                 <a
                   href={`/p/${username}`}
@@ -829,6 +1069,10 @@ export default function PortfolioBuilder() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    padding: "10px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
                   }}
                 >
                   Open Showcase Page
@@ -849,6 +1093,12 @@ export default function PortfolioBuilder() {
                 borderRadius: '50%',
                 background: 'var(--c1b)',
                 animation: 'pulse 1.5s infinite',
+                display: "inline-block",
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                background: "var(--c1b)",
+                animation: "pulse 1.5s infinite",
               }}
             ></span>
             Real-time Live Sandbox Preview
@@ -857,17 +1107,23 @@ export default function PortfolioBuilder() {
           <div className="preview-frame">
             <div
               style={{ height: '100%', overflowY: 'auto', padding: '24px' }}
+              style={{ height: "100%", overflowY: "auto", padding: "24px" }}
               className={`theme-${theme} portfolio-shell`}
             >
               <div
                 className="portfolio-intro"
                 style={{ flexDirection: 'column', textAlign: 'center', gap: '12px' }}
+                style={{
+                  flexDirection: "column",
+                  textAlign: "center",
+                  gap: "12px",
+                }}
               >
                 <img
-                  src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${username || 'preview'}`}
+                  src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${username || "preview"}`}
                   alt="avatar"
                   className="portfolio-avatar"
-                  style={{ width: '80px', height: '80px' }}
+                  style={{ width: "80px", height: "80px" }}
                 />
                 <div className="portfolio-bio-col">
                   <h2 className="portfolio-name" style={{ fontSize: '1.6rem', margin: 0 }}>
@@ -878,6 +1134,17 @@ export default function PortfolioBuilder() {
                     style={{ fontSize: '0.95rem', margin: '4px 0 8px 0' }}
                   >
                     {title || 'Tech Specialist & Builder'}
+                  <h2
+                    className="portfolio-name"
+                    style={{ fontSize: "1.6rem", margin: 0 }}
+                  >
+                    {username ? `@${username}` : "Creative Developer"}
+                  </h2>
+                  <div
+                    className="portfolio-title"
+                    style={{ fontSize: "0.95rem", margin: "4px 0 8px 0" }}
+                  >
+                    {title || "Tech Specialist & Builder"}
                   </div>
                   <p
                     className="portfolio-bio-text"
@@ -890,6 +1157,14 @@ export default function PortfolioBuilder() {
                   >
                     {bio ||
                       'Define registry credentials and profiles inside the Builder on the left to see your stunning web portfolio render dynamically in this live preview frame.'}
+                      fontSize: "0.85rem",
+                      lineHeight: "1.5",
+                      margin: "0 auto",
+                      maxWidth: "400px",
+                    }}
+                  >
+                    {bio ||
+                      "Define registry credentials and profiles inside the Builder on the left to see your stunning web portfolio render dynamically in this live preview frame."}
                   </p>
                 </div>
               </div>
@@ -900,6 +1175,13 @@ export default function PortfolioBuilder() {
                 style={{ justifyContent: 'center', gap: '10px', margin: '14px 0' }}
               >
                 {['github', 'linkedin', 'twitter', 'resume'].map((soc) => {
+                style={{
+                  justifyContent: "center",
+                  gap: "10px",
+                  margin: "14px 0",
+                }}
+              >
+                {["github", "linkedin", "twitter", "resume"].map((soc) => {
                   const url = socialLinks[soc];
                   if (!url) return null;
                   return (
@@ -912,6 +1194,16 @@ export default function PortfolioBuilder() {
                       {soc === 'linkedin' && 'LN'}
                       {soc === 'twitter' && 'X'}
                       {soc === 'resume' && 'CV'}
+                      style={{
+                        width: "32px",
+                        height: "32px",
+                        fontSize: "0.8rem",
+                      }}
+                    >
+                      {soc === "github" && "GH"}
+                      {soc === "linkedin" && "LN"}
+                      {soc === "twitter" && "X"}
+                      {soc === "resume" && "CV"}
                     </span>
                   );
                 })}
@@ -930,6 +1222,22 @@ export default function PortfolioBuilder() {
                         borderBottom: '1px solid var(--bdr2)',
                         paddingBottom: '6px',
                         marginBottom: '10px',
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "20px",
+                  marginTop: "16px",
+                }}
+              >
+                {visibleSections.quests && selectedSkills.length > 0 && (
+                  <div className="portfolio-panel" style={{ padding: "16px" }}>
+                    <div
+                      style={{
+                        fontSize: "0.9rem",
+                        fontWeight: "bold",
+                        borderBottom: "1px solid var(--bdr2)",
+                        paddingBottom: "6px",
+                        marginBottom: "10px",
                       }}
                     >
                       ⚡ Certified Tech Capabilities
@@ -940,6 +1248,7 @@ export default function PortfolioBuilder() {
                           key={sk}
                           className="portfolio-pill"
                           style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                          style={{ padding: "4px 8px", fontSize: "0.75rem" }}
                         >
                           {sk}
                         </span>
@@ -957,11 +1266,23 @@ export default function PortfolioBuilder() {
                         borderBottom: '1px solid var(--bdr2)',
                         paddingBottom: '6px',
                         marginBottom: '10px',
+                  <div className="portfolio-panel" style={{ padding: "16px" }}>
+                    <div
+                      style={{
+                        fontSize: "0.9rem",
+                        fontWeight: "bold",
+                        borderBottom: "1px solid var(--bdr2)",
+                        paddingBottom: "6px",
+                        marginBottom: "10px",
                       }}
                     >
                       📌 Active Academic Paths
                     </div>
                     <div className="portfolio-roadmaps-list" style={{ gap: '8px' }}>
+                    <div
+                      className="portfolio-roadmaps-list"
+                      style={{ gap: "8px" }}
+                    >
                       {selectedRoadmaps.map((rm) => (
                         <div
                           key={rm}
@@ -972,6 +1293,16 @@ export default function PortfolioBuilder() {
                             {roadmapData[rm]?.title || rm}
                           </span>
                           <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>In Progress</span>
+                          style={{ padding: "8px 12px" }}
+                        >
+                          <span
+                            style={{ fontSize: "0.85rem", fontWeight: "600" }}
+                          >
+                            {roadmapData[rm]?.title || rm}
+                          </span>
+                          <span style={{ fontSize: "0.75rem", opacity: 0.7 }}>
+                            In Progress
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -987,11 +1318,23 @@ export default function PortfolioBuilder() {
                         borderBottom: '1px solid var(--bdr2)',
                         paddingBottom: '6px',
                         marginBottom: '10px',
+                  <div className="portfolio-panel" style={{ padding: "16px" }}>
+                    <div
+                      style={{
+                        fontSize: "0.9rem",
+                        fontWeight: "bold",
+                        borderBottom: "1px solid var(--bdr2)",
+                        paddingBottom: "6px",
+                        marginBottom: "10px",
                       }}
                     >
                       ⚙️ Federated Workspaces
                     </div>
                     <div className="portfolio-roadmaps-list" style={{ gap: '8px' }}>
+                    <div
+                      className="portfolio-roadmaps-list"
+                      style={{ gap: "8px" }}
+                    >
                       {selectedProjects.map((proj) => {
                         const project = projectsData.find((p) => p.id === proj);
                         return (
@@ -1005,6 +1348,15 @@ export default function PortfolioBuilder() {
                             </span>
                             <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>
                               {project?.category || 'Community Project'}
+                            style={{ padding: "8px 12px" }}
+                          >
+                            <span
+                              style={{ fontSize: "0.85rem", fontWeight: "600" }}
+                            >
+                              {project?.title || proj}
+                            </span>
+                            <span style={{ fontSize: "0.75rem", opacity: 0.7 }}>
+                              {project?.category || "Community Project"}
                             </span>
                           </div>
                         );
@@ -1019,6 +1371,16 @@ export default function PortfolioBuilder() {
                             {proj.title}
                           </span>
                           <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>GitHub Import</span>
+                          style={{ padding: "8px 12px" }}
+                        >
+                          <span
+                            style={{ fontSize: "0.85rem", fontWeight: "600" }}
+                          >
+                            {proj.title}
+                          </span>
+                          <span style={{ fontSize: "0.75rem", opacity: 0.7 }}>
+                            GitHub Import
+                          </span>
                         </div>
                       ))}
                     </div>

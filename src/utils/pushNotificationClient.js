@@ -1,9 +1,11 @@
+import apiClient from "./apiClient.js";
 /**
  * Frontend Push Notification Service
  * Handles service worker registration and push notification setup
  */
 
 import logger from '../utils/logger.js';
+import { captureHandledException } from "./errorTracking";
 
 /**
  * Register service worker
@@ -11,18 +13,20 @@ import logger from '../utils/logger.js';
 export async function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) {
     console.log('Service Workers not supported');
+  if (!("serviceWorker" in navigator)) {
     return null;
   }
 
   try {
-    const registration = await navigator.serviceWorker.register('/sw.js', {
-      scope: '/',
+    const registration = await navigator.serviceWorker.register("/sw.js", {
+      scope: "/",
     });
 
     console.log('Service Worker registered successfully:', registration);
     return registration;
   } catch (error) {
     console.error('Service Worker registration failed:', error);
+    captureHandledException(error, "Service Worker registration failed:");
     return null;
   }
 }
@@ -33,19 +37,24 @@ export async function registerServiceWorker() {
 export async function requestNotificationPermission() {
   if (!('Notification' in window)) {
     console.log('Notifications not supported');
+  if (!("Notification" in window)) {
     return null;
   }
 
-  if (Notification.permission === 'granted') {
-    return 'granted';
+  if (Notification.permission === "granted") {
+    return "granted";
   }
 
-  if (Notification.permission !== 'denied') {
+  if (Notification.permission !== "denied") {
     try {
       const permission = await Notification.requestPermission();
       return permission;
     } catch (error) {
       console.error('Failed to request notification permission:', error);
+      captureHandledException(
+        error,
+        "Failed to request notification permission:"
+      );
       return null;
     }
   }
@@ -59,6 +68,7 @@ export async function requestNotificationPermission() {
 export async function getPushSubscription(registration) {
   if (!registration || !('pushManager' in registration)) {
     console.log('Push Manager not available');
+  if (!registration || !("pushManager" in registration)) {
     return null;
   }
 
@@ -67,6 +77,7 @@ export async function getPushSubscription(registration) {
     return subscription;
   } catch (error) {
     console.error('Failed to get push subscription:', error);
+    captureHandledException(error, "Failed to get push subscription:");
     return null;
   }
 }
@@ -77,6 +88,11 @@ export async function getPushSubscription(registration) {
 export async function subscribeToPushNotifications(registration, vapidPublicKey) {
   if (!registration || !('pushManager' in registration)) {
     console.log('Push Manager not available');
+export async function subscribeToPushNotifications(
+  registration,
+  vapidPublicKey
+) {
+  if (!registration || !("pushManager" in registration)) {
     return null;
   }
 
@@ -91,8 +107,10 @@ export async function subscribeToPushNotifications(registration, vapidPublicKey)
     // Send subscription to server
     await fetch('/api/notifications/subscribe', {
       method: 'POST',
+    await apiClient("/api/notifications/subscribe", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({ subscription }),
     });
@@ -100,6 +118,10 @@ export async function subscribeToPushNotifications(registration, vapidPublicKey)
     return subscription;
   } catch (error) {
     console.error('Failed to subscribe to push notifications:', error);
+    captureHandledException(
+      error,
+      "Failed to subscribe to push notifications:"
+    );
     return null;
   }
 }
@@ -108,7 +130,7 @@ export async function subscribeToPushNotifications(registration, vapidPublicKey)
  * Unsubscribe from push notifications
  */
 export async function unsubscribeFromPushNotifications(registration) {
-  if (!registration || !('pushManager' in registration)) {
+  if (!registration || !("pushManager" in registration)) {
     return false;
   }
 
@@ -121,8 +143,10 @@ export async function unsubscribeFromPushNotifications(registration) {
       // Notify server
       await fetch('/api/notifications/unsubscribe', {
         method: 'POST',
+      await apiClient("/api/notifications/unsubscribe", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ subscription }),
       });
@@ -131,6 +155,10 @@ export async function unsubscribeFromPushNotifications(registration) {
     }
   } catch (error) {
     console.error('Failed to unsubscribe from push notifications:', error);
+    captureHandledException(
+      error,
+      "Failed to unsubscribe from push notifications:"
+    );
   }
 
   return false;
@@ -140,10 +168,10 @@ export async function unsubscribeFromPushNotifications(registration) {
  * Show local notification
  */
 export function showNotification(title, options = {}) {
-  if ('Notification' in window && Notification.permission === 'granted') {
+  if ("Notification" in window && Notification.permission === "granted") {
     return new Notification(title, {
-      icon: '/pwa-192x192.png',
-      badge: '/pwa-192x192.png',
+      icon: "/pwa-192x192.png",
+      badge: "/pwa-192x192.png",
       ...options,
     });
   }
@@ -153,8 +181,10 @@ export function showNotification(title, options = {}) {
  * Convert VAPID public key to Uint8Array
  */
 function urlBase64ToUint8Array(base64String) {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding)
+    .replace(/\-/g, "+")
+    .replace(/_/g, "/");
 
   const rawData = window.atob(base64);
   const outputArray = new Uint8Array(rawData.length);
@@ -182,18 +212,23 @@ export async function initializePushNotifications(vapidPublicKey) {
     const permission = await requestNotificationPermission();
     if (permission !== 'granted') {
       console.log('Notification permission not granted');
+    if (permission !== "granted") {
       return null;
     }
 
     // Get or create subscription
     let subscription = await getPushSubscription(registration);
     if (!subscription) {
-      subscription = await subscribeToPushNotifications(registration, vapidPublicKey);
+      subscription = await subscribeToPushNotifications(
+        registration,
+        vapidPublicKey
+      );
     }
 
     return { registration, subscription };
   } catch (error) {
     console.error('Failed to initialize push notifications:', error);
+    captureHandledException(error, "Failed to initialize push notifications:");
     return null;
   }
 }

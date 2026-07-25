@@ -1,4 +1,4 @@
-import { TimeGranularity } from '../context/AnalyticsFilterContext';
+import { TimeGranularity } from "../context/AnalyticsFilterContext";
 
 export interface TrendDataPoint {
   name: string;
@@ -31,6 +31,9 @@ export const generateTrendData = (
     granularity === 'monthly'
       ? monthsBack
       : granularity === 'weekly'
+    granularity === "monthly"
+      ? monthsBack
+      : granularity === "weekly"
         ? monthsBack * 4
         : monthsBack * 30;
 
@@ -42,6 +45,8 @@ export const generateTrendData = (
     const d = new Date(now);
     if (granularity === 'monthly') d.setMonth(now.getMonth() - i);
     else if (granularity === 'weekly') d.setDate(now.getDate() - i * 7);
+    if (granularity === "monthly") d.setMonth(now.getMonth() - i);
+    else if (granularity === "weekly") d.setDate(now.getDate() - i * 7);
     else d.setDate(now.getDate() - i);
 
     currentUsers += Math.floor(Math.random() * 200) - 50;
@@ -52,6 +57,9 @@ export const generateTrendData = (
       granularity === 'monthly'
         ? d.toLocaleString('default', { month: 'short', year: '2-digit' })
         : d.toLocaleDateString('default', { month: 'short', day: 'numeric' });
+      granularity === "monthly"
+        ? d.toLocaleString("default", { month: "short", year: "2-digit" })
+        : d.toLocaleDateString("default", { month: "short", day: "numeric" });
 
     data.push({
       name,
@@ -64,8 +72,17 @@ export const generateTrendData = (
   return data;
 };
 
-export const generateDistributionData = (categories: string[]): DistributionDataPoint[] => {
-  const colors = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#0088FE', '#00C49F'];
+export const generateDistributionData = (
+  categories: string[]
+): DistributionDataPoint[] => {
+  const colors = [
+    "#8884d8",
+    "#82ca9d",
+    "#ffc658",
+    "#ff8042",
+    "#0088FE",
+    "#00C49F",
+  ];
   return categories.map((cat, i) => ({
     name: cat,
     value: Math.floor(Math.random() * 500) + 100,
@@ -74,6 +91,9 @@ export const generateDistributionData = (categories: string[]): DistributionData
 };
 
 export const generateComparisonData = (categories: string[]): ComparisonDataPoint[] => {
+export const generateComparisonData = (
+  categories: string[]
+): ComparisonDataPoint[] => {
   return categories.map((cat) => ({
     category: cat,
     contributions: Math.floor(Math.random() * 1000) + 200,
@@ -83,7 +103,7 @@ export const generateComparisonData = (categories: string[]): ComparisonDataPoin
 };
 
 export const formatNumber = (num: number): string => {
-  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-  if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
+  if (num >= 1000) return (num / 1000).toFixed(1) + "k";
   return num.toString();
 };

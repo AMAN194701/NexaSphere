@@ -1,5 +1,5 @@
-import React from 'react';
-import { ResponsiveContainer } from 'recharts';
+import React from "react";
+import { ResponsiveContainer } from "recharts";
 
 interface ChartWrapperProps {
   title: string;
@@ -40,12 +40,19 @@ export const CustomTooltip: React.FC<any> = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-[#0a0a0a] border border-[#333] p-4 rounded-lg shadow-2xl">
-        <p className="text-gray-300 font-semibold mb-2 pb-2 border-b border-[#222]">{label}</p>
+        <p className="text-gray-300 font-semibold mb-2 pb-2 border-b border-[#222]">
+          {label}
+        </p>
         {payload.map((entry: any, index: number) => (
           <div key={`item-${index}`} className="flex items-center gap-2 mb-1">
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }} />
+            <div
+              className="w-3 h-3 rounded-full"
+              style={{ backgroundColor: entry.color }}
+            />
             <span className="text-gray-400 text-sm">{entry.name}:</span>
-            <span className="text-white font-bold text-sm">{entry.value.toLocaleString()}</span>
+            <span className="text-white font-bold text-sm">
+              {entry.value.toLocaleString()}
+            </span>
           </div>
         ))}
       </div>

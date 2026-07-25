@@ -2,6 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFormDraft } from '../../hooks/useFormDraft';
 import apiClient from '../../utils/apiClient.js';
 import useFormValidation from '../../hooks/useFormValidation';
+import { useEffect, useMemo, useRef, useState } from "react";
+import apiClient from "../../utils/apiClient.js";
+import useFormValidation from "../../hooks/useFormValidation";
 import {
   DynamicIcon,
   IconArrowLeft,
@@ -36,6 +39,33 @@ const GROUP_OPTIONS = [
   'NexaSphere Android Development',
   'NexaSphere AWS',
   'NexaSphere Career & Placement',
+} from "../../shared/Icons";
+import Footer from "../../shared/Footer";
+
+const WHATSAPP_COMMUNITY = "https://chat.whatsapp.com/Jjc5cuUKENu0RC1vWSEs20";
+const LINKEDIN_PAGE = "https://www.linkedin.com/showcase/glbajaj-nexasphere/";
+
+const COURSE_OPTIONS = ["B-Tech", "MBA", "Other"];
+const BRANCH_OPTIONS = [
+  "Computer Science Engineering (CSE)",
+  "Computer Science (CS)",
+  "Information Technology (IT)",
+  "AI & Machine Learning (AIML)",
+  "Computer Science & Design (CSD)",
+  "MBA",
+  "Other",
+];
+const SECTION_OPTIONS = ["A", "B", "C", "D", "E", "F", "Other"];
+const SEMESTER_OPTIONS = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII"];
+const GROUP_OPTIONS = [
+  "NexaSphere Cybersecurity",
+  "NexaSphere AI/ML",
+  "NexaSphere Web Development",
+  "NexaSphere Cloud Wing",
+  "NexaSphere Management Crew",
+  "NexaSphere Android Development",
+  "NexaSphere AWS",
+  "NexaSphere Career & Placement",
 ];
 
 function clamp(n, min, max) {
@@ -57,8 +87,32 @@ function Field({ label, required, hint, children }) {
         >
           {label}
           {required ? <span style={{ color: 'var(--c4)', marginLeft: 6 }}>*</span> : null}
+    <div style={{ display: "grid", gap: 8 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          gap: 10,
+          flexWrap: "wrap",
+        }}
+      >
+        <div
+          style={{
+            fontFamily: "Orbitron,monospace",
+            fontSize: ".72rem",
+            letterSpacing: ".12em",
+            textTransform: "uppercase",
+            color: "var(--t1)",
+          }}
+        >
+          {label}
+          {required ? (
+            <span style={{ color: "var(--c4)", marginLeft: 6 }}>*</span>
+          ) : null}
         </div>
-        {hint ? <div style={{ color: 'var(--t3)', fontSize: '.82rem' }}>{hint}</div> : null}
+        {hint ? (
+          <div style={{ color: "var(--t3)", fontSize: ".82rem" }}>{hint}</div>
+        ) : null}
       </div>
       {children}
     </div>
@@ -74,6 +128,10 @@ function Input({
   inputMode: inputModeProp,
   onPaste,
   'aria-label': ariaLabel,
+  type = "text",
+  maxLength,
+  inputMode: inputModeProp,
+  onPaste,
 }) {
   return (
     <input
@@ -84,18 +142,26 @@ function Input({
       aria-label={ariaLabel || placeholder}
       type={type}
       maxLength={maxLength}
-      inputMode={inputModeProp || (type === 'tel' ? 'numeric' : undefined)}
+      inputMode={inputModeProp || (type === "tel" ? "numeric" : undefined)}
       style={{
-        width: '100%',
-        padding: '12px 14px',
-        background: 'var(--card2)',
-        border: '1px solid var(--bdr2)',
-        borderRadius: 'var(--r2)',
-        color: 'var(--t1)',
-        fontFamily: 'Rajdhani,sans-serif',
-        fontSize: '.98rem',
-        outline: 'none',
-        boxSizing: 'border-box',
+        width: "100%",
+        padding: "12px 14px",
+        background: "var(--card2)",
+        border: "1px solid var(--bdr2)",
+        borderRadius: "var(--r2)",
+        color: "var(--t1)",
+        fontFamily: "Rajdhani,sans-serif",
+        fontSize: ".98rem",
+        outline: "none",
+        boxSizing: "border-box",
+      }}
+      onFocus={(e) => {
+        e.target.style.borderColor = "var(--c1b)";
+        e.target.style.boxShadow = "var(--sh1)";
+      }}
+      onBlur={(e) => {
+        e.target.style.borderColor = "var(--bdr2)";
+        e.target.style.boxShadow = "none";
       }}
       onFocus={(e) => {
         e.target.style.borderColor = 'var(--c1b)';
@@ -117,17 +183,25 @@ function TextArea({ value, onChange, placeholder, rows = 5 }) {
       placeholder={placeholder}
       rows={rows}
       style={{
-        width: '100%',
-        padding: '12px 14px',
-        background: 'var(--card2)',
-        border: '1px solid var(--bdr2)',
-        borderRadius: 'var(--r2)',
-        color: 'var(--t1)',
-        fontFamily: 'Rajdhani,sans-serif',
-        fontSize: '.98rem',
-        outline: 'none',
-        resize: 'vertical',
-        boxSizing: 'border-box',
+        width: "100%",
+        padding: "12px 14px",
+        background: "var(--card2)",
+        border: "1px solid var(--bdr2)",
+        borderRadius: "var(--r2)",
+        color: "var(--t1)",
+        fontFamily: "Rajdhani,sans-serif",
+        fontSize: ".98rem",
+        outline: "none",
+        resize: "vertical",
+        boxSizing: "border-box",
+      }}
+      onFocus={(e) => {
+        e.target.style.borderColor = "var(--c1b)";
+        e.target.style.boxShadow = "var(--sh1)";
+      }}
+      onBlur={(e) => {
+        e.target.style.borderColor = "var(--bdr2)";
+        e.target.style.boxShadow = "none";
       }}
       onFocus={(e) => {
         e.target.style.borderColor = 'var(--c1b)';
@@ -149,23 +223,31 @@ function StyledSelect({ value, onChange, children, placeholder }) {
       value={value}
       onChange={(e) => onChange(e.target.value)}
       style={{
-        width: '100%',
-        padding: '12px 14px',
-        background: 'var(--card2)',
-        border: '1px solid var(--bdr2)',
-        borderRadius: 'var(--r2)',
-        color: value ? 'var(--t1)' : 'var(--t3)',
-        fontFamily: 'Rajdhani,sans-serif',
-        fontSize: '.98rem',
-        outline: 'none',
-        cursor: 'pointer',
-        appearance: 'none',
-        WebkitAppearance: 'none',
+        width: "100%",
+        padding: "12px 14px",
+        background: "var(--card2)",
+        border: "1px solid var(--bdr2)",
+        borderRadius: "var(--r2)",
+        color: value ? "var(--t1)" : "var(--t3)",
+        fontFamily: "Rajdhani,sans-serif",
+        fontSize: ".98rem",
+        outline: "none",
+        cursor: "pointer",
+        appearance: "none",
+        WebkitAppearance: "none",
         backgroundImage: SELECT_ARROW,
-        backgroundRepeat: 'no-repeat',
-        backgroundPosition: 'right 14px center',
-        paddingRight: '36px',
-        boxSizing: 'border-box',
+        backgroundRepeat: "no-repeat",
+        backgroundPosition: "right 14px center",
+        paddingRight: "36px",
+        boxSizing: "border-box",
+      }}
+      onFocus={(e) => {
+        e.target.style.borderColor = "var(--c1b)";
+        e.target.style.boxShadow = "var(--sh1)";
+      }}
+      onBlur={(e) => {
+        e.target.style.borderColor = "var(--bdr2)";
+        e.target.style.boxShadow = "none";
       }}
       onFocus={(e) => {
         e.target.style.borderColor = 'var(--c1b)';
@@ -189,6 +271,7 @@ function StyledSelect({ value, onChange, children, placeholder }) {
 function PillRadio({ options, value, onChange }) {
   return (
     <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
       {options.map((opt) => {
         const active = value === opt;
         return (
@@ -202,6 +285,12 @@ function PillRadio({ options, value, onChange }) {
               color: active ? '#fff' : undefined,
               borderColor: active ? 'transparent' : undefined,
               boxShadow: active ? '0 0 18px var(--c1g)' : undefined,
+              background: active
+                ? "linear-gradient(135deg,var(--c1),var(--c2))"
+                : undefined,
+              color: active ? "#fff" : undefined,
+              borderColor: active ? "transparent" : undefined,
+              boxShadow: active ? "0 0 18px var(--c1g)" : undefined,
             }}
           >
             {opt}
@@ -215,6 +304,7 @@ function PillRadio({ options, value, onChange }) {
 function MultiSelectChips({ options, values, onToggle }) {
   return (
     <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
       {options.map((opt) => {
         const active = values.includes(opt);
         return (
@@ -234,6 +324,16 @@ function MultiSelectChips({ options, values, onToggle }) {
             }}
           >
             {active ? '✓' : ''}
+              background: active ? "rgba(0,212,255,.12)" : undefined,
+              borderColor: active ? "var(--c1)" : undefined,
+              color: active ? "var(--t1)" : undefined,
+              boxShadow: active ? "0 0 14px var(--c1g)" : undefined,
+              textTransform: "none",
+              letterSpacing: ".03em",
+              fontSize: ".82rem",
+            }}
+          >
+            {active ? "✓" : ""}
             {opt}
           </button>
         );
@@ -265,6 +365,8 @@ export default function MembershipPage({ onBack }) {
   const [done, setDone] = useState(false);
   const [err, setErr] = useState('');
   const [submittedEmail, setSubmittedEmail] = useState('');
+  const [err, setErr] = useState("");
+  const [submittedEmail, setSubmittedEmail] = useState("");
   const topRef = useRef(null);
 
   const [form, setForm] = useState(INITIAL_FORM);
@@ -293,6 +395,20 @@ export default function MembershipPage({ onBack }) {
 
     groups: [],
     whyJoin: '',
+    fullName: "",
+    collegeEmail: "",
+    rollNumber: "",
+    course: "",
+    courseOther: "",
+    branch: "",
+    branchOther: "",
+    section: "",
+    sectionOther: "",
+    semester: "",
+    whatsapp: "",
+
+    groups: [],
+    whyJoin: "",
   });
 
   function set(key, val) {
@@ -315,14 +431,33 @@ export default function MembershipPage({ onBack }) {
       if (!form.semester) missing.push('semester');
       const phone = String(form.whatsapp || '').trim();
       if (!phone || !/^\d{10}$/.test(phone)) missing.push('whatsapp');
+      if (!form.fullName.trim()) missing.push("fullName");
+      if (!form.collegeEmail.trim()) missing.push("collegeEmail");
+      if (!form.rollNumber.trim()) missing.push("rollNumber");
+      if (!form.course) missing.push("course");
+      if (form.course === "Other" && !form.courseOther.trim())
+        missing.push("courseOther");
+      if (!form.branch) missing.push("branch");
+      if (form.branch === "Other" && !form.branchOther.trim())
+        missing.push("branchOther");
+      if (!form.section) missing.push("section");
+      if (form.section === "Other" && !form.sectionOther.trim())
+        missing.push("sectionOther");
+      if (!form.semester) missing.push("semester");
+      const phone = String(form.whatsapp || "").trim();
+      if (!phone || !/^\d{10}$/.test(phone)) missing.push("whatsapp");
 
       const email = form.collegeEmail.trim();
-      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) missing.push('collegeEmail');
-      if (email && !email.endsWith('@glbajajgroup.org')) missing.push('collegeEmail');
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+        missing.push("collegeEmail");
+      if (email && !email.endsWith("@glbajajgroup.org"))
+        missing.push("collegeEmail");
     }
     if (step === 2) {
       if (form.groups.length === 0) missing.push('groups');
       if (!form.whyJoin.trim()) missing.push('whyJoin');
+      if (form.groups.length === 0) missing.push("groups");
+      if (!form.whyJoin.trim()) missing.push("whyJoin");
     }
     return missing;
   }, [form, step]);
@@ -330,11 +465,11 @@ export default function MembershipPage({ onBack }) {
   const canNext = missingRequired.length === 0;
 
   function scrollTop() {
-    topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   async function submit() {
-    setErr('');
+    setErr("");
     setBusy(true);
     try {
       const payload = {
@@ -363,10 +498,32 @@ export default function MembershipPage({ onBack }) {
 
       if (res.status === 409) {
         throw new Error('This email has already been used to submit a membership form.');
+        course:
+          form.course === "Other"
+            ? form.courseOther.trim() || "Other"
+            : form.course,
+        branch:
+          form.branch === "Other"
+            ? form.branchOther.trim() || "Other"
+            : form.branch,
+        section: form.section === "Other" ? form.sectionOther : form.section,
+        semester: form.semester,
+        whatsapp: form.whatsapp,
+        groupsSelected: form.groups.join(", "),
+        whyJoin: form.whyJoin.trim(),
+      };
+
+      const data = await apiClient(MEMBERSHIP_SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }).catch(() => ({}));
+      if (data && data.ok === false) {
+        throw new Error(data?.error || "Membership form submission failed");
       }
 
       if (!res.ok) {
-        throw new Error(data?.error || 'Membership form submission failed');
+        throw new Error(data?.error || "Membership form submission failed");
       }
 
       setSubmittedEmail(payload.collegeEmail);
@@ -374,7 +531,7 @@ export default function MembershipPage({ onBack }) {
       setDone(true);
       scrollTop();
     } catch (e) {
-      setErr(e?.message || 'Something went wrong. Please try again.');
+      setErr(e?.message || "Something went wrong. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -386,6 +543,7 @@ export default function MembershipPage({ onBack }) {
         entries.forEach((e) => {
           if (e.isIntersecting) {
             e.target.classList.add('fired');
+            e.target.classList.add("fired");
             obs.unobserve(e.target);
           }
         });
@@ -395,6 +553,11 @@ export default function MembershipPage({ onBack }) {
     document
       .querySelectorAll(
         '#pg-member .pop-flip, #pg-member .pop-in, #pg-member .pop-word, #pg-member .pop-scale'
+      { threshold: 0.1, rootMargin: "0px 0px -30px 0px" }
+    );
+    document
+      .querySelectorAll(
+        "#pg-member .pop-flip, #pg-member .pop-in, #pg-member .pop-word, #pg-member .pop-scale"
       )
       .forEach((el) => obs.observe(el));
     return () => obs.disconnect();
@@ -420,6 +583,25 @@ export default function MembershipPage({ onBack }) {
               }}
             >
               <span style={{ display: 'flex', color: '#ffb400', flexShrink: 0 }}>
+        title: "About NexaSphere",
+        subtitle: "NexaSphere Membership Form — GL Bajaj Group of Institutions",
+        icon: <IconBolt style={{ width: 18, height: 18 }} />,
+        render: () => (
+          <div style={{ display: "grid", gap: 18 }}>
+            <div
+              style={{
+                background: "rgba(255,180,0,.08)",
+                border: "1px solid rgba(255,180,0,.32)",
+                borderRadius: "var(--r3)",
+                padding: "14px 18px",
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 12,
+              }}
+            >
+              <span
+                style={{ display: "flex", color: "#ffb400", flexShrink: 0 }}
+              >
                 <DynamicIcon name="AlertTriangle" size={22} />
               </span>
               <div style={{ lineHeight: 1.75 }}>
@@ -431,6 +613,12 @@ export default function MembershipPage({ onBack }) {
                     color: 'var(--t1)',
                     marginBottom: 6,
                     textTransform: 'uppercase',
+                    fontFamily: "Orbitron,monospace",
+                    fontSize: ".75rem",
+                    letterSpacing: ".1em",
+                    color: "var(--t1)",
+                    marginBottom: 6,
+                    textTransform: "uppercase",
                   }}
                 >
                   Important — Read Before Proceeding
@@ -441,6 +629,20 @@ export default function MembershipPage({ onBack }) {
                   and
                   <b style={{ color: 'var(--t1)' }}> verify your details</b> before submitting. Once
                   submitted, you will not be able to edit your response.
+                <div style={{ fontSize: ".9rem", color: "var(--t2)" }}>
+                  This form can be filled{" "}
+                  <b style={{ color: "var(--t1)" }}>only once</b> per device.
+                  Please{" "}
+                  <b style={{ color: "var(--t1)" }}>
+                    read all questions carefully
+                  </b>{" "}
+                  and
+                  <b style={{ color: "var(--t1)" }}>
+                    {" "}
+                    verify your details
+                  </b>{" "}
+                  before submitting. Once submitted, you will not be able to
+                  edit your response.
                 </div>
               </div>
             </div>
@@ -803,6 +1005,407 @@ export default function MembershipPage({ onBack }) {
     [form]
   );
 
+            <p
+              style={{
+                color: "var(--t2)",
+                lineHeight: 1.8,
+                fontSize: ".96rem",
+              }}
+            >
+              <span className="grad-text" style={{ fontWeight: 700 }}>
+                NexaSphere
+              </span>{" "}
+              is the official student tech ecosystem at{" "}
+              <b style={{ color: "var(--t1)" }}>
+                GL Bajaj Group of Institutions, Mathura
+              </b>
+              . We bring together students from all branches and years under one
+              platform — organising and supporting{" "}
+              <b>tech and non-tech events</b> across every domain:
+            </p>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
+                gap: 10,
+              }}
+            >
+              {[
+                { icon: "🔐", label: "Cybersecurity" },
+                { icon: "🤖", label: "AI / Machine Learning" },
+                { icon: "🌐", label: "Web Development" },
+                { icon: "☁️", label: "Cloud & AWS" },
+                { icon: "📱", label: "Android Development" },
+                { icon: "📢", label: "Management & Events" },
+                { icon: "💼", label: "Career & Placement" },
+                { icon: "🎨", label: "Design & Media" },
+              ].map((d) => (
+                <div
+                  key={d.label}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    background: "var(--card)",
+                    border: "1px solid var(--bdr)",
+                    borderRadius: "var(--r2)",
+                    padding: "10px 14px",
+                  }}
+                >
+                  <span style={{ display: "flex", color: "var(--c1)" }}>
+                    <DynamicIcon name={d.icon} size={20} />
+                  </span>
+                  <span
+                    style={{
+                      fontSize: ".88rem",
+                      color: "var(--t2)",
+                      fontFamily: "Rajdhani,sans-serif",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {d.label}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div
+              style={{
+                background: "var(--card)",
+                border: "1px solid var(--bdr)",
+                borderRadius: "var(--r3)",
+                padding: 18,
+                position: "relative",
+                overflow: "hidden",
+              }}
+            >
+              <div className="corner-tl" />
+              <div className="corner-br" />
+              <div
+                style={{
+                  fontFamily: "Space Mono,monospace",
+                  fontSize: ".65rem",
+                  color: "var(--t3)",
+                  letterSpacing: ".22em",
+                  textTransform: "uppercase",
+                  marginBottom: 10,
+                }}
+              >
+                As a NexaSphere Member you get
+              </div>
+              <ul
+                style={{
+                  paddingLeft: 18,
+                  display: "grid",
+                  gap: 8,
+                  color: "var(--t2)",
+                  fontSize: ".92rem",
+                }}
+              >
+                <li>
+                  Access to <b>exclusive WhatsApp domain groups</b> for learning
+                  & collaboration
+                </li>
+                <li>
+                  Early access to <b>workshops, hackathons, and events</b>
+                </li>
+                <li>Network with peers and Core Team across all domains</li>
+                <li>
+                  <b>Certificates</b> for events you participate in
+                </li>
+                <li>
+                  Career, placement, and industry insights from our sessions
+                </li>
+              </ul>
+            </div>
+
+            <div
+              style={{
+                background:
+                  "linear-gradient(135deg,rgba(0,119,181,.10),rgba(0,212,255,.05))",
+                border: "1px solid rgba(0,119,181,.24)",
+                borderRadius: "var(--r2)",
+                padding: "12px 16px",
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                flexWrap: "wrap",
+              }}
+            >
+              <span style={{ fontSize: "1.1rem" }}>🔗</span>
+              <span style={{ fontSize: ".88rem", color: "var(--t2)", flex: 1 }}>
+                Before filling the form, please follow our official LinkedIn
+                page:
+              </span>
+              <a
+                href={LINKEDIN_PAGE}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-outline btn-sm"
+                style={{
+                  textTransform: "none",
+                  letterSpacing: 0,
+                  fontSize: ".82rem",
+                }}
+              >
+                Follow on LinkedIn
+              </a>
+            </div>
+          </div>
+        ),
+      },
+
+      {
+        title: "Personal Details",
+        subtitle:
+          "Fill in your basic information accurately using your college details.",
+        icon: <IconUsers style={{ width: 18, height: 18 }} />,
+        render: () => (
+          <div style={{ display: "grid", gap: 18 }}>
+            <Field label="Full Name" required>
+              <Input
+                value={form.fullName}
+                onChange={(v) =>
+                  set("fullName", v.replace(/[^a-zA-Z\s.\-']/g, ""))
+                }
+                placeholder="Your full name"
+                maxLength={60}
+              />
+            </Field>
+
+            <Field
+              label="College Email ID"
+              required
+              hint="Use your official college email"
+            >
+              <Input
+                value={form.collegeEmail}
+                onChange={(v) => set("collegeEmail", v.trim().toLowerCase())}
+                placeholder="yourname@glbajajgroup.org"
+                type="email"
+                maxLength={100}
+              />
+              {form.collegeEmail &&
+                !form.collegeEmail.endsWith("@glbajajgroup.org") && (
+                  <div
+                    style={{
+                      color: "#ef4444",
+                      fontSize: ".82rem",
+                      marginTop: 4,
+                    }}
+                  >
+                    Please use your official GL Bajaj email (@glbajajgroup.org)
+                  </div>
+                )}
+            </Field>
+
+            <Field label="University Roll Number" required>
+              <Input
+                value={form.rollNumber}
+                onChange={(v) =>
+                  set(
+                    "rollNumber",
+                    v
+                      .toUpperCase()
+                      .replace(/[^A-Z0-9]/g, "")
+                      .slice(0, 15)
+                  )
+                }
+                placeholder="e.g. 2301234"
+                maxLength={15}
+              />
+            </Field>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))",
+                gap: 14,
+              }}
+            >
+              <Field label="Course" required>
+                <div style={{ display: "grid", gap: 8 }}>
+                  <StyledSelect
+                    value={form.course}
+                    onChange={(v) => set("course", v)}
+                    placeholder="Select course"
+                  >
+                    {COURSE_OPTIONS.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </StyledSelect>
+                  {form.course === "Other" && (
+                    <Input
+                      value={form.courseOther}
+                      onChange={(v) =>
+                        set(
+                          "courseOther",
+                          v.replace(/[^a-zA-Z0-9\s\-&().]/g, "")
+                        )
+                      }
+                      placeholder="Specify your course"
+                      maxLength={60}
+                    />
+                  )}
+                </div>
+              </Field>
+
+              <Field label="Branch / Department" required>
+                <div style={{ display: "grid", gap: 8 }}>
+                  <StyledSelect
+                    value={form.branch}
+                    onChange={(v) => set("branch", v)}
+                    placeholder="Select branch"
+                  >
+                    {BRANCH_OPTIONS.map((b) => (
+                      <option key={b} value={b}>
+                        {b}
+                      </option>
+                    ))}
+                  </StyledSelect>
+                  {form.branch === "Other" && (
+                    <Input
+                      value={form.branchOther}
+                      onChange={(v) =>
+                        set(
+                          "branchOther",
+                          v.replace(/[^a-zA-Z0-9\s\-&().]/g, "")
+                        )
+                      }
+                      placeholder="Specify your branch"
+                      maxLength={60}
+                    />
+                  )}
+                </div>
+              </Field>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
+                gap: 14,
+              }}
+            >
+              <Field
+                label="Section"
+                required
+                hint="Academic Section (A/B/C/...)"
+              >
+                <StyledSelect
+                  value={form.section}
+                  onChange={(v) => set("section", v)}
+                  placeholder="-- Select Section --"
+                >
+                  {SECTION_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </StyledSelect>
+                {form.section === "Other" && (
+                  <div style={{ marginTop: 10 }}>
+                    <Input
+                      value={form.sectionOther}
+                      onChange={(v) => set("sectionOther", v)}
+                      placeholder="Type your section manually..."
+                    />
+                  </div>
+                )}
+              </Field>
+
+              <Field label="Semester" required>
+                <StyledSelect
+                  value={form.semester}
+                  onChange={(v) => set("semester", v)}
+                  placeholder="Select semester"
+                >
+                  {SEMESTER_OPTIONS.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </StyledSelect>
+              </Field>
+            </div>
+
+            <Field
+              label="WhatsApp Number"
+              required
+              hint="10-digit mobile number"
+            >
+              <Input
+                value={form.whatsapp}
+                onChange={(v) =>
+                  set(
+                    "whatsapp",
+                    String(v || "")
+                      .replace(/[^\d]/g, "")
+                      .slice(0, 10)
+                  )
+                }
+                onPaste={(e) => {
+                  e.preventDefault();
+                  const pasted = e.clipboardData
+                    .getData("text")
+                    .replace(/[^\d]/g, "")
+                    .slice(0, 10);
+                  set("whatsapp", pasted);
+                }}
+                placeholder="10-digit mobile number"
+                type="tel"
+                inputMode="numeric"
+                maxLength={10}
+              />
+            </Field>
+          </div>
+        ),
+      },
+
+      {
+        title: "Domain Selection",
+        subtitle:
+          "Choose the NexaSphere groups you want to join and share your motivation.",
+        icon: <IconBolt style={{ width: 18, height: 18 }} />,
+        render: () => (
+          <div style={{ display: "grid", gap: 20 }}>
+            <Field
+              label="Which NexaSphere groups would you like to join?"
+              required
+              hint="Select one or more."
+            >
+              <MultiSelectChips
+                options={GROUP_OPTIONS}
+                values={form.groups}
+                onToggle={(opt) =>
+                  set(
+                    "groups",
+                    form.groups.includes(opt)
+                      ? form.groups.filter((x) => x !== opt)
+                      : [...form.groups, opt]
+                  )
+                }
+              />
+            </Field>
+
+            <Field label="Why do you want to join NexaSphere?" required>
+              <TextArea
+                value={form.whyJoin}
+                onChange={(v) => set("whyJoin", v)}
+                placeholder="Share your motivation and what you hope to learn or contribute."
+                rows={6}
+              />
+            </Field>
+          </div>
+        ),
+      },
+    ],
+    [form]
+  );
+
   const current = steps[step];
   const progress = step / (steps.length - 1);
 
@@ -869,6 +1472,11 @@ export default function MembershipPage({ onBack }) {
             style={{ position: 'absolute', top: 24, left: 24 }}
           >
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            style={{ position: "absolute", top: 24, left: 24 }}
+          >
+            <span
+              style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
+            >
               <IconArrowLeft style={{ width: 14, height: 14 }} /> Back
             </span>
           </button>
@@ -888,6 +1496,17 @@ export default function MembershipPage({ onBack }) {
             color: '#fff',
             textTransform: 'uppercase',
             boxShadow: '0 0 24px rgba(123,111,255,.4)',
+            display: "inline-block",
+            background: "linear-gradient(135deg,var(--c2),var(--c3))",
+            borderRadius: 999,
+            padding: "7px 22px",
+            fontFamily: "Orbitron,monospace",
+            fontSize: ".85rem",
+            fontWeight: 700,
+            letterSpacing: ".1em",
+            color: "#fff",
+            textTransform: "uppercase",
+            boxShadow: "0 0 24px rgba(123,111,255,.4)",
             marginBottom: 16,
           }}
         >
@@ -912,6 +1531,22 @@ export default function MembershipPage({ onBack }) {
           development, cloud, cybersecurity, management, and career growth.
         </p>
         <div className="member-divider" style={{ marginTop: 34, maxWidth: 780 }} />
+            color: "var(--t2)",
+            fontSize: "clamp(.9rem,2vw,1.08rem)",
+            maxWidth: 660,
+            margin: "0 auto",
+            lineHeight: 1.75,
+            animationDelay: ".12s",
+          }}
+        >
+          NexaSphere connects students with opportunities across Tech and
+          Non-Tech domains — development, cloud, cybersecurity, management, and
+          career growth.
+        </p>
+        <div
+          className="member-divider"
+          style={{ marginTop: 34, maxWidth: 780 }}
+        />
       </div>
 
       <div className="container" style={{ paddingBottom: 86 }}>
@@ -931,6 +1566,15 @@ export default function MembershipPage({ onBack }) {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: 14,
+                flexWrap: "wrap",
+                marginBottom: 12,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <div
                   style={{
                     width: 44,
@@ -946,6 +1590,21 @@ export default function MembershipPage({ onBack }) {
                   }}
                 >
                   {done ? <IconShieldCheck style={{ width: 18, height: 18 }} /> : current.icon}
+                    background:
+                      "linear-gradient(135deg,rgba(123,111,255,.25),rgba(0,212,255,.15))",
+                    border: "1px solid var(--bdr2)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    boxShadow: "0 0 20px rgba(123,111,255,.12)",
+                    fontSize: "1.25rem",
+                  }}
+                >
+                  {done ? (
+                    <IconShieldCheck style={{ width: 18, height: 18 }} />
+                  ) : (
+                    current.icon
+                  )}
                 </div>
                 <div>
                   <div
@@ -968,6 +1627,24 @@ export default function MembershipPage({ onBack }) {
                           fontSize: '.62rem',
                           letterSpacing: '.18em',
                           color: 'var(--t3)',
+                      fontFamily: "Orbitron,monospace",
+                      fontSize: ".9rem",
+                      letterSpacing: ".08em",
+                      color: "var(--t1)",
+                      display: "flex",
+                      gap: 10,
+                      alignItems: "baseline",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <span>{done ? "Submission Complete" : current.title}</span>
+                    {!done ? (
+                      <span
+                        style={{
+                          fontFamily: "Space Mono,monospace",
+                          fontSize: ".62rem",
+                          letterSpacing: ".18em",
+                          color: "var(--t3)",
                         }}
                       >
                         SECTION {step + 1}/{steps.length}
@@ -975,8 +1652,9 @@ export default function MembershipPage({ onBack }) {
                     ) : null}
                   </div>
                   <div style={{ color: 'var(--t2)', fontSize: '.9rem' }}>
+                  <div style={{ color: "var(--t2)", fontSize: ".9rem" }}>
                     {done
-                      ? 'Thank you for joining NexaSphere — GL Bajaj Group of Institutions 🚀'
+                      ? "Thank you for joining NexaSphere — GL Bajaj Group of Institutions 🚀"
                       : current.subtitle}
                   </div>
                 </div>
@@ -993,6 +1671,17 @@ export default function MembershipPage({ onBack }) {
                 }}
               >
                 {done ? 'Form Submitted' : `Section ${step + 1} of ${steps.length}`}
+                  fontFamily: "Space Mono,monospace",
+                  fontSize: ".62rem",
+                  letterSpacing: ".14em",
+                  color: "var(--t3)",
+                  textTransform: "uppercase",
+                  textAlign: "right",
+                }}
+              >
+                {done
+                  ? "Form Submitted"
+                  : `Section ${step + 1} of ${steps.length}`}
               </div>
             </div>
 
@@ -1043,6 +1732,18 @@ export default function MembershipPage({ onBack }) {
                     position: 'relative',
                     overflow: 'hidden',
                     textAlign: 'center',
+              <div style={{ display: "grid", gap: 18 }}>
+                {/* ── Confirmation banner ── */}
+                <div
+                  style={{
+                    background:
+                      "linear-gradient(135deg,rgba(123,111,255,.08),rgba(0,212,255,.06))",
+                    border: "1px solid var(--bdr2)",
+                    borderRadius: "var(--r3)",
+                    padding: 22,
+                    position: "relative",
+                    overflow: "hidden",
+                    textAlign: "center",
                   }}
                 >
                   <div className="corner-tl" />
@@ -1063,6 +1764,12 @@ export default function MembershipPage({ onBack }) {
                       fontFamily: 'Orbitron,monospace',
                       fontSize: '1rem',
                       color: 'var(--t1)',
+                  <div style={{ fontSize: "2.4rem", marginBottom: 14 }}>🚀</div>
+                  <div
+                    style={{
+                      fontFamily: "Orbitron,monospace",
+                      fontSize: "1rem",
+                      color: "var(--t1)",
                       fontWeight: 700,
                       marginBottom: 12,
                     }}
@@ -1078,6 +1785,22 @@ export default function MembershipPage({ onBack }) {
                     <b style={{ color: 'var(--t1)' }}>{submittedEmail || form.collegeEmail}</b>
                     <br />
                     If email notifications are enabled, a confirmation receipt will be sent there.
+                    style={{
+                      color: "var(--t2)",
+                      lineHeight: 1.8,
+                      maxWidth: 540,
+                      margin: "0 auto",
+                    }}
+                  >
+                    Your response has been recorded. 🎉
+                    <br />
+                    Submitted email:{" "}
+                    <b style={{ color: "var(--t1)" }}>
+                      {submittedEmail || form.collegeEmail}
+                    </b>
+                    <br />
+                    If email notifications are enabled, a confirmation receipt
+                    will be sent there.
                   </p>
                 </div>
 
@@ -1090,6 +1813,12 @@ export default function MembershipPage({ onBack }) {
                     padding: '18px 20px',
                     position: 'relative',
                     overflow: 'hidden',
+                    background: "var(--card)",
+                    border: "1px solid var(--bdr)",
+                    borderRadius: "var(--r3)",
+                    padding: "18px 20px",
+                    position: "relative",
+                    overflow: "hidden",
                   }}
                 >
                   <div className="corner-tl" />
@@ -1100,6 +1829,11 @@ export default function MembershipPage({ onBack }) {
                       letterSpacing: '.16em',
                       textTransform: 'uppercase',
                       color: 'var(--c1)',
+                      fontFamily: "Orbitron,monospace",
+                      fontSize: ".7rem",
+                      letterSpacing: ".16em",
+                      textTransform: "uppercase",
+                      color: "var(--c1)",
                       marginBottom: 14,
                     }}
                   >
@@ -1121,6 +1855,22 @@ export default function MembershipPage({ onBack }) {
                         icon: '💬',
                         title: "Step 3 — You're added to domain groups",
                         desc: 'Once verified, you will be added to the respective NexaSphere WhatsApp domain groups you selected.',
+                  <div style={{ display: "grid", gap: 12 }}>
+                    {[
+                      {
+                        icon: "✅",
+                        title: "Step 1 — Join the community (Now)",
+                        desc: "Click the WhatsApp button below and request to join. When asked, mention you have already filled the NexaSphere Membership Form.",
+                      },
+                      {
+                        icon: "🔍",
+                        title: "Step 2 — Verification (3–5 working days)",
+                        desc: "Our team reviews your submission and verifies your college email. No action needed on your end.",
+                      },
+                      {
+                        icon: "💬",
+                        title: "Step 3 — You're added to domain groups",
+                        desc: "Once verified, you will be added to the respective NexaSphere WhatsApp domain groups you selected.",
                       },
                     ].map((s) => (
                       <div
@@ -1136,6 +1886,22 @@ export default function MembershipPage({ onBack }) {
                         }}
                       >
                         <span style={{ fontSize: '1.2rem', flexShrink: 0, marginTop: 2 }}>
+                          display: "flex",
+                          gap: 14,
+                          alignItems: "flex-start",
+                          padding: "12px 14px",
+                          background: "var(--card2)",
+                          border: "1px solid var(--bdr)",
+                          borderRadius: "var(--r2)",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: "1.2rem",
+                            flexShrink: 0,
+                            marginTop: 2,
+                          }}
+                        >
                           {s.icon}
                         </span>
                         <div>
@@ -1145,12 +1911,23 @@ export default function MembershipPage({ onBack }) {
                               fontWeight: 700,
                               color: 'var(--t1)',
                               fontSize: '.96rem',
+                              fontFamily: "Rajdhani,sans-serif",
+                              fontWeight: 700,
+                              color: "var(--t1)",
+                              fontSize: ".96rem",
                               marginBottom: 3,
                             }}
                           >
                             {s.title}
                           </div>
                           <div style={{ fontSize: '.86rem', color: 'var(--t2)', lineHeight: 1.6 }}>
+                          <div
+                            style={{
+                              fontSize: ".86rem",
+                              color: "var(--t2)",
+                              lineHeight: 1.6,
+                            }}
+                          >
                             {s.desc}
                           </div>
                         </div>
@@ -1162,6 +1939,12 @@ export default function MembershipPage({ onBack }) {
                 {/* ── CTA buttons ── */}
                 <div
                   style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}
+                  style={{
+                    display: "flex",
+                    gap: 12,
+                    flexWrap: "wrap",
+                    justifyContent: "center",
+                  }}
                 >
                   <a
                     className="btn btn-whatsapp"
@@ -1170,6 +1953,13 @@ export default function MembershipPage({ onBack }) {
                     rel="noopener noreferrer"
                   >
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 8,
+                      }}
+                    >
                       Join NexaSphere WhatsApp Group <IconArrowRight />
                     </span>
                   </a>
@@ -1180,6 +1970,13 @@ export default function MembershipPage({ onBack }) {
                     rel="noopener noreferrer"
                   >
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 8,
+                      }}
+                    >
                       Follow on LinkedIn <IconArrowRight />
                     </span>
                   </a>
@@ -1208,11 +2005,26 @@ export default function MembershipPage({ onBack }) {
                   <a
                     href="mailto:nexasphere@glbajajgroup.org"
                     style={{ color: 'var(--c1)', textDecoration: 'none' }}
+                    background: "var(--card)",
+                    border: "1px solid var(--bdr)",
+                    borderRadius: "var(--r2)",
+                    padding: "14px 16px",
+                    fontSize: ".88rem",
+                    color: "var(--t3)",
+                    lineHeight: 1.7,
+                    textAlign: "center",
+                  }}
+                >
+                  📌 Questions? Reach us at{" "}
+                  <a
+                    href="mailto:nexasphere@glbajajgroup.org"
+                    style={{ color: "var(--c1)", textDecoration: "none" }}
                   >
                     nexasphere@glbajajgroup.org
                   </a>
                   <br />
                   <b style={{ color: 'var(--t2)' }}>
+                  <b style={{ color: "var(--t2)" }}>
                     Stay connected and keep building 🚀 — NexaSphere Team
                   </b>
                 </div>
@@ -1230,6 +2042,11 @@ export default function MembershipPage({ onBack }) {
                       color: 'var(--t1)',
                       borderRadius: 'var(--r2)',
                       padding: '12px 14px',
+                      background: "rgba(255,45,120,.10)",
+                      border: "1px solid rgba(255,45,120,.22)",
+                      color: "var(--t1)",
+                      borderRadius: "var(--r2)",
+                      padding: "12px 14px",
                       fontWeight: 600,
                     }}
                   >
@@ -1244,6 +2061,10 @@ export default function MembershipPage({ onBack }) {
                     justifyContent: 'space-between',
                     gap: 10,
                     flexWrap: 'wrap',
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 10,
+                    flexWrap: "wrap",
                   }}
                 >
                   <button
@@ -1252,6 +2073,7 @@ export default function MembershipPage({ onBack }) {
                     disabled={busy}
                     onClick={() => {
                       setErr('');
+                      setErr("");
                       if (step === 0) {
                         if (onBack) onBack();
                       } else {
@@ -1261,6 +2083,13 @@ export default function MembershipPage({ onBack }) {
                     }}
                   >
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 8,
+                      }}
+                    >
                       <IconArrowLeft /> Back
                     </span>
                   </button>
@@ -1276,12 +2105,25 @@ export default function MembershipPage({ onBack }) {
                           return;
                         }
                         setErr('');
+                          setErr(
+                            "Please complete the required fields (*) to proceed."
+                          );
+                          return;
+                        }
+                        setErr("");
                         setStep((s) => clamp(s + 1, 0, steps.length - 1));
                         scrollTop();
                       }}
                       style={{ opacity: canNext ? 1 : 0.65 }}
                     >
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 8,
+                        }}
+                      >
                         Continue <IconArrowRight />
                       </span>
                     </button>
@@ -1301,12 +2143,15 @@ export default function MembershipPage({ onBack }) {
                       onClick={() => {
                         if (!canNext) {
                           setErr('Please complete the required fields (*) to submit.');
+                          setErr(
+                            "Please complete the required fields (*) to submit."
+                          );
                           return;
                         }
                         submit();
                       }}
                     >
-                      {busy ? 'Submitting…' : 'Submit Membership Form'}
+                      {busy ? "Submitting…" : "Submit Membership Form"}
                     </button>
                   )}
                 </div>
@@ -1325,6 +2170,13 @@ export default function MembershipPage({ onBack }) {
           }}
         >
           Need help? Contact NexaSphere team via WhatsApp or email nexasphere@glbajajgroup.org
+            textAlign: "center",
+            color: "var(--t3)",
+            fontSize: ".82rem",
+          }}
+        >
+          Need help? Contact NexaSphere team via WhatsApp or email
+          nexasphere@glbajajgroup.org
         </div>
 
         <Footer />

@@ -354,6 +354,62 @@ test('Security + Concurrency Validation', async (t) => {
       await adminAuthMiddleware.login(reqVerifyPreserved, resVerifyPreserved);
       assert.equal(resVerifyPreserved.statusCode(), 401);
     }
+  await t.test(
+    'Adversarial: Eviction priority evicts blocked IPs before unblocked ones',
+    async () => {
+      adminAuthMiddleware._clearAllLoginAttempts();
+
+      const blockedIp = '10.0.0.1';
+      const unblockedIp = '10.0.0.2';
+
+      // Block blockedIp with 3 failed attempts (> max 2)
+      for (let i = 0; i < 3; i++) {
+        const { req, res } = createMockReqRes(blockedIp, 'admin', 'wrongpass');
+        await adminAuthMiddleware.login(req, res);
+      }
+      const { req: reqCheckBlocked, res: resCheckBlocked } = createMockReqRes(
+        blockedIp,
+        'admin',
+        'wrongpass'
+      );
+      await adminAuthMiddleware.login(reqCheckBlocked, resCheckBlocked);
+      assert.equal(resCheckBlocked.statusCode(), 429);
+
+      // Add unblockedIp with 1 failed attempt
+      const { req: reqUnblocked, res: resUnblocked } = createMockReqRes(
+        unblockedIp,
+        'admin',
+        'wrongpass'
+      );
+      await adminAuthMiddleware.login(reqUnblocked, resUnblocked);
+      assert.equal(resUnblocked.statusCode(), 401);
+
+      // Flood map with 8 more unique IPs to fill past capacity (5) and trigger eviction
+      for (let i = 3; i <= 10; i++) {
+        const { req, res } = createMockReqRes(`10.0.0.${i}`, 'admin', 'wrongpass');
+        await adminAuthMiddleware.login(req, res);
+      }
+
+      assert.equal(adminAuthMiddleware._getLoginAttemptsMapSize(), 5);
+
+      // blockedIp must be evicted (blocked IPs are evicted first)
+      const { req: reqVerifyEvicted, res: resVerifyEvicted } = createMockReqRes(
+        blockedIp,
+        'admin',
+        'wrongpass'
+      );
+      await adminAuthMiddleware.login(reqVerifyEvicted, resVerifyEvicted);
+      assert.equal(resVerifyEvicted.statusCode(), 401);
+
+      // unblockedIp must still be in map (unblocked IPs preserved)
+      const { req: reqVerifyPreserved, res: resVerifyPreserved } = createMockReqRes(
+        unblockedIp,
+        'admin',
+        'wrongpass'
+      );
+      await adminAuthMiddleware.login(reqVerifyPreserved, resVerifyPreserved);
+      assert.equal(resVerifyPreserved.statusCode(), 401);
+    }
   );
 
   await t.test('Stress & Concurrency: 1000 Concurrent Requests', async () => {

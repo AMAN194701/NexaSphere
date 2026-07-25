@@ -1,7 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
-import apiClient from '../utils/apiClient.js';
-import socketClient from '../utils/socketClient';
-import { buildUrl, getApiBase, getSocketServerUrl } from '../utils/runtimeConfig';
+import { useState, useEffect, useCallback } from "react";
+import apiClient from "../utils/apiClient.js";
+import socketClient from "../utils/socketClient";
+import {
+  buildUrl,
+  getApiBase,
+  getSocketServerUrl,
+} from "../utils/runtimeConfig";
 
 export function useNotifications() {
   const [notifications, setNotifications] = useState([]);
@@ -16,14 +20,15 @@ export function useNotifications() {
     // Fetch persisted notifications from server (if available)
     (async () => {
       try {
-        const res = await fetch(buildUrl(getApiBase(), '/api/notifications'));
+        const res = await fetch(buildUrl(getApiBase(), "/api/notifications"));
         if (res.ok) {
           const json = await res.json();
-          if (isMounted && Array.isArray(json.notifications)) setNotifications(json.notifications);
+          if (isMounted && Array.isArray(json.notifications))
+            setNotifications(json.notifications);
         }
       } catch (err) {
         // ignore fetch errors — fallback to empty list
-        console.warn('Failed to fetch notifications', err.message);
+        console.warn("Failed to fetch notifications", err.message);
       }
     })();
 
@@ -34,7 +39,7 @@ export function useNotifications() {
     }
 
     // Identify user if logged in (for personalized notifications)
-    const storedUser = localStorage.getItem('ns_user');
+    const storedUser = localStorage.getItem("ns_user");
     if (storedUser) {
       try {
         const user = JSON.parse(storedUser);
@@ -44,13 +49,13 @@ export function useNotifications() {
           socketClient.joinRoom(`user-${user.id || user.userId}`);
         }
       } catch (e) {
-        console.error('Error parsing stored user info', e);
+        console.error("Error parsing stored user info", e);
       }
     }
 
     // Join general notification and announcement channels
-    socketClient.joinRoom('notifications-room');
-    socketClient.joinRoom('global-announcements');
+    socketClient.joinRoom("notifications-room");
+    socketClient.joinRoom("global-announcements");
 
     // Setup real-time event handlers mapping to the notification feed
     const handleRegistration = (data) => {
@@ -65,6 +70,11 @@ export function useNotifications() {
             message: data.eventName
               ? `You are registered for "${data.eventName}"`
               : 'Your registration has been successfully confirmed.',
+            type: "connection",
+            title: "Registration Confirmed! 🎉",
+            message: data.eventName
+              ? `You are registered for "${data.eventName}"`
+              : "Your registration has been successfully confirmed.",
             isRead: false,
             createdAt: new Date().toISOString(),
           },
@@ -82,6 +92,11 @@ export function useNotifications() {
           message: data.eventName
             ? `Great news! You have been promoted for "${data.eventName}"`
             : 'You have been promoted from the waitlist.',
+          type: "mention",
+          title: "Waitlist Promotion! 🚀",
+          message: data.eventName
+            ? `Great news! You have been promoted for "${data.eventName}"`
+            : "You have been promoted from the waitlist.",
           isRead: false,
           createdAt: new Date().toISOString(),
         },
@@ -98,6 +113,11 @@ export function useNotifications() {
           message: data.eventName
             ? `"${data.eventName}" is starting soon! Don't miss it.`
             : 'An event is starting shortly.',
+          type: "system",
+          title: "Upcoming Event Reminder ⏰",
+          message: data.eventName
+            ? `"${data.eventName}" is starting soon! Don't miss it.`
+            : "An event is starting shortly.",
           isRead: false,
           createdAt: new Date().toISOString(),
         },
@@ -111,6 +131,8 @@ export function useNotifications() {
           id: `attendance-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
           type: 'system',
           title: 'Attendance Confirmed! Check-in ✅',
+          type: "system",
+          title: "Attendance Confirmed! Check-in ✅",
           message: `Your check-in is complete! You earned ${data.points || 50} points.`,
           isRead: false,
           createdAt: new Date().toISOString(),
@@ -128,10 +150,10 @@ export function useNotifications() {
     // 'attendance-marked' -> 'attendanceMarked'
 
     // Register active listeners using the actual backend event names
-    socketClient.on('registration-confirmed', handleRegistration);
-    socketClient.on('waitlist-promotion', handleWaitlist);
-    socketClient.on('event-reminder', handleReminder);
-    socketClient.on('attendance-marked', handleAttendance);
+    socketClient.on("registration-confirmed", handleRegistration);
+    socketClient.on("waitlist-promotion", handleWaitlist);
+    socketClient.on("event-reminder", handleReminder);
+    socketClient.on("attendance-marked", handleAttendance);
 
     return () => {
       isMounted = false;
@@ -142,6 +164,12 @@ export function useNotifications() {
       socketClient.off('attendance-marked', handleAttendance);
 
       const storedUser = localStorage.getItem('ns_user');
+      socketClient.off("registration-confirmed", handleRegistration);
+      socketClient.off("waitlist-promotion", handleWaitlist);
+      socketClient.off("event-reminder", handleReminder);
+      socketClient.off("attendance-marked", handleAttendance);
+
+      const storedUser = localStorage.getItem("ns_user");
       if (storedUser) {
         try {
           const user = JSON.parse(storedUser);
@@ -153,6 +181,8 @@ export function useNotifications() {
 
       socketClient.leaveRoom('notifications-room');
       socketClient.leaveRoom('global-announcements');
+      socketClient.leaveRoom("notifications-room");
+      socketClient.leaveRoom("global-announcements");
 
       // DO NOT disconnect the shared socket here
     };
@@ -167,6 +197,16 @@ export function useNotifications() {
         await apiClient(base + '/api/notifications/mark-read', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
+    );
+    // Persist
+    (async () => {
+      try {
+        const base = import.meta?.env?.VITE_API_BASE || "";
+        await apiClient(base + "/api/notifications/mark-read", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ id }),
         });
       } catch (e) {}
@@ -177,8 +217,10 @@ export function useNotifications() {
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
     (async () => {
       try {
-        const base = import.meta?.env?.VITE_API_BASE || '';
-        await apiClient(base + '/api/notifications/mark-all-read', { method: 'POST' });
+        const base = import.meta?.env?.VITE_API_BASE || "";
+        await apiClient(base + "/api/notifications/mark-all-read", {
+          method: "POST",
+        });
       } catch (e) {}
     })();
   }, []);
@@ -187,8 +229,8 @@ export function useNotifications() {
     setNotifications([]);
     (async () => {
       try {
-        const base = import.meta?.env?.VITE_API_BASE || '';
-        await apiClient(base + '/api/notifications', { method: 'DELETE' });
+        const base = import.meta?.env?.VITE_API_BASE || "";
+        await apiClient(base + "/api/notifications", { method: "DELETE" });
       } catch (e) {}
     })();
   }, []);

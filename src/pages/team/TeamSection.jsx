@@ -3,11 +3,18 @@ import { createPortal } from 'react-dom';
 import TeamMemberModal from './TeamMemberModal';
 import { IconArrowRight, IconSpark } from '../../shared/Icons';
 import SkeletonCard from '../../components/SkeletonCard';
+import { useState, useEffect, useRef } from "react";
+import apiClient from "../../utils/apiClient.js";
+import { createPortal } from "react-dom";
+import TeamMemberModal from "./TeamMemberModal";
+import { IconArrowRight, IconSpark } from "../../shared/Icons";
 
 function MemberCard({ member, idx, onClick }) {
   const ref = useRef(null);
   const [imgError, setImgError] = useState(false);
-  const agDelay = [-0.0, -2.1, -4.2, -1.0, -3.3, -5.5, -0.7, -6.1, -2.8, -4.9, -1.6, -3.8];
+  const agDelay = [
+    -0.0, -2.1, -4.2, -1.0, -3.3, -5.5, -0.7, -6.1, -2.8, -4.9, -1.6, -3.8,
+  ];
 
   const onMove = (e) => {
     const c = ref.current;
@@ -16,6 +23,7 @@ function MemberCard({ member, idx, onClick }) {
     const x = (e.clientX - rect.left) / rect.width - 0.5;
     const y = (e.clientY - rect.top) / rect.height - 0.5;
     c.style.animationPlayState = 'paused';
+    c.style.animationPlayState = "paused";
     c.style.transform = `translateY(-14px) rotateX(${-y * 18}deg) rotateY(${x * 18}deg) scale(1.06)`;
   };
   const onLeave = () => {
@@ -28,6 +36,8 @@ function MemberCard({ member, idx, onClick }) {
     }, 150);
     c.style.transform = '';
     c.style.animationPlayState = '';
+    c.style.transform = "";
+    c.style.animationPlayState = "";
   };
   const click = () => {
     const c = ref.current;
@@ -35,6 +45,9 @@ function MemberCard({ member, idx, onClick }) {
       c.style.transform = 'scale(.9)';
       setTimeout(() => {
         c.style.transform = '';
+      c.style.transform = "scale(.9)";
+      setTimeout(() => {
+        c.style.transform = "";
       }, 140);
     }
     setTimeout(() => onClick(member), 110);
@@ -47,9 +60,11 @@ function MemberCard({ member, idx, onClick }) {
       style={{
         cursor: 'pointer',
         perspective: '800px',
+        cursor: "pointer",
+        perspective: "800px",
         animation: `ag 7s ease-in-out ${agDelay[idx % 12]}s infinite`,
-        willChange: 'transform',
-        animationFillMode: 'both',
+        willChange: "transform",
+        animationFillMode: "both",
         opacity: 1,
       }}
       onMouseMove={onMove}
@@ -59,6 +74,7 @@ function MemberCard({ member, idx, onClick }) {
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') click();
+        if (e.key === "Enter" || e.key === " ") click();
       }}
     >
       <div className="team-card-photo-wrap">
@@ -68,6 +84,9 @@ function MemberCard({ member, idx, onClick }) {
               ? 'https://api.dicebear.com/7.x/initials/svg?seed=' +
                 encodeURIComponent(member.name) +
                 '&backgroundColor=7b6fff&textColor=ffffff'
+              ? "https://api.dicebear.com/7.x/initials/svg?seed=" +
+                encodeURIComponent(member.name) +
+                "&backgroundColor=7b6fff&textColor=ffffff"
               : member.photo
           }
           alt={member.name}
@@ -101,6 +120,9 @@ export default function TeamSection({ onApply }) {
     setLoading(true);
     fetch(url)
       .then((r) => (r.ok ? r.json() : Promise.reject()))
+    const base = (import.meta?.env?.VITE_API_BASE || "").replace(/\/+$/, "");
+    const url = base ? `${base}/api/content/team` : "/api/content/team";
+
     apiClient(url)
       .then((data) => {
         if (!alive) return;
@@ -121,6 +143,7 @@ export default function TeamSection({ onApply }) {
   useEffect(() => {
     const elements = document.querySelectorAll(
       '#section-team .pop-flip, #section-team .pop-in, #section-team .pop-word'
+      "#section-team .pop-flip, #section-team .pop-in, #section-team .pop-word"
     );
     const obs = new IntersectionObserver(
       (entries) => {
@@ -132,6 +155,13 @@ export default function TeamSection({ onApply }) {
               () => {
                 e.target.style.opacity = '1';
                 e.target.style.transform = 'none';
+          if (e.isIntersecting && !e.target.classList.contains("fired")) {
+            e.target.classList.add("fired");
+            e.target.addEventListener(
+              "animationend",
+              () => {
+                e.target.style.opacity = "1";
+                e.target.style.transform = "none";
               },
               { once: true }
             );
@@ -140,6 +170,7 @@ export default function TeamSection({ onApply }) {
         });
       },
       { threshold: 0, rootMargin: '0px 0px -10px 0px' }
+      { threshold: 0, rootMargin: "0px 0px -10px 0px" }
     );
     elements.forEach((el) => obs.observe(el));
     const fallback = setTimeout(() => {
@@ -152,6 +183,16 @@ export default function TeamSection({ onApply }) {
             () => {
               el.style.opacity = '1';
               el.style.transform = 'none';
+        if (
+          rect.top < window.innerHeight + 100 &&
+          !el.classList.contains("fired")
+        ) {
+          el.classList.add("fired");
+          el.addEventListener(
+            "animationend",
+            () => {
+              el.style.opacity = "1";
+              el.style.transform = "none";
             },
             { once: true }
           );
@@ -168,9 +209,15 @@ export default function TeamSection({ onApply }) {
     <section className="section" id="section-team">
       <div className="container">
         <div className="section-heading">
-          <span className="cin-section-label pop-in">GL Bajaj Group of Institutions · Mathura</span>
+          <span className="cin-section-label pop-in">
+            GL Bajaj Group of Institutions · Mathura
+          </span>
           <h2 className="section-title pop-word">Core Team</h2>
           <p className="section-subtitle pop-in" style={{ animationDelay: '.1s' }}>
+          <p
+            className="section-subtitle pop-in"
+            style={{ animationDelay: ".1s" }}
+          >
             The Minds Behind NexaSphere
           </p>
         </div>
@@ -197,6 +244,16 @@ export default function TeamSection({ onApply }) {
             margin: '56px auto 0',
             position: 'relative',
             overflow: 'hidden',
+            textAlign: "center",
+            marginTop: "56px",
+            padding: "28px",
+            background: "var(--card)",
+            border: "1px solid var(--bdr)",
+            borderRadius: "var(--r3)",
+            maxWidth: "520px",
+            margin: "56px auto 0",
+            position: "relative",
+            overflow: "hidden",
           }}
         >
           <div className="corner-tl" />
@@ -209,6 +266,12 @@ export default function TeamSection({ onApply }) {
               color: 'var(--c1)',
               marginBottom: '8px',
               letterSpacing: '.05em',
+              fontFamily: "Orbitron,monospace",
+              fontSize: "1rem",
+              fontWeight: 700,
+              color: "var(--c1)",
+              marginBottom: "8px",
+              letterSpacing: ".05em",
             }}
           >
             Want to Join NexaSphere?
@@ -223,12 +286,20 @@ export default function TeamSection({ onApply }) {
           >
             We&apos;re looking for passionate students to drive NexaSphere forward. Fill in the form
             and we&apos;ll reach out!
+              color: "var(--t2)",
+              fontSize: ".88rem",
+              marginBottom: "18px",
+              lineHeight: 1.65,
+            }}
+          >
+            We&apos;re looking for passionate students to drive NexaSphere
+            forward. Fill in the form and we&apos;ll reach out!
           </p>
           <button
             type="button"
             onClick={() => onApply && onApply()}
             className="btn btn-join btn-ripple"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
+            style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
           >
             Apply Here <IconSpark />
           </button>

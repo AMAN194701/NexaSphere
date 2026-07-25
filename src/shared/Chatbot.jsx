@@ -4,6 +4,14 @@ import '../styles/chatbot.css';
 
 const CHAT_WINDOW_ID = 'nexa-chat-window';
 const CHAT_HISTORY_SIDEBAR_ID = 'nexa-chat-history-sidebar';
+import React, { useState, useRef, useEffect } from "react";
+import apiClient from "../utils/apiClient.js";
+import "../styles/chatbot.css";
+import PromptHistorySidebar from "../components/history/PromptHistorySidebar";
+import SearchBar from "../components/history/SearchBar";
+import PinnedChats from "../components/history/PinnedChats";
+import { savePrompt } from "../lib/promptStore";
+import { initializeWorkspaces } from "../lib/workspaceService";
 
 const Chatbot = () => {
   const aiApiUrl = import.meta.env.VITE_AI_API_URL;
@@ -86,6 +94,9 @@ const Chatbot = () => {
       const response = await fetch(`${baseUrl.replace(/\/+$/, '')}/ai/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+      const data = await apiClient("http://localhost:8000/ai/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: currentInput }),
       });
       if (!response.ok) {
@@ -93,6 +104,7 @@ const Chatbot = () => {
       }
       const data = await response.json();
       setMessages((prev) => [...prev, { role: 'bot', text: data.reply }]);
+      setMessages((prev) => [...prev, { role: "bot", text: data.reply }]);
     } catch (e) {
       setMessages((prev) => [...prev, { role: 'bot', text: data.reply }]);
     } catch (e) {
@@ -147,6 +159,7 @@ const Chatbot = () => {
           aria-expanded={isOpen}
           aria-controls={CHAT_WINDOW_ID}
         >
+        <button className="chat-trigger-btn" onClick={() => setIsOpen(true)}>
           <div className="pulse-ring"></div>
           <MessageCircle size={24} aria-hidden="true" />
         </button>

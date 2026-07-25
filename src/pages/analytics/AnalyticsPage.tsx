@@ -1,22 +1,34 @@
-import React, { useRef } from 'react';
-import { AnalyticsFilterProvider, useAnalyticsFilters } from '../../context/AnalyticsFilterContext';
-import { useAnalyticsData } from '../../hooks/analytics/useAnalyticsData';
-import { TrendChart } from '../../features/analytics/TrendChart';
-import { DistributionChart } from '../../features/analytics/DistributionChart';
-import { ActivityComparisonChart } from '../../features/analytics/ActivityComparisonChart';
-import { formatNumber } from '../../utils/chartDataFormatters';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
-import { Download, Calendar, Filter, ChevronLeft } from 'lucide-react';
+import React, { useRef } from "react";
+import {
+  AnalyticsFilterProvider,
+  useAnalyticsFilters,
+} from "../../context/AnalyticsFilterContext";
+import { useAnalyticsData } from "../../hooks/analytics/useAnalyticsData";
+import { TrendChart } from "../../features/analytics/TrendChart";
+import { DistributionChart } from "../../features/analytics/DistributionChart";
+import { ActivityComparisonChart } from "../../features/analytics/ActivityComparisonChart";
+import { formatNumber } from "../../utils/chartDataFormatters";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
+import { Download, Calendar, Filter, ChevronLeft } from "lucide-react";
 
 interface AnalyticsPageProps {
   onBack?: () => void;
 }
 
-const AnalyticsDashboardContent: React.FC<AnalyticsPageProps> = ({ onBack }) => {
+const AnalyticsDashboardContent: React.FC<AnalyticsPageProps> = ({
+  onBack,
+}) => {
   const { filters, updateFilter } = useAnalyticsFilters();
   const { loading, trendData, distributionData, comparisonData, overviewMetrics } =
     useAnalyticsData();
+  const {
+    loading,
+    trendData,
+    distributionData,
+    comparisonData,
+    overviewMetrics,
+  } = useAnalyticsData();
   const dashboardRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = React.useState(false);
 
@@ -26,18 +38,22 @@ const AnalyticsDashboardContent: React.FC<AnalyticsPageProps> = ({ onBack }) => 
     try {
       const canvas = await html2canvas(dashboardRef.current, {
         scale: 2,
-        backgroundColor: '#0a0a0a',
+        backgroundColor: "#0a0a0a",
         useCORS: true,
       });
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
       pdf.save(`NexaSphere_Analytics_${new Date().toISOString().split('T')[0]}.pdf`);
+      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+      pdf.save(
+        `NexaSphere_Analytics_${new Date().toISOString().split("T")[0]}.pdf`
+      );
     } catch (err) {
-      console.error('Export failed:', err);
+      console.error("Export failed:", err);
     } finally {
       setExporting(false);
     }
@@ -59,7 +75,9 @@ const AnalyticsDashboardContent: React.FC<AnalyticsPageProps> = ({ onBack }) => 
             <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
               Platform Intelligence
             </h1>
-            <p className="text-gray-400 mt-1">Real-time analytics and platform metrics</p>
+            <p className="text-gray-400 mt-1">
+              Real-time analytics and platform metrics
+            </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
@@ -67,18 +85,24 @@ const AnalyticsDashboardContent: React.FC<AnalyticsPageProps> = ({ onBack }) => 
               <button
                 onClick={() => updateFilter('timeGranularity', 'daily')}
                 className={`px-3 py-1.5 text-sm rounded-md transition-colors ${filters.timeGranularity === 'daily' ? 'bg-[#333] text-white' : 'text-gray-400 hover:text-gray-200'}`}
+                onClick={() => updateFilter("timeGranularity", "daily")}
+                className={`px-3 py-1.5 text-sm rounded-md transition-colors ${filters.timeGranularity === "daily" ? "bg-[#333] text-white" : "text-gray-400 hover:text-gray-200"}`}
               >
                 Daily
               </button>
               <button
                 onClick={() => updateFilter('timeGranularity', 'weekly')}
                 className={`px-3 py-1.5 text-sm rounded-md transition-colors ${filters.timeGranularity === 'weekly' ? 'bg-[#333] text-white' : 'text-gray-400 hover:text-gray-200'}`}
+                onClick={() => updateFilter("timeGranularity", "weekly")}
+                className={`px-3 py-1.5 text-sm rounded-md transition-colors ${filters.timeGranularity === "weekly" ? "bg-[#333] text-white" : "text-gray-400 hover:text-gray-200"}`}
               >
                 Weekly
               </button>
               <button
                 onClick={() => updateFilter('timeGranularity', 'monthly')}
                 className={`px-3 py-1.5 text-sm rounded-md transition-colors ${filters.timeGranularity === 'monthly' ? 'bg-[#333] text-white' : 'text-gray-400 hover:text-gray-200'}`}
+                onClick={() => updateFilter("timeGranularity", "monthly")}
+                className={`px-3 py-1.5 text-sm rounded-md transition-colors ${filters.timeGranularity === "monthly" ? "bg-[#333] text-white" : "text-gray-400 hover:text-gray-200"}`}
               >
                 Monthly
               </button>
@@ -89,7 +113,7 @@ const AnalyticsDashboardContent: React.FC<AnalyticsPageProps> = ({ onBack }) => 
               className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-4 py-2.5 rounded-lg font-medium transition-all disabled:opacity-50"
             >
               <Download size={18} />
-              {exporting ? 'Exporting...' : 'Export Report'}
+              {exporting ? "Exporting..." : "Export Report"}
             </button>
           </div>
         </div>
@@ -157,6 +181,10 @@ const MetricBadge: React.FC<{
       {trend !== undefined && (
         <span className={`text-sm font-medium ${trend >= 0 ? 'text-green-500' : 'text-red-500'}`}>
           {trend >= 0 ? '+' : ''}
+        <span
+          className={`text-sm font-medium ${trend >= 0 ? "text-green-500" : "text-red-500"}`}
+        >
+          {trend >= 0 ? "+" : ""}
           {trend}%
         </span>
       )}

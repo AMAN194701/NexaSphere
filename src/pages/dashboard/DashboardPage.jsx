@@ -228,6 +228,10 @@ export default function DashboardPage({ onBack }) {
       const base = import.meta.env.VITE_API_BASE || 'http://localhost:8000';
       const data = await apiClient(`${base}/recommend/events/${currentUser.id}`);
       const data = await apiClient(recommendationsUrl);
+      const base = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+      const data = await apiClient(
+        `${base}/recommend/events/${currentUser.id}`
+      );
       if (data) {
         setRecommendations(data.recommended_events || []);
       } else {

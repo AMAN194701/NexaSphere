@@ -49,8 +49,47 @@ const TYPE_CONFIG = {
 function timeAgo(isoString) {
   const diff = Math.floor((Date.now() - new Date(isoString)) / 1000);
   if (!isoString) return 'just now';
+import { useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Bell,
+  MessageCircle,
+  Users,
+  AtSign,
+  Settings,
+  X,
+  CheckCheck,
+  Trash2,
+} from "lucide-react";
+import { useNotifications } from "../hooks/useNotifications";
+
+const TYPE_CONFIG = {
+  message: {
+    icon: <MessageCircle size={16} />,
+    color: "var(--c1)",
+    bg: "rgba(204,17,17,0.15)",
+  },
+  connection: {
+    icon: <Users size={16} />,
+    color: "#9999ff",
+    bg: "rgba(90,90,255,0.15)",
+  },
+  mention: {
+    icon: <AtSign size={16} />,
+    color: "#f59e0b",
+    bg: "rgba(245,158,11,0.15)",
+  },
+  system: {
+    icon: <Settings size={16} />,
+    color: "#34d399",
+    bg: "rgba(52,211,153,0.15)",
+  },
+};
+
+function timeAgo(isoString) {
+  if (!isoString) return "just now";
   const date = new Date(isoString);
-  if (isNaN(date.getTime())) return 'just now';
+  if (isNaN(date.getTime())) return "just now";
   const diff = Math.floor((Date.now() - date) / 1000);
   if (diff < 60) return `${diff}s ago`;
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
@@ -80,8 +119,8 @@ export default function NotificationBell() {
         closePanel();
       }
     };
-    if (isOpen) document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    if (isOpen) document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, [isOpen, closePanel]);
 
   // Close on Escape
@@ -95,6 +134,17 @@ export default function NotificationBell() {
 
   return (
     <div ref={panelRef} style={{ position: 'relative', display: 'inline-block' }}>
+      if (e.key === "Escape") closePanel();
+    };
+    if (isOpen) window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [isOpen, closePanel]);
+
+  return (
+    <div
+      ref={panelRef}
+      style={{ position: "relative", display: "inline-block" }}
+    >
       {/* Bell Button */}
       <motion.button
         onClick={togglePanel}
@@ -103,20 +153,25 @@ export default function NotificationBell() {
         aria-label={`Notifications${unreadCount ? ` (${unreadCount} unread)` : ''}`}
         aria-expanded={isOpen}
         aria-controls={panelId}
+        aria-label={`Notifications${unreadCount ? ` (${unreadCount} unread)` : ""}`}
         style={{
-          position: 'relative',
-          background: isOpen ? 'rgba(204,17,17,0.18)' : 'rgba(255,255,255,0.12)',
-          border: '1px solid',
-          borderColor: isOpen ? 'rgba(204,17,17,0.5)' : 'rgba(255,255,255,0.18)',
-          borderRadius: '12px',
-          padding: '10px',
-          cursor: 'pointer',
-          color: '#ffffff',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          transition: 'background 0.2s, border-color 0.2s',
-          boxShadow: '0 0 10px rgba(255,255,255,0.08)',
+          position: "relative",
+          background: isOpen
+            ? "rgba(204,17,17,0.18)"
+            : "rgba(255,255,255,0.12)",
+          border: "1px solid",
+          borderColor: isOpen
+            ? "rgba(204,17,17,0.5)"
+            : "rgba(255,255,255,0.18)",
+          borderRadius: "12px",
+          padding: "10px",
+          cursor: "pointer",
+          color: "#ffffff",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          transition: "background 0.2s, border-color 0.2s",
+          boxShadow: "0 0 10px rgba(255,255,255,0.08)",
         }}
       >
         <motion.div
@@ -128,6 +183,11 @@ export default function NotificationBell() {
             justifyContent: 'center',
             zIndex: 9999,
             position: 'relative',
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+            position: "relative",
           }}
         >
           🔔
@@ -156,9 +216,24 @@ export default function NotificationBell() {
                 justifyContent: 'center',
                 padding: '0 4px',
                 border: '2px solid var(--bg)',
+                position: "absolute",
+                top: "-6px",
+                right: "-6px",
+                background: "var(--c1)",
+                color: "#fff",
+                fontSize: "0.65rem",
+                fontWeight: 700,
+                minWidth: "18px",
+                height: "18px",
+                borderRadius: "9px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "0 4px",
+                border: "2px solid var(--bg)",
               }}
             >
-              {unreadCount > 9 ? '9+' : unreadCount}
+              {unreadCount > 9 ? "9+" : unreadCount}
             </motion.span>
           )}
         </AnimatePresence>
@@ -174,15 +249,16 @@ export default function NotificationBell() {
             exit={{ opacity: 0, y: -8, scale: 0.96 }}
             transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
             style={{
-              position: 'absolute',
-              top: 'calc(100% + 10px)',
+              position: "absolute",
+              top: "calc(100% + 10px)",
               right: 0,
-              width: '340px',
-              background: 'var(--bg)',
-              border: '1px solid rgba(204,17,17,0.22)',
-              borderRadius: '16px',
-              boxShadow: '0 24px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(204,17,17,0.08)',
-              overflow: 'hidden',
+              width: "340px",
+              background: "var(--bg)",
+              border: "1px solid rgba(204,17,17,0.22)",
+              borderRadius: "16px",
+              boxShadow:
+                "0 24px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(204,17,17,0.08)",
+              overflow: "hidden",
               zIndex: 9000,
             }}
           >
@@ -197,6 +273,16 @@ export default function NotificationBell() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "14px 16px",
+                borderBottom: "1px solid rgba(255,255,255,0.07)",
+              }}
+            >
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "8px" }}
+              >
                 <svg
                   width="16"
                   height="16"
@@ -210,7 +296,13 @@ export default function NotificationBell() {
                   <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                   <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
                 </svg>
-                <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--t1)' }}>
+                <span
+                  style={{
+                    fontWeight: 700,
+                    fontSize: "0.95rem",
+                    color: "var(--t1)",
+                  }}
+                >
                   Notifications
                 </span>
                 {unreadCount > 0 && (
@@ -222,13 +314,19 @@ export default function NotificationBell() {
                       fontWeight: 700,
                       padding: '1px 8px',
                       borderRadius: '10px',
+                      background: "rgba(204,17,17,0.15)",
+                      color: "var(--c1)",
+                      fontSize: "0.7rem",
+                      fontWeight: 700,
+                      padding: "1px 8px",
+                      borderRadius: "10px",
                     }}
                   >
                     {unreadCount} new
                   </span>
                 )}
               </div>
-              <div style={{ display: 'flex', gap: '6px' }}>
+              <div style={{ display: "flex", gap: "6px" }}>
                 {unreadCount > 0 && (
                   <motion.button
                     whileHover={{ scale: 1.05 }}
@@ -247,6 +345,17 @@ export default function NotificationBell() {
                       gap: '4px',
                       fontSize: '0.72rem',
                       fontFamily: 'inherit',
+                      background: "rgba(255,255,255,0.07)",
+                      border: "none",
+                      borderRadius: "8px",
+                      padding: "5px 8px",
+                      cursor: "pointer",
+                      color: "var(--t2)",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      fontSize: "0.72rem",
+                      fontFamily: "inherit",
                     }}
                   >
                     <CheckCheck size={13} /> All read
@@ -267,6 +376,14 @@ export default function NotificationBell() {
                       color: 'var(--t2)',
                       display: 'flex',
                       alignItems: 'center',
+                      background: "rgba(255,255,255,0.07)",
+                      border: "none",
+                      borderRadius: "8px",
+                      padding: "5px 8px",
+                      cursor: "pointer",
+                      color: "var(--t2)",
+                      display: "flex",
+                      alignItems: "center",
                     }}
                   >
                     <Trash2 size={13} />
@@ -285,6 +402,14 @@ export default function NotificationBell() {
                     color: 'var(--t2)',
                     display: 'flex',
                     alignItems: 'center',
+                    background: "rgba(255,255,255,0.07)",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "5px 8px",
+                    cursor: "pointer",
+                    color: "var(--t2)",
+                    display: "flex",
+                    alignItems: "center",
                   }}
                 >
                   <X size={13} />
@@ -293,13 +418,16 @@ export default function NotificationBell() {
             </div>
 
             {/* Notification List */}
-            <div style={{ maxHeight: '360px', overflowY: 'auto' }}>
+            <div style={{ maxHeight: "360px", overflowY: "auto" }}>
               {notifications.length === 0 ? (
                 <div
                   style={{
                     padding: '44px 20px',
                     textAlign: 'center',
                     color: 'var(--t2)',
+                    padding: "44px 20px",
+                    textAlign: "center",
+                    color: "var(--t2)",
                   }}
                 >
                   <svg
@@ -312,11 +440,12 @@ export default function NotificationBell() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     style={{ marginBottom: '10px' }}
+                    style={{ marginBottom: "10px" }}
                   >
                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                     <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
                   </svg>
-                  <div style={{ fontSize: '0.9rem' }}>No notifications yet</div>
+                  <div style={{ fontSize: "0.9rem" }}>No notifications yet</div>
                 </div>
               ) : (
                 notifications.map((n) => {
@@ -325,7 +454,7 @@ export default function NotificationBell() {
                     <motion.button
                       key={n.id}
                       onClick={() => markAsRead(n.id)}
-                      whileHover={{ background: 'rgba(204,17,17,0.06)' }}
+                      whileHover={{ background: "rgba(204,17,17,0.06)" }}
                       style={{
                         width: '100%',
                         textAlign: 'left',
@@ -338,6 +467,17 @@ export default function NotificationBell() {
                         alignItems: 'flex-start',
                         gap: '12px',
                         transition: 'background 0.15s',
+                        width: "100%",
+                        textAlign: "left",
+                        background: n.isRead ? "none" : "rgba(204,17,17,0.04)",
+                        border: "none",
+                        borderBottom: "1px solid rgba(255,255,255,0.05)",
+                        padding: "12px 16px",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: "12px",
+                        transition: "background 0.15s",
                       }}
                     >
                       {/* Icon */}
@@ -353,6 +493,16 @@ export default function NotificationBell() {
                           justifyContent: 'center',
                           flexShrink: 0,
                           marginTop: '2px',
+                          width: "36px",
+                          height: "36px",
+                          borderRadius: "10px",
+                          background: cfg.bg,
+                          color: cfg.color,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                          marginTop: "2px",
                         }}
                       >
                         {cfg.icon}
@@ -366,6 +516,9 @@ export default function NotificationBell() {
                             fontSize: '0.88rem',
                             color: 'var(--t1)',
                             marginBottom: '2px',
+                            fontSize: "0.88rem",
+                            color: "var(--t1)",
+                            marginBottom: "2px",
                           }}
                         >
                           {n.title}
@@ -377,6 +530,11 @@ export default function NotificationBell() {
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
+                            fontSize: "0.78rem",
+                            color: "var(--t2)",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
                           }}
                         >
                           {n.message}
@@ -386,6 +544,9 @@ export default function NotificationBell() {
                             fontSize: '0.7rem',
                             color: 'var(--t2)',
                             marginTop: '4px',
+                            fontSize: "0.7rem",
+                            color: "var(--t2)",
+                            marginTop: "4px",
                             opacity: 0.7,
                           }}
                         >
@@ -403,6 +564,12 @@ export default function NotificationBell() {
                             background: 'var(--c1)',
                             flexShrink: 0,
                             marginTop: '6px',
+                            width: "8px",
+                            height: "8px",
+                            borderRadius: "50%",
+                            background: "var(--c1)",
+                            flexShrink: 0,
+                            marginTop: "6px",
                           }}
                         />
                       )}

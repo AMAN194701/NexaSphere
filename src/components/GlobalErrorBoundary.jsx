@@ -1,5 +1,7 @@
 import React from "react";
 import ErrorFallback from "./common/ErrorFallback";
+import * as Sentry from "@sentry/react";
+import "./GlobalErrorBoundary.css";
 
 class GlobalErrorBoundary extends React.Component {
   constructor(props) {

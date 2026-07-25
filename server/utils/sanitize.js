@@ -41,6 +41,20 @@ function sanitizeText(value, max = 4000) {
 }
 
 function sanitizeNullableText(value, max = 4000) {
+  return String(value ?? "")
+    .replace(/[&<>"'`]/g, (character) => HTML_ESCAPE_MAP[character])
+    .trim();
+}
+
+function sanitizeText(value, max = 4000) {
+  return escapeHtml(
+    String(value ?? "")
+      .trim()
+      .slice(0, max)
+  );
+}
+
+function sanitizeNullableText(value, max = 4000) {
   const text = String(value ?? "")
     .trim()
     .slice(0, max);
@@ -144,6 +158,12 @@ export function toSafeString(value, max = 4000) {
 }
 
 export function toSafeString(value, max = 4000) {
+function normalizePhone(value) {
+  return String(value || "").replace(/[^\d]/g, "");
+}
+
+// Existing exports unchanged
+function toSafeString(value, max = 4000) {
   return String(value ?? "")
     .trim()
     .slice(0, max);
@@ -185,8 +205,7 @@ export function normalizePhone(value) {
 //   * validate every URL field against an https?:// allowlist
 //   * apply the same rules recursively to JSONB array/object
 //     fields (skills, projects, roadmaps, badges, seoMetadata)
-// =====================================================
-function validateWhatsApp(value) {
+// ==============================================function validateWhatsApp(value) {
   return String(value ?? '')
     .replace(/\D/g, '')
     .slice(0, 30);
@@ -468,6 +487,17 @@ export function sanitizePortfolioOutput(record) {
 
 export function isSafePortfolioUrl(value) {
   return isSafeUrl(value);
+=======
+function validateSection(value) {
+  // Section codes are typically short alphanumeric identifiers up to 12 chars
+  const cleaned = toSafeString(value, 12);
+  // Allow letters, numbers, hyphens, underscores
+  return cleaned.replace(/[^a-zA-Z0-9\-_]/g, "");
+}
+
+function validateWhatsApp(value) {
+  // Normalizes to digits only; can be empty string if not provided
+  return normalizePhone(value);
 }
 
 export {
@@ -479,10 +509,14 @@ export {
   sanitizeTextArray,
   stripHtml,
   stripHtmlTruncated,
+  sanitizeNullableText,
+  sanitizeText,
+  sanitizeTextArray,
+  normalizePhone,
   toSafeString,
   validateSection,
   validateWhatsApp,
 };
 =======
-=======
 export { escapeHtml, sanitizeNullableText, sanitizeText, sanitizeTextArray };
+=======

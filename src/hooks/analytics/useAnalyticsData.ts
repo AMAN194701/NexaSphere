@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAnalyticsFilters } from '../../context/AnalyticsFilterContext';
+import { useState, useEffect, useMemo } from "react";
+import { useAnalyticsFilters } from "../../context/AnalyticsFilterContext";
 import {
   generateTrendData,
   generateDistributionData,
@@ -8,14 +10,19 @@ import {
   DistributionDataPoint,
   ComparisonDataPoint,
 } from '../../utils/chartDataFormatters';
+} from "../../utils/chartDataFormatters";
 
 export const useAnalyticsData = () => {
   const { filters } = useAnalyticsFilters();
   const [loading, setLoading] = useState(false);
 
   const [trendData, setTrendData] = useState<TrendDataPoint[]>([]);
-  const [distributionData, setDistributionData] = useState<DistributionDataPoint[]>([]);
-  const [comparisonData, setComparisonData] = useState<ComparisonDataPoint[]>([]);
+  const [distributionData, setDistributionData] = useState<
+    DistributionDataPoint[]
+  >([]);
+  const [comparisonData, setComparisonData] = useState<ComparisonDataPoint[]>(
+    []
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -28,9 +35,16 @@ export const useAnalyticsData = () => {
         const months =
           (filters.dateRange.end.getFullYear() - filters.dateRange.start.getFullYear()) * 12 +
           (filters.dateRange.end.getMonth() - filters.dateRange.start.getMonth());
+          (filters.dateRange.end.getFullYear() -
+            filters.dateRange.start.getFullYear()) *
+            12 +
+          (filters.dateRange.end.getMonth() -
+            filters.dateRange.start.getMonth());
         const effectiveMonths = Math.max(1, months);
 
-        setTrendData(generateTrendData(filters.timeGranularity, effectiveMonths));
+        setTrendData(
+          generateTrendData(filters.timeGranularity, effectiveMonths)
+        );
         setDistributionData(generateDistributionData(filters.categories));
         setComparisonData(generateComparisonData(filters.categories));
         setLoading(false);
@@ -53,6 +67,21 @@ export const useAnalyticsData = () => {
 
     const userGrowth =
       previous && previous.users > 0 ? ((latest.users - previous.users) / previous.users) * 100 : 0;
+      return {
+        totalUsers: 0,
+        totalActivity: 0,
+        totalProjects: 0,
+        userGrowth: 0,
+      };
+
+    const latest = trendData[trendData.length - 1];
+    const previous =
+      trendData.length > 1 ? trendData[trendData.length - 2] : null;
+
+    const userGrowth =
+      previous && previous.users > 0
+        ? ((latest.users - previous.users) / previous.users) * 100
+        : 0;
 
     return {
       totalUsers: latest.users,

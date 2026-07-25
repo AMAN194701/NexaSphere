@@ -1,6 +1,6 @@
-import crypto from 'crypto';
+import crypto from "crypto";
 
-import { withDb } from './db.js';
+import { withDb } from "./db.js";
 
 const DEFAULT_SESSION_TTL_MS = 8 * 60 * 60 * 1000;
 const DEFAULT_SESSION_IDLE_TIMEOUT_MS = 30 * 60 * 1000;
@@ -25,16 +25,20 @@ function getSessionIdleTimeoutMs() {
 
 function getCleanupIntervalMs() {
   const value = Number(process.env.ADMIN_SESSION_CLEANUP_INTERVAL_MS);
-  return Number.isFinite(value) && value > 0 ? value : DEFAULT_CLEANUP_INTERVAL_MS;
+  return Number.isFinite(value) && value > 0
+    ? value
+    : DEFAULT_CLEANUP_INTERVAL_MS;
 }
 
 function getTouchThrottleMs() {
   const value = Number(process.env.ADMIN_SESSION_TOUCH_THROTTLE_MS);
-  return Number.isFinite(value) && value >= 0 ? value : DEFAULT_TOUCH_THROTTLE_MS;
+  return Number.isFinite(value) && value >= 0
+    ? value
+    : DEFAULT_TOUCH_THROTTLE_MS;
 }
 
 function hashToken(token) {
-  return crypto.createHash('sha256').update(String(token)).digest('hex');
+  return crypto.createHash("sha256").update(String(token)).digest("hex");
 }
 
 let lastCleanupTime = 0;
@@ -53,7 +57,7 @@ export async function triggerLazyCleanup(forceAwait = false) {
   lastCleanupTime = now;
 
   const promise = cleanupExpiredAdminSessions().catch((error) => {
-    console.error('[Admin Session Cleanup] Lazy cleanup failed', error);
+    console.error("[Admin Session Cleanup] Lazy cleanup failed", error);
   });
 
   if (forceAwait) {
@@ -75,10 +79,10 @@ async function ensureSchema(client) {
   `);
 
   await client.query(
-    'create index if not exists idx_admin_sessions_expires_at on admin_sessions (expires_at)'
+    "create index if not exists idx_admin_sessions_expires_at on admin_sessions (expires_at)"
   );
   await client.query(
-    'create index if not exists idx_admin_sessions_revoked_at on admin_sessions (revoked_at)'
+    "create index if not exists idx_admin_sessions_revoked_at on admin_sessions (revoked_at)"
   );
 }
 
@@ -101,7 +105,7 @@ export async function createAdminSession({ username, metadata = {} }) {
   // Force await cleanup on new sessions to guarantee cleanup under serverless starts
   await triggerLazyCleanup(true);
 
-  const token = crypto.randomBytes(32).toString('hex');
+  const token = crypto.randomBytes(32).toString("hex");
   const tokenHash = hashToken(token);
   const ttlMs = getSessionTtlMs();
   const expiresAt = new Date(Date.now() + ttlMs);
@@ -151,7 +155,7 @@ export async function getAdminSession(token) {
     if (!rows.length) {
       lastSeenThrottleMap.delete(tokenHash);
       await client.query(
-        'delete from admin_sessions where token_hash = $1 and (expires_at <= now() or revoked_at is not null)',
+        "delete from admin_sessions where token_hash = $1 and (expires_at <= now() or revoked_at is not null)",
         [tokenHash]
       );
       return null;
@@ -169,10 +173,14 @@ export async function getAdminSession(token) {
       withDb(async (dbClient) => {
         await dbClient.query(
           "update admin_sessions set last_seen_at = now() where token_hash = $1 and last_seen_at < now() - interval '1 minute'",
+          "update admin_sessions set last_seen_at = now() where token_hash = $1",
           [tokenHash]
         );
       }).catch((error) => {
-        console.error('Failed to update admin session last_seen_at asynchronously:', error);
+        console.error(
+          "Failed to update admin session last_seen_at asynchronously:",
+          error
+        );
       });
     }
 
@@ -206,7 +214,7 @@ export async function revokeAdminSession(token) {
 
   return withDb(async (client) => {
     const { rowCount } = await client.query(
-      'update admin_sessions set revoked_at = now() where token_hash = $1 and revoked_at is null',
+      "update admin_sessions set revoked_at = now() where token_hash = $1 and revoked_at is null",
       [tokenHash]
     );
     return rowCount > 0;
@@ -290,7 +298,7 @@ export async function cleanupExpiredAdminSessions() {
 
   return withDb(async (client) => {
     const { rowCount } = await client.query(
-      'delete from admin_sessions where expires_at <= now() or revoked_at is not null'
+      "delete from admin_sessions where expires_at <= now() or revoked_at is not null"
     );
     return rowCount;
   });
@@ -310,7 +318,7 @@ export function startAdminSessionCleanup() {
 
   if (isServerless) {
     console.log(
-      '[Admin Session Cleanup] Serverless environment detected. Skipping background interval timer.'
+      "[Admin Session Cleanup] Serverless environment detected. Skipping background interval timer."
     );
     return null;
   }
@@ -318,7 +326,7 @@ export function startAdminSessionCleanup() {
   const intervalMs = getCleanupIntervalMs();
   cleanupTimer = setInterval(() => {
     cleanupExpiredAdminSessions().catch((error) => {
-      console.error('Failed to clean up admin sessions', error);
+      console.error("Failed to clean up admin sessions", error);
     });
   }, intervalMs);
 

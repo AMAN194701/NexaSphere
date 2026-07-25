@@ -1,6 +1,4 @@
-import * as Sentry from '@sentry/react';
-import { cacheGet, CACHE_KEYS } from './indexedDB.js';
-import { enqueueRequest } from './offlineQueue.js';
+import * as Sentry from "@sentry/react";
 
 /**
  * Standardized API Error class
@@ -8,7 +6,7 @@ import { enqueueRequest } from './offlineQueue.js';
 export class ApiError extends Error {
   constructor(message, status, code, originalError = null) {
     super(message);
-    this.name = 'ApiError';
+    this.name = "ApiError";
     this.status = status;
     this.code = code;
     this.originalError = originalError;
@@ -41,11 +39,7 @@ const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 /**
  * Centralized async API wrapper for fetch
- * =========================================
- * - Standardizes errors and timeouts
- * - When OFFLINE + GET: attempts IndexedDB hydration
- * - When OFFLINE + mutation: routes to offline sync queue
- * - Reports errors to Sentry
+ * Standardizes errors, handles timeouts, and reports to Sentry
  */
 export const apiClient = async (url, options = {}) => {
   const { timeout = 10000, ...fetchOptions } = options;
@@ -124,7 +118,7 @@ export const apiClient = async (url, options = {}) => {
 
     clearTimeout(id);
 
-    if (response.type === 'opaque') {
+    if (response.type === "opaque") {
       return null;
     }
 
@@ -132,22 +126,27 @@ export const apiClient = async (url, options = {}) => {
       let errorDetail = null;
       try {
         errorDetail = await response.json();
-      } catch {
+      } catch (e) {
         // Not JSON
       }
 
       const message = errorDetail?.message || response.statusText || 'API Request Failed';
       const code = errorDetail?.code || 'API_ERROR';
+      const message =
+        errorDetail?.message || response.statusText || "API Request Failed";
+      const code = errorDetail?.code || "API_ERROR";
 
       throw new ApiError(message, response.status, code);
     }
 
     const contentType = response.headers.get('content-type');
     if (contentType && contentType.includes('application/json')) {
+    const contentType = response.headers.get("content-type");
+    if (contentType && contentType.includes("application/json")) {
       try {
         return await response.json();
       } catch (e) {
-        throw new ApiError('Malformed JSON response', 500, 'MALFORMED_JSON', e);
+        throw new ApiError("Malformed JSON response", 500, "MALFORMED_JSON", e);
       }
     }
 
@@ -158,13 +157,15 @@ export const apiClient = async (url, options = {}) => {
     let standardError;
     if (error instanceof ApiError) {
       standardError = error;
-    } else if (error.name === 'AbortError') {
-      standardError = new ApiError('Request timed out', 408, 'TIMEOUT', error);
-    } else if (!navigator.onLine) {
-      // Went offline mid-request — don't report to Sentry
-      standardError = new ApiError('Network connection lost', 0, 'NETWORK_ERROR', error);
+    } else if (error.name === "AbortError") {
+      standardError = new ApiError("Request timed out", 408, "TIMEOUT", error);
     } else {
-      standardError = new ApiError(error.message || 'Network failure', 0, 'NETWORK_ERROR', error);
+      standardError = new ApiError(
+        error.message || "Network failure",
+        0,
+        "NETWORK_ERROR",
+        error
+      );
     }
 
     // Only report genuine errors to Sentry (not offline / timeout)
@@ -176,6 +177,12 @@ export const apiClient = async (url, options = {}) => {
         },
       });
     }
+    Sentry.captureException(standardError, {
+      tags: {
+        api_url: url,
+        api_method: fetchOptions.method || "GET",
+      },
+    });
 
     throw standardError;
   }

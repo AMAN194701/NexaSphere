@@ -50,6 +50,22 @@ import { BRAND_LOGO_FULL, BRAND_LOGO_ICON } from './brandAssets';
 import NotificationBell from '../components/NotificationBell';
 import { BRAND_LOGO_FULL, BRAND_LOGO_ICON } from './brandAssets';
 import NotificationBell from '../components/NotificationBell';
+import { BRAND_LOGO_FULL, BRAND_LOGO_ICON } from './brandAssets';
+import NotificationBell from '../components/NotificationBell';
+
+const TABS = [
+  'Home',
+  'Activities',
+  'Events',
+  'Projects',
+  'Roadmaps',
+  'Portfolio',
+  'About',
+  'Team',
+  'Contact',
+];
+
+import { ThemeToggle } from '../components/common/ThemeToggle';
 
 const TABS = [
   'Home',
