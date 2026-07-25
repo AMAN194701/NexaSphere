@@ -18,6 +18,14 @@ import { HelmetProvider } from 'react-helmet-async';
 registerSW({ immediate: true });
 
 createRoot(document.getElementById('root')).render(
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import App from "./App.jsx";
+import GlobalErrorBoundary from "./components/GlobalErrorBoundary.jsx";
+import { ThemeProvider } from "./context/theme/ThemeProvider.tsx";
+import { HelmetProvider } from "react-helmet-async";
+
+createRoot(document.getElementById("root")).render(
   <StrictMode>
     <App />
     <GlobalErrorBoundary>

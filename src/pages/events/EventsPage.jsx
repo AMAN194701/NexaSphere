@@ -256,6 +256,40 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
           <button
             onClick={() => setViewMode("list")}
             style={{
+            animationDelay: ".1s",
+            maxWidth: "520px",
+            margin: "0 auto",
+            position: "relative",
+            zIndex: 1,
+          }}
+        >
+          Where ideas come to life. Every event is a milestone in the NexaSphere
+          journey.
+        </p>
+
+      <div
+        className="container"
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          marginBottom: "30px",
+          position: "relative",
+          zIndex: 10,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            background: "var(--card)",
+            borderRadius: "30px",
+            padding: "4px",
+            border: "1px solid var(--bdr)",
+            backdropFilter: "blur(10px)",
+          }}
+        >
+          <button
+            onClick={() => setViewMode("list")}
+            style={{
               padding: "8px 24px",
               borderRadius: "26px",
               border: "none",
@@ -352,6 +386,19 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
               fontWeight: 600,
               cursor: 'pointer',
               transition: 'all .2s',
+            }}
+          >
+            onClick={() => setViewMode("calendar")}
+            style={{
+              padding: "8px 24px",
+              borderRadius: "26px",
+              border: "none",
+              background:
+                viewMode === "calendar" ? "var(--c1a)" : "transparent",
+              color: viewMode === "calendar" ? "var(--c1)" : "var(--t2)",
+              fontWeight: 600,
+              cursor: "pointer",
+              transition: "all .2s",
             }}
           >
             onClick={() => setViewMode("calendar")}
@@ -684,6 +731,13 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
                     >
                       <span className={`timeline-badge ${ev.status}`}>
                         {ev.status === 'completed' ? (
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "7px",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <span className={`timeline-badge ${ev.status}`}>
                         display: "flex",
                         alignItems: "center",
                         gap: "7px",
