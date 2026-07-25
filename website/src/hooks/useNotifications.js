@@ -64,7 +64,7 @@ export function useNotifications() {
 
         const responses = await Promise.allSettled(
           fetchUrls.map(async (url) => {
-            const res = await fetch(url, { headers: getAuthHeaders() });
+            const res = await fetch(url, { credentials: 'include' });
             if (!res.ok) {
               const error = new Error(`Failed to load notifications (${res.status})`);
               error.status = res.status;
@@ -73,12 +73,6 @@ export function useNotifications() {
             }
             return res.json();
           })
-        const responses = await Promise.all(
-          fetchUrls.map((url) =>
-            fetch(url, { credentials: 'include' }).then((res) =>
-              res.ok ? res.json() : { notifications: [] }
-            )
-          )
         );
 
         if (isMounted) {
