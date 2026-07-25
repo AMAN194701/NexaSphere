@@ -7,6 +7,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useEventAnalytics } from '../hooks/useAnalyticsSocket.js';
 import { useLogoutAwareInterval } from '../hooks/useLogoutAwareInterval.js';
 import analyticsAPI from '../services/analyticsAPI.js';
+import { useAuth } from '../context/AuthContext';
 import LiveMetricsCards from './LiveMetricsCards';
 import RegistrationTrendsChart from './RegistrationTrendsChart';
 import RecentRegistrationsList from './RecentRegistrationsList';
@@ -15,6 +16,7 @@ import AnalyticsExport from './AnalyticsExport';
 import '../styles/analytics-dashboard.css';
 
 export default function AnalyticsDashboard({ eventId }) {
+  const { isAuthenticated } = useAuth();
   const { metrics, registrationTrends, recentRegistrations, loading, error, isConnected } =
     useEventAnalytics(eventId);
 
@@ -33,6 +35,24 @@ export default function AnalyticsDashboard({ eventId }) {
       console.error('Failed to fetch check-in stats:', err);
     }
   }, [eventId]);
+  // Fetch check-in stats
+  useEffect(() => {
+    if (!eventId || !isAuthenticated) return;
+
+    const fetchCheckInStats = async () => {
+      try {
+        const stats = await analyticsAPI.getCheckInStats(eventId);
+        setCheckInStats(stats);
+      } catch (err) {
+        console.error('Failed to fetch check-in stats:', err);
+      }
+    };
+
+    fetchCheckInStats();
+    const interval = setInterval(fetchCheckInStats, 10000); // Refresh every 10 seconds
+
+    return () => clearInterval(interval);
+  }, [eventId, isAuthenticated]);
 
   // Fetch check-in stats
   useEffect(() => {
