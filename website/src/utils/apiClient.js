@@ -192,6 +192,8 @@ export const apiClient = async (url, options = {}) => {
   // signal aborts first, so component unmount AND timeout both work correctly.
   const callerSignal = fetchOptions.signal;
   const combinedSignal =
+  const callerSignal = fetchOptions.signal;
+  const signal =
     callerSignal && typeof AbortSignal.any === 'function'
       ? AbortSignal.any([controller.signal, callerSignal])
       : controller.signal;
@@ -200,6 +202,7 @@ export const apiClient = async (url, options = {}) => {
     const response = await fetch(url, {
       ...fetchOptions,
       signal: combinedSignal,
+      signal,
     });
 
     clearTimeout(id);
