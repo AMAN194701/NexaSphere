@@ -120,6 +120,9 @@ import { broadcastSSEEvent } from "./services/sseService.js";
 import rateLimit from "express-rate-limit";
 import { formRateLimiter } from "./middleware/rateLimiter.js";
 import 'dotenv/config';
+import { initObservability } from './observability/index.js';
+import { setTraceIdResolver } from './utils/logContext.js';
+import { getActiveTraceId } from './observability/tracing.js';
 import helmet from 'helmet';
 import express from 'express';
 import cors from 'cors';
@@ -415,6 +418,24 @@ app.use(compression());
 const useStructuredHttpLog = (process.env.LOG_FORMAT || '').toLowerCase() === 'json';
 // RECTIFIED: Enable 'trust proxy' to correctly extract client IPs from X-Forwarded-For headers when behind ALBs/Serverless layers
 app.set('trust proxy', 1);
+setTraceIdResolver(getActiveTraceId);
+initObservability(app);
+
+const useStructuredHttpLog = (process.env.LOG_FORMAT || '').toLowerCase() === 'json';
+
+// Trust the first reverse proxy hop (e.g., Vercel, Render, Nginx, Cloudflare)
+// to correctly populate req.ip and securely discard spoofed X-Forwarded-For headers
+const proxyTrust = process.env.TRUST_PROXY || 1;
+app.set(
+  'trust proxy',
+  proxyTrust === 'true'
+    ? true
+    : proxyTrust === 'false'
+      ? false
+      : !isNaN(proxyTrust)
+        ? parseInt(proxyTrust, 10)
+        : proxyTrust
+);
 
 initializeSentry(app);
 app.use(compression());
@@ -792,6 +813,9 @@ if (!useStructuredHttpLog) {
   app.use(morgan('combined'));
 }
 app.use(apiLogger);
+if (!useStructuredHttpLog) {
+  app.use(morgan('combined'));
+}
 app.use(performanceMonitor);
 app.use(cookieParser());
 
@@ -903,6 +927,9 @@ app.use('/api/webhooks', webhooksRouter);
 
 // Scheduled Tasks Management
 app.use('/api/admin/scheduled-tasks', adminAuth, scheduledTasksRouter);
+if (!useStructuredHttpLog) {
+  app.use(requestLogger);
+}
 
 // User Segments
 app.use('/api/admin/segments', adminAuth, segmentsRouter);

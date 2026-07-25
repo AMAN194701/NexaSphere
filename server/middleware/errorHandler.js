@@ -16,6 +16,7 @@ import { ErrorCodes } from '../utils/errors.js';
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+import { logError } from '../services/errorTrackingService.js';
 
 function resolveUserId(req) {
   return req.user?.id || req.adminSession?.username || null;
@@ -110,6 +111,7 @@ const errorHandler = (err, req, res, next) => {
     });
   }
 
+  // Capture to Sentry
   captureException(err, {
     userId: resolveUserId(req),
     userId: req.adminSession?.username || req.user?.id,

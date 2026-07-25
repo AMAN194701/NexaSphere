@@ -1,7 +1,10 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> origin/pr/1822
+=======
+>>>>>>> origin/pr/1824
 import json
 import logging
 import os
@@ -10,10 +13,13 @@ import contextvars
 
 import google.generativeai as genai
 <<<<<<< HEAD
+<<<<<<< HEAD
 import asyncio
 from contextlib import asynccontextmanager
 =======
 >>>>>>> origin/pr/1822
+=======
+>>>>>>> origin/pr/1824
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -22,7 +28,16 @@ from pydantic import BaseModel
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+
+from observability.metrics import collect_celery_queue_depth
+from observability.tracing import init_tracing
+from prompts.system_prompt import SYSTEM_PROMPT
+from routers import certificates, forms, health, notifications, portfolio, recommend
+from utils.security import limiter
+>>>>>>> origin/pr/1824
 
 from observability.metrics import collect_celery_queue_depth
 from observability.tracing import init_tracing
@@ -103,6 +118,7 @@ else:
     model = genai.GenerativeModel(model_name="gemini-3.1-flash-lite-preview")
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Start the periodic background worker task
@@ -128,8 +144,20 @@ if os.getenv("METRICS_ENABLED", "true").lower() != "false":
     instrumentator.add(lambda info: collect_celery_queue_depth())
     instrumentator.instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
 =======
+=======
+>>>>>>> origin/pr/1824
 app = FastAPI(title="NexaSphere AI Core")
 >>>>>>> origin/pr/1822
+
+init_tracing(app)
+
+if os.getenv("METRICS_ENABLED", "true").lower() != "false":
+    instrumentator = Instrumentator(
+        should_group_status_codes=True,
+        should_ignore_untemplated=True,
+    )
+    instrumentator.add(lambda info: collect_celery_queue_depth())
+    instrumentator.instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
 
 init_tracing(app)
 
@@ -144,6 +172,7 @@ if os.getenv("METRICS_ENABLED", "true").lower() != "false":
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # pyright: ignore[reportArgumentType]
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 origins = os.getenv(
     "CORS_ORIGIN",
@@ -152,6 +181,8 @@ origins = os.getenv(
     "https://admin-dashboard-navy-pi-22.vercel.app",
 ).split(",")
 =======
+=======
+>>>>>>> origin/pr/1824
 
 origins = os.getenv(
     "CORS_ORIGIN",
@@ -192,6 +223,7 @@ app.include_router(certificates.router)
 app.include_router(notifications.router)
 app.include_router(health.router)
 app.include_router(portfolio.router)
+<<<<<<< HEAD
 >>>>>>> origin/pr/1822
 
 
@@ -222,6 +254,8 @@ app.include_router(notifications.router)
 app.include_router(health.router)
 app.include_router(portfolio.router)
 app.include_router(review.router)
+=======
+>>>>>>> origin/pr/1824
 
 
 class ChatRequest(BaseModel):
@@ -265,6 +299,7 @@ if __name__ == "__main__":
 
     uvicorn.run(app, host="0.0.0.0", port=8000)
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 app = FastAPI()
 
@@ -275,3 +310,5 @@ app.include_router(router)
 >>>>>>> origin/pr/116
 =======
 >>>>>>> origin/pr/1822
+=======
+>>>>>>> origin/pr/1824

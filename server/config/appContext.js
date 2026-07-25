@@ -95,3 +95,26 @@ export async function tracedFetch(url, options = {}) {
 
   return globalThis.fetch(url, { ...options, headers });
 }
+// Global patch for fetch to automatically append the Correlation ID header to downstream requests
+const originalFetch = global.fetch;
+global.fetch = function (url, options) {
+  const store = appContext.getStore();
+  options = options || {};
+
+  const headers = {};
+  if (options.headers instanceof Headers) {
+    options.headers.forEach((value, key) => {
+      headers[key] = value;
+    });
+  } else if (options.headers) {
+    Object.assign(headers, options.headers);
+  }
+
+  if (store?.reqId) {
+    headers['X-Request-ID'] = store.reqId;
+  }
+
+  propagation.inject(otelContext.active(), headers);
+
+  return originalFetch.call(this, url, { ...options, headers });
+};

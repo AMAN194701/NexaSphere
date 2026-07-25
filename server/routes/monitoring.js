@@ -25,6 +25,7 @@ import { databaseFailoverManager } from '../utils/databaseFailoverManager.js';
 import { apiSecurityManager } from '../utils/apiSecurityManager.js';
 import { deploymentStatus } from '../utils/serviceStatus.js';
 import { sendSuccess, sendError, sendNoContent } from '../utils/responseHelper.js';
+import { recordPageLoad } from '../observability/metrics.js';
 
 function requireMonitoringAuth(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -277,6 +278,17 @@ router.post('/rum', validate(rumMetricSchema), requireMonitoringAuth, (req, res)
   } catch (error) {
     logger.error('Error recording RUM metric', { error: error.message });
     sendError(req, res, 'Failed to record RUM metric', 500, 'INTERNAL_ERROR');
+router.post('/rum', requireMonitoringAuth, (req, res) => {
+  try {
+    const duration = parseFloat(req.body?.durationSeconds);
+    if (!Number.isFinite(duration) || duration < 0) {
+      return res.status(400).json({ success: false, error: 'durationSeconds required' });
+    }
+    recordPageLoad(duration);
+    res.status(204).end();
+  } catch (error) {
+    logger.error('Error recording RUM metric', { error: error.message });
+    res.status(500).json({ success: false, error: 'Failed to record RUM metric' });
   }
 });
 

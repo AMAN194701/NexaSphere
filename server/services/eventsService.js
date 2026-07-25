@@ -214,6 +214,9 @@ export const eventsService = {
     content.events.unshift(toInsert);
     await writeContent(content);
     return sanitizeEventRecord(toInsert);
+    const created = await eventsRepository.create(event);
+    recordEventCreated();
+    return created;
   },
 
   async updateEvent(id, input) {

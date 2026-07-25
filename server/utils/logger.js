@@ -78,6 +78,7 @@ const format = winston.format.combine(
 // Define transports
 // 1. Define the base format WITHOUT colorize
 const baseFileFormat = winston.format.combine(
+const textFormat = winston.format.combine(
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),
   winston.format.errors({ stack: true }),
   winston.format.splat(),
@@ -141,6 +142,7 @@ const baseFileFormat = winston.format.combine(
       Object.keys(cleanArgs).length ? JSON.stringify(cleanArgs) : ''
     const ts = timestamp.slice(0, 19).replace('T', ' ');
     return `${ts} [${level}]: ${message} ${
+    return `${timestamp} [${level}]: ${message} ${
       Object.keys(args).length ? JSON.stringify(args, null, 2) : ''
       Object.keys(cleanArgs).length ? JSON.stringify(cleanArgs, null, 2) : ''
     }`;
@@ -148,6 +150,10 @@ const baseFileFormat = winston.format.combine(
 );
 
 const baseFileFormat = LOG_FORMAT === 'json' ? jsonFormat : textFormat;
+
+// Determine runtime levels: Console is dynamic, historical files maintain info baseline
+const consoleLevel = process.env.LOG_LEVEL || 'info';
+const fileBaselineLevel = 'info';
 
 const consoleLevel = process.env.LOG_LEVEL_CONSOLE || process.env.LOG_LEVEL || 'info';
 const fileBaselineLevel = process.env.LOG_LEVEL_FILE || 'info';
@@ -167,6 +173,7 @@ const activeTransports = [
             logLayout
           ),
     format: winston.format.combine(winston.format.colorize({ all: true }), baseFileFormat),
+        : winston.format.combine(winston.format.colorize({ all: true }), baseFileFormat),
   }),
 ];
 
@@ -260,7 +267,7 @@ const transports = [
     filename: path.join(logsDir, 'application-%DATE%.log'),
     datePattern: 'YYYY-MM-DD',
     maxSize: '20m',
-    maxFiles: '14d',
+    maxFiles: '30d',
     format: winston.format.uncolorize(),
   }),
 ];
@@ -323,7 +330,7 @@ const logger = winston.createLogger({
           filename: path.join(logsDir, 'exceptions-%DATE%.log'),
           datePattern: 'YYYY-MM-DD',
           maxSize: '20m',
-          maxFiles: '14d',
+          maxFiles: '30d',
           format: baseFileFormat, //  FIX: Ensures clean exception dumps
           utc: true,
         }),
@@ -335,7 +342,7 @@ const logger = winston.createLogger({
           filename: path.join(logsDir, 'rejections-%DATE%.log'),
           datePattern: 'YYYY-MM-DD',
           maxSize: '20m',
-          maxFiles: '14d',
+          maxFiles: '30d',
           format: baseFileFormat, //  FIX: Ensures clean rejection dumps
           utc: true,
         }),

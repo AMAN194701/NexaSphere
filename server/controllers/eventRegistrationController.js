@@ -130,6 +130,7 @@ export const registerForEvent = wrapAsync(async (req, res) => {
 
     recordEventRegistration();
     return sendSuccess(res, { ...result, ticket }, 201);
+    return res.status(201).json({ ...result, ticket });
   } catch (e) {
     if (e.message?.includes('Event capacity has been reached')) {
       const waitlistEntry = await registrationsRepository.create({
