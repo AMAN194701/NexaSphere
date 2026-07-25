@@ -15,7 +15,6 @@ import { withDb } from '../repositories/db.js';
 import { HAS_SUPABASE } from '../storage/supabaseClient.js';
 import { sendSlackAlert } from '../utils/slack.js';
 
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const BACKUP_LOCAL_DIR = path.resolve(__dirname, '../../backups');
@@ -31,8 +30,8 @@ function getEncryptionPassphrase() {
   if (!process.env.ENCRYPTION_KEY) {
     throw new Error(
       'ENCRYPTION_KEY environment variable is required for backup encryption. ' +
-      'Set it to a strong, random value (minimum 32 characters). ' +
-      'Example: openssl rand -hex 32'
+        'Set it to a strong, random value (minimum 32 characters). ' +
+        'Example: openssl rand -hex 32'
     );
   }
   return process.env.ENCRYPTION_KEY;
@@ -92,9 +91,14 @@ function getS3Clients() {
 }
 
 // Encryption helpers — AES-256-GCM with per-file salt and scrypt key derivation
-function encrypt(buffer, passphrase) {
+async function encrypt(buffer, passphrase) {
   const salt = crypto.randomBytes(16);
-  const key = crypto.scryptSync(passphrase, salt, 32);
+  const key = await new Promise((resolve, reject) => {
+    crypto.scrypt(passphrase, salt, 32, (err, derivedKey) => {
+      if (err) reject(err);
+      else resolve(derivedKey);
+    });
+  });
   const iv = crypto.randomBytes(12); // GCM standard IV size
   const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
   const encrypted = Buffer.concat([cipher.update(buffer), cipher.final()]);
@@ -102,13 +106,18 @@ function encrypt(buffer, passphrase) {
   return Buffer.concat([salt, iv, tag, encrypted]);
 }
 
-function decrypt(buffer, passphrase) {
+async function decrypt(buffer, passphrase) {
   const salt = buffer.slice(0, 16);
   const iv = buffer.slice(16, 28);
   const tag = buffer.slice(28, 44);
   const ciphertext = buffer.slice(44);
 
-  const key = crypto.scryptSync(passphrase, salt, 32);
+  const key = await new Promise((resolve, reject) => {
+    crypto.scrypt(passphrase, salt, 32, (err, derivedKey) => {
+      if (err) reject(err);
+      else resolve(derivedKey);
+    });
+  });
   const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
   decipher.setAuthTag(tag);
 
@@ -287,12 +296,17 @@ export const backupService = {
       // 1. Dump database schema and data
       const dump = await this.generateDatabaseDump();
 
-      // 2. Compress using gzip
-      const compressed = zlib.gzipSync(Buffer.from(dump));
+      // 2. Compress using gzip asynchronously
+      const compressed = await new Promise((resolve, reject) => {
+        zlib.gzip(Buffer.from(dump), (err, res) => {
+          if (err) reject(err);
+          else resolve(res);
+        });
+      });
 
-      // 3. Encrypt using AES-256-GCM
+      // 3. Encrypt using AES-256-GCM asynchronously
       const passphrase = getEncryptionPassphrase();
-      const encrypted = encrypt(compressed, passphrase);
+      const encrypted = await encrypt(compressed, passphrase);
 
       // 4. Check for unusual sizes
       const history = await this.getBackupHistory();
@@ -379,9 +393,14 @@ export const backupService = {
         },
       };
 
-      const compressed = zlib.gzipSync(Buffer.from(JSON.stringify(configData)));
+      const compressed = await new Promise((resolve, reject) => {
+        zlib.gzip(Buffer.from(JSON.stringify(configData)), (err, res) => {
+          if (err) reject(err);
+          else resolve(res);
+        });
+      });
       const passphrase = getEncryptionPassphrase();
-      const encrypted = encrypt(compressed, passphrase);
+      const encrypted = await encrypt(compressed, passphrase);
       const filename = `backup-config-${Date.now()}.enc`;
       const key = `backups/config/${filename}`;
 
@@ -434,11 +453,16 @@ export const backupService = {
         backupBuffer = await fs.readFile(localPath);
       }
 
-      // Decrypt
+      // Decrypt asynchronously
       const passphrase = getEncryptionPassphrase();
-      const decrypted = decrypt(backupBuffer, passphrase);
-      // Decompress
-      const decompressed = zlib.gunzipSync(decrypted);
+      const decrypted = await decrypt(backupBuffer, passphrase);
+      // Decompress asynchronously
+      const decompressed = await new Promise((resolve, reject) => {
+        zlib.gunzip(decrypted, (err, res) => {
+          if (err) reject(err);
+          else resolve(res);
+        });
+      });
 
       // Restore
       await this.executeRestoreDump(decompressed.toString());
@@ -537,8 +561,13 @@ export const backupService = {
       }
 
       const passphrase = getEncryptionPassphrase();
-      const decrypted = decrypt(backupBuffer, passphrase);
-      const decompressed = zlib.gunzipSync(decrypted);
+      const decrypted = await decrypt(backupBuffer, passphrase);
+      const decompressed = await new Promise((resolve, reject) => {
+        zlib.gunzip(decrypted, (err, res) => {
+          if (err) reject(err);
+          else resolve(res);
+        });
+      });
 
       // Validate JSON dump structure and check validation keys
       const data = JSON.parse(decompressed.toString());
