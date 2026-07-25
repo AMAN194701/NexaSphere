@@ -490,14 +490,15 @@ export async function withDb(fn) {
         })
         .catch((importErr) => logger.error('Failed to record query trace', { importErr }));
     };
+  if (!client.__isQueryWrapped) {
+    const originalQuery = client.query;
+    client.__isQueryWrapped = true;
+    client.query = function (config, values, callback) {
+      const start = Date.now();
 
-    if (typeof cb === 'function') {
-      const wrappedCallback = (err, result) => {
-        handleStats(err);
-        cb(err, result);
-      };
+      let cb = callback;
       if (typeof values === 'function') {
-        return originalQuery.call(this, config, wrappedCallback);
+        cb = values;
       }
       return originalQuery.call(this, config, values, wrappedCallback);
     }
@@ -515,6 +516,51 @@ export async function withDb(fn) {
   };
   const p = getPool();
   if (!p) throw new Error("PostgreSQL not configured. Missing DATABASE_URL.");
+
+      const handleStats = (err) => {
+        const duration = Date.now() - start;
+        const sqlText = typeof config === 'string' ? config : config?.text || 'unknown';
+        Promise.all([
+          import('../middleware/performanceMonitor.js'),
+          import('../config/appContext.js'),
+        ])
+          .then(([{ recordDbQueryMetric }, { appContext }]) => {
+            recordDbQueryMetric(config, duration, err);
+            const store = appContext.getStore();
+            if (store?.traceEntry) {
+              store.traceEntry.queries.push({
+                sql: sqlText.trim().replace(/\s+/g, ' ').slice(0, 100),
+                durationMs: duration,
+                success: !err,
+              });
+            }
+          })
+          .catch(() => {});
+      };
+
+      if (typeof cb === 'function') {
+        const wrappedCallback = (err, result) => {
+          handleStats(err);
+          cb(err, result);
+        };
+        if (typeof values === 'function') {
+          return originalQuery.call(this, config, wrappedCallback);
+        }
+        return originalQuery.call(this, config, values, wrappedCallback);
+      }
+
+      return originalQuery
+        .call(this, config, values, callback)
+        .then((res) => {
+          handleStats(null);
+          return res;
+        })
+        .catch((err) => {
+          handleStats(err);
+          throw err;
+        });
+    };
+  }
 
   if (!p) {
     const client = new MockClient();

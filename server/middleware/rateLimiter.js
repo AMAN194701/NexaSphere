@@ -73,6 +73,7 @@ const createLimiterHandler = (logMessage, clientErrorMessage) => {
   return (req, res, _next, options) => {
     logger.warn(logMessage, {
 export const apiRateLimiter = rateLimit({
+  skip: () => process.env.NODE_ENV === 'test',
   windowMs: API_WINDOW_MS,
   max: API_MAX_REQUESTS,
   standardHeaders: true,
@@ -97,6 +98,7 @@ export const apiRateLimiter = rateLimit({
   max: API_MAX_REQUESTS,
   standardHeaders: true,
   legacyHeaders: true,
+  requestPropertyName: 'apiRateLimit',
   store: createRateLimitStore('rate-limit:api:'),
   handler: (req, res, _next, options) => {
     logger.warn('Global API rate limit exceeded', {
@@ -137,10 +139,13 @@ export const apiRateLimiter = rateLimit({
 // Form submission rate limiter — applied to membership, recruitment, core-team
 // ---------------------------------------------------------------------------
 export const formRateLimiter = rateLimit({
+  skip: () => process.env.NODE_ENV === 'test',
   windowMs: FORM_WINDOW_MS,
   max: FORM_MAX_REQUESTS,
   standardHeaders: true,
   legacyHeaders: true,
+  legacyHeaders: false,
+  requestPropertyName: 'formRateLimit',
   store: createRateLimitStore('rate-limit:form:'),
   handler: (req, res, _next, options) => {
     logger.warn('Rate limit exceeded for public form API', {
@@ -170,6 +175,9 @@ export const apiRateLimiter = rateLimit({
 export const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
+  skip: () => process.env.NODE_ENV === 'test',
+  windowMs: 60 * 1000,
+  max: 10,
   standardHeaders: true,
   legacyHeaders: true,
   handler: createLimiterHandler(
@@ -177,6 +185,8 @@ export const authRateLimiter = rateLimit({
     'Too many login attempts, please try again after 15 minutes.'
   ),
   legacyHeaders: false,
+  requestPropertyName: 'authRateLimit',
+  store: createRateLimitStore('rate-limit:auth:'),
   message: {
     error: 'Too many login attempts, please try again after a minute.',
   },
@@ -184,6 +194,7 @@ export const authRateLimiter = rateLimit({
 
 // Notification mutation rate limiter — 60 requests per IP per 15 minutes
 export const notificationRateLimiter = rateLimit({
+  skip: () => process.env.NODE_ENV === 'test',
   windowMs: 15 * 60 * 1000,
   max: 60,
   standardHeaders: true,
@@ -193,6 +204,8 @@ export const notificationRateLimiter = rateLimit({
     'Too many notification requests, please try again later.'
   ),
   legacyHeaders: false,
+  requestPropertyName: 'notificationRateLimit',
+  store: createRateLimitStore('rate-limit:notification:'),
   message: {
     error: 'Too many notification requests, please try again later.',
   },
@@ -204,10 +217,13 @@ export const notificationRateLimiter = rateLimit({
 // when the server restarts the IP-level window survives in the rate-limit
 // store.
 export const activityAuthRateLimiter = rateLimit({
+  skip: () => process.env.NODE_ENV === 'test',
   windowMs: 15 * 60 * 1000,
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
+  requestPropertyName: 'activityAuthRateLimit',
+  store: createRateLimitStore('rate-limit:activity-auth:'),
   handler: (req, res, next, options) => {
     logger.warn('Activity-event auth rate limit exceeded', {
       ip: req.ip,
@@ -228,6 +244,14 @@ export const subscriptionRateLimiter = rateLimit({
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
+export const portfolioRateLimiter = rateLimit({
+  skip: () => process.env.NODE_ENV === 'test',
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  requestPropertyName: 'portfolioRateLimit',
+  store: createRateLimitStore('rate-limit:portfolio:'),
   handler: (req, res, next, options) => {
     logger.warn("Push-subscription rate limit exceeded", {
       ip: req.ip,

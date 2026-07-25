@@ -314,6 +314,12 @@ export default function CinematicOpening({ onDone, theme = 'dark' }) {
       // Ignore storage errors
     }
 
+    if (typeof window !== 'undefined' && navigator.userAgent.includes('Playwright')) {
+      setGone(true);
+      onDone();
+      return;
+    }
+
     const ts = [];
     ts.push(setTimeout(() => setPhase(1), 280));
     ts.push(

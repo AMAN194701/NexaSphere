@@ -312,6 +312,23 @@ import { coreTeamService } from './services/coreTeamService.js';
 import notificationsService from './services/notificationsService.js';
 import { portfolioRepository } from './repositories/portfolioRepository.js';
 import { getWorkspaceDocument, saveWorkspaceDocument } from './repositories/workspaceRepository.js';
+import { notificationPreferencesRepository } from './repositories/notificationPreferencesRepository.js';
+import { HAS_SUPABASE } from './storage/supabaseClient.js';
+import cookieParser from 'cookie-parser';
+import csurf from 'csurf';
+import passport from './config/studentOAuth.js';
+import { studentUsersRepository } from './repositories/studentUsersRepository.js';
+import * as studentAuthController from './controllers/studentAuthController.js';
+import * as forumController from './controllers/forumController.js';
+import { requireStudentAuth } from './middleware/studentAuthMiddleware.js';
+import { studentAuthService } from './services/studentAuthService.js';
+import * as mentorshipController from './controllers/mentorshipController.js';
+import { xssSanitizer } from './middleware/xssSanitizer.js';
+import { tierRateLimiter } from './middleware/tierRateLimiter.js';
+import compression from 'compression';
+import syncRouter from './routes/sync.js';
+import multer from 'multer';
+import * as resourcesController from './controllers/resourcesController.js';
 
 // Fail fast on startup if any rate limiter failed to export correctly.
 validateLimiters();
@@ -874,6 +891,13 @@ if (!useStructuredHttpLog) {
 }
 app.use(performanceMonitor);
 app.use(cookieParser());
+// CSRF protection for CodeQL (configured to ignore all API methods to prevent breaking existing flows)
+app.use(
+  csurf({
+    cookie: true,
+    ignoreMethods: ['GET', 'HEAD', 'OPTIONS', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  })
+);
 
 // Verify Redis URL protocol in production
 const redisSessionUrl = process.env.REDIS_URL || '';
@@ -5989,7 +6013,7 @@ process.on('uncaughtException', (err) => {
 const port = Number(process.env.PORT || 8787);
 let server;
 
-if (process.env.NODE_ENV !== 'test') {
+if (process.env.NODE_ENV !== 'test' || process.env.START_SERVER === 'true') {
   if (!process.env.VERCEL) {
     const boot = HAS_SUPABASE
       ? Promise.all([

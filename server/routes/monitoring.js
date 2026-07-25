@@ -103,6 +103,13 @@ router.get('/status-history', async (req, res) => {
     const downtimeEventsCount = incidents.filter((i) => i.status !== 'resolved').length;
     const uptimePercentage = downtimeEventsCount > 0 ? 99.85 : 100.0;
 
+    const activeIncident = incidents.find((i) => !i.resolvedAt);
+    const systemStatus = activeIncident ? 'downtime' : 'operational';
+
+    // Calculate simulated overall uptime
+    const downtimeEventsCount = incidents.filter((i) => i.status !== 'resolved').length;
+    const uptimePercentage = downtimeEventsCount > 0 ? 99.85 : 100.0;
+
     sendSuccess(res, {
       status: systemStatus,
       uptimePercentage,
@@ -330,6 +337,10 @@ router.get('/traces', requireMonitoringAuth, async (req, res) => {
   } catch (error) {
     logger.error('Error fetching traces', { error: error.message });
     sendError(req, res, 'Failed to fetch traces', 500, 'INTERNAL_ERROR');
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch traces',
+    });
   }
 });
 

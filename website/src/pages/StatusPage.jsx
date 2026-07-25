@@ -180,6 +180,9 @@ export default function StatusPage() {
                   <div className="text-xs text-gray-500 mb-3">
                     Start: {formatStatusDate(incident.startedAt)}
                     {incident.resolvedAt && ` | End: ${formatStatusDate(incident.resolvedAt)}`}
+                    Start: {new Date(incident.startedAt).toLocaleString()}
+                    {incident.resolvedAt &&
+                      ` | End: ${new Date(incident.resolvedAt).toLocaleString()}`}
                   </div>
                   <div className="space-y-2 mt-2">
                     {incident.updates.map((update, idx) => (

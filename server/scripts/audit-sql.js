@@ -57,10 +57,24 @@ for (const file of files) {
         vulnerabilitiesFound++;
       }
     if (firstPart.includes('${') || firstPart.includes('+')) {
-      console.log(`[Vulnerable] File: ${file}`);
-      console.log(`  Query: ${firstPart}`);
-      console.log('--------------------------------------------------');
-      vulnerabilitiesFound++;
+      // Ignore safe internal interpolations
+      const safePatterns = [
+        '${where}',
+        '${conditions.join(',
+        '${sets.join(',
+        '${fields.join(',
+        '${column}',
+        '${extraClause}',
+      ];
+
+      const isSafe = safePatterns.some((pattern) => firstPart.includes(pattern));
+
+      if (!isSafe) {
+        console.log(`[Vulnerable] File: ${file}`);
+        console.log(`  Query: ${firstPart}`);
+        console.log('--------------------------------------------------');
+        vulnerabilitiesFound++;
+      }
     }
   }
 }

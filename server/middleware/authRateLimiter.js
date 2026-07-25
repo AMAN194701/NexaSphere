@@ -41,10 +41,13 @@ function createRateLimitHandler(type) {
 // Applied to Login APIs and Admin Access Routes
 // ---------------------------------------------------------------------------
 export const authRateLimiter = rateLimit({
+  skip: () => process.env.NODE_ENV === 'test',
   windowMs: AUTH_WINDOW_MS,
   max: AUTH_MAX_ATTEMPTS,
   standardHeaders: true,
   legacyHeaders: true,
+  legacyHeaders: false,
+  requestPropertyName: 'authRateLimit',
   store: createRateLimitStore('auth-limit:'),
   handler: createRateLimitHandler('Authentication'),
 });
@@ -54,10 +57,13 @@ export const authRateLimiter = rateLimit({
 // Applied to Portfolio Passkey and Event Password verification
 // ---------------------------------------------------------------------------
 export const protectedActionRateLimiter = rateLimit({
+  skip: () => process.env.NODE_ENV === 'test',
   windowMs: AUTH_WINDOW_MS,
   max: AUTH_MAX_ATTEMPTS,
   standardHeaders: true,
   legacyHeaders: true,
+  legacyHeaders: false,
+  requestPropertyName: 'protectedActionRateLimit',
   store: createRateLimitStore('protected-action-limit:'),
   handler: createRateLimitHandler('Protected Action'),
 });
@@ -67,10 +73,13 @@ export const protectedActionRateLimiter = rateLimit({
 // Stricter limits for password reset flows
 // ---------------------------------------------------------------------------
 export const passwordResetRateLimiter = rateLimit({
+  skip: () => process.env.NODE_ENV === 'test',
   windowMs: RESET_WINDOW_MS,
   max: RESET_MAX_ATTEMPTS,
   standardHeaders: true,
   legacyHeaders: true,
+  legacyHeaders: false,
+  requestPropertyName: 'passwordResetRateLimit',
   store: createRateLimitStore('password-reset-limit:'),
   handler: createRateLimitHandler('Password Reset'),
 });

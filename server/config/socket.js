@@ -302,6 +302,14 @@ export function initializeSocketIO(httpServer) {
     cors: {
       origin: resolveSocketCorsOrigin(),
       origin: process.env.FRONTEND_URL || "http://localhost:5173",
+  const allowedOrigins = process.env.FRONTEND_URL
+    ? process.env.FRONTEND_URL.split(',')
+        .map((o) => o.trim())
+        .filter(Boolean)
+    : 'http://localhost:5173';
+  io = new Server(httpServer, {
+    cors: {
+      origin: allowedOrigins,
       credentials: true,
     },
     reconnection: true,

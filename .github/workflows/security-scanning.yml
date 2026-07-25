@@ -67,13 +67,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
+<<<<<<< HEAD
         uses: actions/checkout@v7
       - name: Build Docker image from server/Dockerfile
+=======
+        uses: actions/checkout@v4
+      - name: Build Docker image from Dockerfile
+>>>>>>> origin/pr/1910
         run: |
           if [ -f server/Dockerfile ]; then
             docker build --pull -t nexasphere:${{ github.sha }} ./server
           else
-            echo "No Dockerfile found in server/ — skipping build"
+            echo "No Dockerfile found — skipping build"
             docker pull alpine:latest
             docker tag alpine:latest nexasphere:${{ github.sha }}
           fi
@@ -98,5 +103,6 @@ jobs:
         with:
           directory: .
           framework: terraform,cloudformation
+          soft_fail: true
           skip_check: CKV_DOCKER_1,CKV_AWS_1
           soft_fail: true

@@ -5,6 +5,13 @@ import './PromptHistorySidebar.css';
 
 const PromptHistorySidebar = ({ id, isOpen, onSelectPrompt, currentWorkspace = 'default' }) => {
 const PromptHistorySidebar = ({ isOpen, onSelectPrompt, currentWorkspace = 'default' }) => {
+const PromptHistorySidebar = ({
+  isOpen,
+  onSelectPrompt,
+  currentWorkspace = 'default',
+  historyVersion = 0,
+  onHistoryChange,
+}) => {
   const [prompts, setPrompts] = useState([]);
   const [workspaces, setWorkspaces] = useState([]);
   const [selectedWorkspace, setSelectedWorkspace] = useState(currentWorkspace);
@@ -29,9 +36,15 @@ const PromptHistorySidebar = ({ isOpen, onSelectPrompt, currentWorkspace = 'defa
     }
   };
 
+  // Sync selectedWorkspace when currentWorkspace prop changes
+  useEffect(() => {
+    setSelectedWorkspace(currentWorkspace);
+  }, [currentWorkspace]);
+
+  // Load data when selectedWorkspace, isOpen, or historyVersion changes
   useEffect(() => {
     loadData();
-  }, [selectedWorkspace]);
+  }, [selectedWorkspace, isOpen, historyVersion]);
 
   const handleDeletePrompt = async (e, id) => {
     e.stopPropagation();
@@ -42,13 +55,21 @@ const PromptHistorySidebar = ({ isOpen, onSelectPrompt, currentWorkspace = 'defa
     if (!deleteTarget) return;
     await deletePrompt(deleteTarget);
     setDeleteTarget(null);
-    loadData();
+    if (onHistoryChange) {
+      onHistoryChange();
+    } else {
+      loadData();
+    }
   };
 
   const handlePinPrompt = async (e, id) => {
     e.stopPropagation();
     await togglePinPrompt(id);
-    loadData();
+    if (onHistoryChange) {
+      onHistoryChange();
+    } else {
+      loadData();
+    }
   };
 
   const handleSelectPrompt = (prompt) => {

@@ -278,8 +278,12 @@ const Chatbot = () => {
   ]);
   const [showSidebar, setShowSidebar] = useState(false);
   const [currentWorkspace, setCurrentWorkspace] = useState('default');
+  const [historyVersion, setHistoryVersion] = useState(0);
   const scrollRef = useRef(null);
 
+  const triggerHistoryRefresh = () => setHistoryVersion((v) => v + 1);
+
+  // Initialize workspaces on mount
   useEffect(() => {
     initializeWorkspaces();
   }, []);
@@ -301,6 +305,13 @@ const Chatbot = () => {
           savePrompt(lastUserMsg.text, lastBotMsg.text, currentWorkspace).catch((err) => {
             if (import.meta.env.DEV) console.error('[Chatbot] Error saving prompt:', err.message);
           });
+          savePrompt(lastUserMsg.text, lastBotMsg.text, currentWorkspace)
+            .then(() => {
+              triggerHistoryRefresh();
+            })
+            .catch((err) => {
+              console.error('Error saving prompt:', err);
+            });
         }
       }
     }
@@ -400,6 +411,8 @@ const Chatbot = () => {
             isOpen={showSidebar}
             onSelectPrompt={handleSelectPrompt}
             currentWorkspace={currentWorkspace}
+            historyVersion={historyVersion}
+            onHistoryChange={triggerHistoryRefresh}
           />
 
           <div className={`chat-main ${showSidebar ? 'sidebar-open' : ''}`}>
@@ -431,6 +444,13 @@ const Chatbot = () => {
 
             <div className="chat-content">
               <PinnedChats onSelectPrompt={handleSelectPrompt} workspace={currentWorkspace} />
+              <PinnedChats
+                onSelectPrompt={handleSelectPrompt}
+                workspace={currentWorkspace}
+                historyVersion={historyVersion}
+                onHistoryChange={triggerHistoryRefresh}
+              />
+
               <SearchBar onSelectPrompt={handleSelectPrompt} workspace={currentWorkspace} />
 
               <div className="chat-messages" ref={scrollRef}>
@@ -462,6 +482,7 @@ const Chatbot = () => {
                 <option value="research">Research</option>
               </select>
               <input
+                type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}

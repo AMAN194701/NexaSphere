@@ -267,6 +267,17 @@ router.post(
   adminAuthMiddleware.requireAdmin,
   adminAuditMiddleware,
   validate(adminCreateUserSchema),
+router.get(
+  '/api/admin/users',
+  protectedActionRateLimiter,
+  adminAuthMiddleware.requireAdmin,
+  usersController.getAdminUsers
+);
+router.post(
+  '/api/admin/users',
+  protectedActionRateLimiter,
+  adminAuthMiddleware.requireAdmin,
+  adminAuditMiddleware,
   usersController.adminCreateUser
 );
 router.put(
@@ -275,10 +286,14 @@ router.put(
   attachOldState((req) => usersRepository.getUserById(req.params.id)),
   adminAuditMiddleware,
   validate(adminUpdateUserSchema),
+  protectedActionRateLimiter,
+  adminAuthMiddleware.requireAdmin,
+  adminAuditMiddleware,
   usersController.adminUpdateUser
 );
 router.delete(
   '/api/admin/users/:id',
+  protectedActionRateLimiter,
   adminAuthMiddleware.requireAdmin,
   adminAuditMiddleware,
   usersController.adminDeactivateUser
@@ -320,6 +335,7 @@ router.post(
   validate(verifyTwoFactorSetupSchema),
   adminAuthMiddleware.verifyTwoFactorSetup
 );
+router.post('/api/admin/login', authRateLimiter, adminAuthMiddleware.login);
 router.post('/api/admin/logout', adminAuthMiddleware.requireAdmin, adminAuthMiddleware.logout);
 router.get(
   '/api/admin/security',

@@ -9,6 +9,9 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   // Global per-test timeout — 30 s default is too tight for slow CI runners
   timeout: process.env.CI ? 60_000 : 30_000,
+  // Global per-test timeout (30 s default is too tight for slow CI runners)
+  timeout: process.env.CI ? 60_000 : 30_000,
+  // Global expect timeout
   expect: { timeout: 15_000 },
   reporter: [
     ['html', { outputFolder: 'e2e/test-results/report' }],
@@ -20,6 +23,7 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
+    // Action / navigation timeout per step
     actionTimeout: process.env.CI ? 20_000 : 10_000,
     navigationTimeout: process.env.CI ? 30_000 : 15_000,
     userAgent: 'Playwright-E2E',
