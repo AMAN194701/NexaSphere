@@ -134,6 +134,12 @@ import {
   formRateLimiter,
   notificationRateLimiter,
   activityAuthRateLimiter,
+  formRateLimiter,
+  subscriptionRateLimiter,
+} from "./middleware/rateLimiter.js";
+
+import { portfolioRepository } from "./repositories/portfolioRepository.js";
+import { Mutex } from "async-mutex";
   portfolioRateLimiter,
   searchRateLimiter,
   validateLimiters,
@@ -4050,6 +4056,52 @@ app.post('/api/forms/recruitment', formRateLimiter, (req, res) =>
   handleForm('recruitment', req, res)
 );
 app.post('/api/core-team/apply', formRateLimiter, (req, res) => handleForm('core_team', req, res));
+// Real-time notification subscriber channels.
+// The Set stores JSON-serialised Web Push subscription objects keyed by their
+// unique endpoint URL. Entries are evicted when the cap is reached; a warning
+// is logged so operators know the store is full.
+const pushSubscriptions = new Set();
+const PUSH_SUBSCRIPTION_CAP = 10000;
+
+// Validates that a value looks like a Web Push subscription object before it
+// is accepted into the store. Guards against malformed payloads that would
+// cause errors when a notification is later sent.
+function isValidPushSubscription(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const endpoint = value.endpoint;
+  if (typeof endpoint !== "string" || !endpoint.startsWith("https://")) {
+    return false;
+  }
+  // A real Web Push subscription always has a keys object with at least p256dh.
+  const keys = value.keys;
+  if (!keys || typeof keys !== "object") return false;
+  if (typeof keys.p256dh !== "string" || !keys.p256dh) return false;
+  return true;
+}
+
+app.post("/api/notifications/subscribe", subscriptionRateLimiter, (req, res) => {
+  try {
+    const { subscription } = req.body || {};
+    if (!subscription) {
+      return res.status(400).json({ error: "subscription is required" });
+    }
+    if (!isValidPushSubscription(subscription)) {
+      return res.status(400).json({
+        error:
+          "Invalid subscription object. Expected a Web Push subscription with endpoint and keys.p256dh.",
+      });
+    }
+    const serialised = JSON.stringify(subscription);
+    if (!pushSubscriptions.has(serialised)) {
+      if (pushSubscriptions.size >= PUSH_SUBSCRIPTION_CAP) {
+        // Evict the oldest entry and warn so operators can act.
+        const oldest = pushSubscriptions.values().next().value;
+        pushSubscriptions.delete(oldest);
+        console.warn(
+          `[PushSubscriptions] Cap of ${PUSH_SUBSCRIPTION_CAP} reached — oldest subscription evicted.`,
+        );
+      }
+      pushSubscriptions.add(serialised);
 // Real-time notification subscriber channels
 const pushSubscriptions = new Set();
 app.post("/api/notifications/subscribe", (req, res) => {
@@ -4071,6 +4123,18 @@ app.post('/api/notifications/subscribe', notificationRateLimiter, (req, res) => 
 });
 app.post("/api/notifications/unsubscribe", (req, res) => {
 app.post('/api/notifications/unsubscribe', notificationRateLimiter, (req, res) => {
+
+app.post("/api/notifications/unsubscribe", subscriptionRateLimiter, (req, res) => {
+  try {
+    const { subscription } = req.body || {};
+    if (!subscription) {
+      return res.status(400).json({ error: "subscription is required" });
+    }
+    if (!isValidPushSubscription(subscription)) {
+      return res.status(400).json({ error: "Invalid subscription object." });
+    }
+    pushSubscriptions.delete(JSON.stringify(subscription));
+app.post("/api/notifications/unsubscribe", notificationRateLimiter, (req, res) => {
   try {
     const { subscription } = req.body;
     if (subscription) pushSubscriptions.delete(JSON.stringify(subscription));
@@ -4083,6 +4147,10 @@ app.post('/api/notifications/unsubscribe', notificationRateLimiter, (req, res) =
 // Server-side notifications API (simple in-memory store)
 
 app.get("/api/notifications", (req, res) => {
+  try {
+    // If user id provided via query or auth, use that; otherwise global
+    const userId = req.query.userId || "global";
+app.get("/api/notifications", adminAuth, notificationRateLimiter, (req, res) => {
   try {
     // If user id provided via query or auth, use that; otherwise global
     const userId = req.query.userId || "global";
@@ -4105,6 +4173,9 @@ app.post(
       const { id, userId } = req.body || {};
       if (!id) return res.status(400).json({ error: "id required" });
       const uid = userId || "global";
+      const { id } = req.body || {};
+      if (!id) return res.status(400).json({ error: "id required" });
+      const uid = userId || "global";
       const ok = notificationsService.markAsRead(uid, id);
       return res.json({ success: ok });
     } catch (err) {
@@ -4121,6 +4192,8 @@ app.post(
     try {
       const { userId } = req.body || {};
       notificationsService.markAllAsRead(userId || "global");
+      const uid = req.adminSession?.username || "global";
+      notificationsService.markAllAsRead(uid);
       return res.json({ success: true });
     } catch (err) {
       return res.status(500).json({ error: err.message });
@@ -4137,6 +4210,8 @@ app.delete(
       const id = req.params.id;
       const userId = req.query.userId || "global";
       const removed = notificationsService.removeNotification(userId, id);
+      const uid = req.adminSession?.username || "global";
+      const removed = notificationsService.removeNotification(uid, id);
       if (!removed)
         return res.status(404).json({ error: "Notification not found" });
       return res.json({ success: true });
@@ -4155,6 +4230,8 @@ app.delete(
     try {
       const userId = req.query.userId || "global";
       notificationsService.clearAll(userId);
+      const uid = req.adminSession?.username || "global";
+      notificationsService.clearAll(uid);
       return res.json({ success: true });
     } catch (err) {
       return res.status(500).json({ error: err.message });
@@ -4170,11 +4247,13 @@ app.post(
   (req, res) => {
     try {
       const { userId, title, message, type, link } = req.body || {};
+      const { title, message, type, link } = req.body || {};
       if (!title || !message)
         return res
           .status(400)
           .json({ error: "title and message are required" });
       const note = notificationsService.addNotification(userId || "global", {
+      const note = notificationsService.addNotification(req.adminSession?.username || "global", {
         title,
         message,
         type,

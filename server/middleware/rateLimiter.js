@@ -186,6 +186,25 @@ export const activityAuthRateLimiter = rateLimit({
   },
 });
 
+// Push-subscription rate limiter: 5 subscribe/unsubscribe calls per IP per
+// 10 minutes. Prevents flooding the in-memory subscription Set with fake
+// entries that would evict legitimate browser subscriptions.
+export const subscriptionRateLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res, next, options) => {
+    logger.warn("Push-subscription rate limit exceeded", {
+      ip: req.ip,
+      path: req.originalUrl || req.path,
+      method: req.method,
+    });
+    res.status(options.statusCode).json({
+      error: "Too many subscription requests from this IP, please try again later.",
+    });
+  },
+});
 // Portfolio update rate limiter — 10 requests per IP per 15 minutes
 export const portfolioRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
