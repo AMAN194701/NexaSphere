@@ -5,6 +5,15 @@ import { emitToRole } from '../config/socket.js';
 
 function wrapAsync(fn) {
   return (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
+  return (req, res) =>
+    Promise.resolve(fn(req, res)).catch((e) => {
+      // Log the full error server-side so it is visible in monitoring.
+      // Return only a generic string to the client: raw error messages can
+      // expose database column names, table names, file paths, or library
+      // internals that help an attacker profile the stack.
+      console.error('[eventsController]', e);
+      res.status(500).json({ error: 'Internal server error' });
+    });
 }
 
 // Parses and clamps ?page and ?limit from a request query object.

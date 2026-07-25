@@ -14,6 +14,17 @@ function wrapAsync(fn) {
 
       return sendError(req, res, 'Internal server error', 500, 'INTERNAL_ERROR');
     });
+  return (req, res) => Promise.resolve(fn(req, res)).catch((e) => {
+    // 400 validation errors are client-facing and safe to return as-is.
+    if (e && e.message === 'Invalid form submission' && e.details) {
+      return res.status(400).json({ error: e.message, issues: e.details });
+    }
+    // Log internal errors server-side but return only a generic message to
+    // the client. Leaking e.message on 500s can expose database error
+    // strings, file paths, or library internals to callers.
+    console.error('[formsController]', e);
+    return res.status(500).json({ error: 'Internal server error' });
+  });
 }
 
 export function makeHandleForm(formType) {
