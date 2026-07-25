@@ -22,6 +22,9 @@ let mockQueriesResult = {
 pg.Pool = class MockPool {
   // Mock event listener attachment to avoid TypeError from pool.on
   on(event, handler) {}
+  on(event, listener) {
+    // Mock event listener attachment
+  }
   async connect() {
     return {
       query: async (sql, params) => {
