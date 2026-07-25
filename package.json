@@ -114,6 +114,8 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^14.3.1",
     "@types/jest": "^30.0.0",
+    "@testing-library/react": "^14.0.0",
+    "@types/node": "^25.9.1",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "@vitejs/plugin-react": "^4.2.1",
@@ -176,5 +178,7 @@
     "next-intl": "^4.13.2",
     "dompurify": "^3.4.9",
     "engine.io-client": "^6.6.2"
+  "prisma": {
+    "seed": "ts-node --compiler-options {\\\"module\\\":\\\"CommonJS\\\"} prisma/seed.ts"
   }
 }

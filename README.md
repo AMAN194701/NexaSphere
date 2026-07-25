@@ -516,6 +516,40 @@ Make sure the ports match your running frontend services.
 npm test                # Website unit tests (Vitest)
 npm run test:server     # Server unit tests (Node test runner)
 npx playwright test     # End-to-end tests (Playwright)
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with UI
+npm run test:ui
+```
+
+### End-to-End Tests (Playwright)
+
+# Seed the database with dummy data
+npx prisma db seed
+
+# Start the backend server
+npm run dev
+# → Runs at http://localhost:8080
+```bash
+# Run E2E tests
+npm run e2e
+
+# Run E2E tests in debug mode
+npm run e2e:debug
+```
+
+### Linting & Formatting
+
+```bash
+# Lint the codebase
+npm run lint
+
+# Auto-fix lint issues
+npm run lint:fix
 ```
 
 ---
