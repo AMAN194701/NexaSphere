@@ -813,6 +813,7 @@ app.use(
         ],
         objectSrc: ["'none'"],
 
+ fix/csp-helmet-config-1475
         // ✅ CRITICAL FIX: Missing directives added below
         baseUri: ["'self'"], // Prevents <base> tag injection
         frameAncestors: ["'none'"], // Prevents clickjacking
@@ -824,6 +825,9 @@ app.use(
         frameSrc: ["'self'", 'https://challenges.cloudflare.com', 'https://maps.google.com'], // Restricts iframe sources
         childSrc: ["'none'"], // Restricts child browsing contexts
         upgradeInsecureRequests: [], // Upgrades HTTP to HTTPS
+        childSrc: ["'none'"],                                   // Restricts child browsing contexts
+        upgradeInsecureRequests: [],                            // Upgrades HTTP to HTTPS
+
         baseUri: ["'self'"],
         frameAncestors: ["'none'"],
         formAction: ["'self'"],
@@ -840,6 +844,8 @@ app.use(
         ],
         childSrc: ["'none'"],
         frameSrc: ["'self'", 'https://challenges.cloudflare.com', 'https://maps.google.com'],
+ main
+
         reportUri: '/api/v1/csp-violation',
       },
     },
@@ -874,6 +880,8 @@ app.use(
 );
 app.use(intrusionDetectionMiddleware);
 app.use(abnormalRequestDetector);
+ fix/csp-helmet-config-1475
+
 
 app.use(tracingMiddleware);
 app.use('/api', apiRequestLogger());
@@ -973,6 +981,7 @@ adminEvents.on("CORE_TEAM_MEMBER_REMOVED", (event) =>
   console.log(`[EVENT] CORE_TEAM_MEMBER_REMOVED:`, event)
 );
 
+ main
 app.options('*', cors());
 
 app.use(enhancedTracingMiddleware);
