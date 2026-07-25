@@ -546,8 +546,8 @@ export {
 };
 export { escapeHtml, sanitizeNullableText, sanitizeText, sanitizeTextArray };
 =======
-=======
 export { escapeHtml, sanitizeNullableText, sanitizeText, sanitizeTextArray };
+=======
 =======
 function toSafeString(value, max = 4000) {
   return String(value ?? '').trim().slice(0, max);
@@ -579,3 +579,4 @@ export {
   validateWhatsApp,
   validateSection,
 };
+export { escapeHtml, sanitizeNullableText, sanitizeText, sanitizeTextArray, toSafeString };
