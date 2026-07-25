@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Skeleton, SkeletonText } from '../components/Skeleton';
+import { useAuth } from '../context/AuthContext';
 
 export default function UserGroups() {
   const [groups, setGroups] = useState([]);
@@ -48,6 +49,12 @@ export default function UserGroups() {
           permissions: perms,
         }),
         credentials: 'include',
+      const perms = form.permissions.split(',').map(s => s.trim()).filter(Boolean);
+      const res = await fetch('/api/admin/groups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: form.name, description: form.description, permissions: perms }),
+        credentials: 'include'
       });
       if (!res.ok) throw new Error('Failed to create group');
       setShowAddModal(false);
@@ -65,6 +72,7 @@ export default function UserGroups() {
         method: 'DELETE',
         credentials: 'include',
       });
+      const res = await fetch(`/api/admin/groups/${id}`, { method: 'DELETE', credentials: 'include' });
       if (!res.ok) throw new Error('Failed to delete group');
       if (selectedGroup?.id === id) setSelectedGroup(null);
       fetchGroups();
@@ -92,6 +100,7 @@ export default function UserGroups() {
       .split(',')
       .map((s) => parseInt(s.trim(), 10))
       .filter((id) => !isNaN(id));
+    const ids = newMemberIds.split(',').map(s => parseInt(s.trim(), 10)).filter(id => !isNaN(id));
     if (!ids.length) return alert('Enter valid student IDs');
     try {
       const res = await fetch(`/api/admin/groups/${selectedGroup.id}/members`, {
@@ -99,6 +108,7 @@ export default function UserGroups() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ studentIds: ids }),
         credentials: 'include',
+        credentials: 'include'
       });
       if (!res.ok) throw new Error('Failed to add members');
       setNewMemberIds('');
@@ -115,6 +125,7 @@ export default function UserGroups() {
       const res = await fetch(`/api/admin/groups/${selectedGroup.id}/members/${studentId}`, {
         method: 'DELETE',
         credentials: 'include',
+        credentials: 'include'
       });
       if (!res.ok) throw new Error('Failed to remove member');
       loadGroupMembers(selectedGroup);
@@ -133,6 +144,7 @@ export default function UserGroups() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(emailForm),
         credentials: 'include',
+        credentials: 'include'
       });
       if (!res.ok) throw new Error('Failed to send email');
       alert('Email queued successfully!');
@@ -204,6 +216,7 @@ export default function UserGroups() {
       </div>
     );
   }
+  if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
 
   return (
@@ -212,6 +225,7 @@ export default function UserGroups() {
       <button onClick={() => setShowAddModal(true)} style={{ marginBottom: 20 }}>
         + Create Group
       </button>
+      <button onClick={() => setShowAddModal(true)} style={{ marginBottom: 20 }}>+ Create Group</button>
 
       <div style={{ display: 'flex', gap: 20 }}>
         {/* Groups List */}
@@ -227,6 +241,7 @@ export default function UserGroups() {
             </thead>
             <tbody>
               {groups.map((g) => (
+              {groups.map(g => (
                 <tr key={g.id} style={{ borderBottom: '1px solid #333' }}>
                   <td style={{ padding: 8 }}>{g.name}</td>
                   <td style={{ padding: 8 }}>{g.description}</td>
@@ -269,6 +284,17 @@ export default function UserGroups() {
                 placeholder="Comma-separated student IDs"
                 value={newMemberIds}
                 onChange={(e) => setNewMemberIds(e.target.value)}
+          <div style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.05)', padding: 20, borderRadius: 8 }}>
+            <h2>Manage Members: {selectedGroup.name}</h2>
+            <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+              <button onClick={() => setShowEmailModal(true)} style={{ backgroundColor: '#4a90e2' }}>✉ Bulk Email Group</button>
+            </div>
+            <form onSubmit={handleAddMembers} style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+              <input 
+                type="text" 
+                placeholder="Comma-separated student IDs" 
+                value={newMemberIds}
+                onChange={e => setNewMemberIds(e.target.value)}
                 style={{ flex: 1, padding: 8 }}
               />
               <button type="submit">Add</button>
@@ -288,6 +314,9 @@ export default function UserGroups() {
                   <span>
                     {m.full_name} ({m.email}) - ID: {m.id}
                   </span>
+              {groupMembers.map(m => (
+                <li key={m.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #333' }}>
+                  <span>{m.full_name} ({m.email}) - ID: {m.id}</span>
                   <button onClick={() => handleRemoveMember(m.id)}>Remove</button>
                 </li>
               ))}
@@ -335,6 +364,18 @@ export default function UserGroups() {
                 <button type="button" onClick={() => setShowEmailModal(false)}>
                   Cancel
                 </button>
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+          backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>
+          <div style={{ backgroundColor: '#1a1a2e', padding: 30, borderRadius: 8, width: 500 }}>
+            <h2>Send Email to {selectedGroup.name}</h2>
+            <form onSubmit={handleSendEmail} style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
+              <input placeholder="Subject" value={emailForm.subject} onChange={e => setEmailForm({...emailForm, subject: e.target.value})} required />
+              <textarea placeholder="HTML Content" value={emailForm.htmlContent} onChange={e => setEmailForm({...emailForm, htmlContent: e.target.value})} required style={{ minHeight: 150 }} />
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button type="submit">Send Email</button>
+                <button type="button" onClick={() => setShowEmailModal(false)}>Cancel</button>
               </div>
             </form>
           </div>
@@ -382,6 +423,19 @@ export default function UserGroups() {
                 <button type="button" onClick={() => setShowAddModal(false)}>
                   Cancel
                 </button>
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+          backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>
+          <div style={{ backgroundColor: '#1a1a2e', padding: 30, borderRadius: 8, width: 400 }}>
+            <h2>Create New Group</h2>
+            <form onSubmit={handleCreateGroup} style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
+              <input placeholder="Name" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required />
+              <textarea placeholder="Description" value={form.description} onChange={e => setForm({...form, description: e.target.value})} />
+              <input placeholder="Permissions (comma separated)" value={form.permissions} onChange={e => setForm({...form, permissions: e.target.value})} />
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button type="submit">Create</button>
+                <button type="button" onClick={() => setShowAddModal(false)}>Cancel</button>
               </div>
             </form>
           </div>

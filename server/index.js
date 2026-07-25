@@ -157,6 +157,8 @@ import coreTeamRouter from './routes/coreTeam.js';
 import formsRouter from './routes/forms.js';
 import portfolioRouter from './routes/portfolio.js';
 import portfolioBuilderRouter from './routes/portfolioBuilder.js';
+import portfolioExportRouter from './routes/portfolioExport.js';
+import userGroupsRouter from './routes/userGroups.js';
 import notificationsRouter from './routes/notifications.js';
 import adminRouter from './routes/admin.js';
 import webhookRouter from './routes/webhooks.js';
@@ -956,6 +958,59 @@ if (redisSessionUrl) {
   }
   sessionStore = new RedisStore({ client: sessionClient, prefix: 'session:express:' });
 }
+
+if (!useStructuredHttpLog) {
+  app.use(requestLogger);
+}
+
+// Mount route modules
+app.use('/api/form-submissions', formSubmissionsRouter);
+app.post('/api/analytics/track', logEvent);
+app.use('/api/monitoring', monitoringRouter);
+app.use('/api/health-dashboard', healthDashboardRouter);
+app.use('/api', documentationRouter);
+app.use('/', apiRouter);
+app.use('/', healthRouter);
+app.use('/', coreTeamRouter);
+app.use('/api', formsRouter);
+app.use('/api', portfolioRouter);
+app.use('/api', userGroupsRouter);
+app.use('/', notificationsRouter);
+app.use('/api/admin', adminRouter);
+app.use('/api', learningPathRouter);
+app.use('/', syncRouter);
+app.use('/api/feedback', feedbackRouter);
+
+const adminAuth = [apiRateLimiter, adminAuthMiddleware.requireAdmin];
+
+// Scheduled Tasks Management
+app.use('/api/admin/scheduled-tasks', adminAuth, scheduledTasksRouter);
+
+// Database Backup & Recovery Endpoints
+app.get('/api/admin/backups', adminAuth, backupController.getBackups);
+app.post('/api/admin/backups/manual', adminAuth, backupController.runManualBackup);
+app.post('/api/admin/backups/restore', adminAuth, backupController.runRestore);
+app.get('/api/admin/backups/restore-test-history', adminAuth, backupController.getRestoreHistory);
+app.delete('/api/admin/backups', adminAuth, backupController.deleteBackup);
+
+const defaultContent = {
+  events: [
+    {
+      id: 'kss-153',
+      name: 'KSS #153 — Knowledge Sharing Session',
+      shortName: 'KSS #153',
+      date: 'March 14, 2025',
+      description: "NexaSphere's inaugural Knowledge Sharing Session focused on the impact of AI.",
+      status: 'completed',
+      icon: 'Brain',
+      tags: ['AI', 'Learning', 'Community'],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+  ],
+  activityEvents: {},
+  coreTeam: [],
+};
 
 function requiredStrongPassword(name) {
   const value = String(process.env[name] || '').trim();

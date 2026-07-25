@@ -21,6 +21,8 @@ import { ActivityEventsManager } from './pages/ActivityEventsManager';
 import { ScheduledTasksManager } from './pages/ScheduledTasksManager';
 import UserGroups from './pages/UserGroups';
 
+import ScheduledTasksManager from './pages/ScheduledTasksManager';
+import UserGroups from './pages/UserGroups';
 import { CoreTeamManager } from './pages/CoreTeamManager';
 import { MembershipResponsesManager } from './pages/MembershipResponsesManager';
 import { SyncMonitor } from './pages/SyncMonitor';

@@ -41,6 +41,11 @@ export const listEvents = wrapAsync(async (req, res) => {
       ? authHeader.slice(7)
       : req.cookies?.ns_student_token || null;
 
+  
+  let studentGroups = undefined;
+  const authHeader = req.headers.authorization;
+  let token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : (req.cookies?.ns_student_token || null);
+  
   if (token) {
     // Import dynamically to avoid top-level circular dependencies if any
     const { studentAuthService } = await import('../services/studentAuthService.js');
@@ -65,6 +70,8 @@ export const listEvents = wrapAsync(async (req, res) => {
 
   res.setHeader('X-Cache', hit ? 'HIT' : 'MISS');
   return sendSuccess(res, data);
+  const { rows, total } = await eventsService.listEvents({ page, limit, status, studentGroups });
+  return res.json({ events: rows, pagination: buildPaginationMeta(page, limit, total) });
 });
 
 export const adminListEvents = wrapAsync(async (req, res) => {

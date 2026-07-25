@@ -75,6 +75,7 @@ export function EventForm({ event, onClose }) {
           restrictedGroupsInput: Array.isArray(event.restrictedGroups)
             ? event.restrictedGroups.join(', ')
             : '',
+          restrictedGroupsInput: Array.isArray(event.restrictedGroups) ? event.restrictedGroups.join(', ') : '',
           dateISO: toISODate(event.dateText ?? event.date ?? ''),
           gradientColors: Array.isArray(event.gradientColors) ? [...event.gradientColors] : [],
           capacity: event.capacity ?? '',
@@ -178,6 +179,7 @@ export function EventForm({ event, onClose }) {
               .split(',')
               .map((s) => parseInt(s.trim(), 10))
               .filter((id) => !isNaN(id))
+          ? form.restrictedGroupsInput.split(',').map(s => parseInt(s.trim(), 10)).filter(id => !isNaN(id))
           : [],
         capacity: form.capacity ? parseInt(form.capacity, 10) : null,
         startDate: form.startDate || null,

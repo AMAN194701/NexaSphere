@@ -74,6 +74,8 @@ export const eventsService = {
     const result = await eventsRepository.list({ page, limit });
     cacheService.set(cacheKey, result);
     return result;
+  async listEvents({ page = 1, limit = 20, status, studentGroups } = {}) {
+    return eventsRepository.list({ page, limit, studentGroups });
   },
 
   async createEvent(input) {
