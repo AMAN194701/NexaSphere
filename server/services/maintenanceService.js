@@ -40,8 +40,13 @@ const getMaintenanceById = async (id) =>
 
 // Create
 const createMaintenance = async (data) => {
+  if (data.startTime && data.endTime && new Date(data.startTime) >= new Date(data.endTime)) {
+    throw new Error('Invalid maintenance window: startTime must be before endTime');
+  }
+
+  const nextId = maintenanceList.length > 0 ? Math.max(...maintenanceList.map((m) => m.id)) + 1 : 1;
   const maintenance = {
-    id: maintenanceList.length + 1,
+    id: nextId,
     status: "Scheduled",
     createdAt: new Date().toISOString(),
     ...data,
@@ -58,6 +63,12 @@ const updateMaintenance = async (id, data) => {
   );
 
   if (index === -1) return null;
+
+  const startTime = data.startTime || maintenanceList[index].startTime;
+  const endTime = data.endTime || maintenanceList[index].endTime;
+  if (startTime && endTime && new Date(startTime) >= new Date(endTime)) {
+    throw new Error('Invalid maintenance window: startTime must be before endTime');
+  }
 
   maintenanceList[index] = {
     ...maintenanceList[index],
