@@ -10,6 +10,12 @@ import ResumePrintTemplate from "../../components/portfolio/ResumePrintTemplate"
 import { Helmet } from "react-helmet-async";
 import { generatePortfolioMeta } from "../../utils/seoUtils";
 import "../../styles/print.css";
+import React, { useState, useEffect, useRef } from 'react';
+import { useReactToPrint } from 'react-to-print';
+import { projectsData } from '../../data/projectsData';
+import { roadmapData } from '../../data/roadmapData';
+import ResumePrintTemplate from '../../components/portfolio/ResumePrintTemplate';
+import '../../styles/print.css';
 
 export default function PublicPortfolio({ username, onBack }) {
   const [portfolio, setPortfolio] = useState(null);
@@ -112,6 +118,19 @@ export default function PublicPortfolio({ username, onBack }) {
   const handlePrint = () => {
     window.print();
   };
+  const [isExporting, setIsExporting] = useState(false);
+  const printRef = useRef();
+
+  const handlePrint = useReactToPrint({
+    content: () => printRef.current,
+    documentTitle: `${username}_Resume`,
+    onBeforeGetContent: () => {
+      setIsExporting(true);
+      return Promise.resolve();
+    },
+    onAfterPrint: () => setIsExporting(false),
+    removeAfterPrint: true,
+  });
 
   if (isLoading) {
     return (
@@ -244,6 +263,8 @@ export default function PublicPortfolio({ username, onBack }) {
     customProjects,
   } = portfolio;
 
+  const { theme, title: profTitle, bio, visibleSections, socialLinks, skills, roadmaps, projects, customProjects } = portfolio;
+  
   const allProjects = [
     ...(projects || []).map((id) => projectsData.find((p) => p.id === id)).filter(Boolean),
     ...(projects || [])
@@ -293,6 +314,7 @@ export default function PublicPortfolio({ username, onBack }) {
           ← Back
         </button>
         <button className="btn btn-outline" onClick={handlePrint} aria-label="Export portfolio to PDF">
+        <button className="btn btn-outline" onClick={handlePrint} disabled={isExporting} aria-label="Export portfolio to PDF">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: '6px', verticalAlign: 'middle' }}>
         <button
           className="btn btn-outline"
@@ -316,6 +338,7 @@ export default function PublicPortfolio({ username, onBack }) {
           </svg>
           Export PDF
           {isExporting ? "Exporting..." : "Export PDF"}
+          {isExporting ? 'Exporting...' : 'Export PDF'}
         </button>
         <button
           className="btn btn-primary"
@@ -547,6 +570,7 @@ export default function PublicPortfolio({ username, onBack }) {
 
           {/* Section C: Federated Team Projects */}
           {visibleSections?.projects && projects && projects.length > 0 && (
+          {visibleSections?.projects && allProjects.length > 0 && (
             <section className="portfolio-panel" aria-labelledby="projects-heading">
           {visibleSections?.projects && allProjects.length > 0 && (
             <section
@@ -576,6 +600,9 @@ export default function PublicPortfolio({ username, onBack }) {
                 {allProjects.map((proj) => {
                   return (
                     <article key={projId} className="portfolio-project-card">
+                {allProjects.map(proj => {
+                  return (
+                    <article key={proj.id} className="portfolio-project-card">
                       <img
                         src={
                           proj.image ||

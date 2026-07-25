@@ -1,4 +1,4 @@
-package org.nexasphere.filter;
+package org.nexasphere;
 
 import io.github.bucket4j.Bucket;
 import jakarta.servlet.*;

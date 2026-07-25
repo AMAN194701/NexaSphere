@@ -446,6 +446,7 @@ export const portfolioRepository = {
           );
           if (!rows.length) return true; // Username does not exist, so it's a new registration (allow it)
           return rows[0].passkey_hash === passkeyHash;
+          return await verifyHash(passkey, rows[0].passkey_hash);
         });
       } catch (err) {
         console.error('Database query failed in verifyPasskey. Falling back to local file.', err);
@@ -512,6 +513,7 @@ export const portfolioRepository = {
     const portfolio = portfolios[sanitizedUsername];
     if (!portfolio) return true; // New registration
     return portfolio.passkeyHash === passkeyHash;
+    return await verifyHash(passkey, portfolio.passkeyHash);
   },
 
   async createOrUpdate(data) {
@@ -519,6 +521,7 @@ export const portfolioRepository = {
     const username = String(data.username || '').trim();
     const sanitizedUsername = username.toLowerCase();
     const passkeyHash = hashPasskey(data.passkey);
+    const passkeyHash = await hashPasskey(data.passkey);
 
     const theme = data.theme || 'glassmorphic';
     const visibleSections = data.visibleSections || {

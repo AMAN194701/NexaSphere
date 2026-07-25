@@ -61,6 +61,7 @@ export default function PortfolioBuilder() {
   const [isFetchingGh, setIsFetchingGh] = useState(false);
   const [ghRepos, setGhRepos] = useState([]);
   const [ghError, setGhError] = useState("");
+  const [ghError, setGhError] = useState('');
 
   // States
   const [isSaving, setIsSaving] = useState(false);
@@ -115,6 +116,7 @@ export default function PortfolioBuilder() {
         setSelectedSkills(data.skills || []);
         setSelectedRoadmaps(data.roadmaps || []);
         setSelectedProjects(data.projects || []);
+        setCustomProjects(data.customProjects || []);
         setSuccessMsg('Existing portfolio configuration found and loaded!');
       const base = (import.meta?.env?.VITE_API_BASE || "").replace(/\/+$/, "");
       const url = base
@@ -184,6 +186,8 @@ export default function PortfolioBuilder() {
         projects: selectedProjects
         projects: selectedProjects,
         customProjects,
+        projects: selectedProjects,
+        customProjects
       };
 
       const base = (import.meta?.env?.VITE_API_BASE || "").replace(/\/+$/, "");
@@ -1379,6 +1383,9 @@ export default function PortfolioBuilder() {
                           <span style={{ fontSize: '0.85rem', fontWeight: '600' }}>
                             {proj.title}
                           </span>
+                      {customProjects.map(proj => (
+                        <div key={proj.id} className="portfolio-roadmap-card" style={{ padding: '8px 12px' }}>
+                          <span style={{ fontSize: '0.85rem', fontWeight: '600' }}>{proj.title}</span>
                           <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>GitHub Import</span>
                           style={{ padding: "8px 12px" }}
                         >
