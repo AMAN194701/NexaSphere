@@ -254,6 +254,10 @@ import * as slackController from './controllers/slackController.js';
 import activityTimelineRoutes from './routes/activityTimeline.js';
 app.use('/api/activity-timeline', activityTimelineRoutes);
 import advancedProfileRoutes from './routes/advancedProfile.js';
+import complianceRouter from './routes/compliance.js';
+import healthDashboardRouter from './routes/healthDashboard.js';
+import { logEvent } from './controllers/analyticsController.js';
+import * as slackController from './controllers/slackController.js';
 
 import { startStreamingWorkers } from './streaming/startStreamingWorkers.js';
 
@@ -964,7 +968,6 @@ if (!useStructuredHttpLog) {
 }
 
 // Mount route modules
-app.use('/api/form-submissions', formSubmissionsRouter);
 app.post('/api/analytics/track', logEvent);
 app.use('/api/monitoring', monitoringRouter);
 app.use('/api/health-dashboard', healthDashboardRouter);
