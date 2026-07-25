@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import DOMPurify from 'dompurify';
 import ShareHub from './ShareHub';
 import { useWalkthroughStep } from '../hooks/useWalkthroughStep';
 
@@ -51,6 +52,20 @@ const EventCard = React.memo(function EventCard({ event, onClick, id }) {
         <p>{event.date}</p>
         <p>{event.description}</p>
         {event.location && <p><strong>Location:</strong> {event.location}</p>}
+        <div
+          className="event-description-html"
+          style={{
+            fontSize: '0.9rem',
+            marginBottom: '8px',
+            color: 'var(--text2)',
+            display: '-webkit-box',
+            WebkitLineClamp: 3,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+          }}
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(event.description || '') }}
+        />
+        {event.location && <p>{event.location}</p>}
         {event.category && <span className="event-category">{event.category}</span>}
         
         {/* Capacity Tracking & Status Bar */}
