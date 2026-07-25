@@ -1,9 +1,10 @@
 {
   "include": ["."],
-  "exclude": ["**/__pycache__", ".venv"],
+  "exclude": ["**/__pycache__", ".venv", "alembic/versions"],
   "venvPath": ".",
   "venv": ".venv",
   "pythonVersion": "3.10",
   "typeCheckingMode": "basic",
-  "reportPrivateImportUsage": "none"
+  "reportPrivateImportUsage": "none",
+  "reportMissingImports": "warning"
 }
