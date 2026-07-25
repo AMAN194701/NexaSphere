@@ -12,6 +12,7 @@ function parsePostgresArray(val) {
   }
   return [];
 }
+import { getCache, setCache, invalidateCache } from '../config/redis.js';
 
 function mapRow(row) {
   return {
@@ -40,6 +41,13 @@ export const eventsRepository = {
     location,
     search,
   } = {}) {
+  // Returns { rows, total } — rows are the current page, total is the full
+  // count without LIMIT so callers can build pagination metadata.
+  async list({ page = 1, limit = 20 } = {}) {
+    const cacheKey = `events:list:${page}:${limit}`;
+    const cached = await getCache(cacheKey);
+    if (cached) return cached;
+
     return withDb(async (client) => {
       const offset = (page - 1) * limit;
       const { rows } = await client.query(
@@ -54,6 +62,11 @@ export const eventsRepository = {
       
       const total = rows.length > 0 ? rows[0].total : 0;
       return { rows: rows.map(mapRow), total };
+      const countResult = await client.query('select count(*)::int as total from events');
+      const total = countResult.rows[0]?.total ?? 0;
+      const result = { rows: rows.map(mapRow), total };
+      await setCache(cacheKey, result);
+      return result;
     });
   },
 
@@ -92,6 +105,8 @@ export const eventsRepository = {
         .then(({ searchIndexer }) => searchIndexer.indexEvent(mapped))
         .catch((err) => logger.error('Failed to index event in search', { err, eventId: mapped?.id }));
       return mapped;
+      await invalidateCache('events:list:*');
+      return mapRow(rows[0]);
     });
   },
 
@@ -172,6 +187,7 @@ export const eventsRepository = {
       );
       if (!rows.length) return null;
       
+      await invalidateCache('events:list:*');
       return mapRow(rows[0]);
     });
   },
@@ -183,6 +199,7 @@ export const eventsRepository = {
         import('../services/searchIndexer.js')
           .then(({ searchIndexer }) => searchIndexer.deleteDocument('events', id))
           .catch((err) => logger.error('Failed to remove event from search index', { err, eventId: id }));
+        await invalidateCache('events:list:*');
       }
       return rowCount > 0;
     });

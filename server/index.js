@@ -129,6 +129,7 @@ import { ZodError } from 'zod';
 import { EventEmitter } from 'events';
 import { normalizeFormSubmission } from './validators/formSchemas.js';
 import { adminAuthMiddleware } from './middleware/adminAuthMiddleware.js';
+import { initRedis } from './config/redis.js';
 import analyticsRouter from './routes/analytics.js';
 import { initializeSocketIO, emitToRoom, getRoom } from './config/socket.js';
 import adminStreamRouter from './routes/adminStream.js';
@@ -5015,6 +5016,8 @@ if (process.env.NODE_ENV !== "test") {
   } else {
     // Vercel/Render style deployments rely on the platform to start the server.
     const server = app.listen(port, () => {
+  boot.then(async () => {
+    await initRedis();
     server = app.listen(port, () => {
       // eslint-disable-next-line no-console
       console.log(`NexaSphere server listening on http://localhost:${port}`);
