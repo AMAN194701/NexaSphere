@@ -40,6 +40,7 @@ export function SecurityCenter() {
 
   const revoke = async (sessionId) => {
     try {
+      setError(null);
       await adminSecurity.revokeSession(sessionId);
       await load();
     } catch (err) {
@@ -49,6 +50,7 @@ export function SecurityCenter() {
 
   const logoutOthers = async () => {
     try {
+      setError(null);
       await adminSecurity.logoutOtherSessions();
       await load();
     } catch (err) {
