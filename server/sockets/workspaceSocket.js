@@ -46,12 +46,20 @@ export function setupWorkspaceSocket(io) {
       }
     }
 
+    //  RECTIFIED BLOCK: Fast-tracks existing members before validating capacity caps
     socket.on('join_room', (roomId, ack) => {
       if (!isValidRoomId(roomId)) {
         if (typeof ack === 'function') ack({ success: false, error: 'Invalid roomId' });
         return;
       }
 
+      // 1. If already a member, immediately acknowledge success and exit
+      if (socket.rooms && socket.rooms.has(roomId)) {
+        if (typeof ack === 'function') ack({ success: true, roomId });
+        return;
+      }
+
+      // 2. Safely apply capacity validation for brand new room entries
       if (roomsCount(socket) >= MAX_ROOMS_PER_SOCKET) {
         if (typeof ack === 'function') ack({ success: false, error: 'Room limit exceeded' });
         return;
