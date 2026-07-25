@@ -327,6 +327,7 @@ export default function PublicPortfolio({ username, onBack }) {
         {/* Intro profile summary */}
         <header className="portfolio-intro">
           <img
+            loading="lazy"
             src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${username}`}
             alt={`${username}'s avatar`}
             className="portfolio-avatar"

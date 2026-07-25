@@ -287,26 +287,35 @@ import "./styles/animations.css";
 import "./styles/chatbot.css";
 import "./styles/components.css";
 import "./styles/portfolio.css";
+import { useState, useEffect, useRef, useCallback, useLayoutEffect } from 'react';
 
-import "./styles/aurora.css";
-import "./styles/motion.css";
-import WorkspacePage from "./pages/workspace/WorkspacePage";
-import SearchBar from "./components/SearchBar";
-import FloatingDock from "./components/common/FloatingDock";
-import ParticleBackground from "./shared/ParticleBackground";
-import GeometricGridBackground from "./shared/GeometricGridBackground";
-import ScrollProgress from "./shared/ScrollProgress";
-import Navbar from "./shared/Navbar";
-import HeroSection from "./pages/home/HeroSection";
-import ActivitiesSection from "./pages/activities/ActivitiesSection";
-import EventsSection from "./pages/events/EventsSection";
-import AboutSection from "./pages/about/AboutSection";
-import TeamSection from "./pages/team/TeamSection";
-import Footer from "./shared/Footer";
-import ActivityDetailPage from "./pages/activities/ActivityDetailPage";
-import EventDetailPage from "./pages/events/EventDetailPage";
-import CinematicOpening from "./shared/CinematicOpening";
-import Chatbot from "./shared/Chatbot";
+import './styles/themes.css';
+import './styles/globals.css';
+import './styles/animations.css';
+import './styles/chatbot.css';
+import './styles/components.css';
+import './styles/portfolio.css';
+import './styles/pwa.css';
+
+import './styles/aurora.css';
+import './styles/motion.css';
+import WorkspacePage from './pages/workspace/WorkspacePage';
+import SearchBar from './components/SearchBar';
+import FloatingDock from './components/common/FloatingDock';
+import ParticleBackground from './shared/ParticleBackground';
+import GeometricGridBackground from './shared/GeometricGridBackground';
+import ScrollProgress from './shared/ScrollProgress';
+import Navbar from './shared/Navbar';
+import HeroSection from './pages/home/HeroSection';
+import ActivitiesSection from './pages/activities/ActivitiesSection';
+import EventsSection from './pages/events/EventsSection';
+import AboutSection from './pages/about/AboutSection';
+import TeamSection from './pages/team/TeamSection';
+import Footer from './shared/Footer';
+import ActivityDetailPage from './pages/activities/ActivityDetailPage';
+import EventDetailPage from './pages/events/EventDetailPage';
+import CinematicOpening from './shared/CinematicOpening';
+import Chatbot from './shared/Chatbot';
 import {
   AmbientOrbs,
   SectionDivider,
@@ -325,33 +334,39 @@ import TeamPage from "./pages/team/TeamPage";
 import ContactPage from "./pages/contact/ContactPage";
 import dynamic from "next/dynamic";
 import apiClient from "./utils/apiClient.js";
+} from './shared/MotionLayer';
+import ActivitiesPage from './pages/activities/ActivitiesPage';
+import EventsPage from './pages/events/EventsPage';
+import AboutPage from './pages/about/AboutPage';
+import TeamPage from './pages/team/TeamPage';
+import ContactPage from './pages/contact/ContactPage';
+import dynamic from 'next/dynamic';
+import apiClient from './utils/apiClient.js';
+import { getLocalEvents, mergeEvents, subscribePublicContent } from './utils/publicContentStore.js';
+import NotFoundPage from './pages/NotFoundPage';
 
-const RecruitmentPage = dynamic(
-  () => import("./pages/recruitment/RecruitmentPage"),
-  { ssr: false }
-);
-const MembershipPage = dynamic(
-  () => import("./pages/membership/MembershipPage"),
-  { ssr: false }
-);
-const AdminPage = dynamic(() => import("./pages/admin/AdminPage"), {
+const RecruitmentPage = dynamic(() => import('./pages/recruitment/RecruitmentPage'), {
   ssr: false,
 });
-import RoadmapsPage from "./pages/roadmaps/RoadmapsPage";
-import ProjectsPage from "./pages/projects/ProjectsPage";
-import CertificateVerifyPage from "./pages/certificates/CertificateVerifyPage";
-import CollabPage from "./pages/collab/CollabPage";
-import PortfolioBuilder from "./components/portfolio/PortfolioBuilder";
-import PublicPortfolio from "./pages/portfolio/PublicPortfolio";
-import DashboardPage from "./pages/dashboard/DashboardPage";
-import AnalyticsPage from "./pages/analytics/AnalyticsPage";
+const MembershipPage = dynamic(() => import('./pages/membership/MembershipPage'), { ssr: false });
+const AdminPage = dynamic(() => import('./pages/admin/AdminPage'), {
+  ssr: false,
+});
+import RoadmapsPage from './pages/roadmaps/RoadmapsPage';
+import ProjectsPage from './pages/projects/ProjectsPage';
+import CertificateVerifyPage from './pages/certificates/CertificateVerifyPage';
+import CollabPage from './pages/collab/CollabPage';
+import PortfolioBuilder from './components/portfolio/PortfolioBuilder';
+import PublicPortfolio from './pages/portfolio/PublicPortfolio';
+import DashboardPage from './pages/dashboard/DashboardPage';
+import AnalyticsPage from './pages/analytics/AnalyticsPage';
 
-import { activityPages } from "./data/activities/index";
-import { events as fallbackEvents } from "./data/eventsData";
-import nexasphereLogo from "./assets/images/logos/nexasphere-logo.png";
+import { activityPages } from './data/activities/index';
+import { events as fallbackEvents } from './data/eventsData';
+import nexasphereLogo from './assets/images/logos/nexasphere-logo.png';
 
-import Terminal from "./components/developer/Terminal";
-import { useDeveloperMode } from "./hooks/useDeveloperMode";
+import Terminal from './components/developer/Terminal';
+import { useDeveloperMode } from './hooks/useDeveloperMode';
 
 import BookmarksDrawer from "./components/bookmarks/BookmarksDrawer";
 import { useTheme } from "./hooks/useTheme";
@@ -728,6 +743,12 @@ const INTERVIEW_SUBPAGES = ['dashboard', 'quiz', 'code', 'analytics'];
 
 const MNH = 88, DNH = 64;
 const TABS = ['Home','Dashboard','Activities','Events','Projects','Roadmaps','Portfolio','Collab','About','Team','Contact'];
+import { BookmarkProvider } from './context/BookmarkContext';
+import BookmarksDrawer from './components/bookmarks/BookmarksDrawer';
+import { useTheme } from './hooks/useTheme';
+import { useInteractionEffects } from './hooks/useInteractionEffects';
+import { useBackToTop } from './hooks/useScrollLogic';
+
 import MoveToTop from './shared/MoveToTop';
 import OfflineBanner from './components/pwa/OfflineBanner.jsx';
 import InstallPrompt from './components/pwa/InstallPrompt.jsx';
@@ -744,18 +765,18 @@ import MoveToTop from "./shared/MoveToTop";
 const MNH = 88,
   DNH = 64;
 const TABS = [
-  "Home",
-  "Dashboard",
-  "Analytics",
-  "Activities",
-  "Events",
-  "Projects",
-  "Roadmaps",
-  "Portfolio",
-  "Collab",
-  "About",
-  "Team",
-  "Contact",
+  'Home',
+  'Dashboard',
+  'Analytics',
+  'Activities',
+  'Events',
+  'Projects',
+  'Roadmaps',
+  'Portfolio',
+  'Collab',
+  'About',
+  'Team',
+  'Contact',
 ];
 
 const MNH = 88,
@@ -891,9 +912,9 @@ function Wipe({ on, ph }) {
           position: "fixed",
           inset: 0,
           zIndex: 8000,
-          background: "var(--bg)",
-          animation: `${ph === "out" ? "wipeDown .27s" : "wipeUp .30s"} cubic-bezier(.77,0,.18,1) forwards`,
-          pointerEvents: "all",
+          background: 'var(--bg)',
+          animation: `${ph === 'out' ? 'wipeDown .27s' : 'wipeUp .30s'} cubic-bezier(.77,0,.18,1) forwards`,
+          pointerEvents: 'all',
         }}
       />
       <div
@@ -923,28 +944,29 @@ function Wipe({ on, ph }) {
           position: "fixed",
           inset: 0,
           zIndex: 8001,
-          background: "linear-gradient(90deg,#CC1111,#880000,#EE2222)",
+          background: 'linear-gradient(90deg,#CC1111,#880000,#EE2222)',
           opacity: 0.09,
-          animation: `${ph === "out" ? "wipeDown .20s .04s" : "wipeUp .24s .04s"} cubic-bezier(.77,0,.18,1) forwards`,
-          pointerEvents: "none",
+          animation: `${ph === 'out' ? 'wipeDown .20s .04s' : 'wipeUp .24s .04s'} cubic-bezier(.77,0,.18,1) forwards`,
+          pointerEvents: 'none',
         }}
       />
-      {ph === "out" && <div className="wipe-shimmer" aria-hidden="true" />}
-      {ph === "in" && <PageFlash />}
-      {ph === "out" && (
+      {ph === 'out' && <div className="wipe-shimmer" aria-hidden="true" />}
+      {ph === 'in' && <PageFlash />}
+      {ph === 'out' && (
         <div
           style={{
-            position: "fixed",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%,-50%)",
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%,-50%)',
             zIndex: 8002,
-            pointerEvents: "none",
+            pointerEvents: 'none',
             opacity: 0,
-            animation: "splashIn .16s .1s ease forwards",
+            animation: 'splashIn .16s .1s ease forwards',
           }}
         >
           <img
+            loading="lazy"
             src={nexasphereLogo}
             style={{
               height: '46px',
@@ -1072,10 +1094,10 @@ function PageIn({ children, k }) {
     <div
       style={{
         opacity: r ? 1 : 0,
-        transform: r ? "none" : "translateY(16px) scale(.99)",
+        transform: r ? 'none' : 'translateY(16px) scale(.99)',
         transition:
-          "opacity .42s cubic-bezier(.22,1,.36,1),transform .42s cubic-bezier(.22,1,.36,1)",
-        willChange: "opacity,transform",
+          'opacity .42s cubic-bezier(.22,1,.36,1),transform .42s cubic-bezier(.22,1,.36,1)',
+        willChange: 'opacity,transform',
       }}
     >
       {children}
@@ -1359,16 +1381,16 @@ function Cursor() {
 
     const onMouseLeave = () => {
       s.visible = false;
-      if (orbRef.current) orbRef.current.style.display = "none";
-      if (trailRef.current) trailRef.current.style.display = "none";
-      if (glowRef.current) glowRef.current.style.display = "none";
+      if (orbRef.current) orbRef.current.style.display = 'none';
+      if (trailRef.current) trailRef.current.style.display = 'none';
+      if (glowRef.current) glowRef.current.style.display = 'none';
     };
 
     const onMouseEnter = () => {
       s.visible = true;
-      if (orbRef.current) orbRef.current.style.display = "block";
-      if (trailRef.current) trailRef.current.style.display = "block";
-      if (glowRef.current) glowRef.current.style.display = "block";
+      if (orbRef.current) orbRef.current.style.display = 'block';
+      if (trailRef.current) trailRef.current.style.display = 'block';
+      if (glowRef.current) glowRef.current.style.display = 'block';
     };
 
     const tick = () => {
@@ -1429,10 +1451,13 @@ function Cursor() {
             ? 0
             : 0.35
           : 0;
+        trailRef.current.style.left = s.ox + 'px';
+        trailRef.current.style.top = s.oy + s.floatY * 0.4 + 'px';
+        trailRef.current.style.opacity = s.visible ? (s.hovering ? 0 : 0.35) : 0;
       }
       if (glowRef.current) {
-        glowRef.current.style.left = s.mx + "px";
-        glowRef.current.style.top = s.my + "px";
+        glowRef.current.style.left = s.mx + 'px';
+        glowRef.current.style.top = s.my + 'px';
         glowRef.current.style.opacity = s.visible ? 1 : 0;
         trailRef.current.style.left = s.ox + 'px';
         trailRef.current.style.top = s.oy + s.floatY * 0.4 + 'px';
@@ -1524,7 +1549,7 @@ function Cursor() {
     s.raf = requestAnimationFrame(tick);
 
     return () => {
-      document.body.style.cursor = "";
+      document.body.style.cursor = '';
       cancelAnimationFrame(s.raf);
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mousedown', onDown);
@@ -1540,6 +1565,8 @@ function Cursor() {
       window.removeEventListener("mouseover", onOver);
       document.documentElement.removeEventListener("mouseleave", onMouseLeave);
       document.documentElement.removeEventListener("mouseenter", onMouseEnter);
+      document.documentElement.removeEventListener('mouseleave', onMouseLeave);
+      document.documentElement.removeEventListener('mouseenter', onMouseEnter);
     };
   }, []);
 
@@ -1620,17 +1647,17 @@ function Cursor() {
       <div
         ref={glowRef}
         style={{
-          position: "fixed",
-          pointerEvents: "none",
+          position: 'fixed',
+          pointerEvents: 'none',
           zIndex: 10000,
-          width: "320px",
-          height: "320px",
-          borderRadius: "50%",
+          width: '320px',
+          height: '320px',
+          borderRadius: '50%',
           background:
-            "radial-gradient(circle, rgba(204,17,17,.055) 0%, rgba(136,0,0,.03) 40%, transparent 70%)",
-          transform: "translate(-50%,-50%)",
-          transition: "opacity .3s",
-          willChange: "transform, opacity",
+            'radial-gradient(circle, rgba(204,17,17,.055) 0%, rgba(136,0,0,.03) 40%, transparent 70%)',
+          transform: 'translate(-50%,-50%)',
+          transition: 'opacity .3s',
+          willChange: 'transform, opacity',
         }}
       />
       <div
@@ -1650,15 +1677,14 @@ function Cursor() {
           position: "fixed",
           pointerEvents: "none",
           zIndex: 10002,
-          width: "28px",
-          height: "28px",
-          borderRadius: "50%",
-          background:
-            "radial-gradient(circle, rgba(204,17,17,0.7) 0%, transparent 70%)",
-          transform: "translate(-50%,-50%)",
-          filter: "blur(6px)",
-          transition: "opacity .25s",
-          willChange: "transform, opacity",
+          width: '28px',
+          height: '28px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(204,17,17,0.7) 0%, transparent 70%)',
+          transform: 'translate(-50%,-50%)',
+          filter: 'blur(6px)',
+          transition: 'opacity .25s',
+          willChange: 'transform, opacity',
         }}
       />
       <div
@@ -1678,16 +1704,14 @@ function Cursor() {
           position: "fixed",
           pointerEvents: "none",
           zIndex: 100000,
-          width: "18px",
-          height: "18px",
-          borderRadius: "50%",
-          background:
-            "radial-gradient(circle at 35% 35%, #fff 0%, #CC1111 40%, #880000 100%)",
+          width: '18px',
+          height: '18px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle at 35% 35%, #fff 0%, #CC1111 40%, #880000 100%)',
           boxShadow:
-            "0 0 10px rgba(204,17,17,.9), 0 0 24px rgba(204,17,17,.5), 0 0 50px rgba(136,0,0,.3)",
-          transition:
-            "transform .08s cubic-bezier(.34,1.56,.64,1), opacity .2s",
-          willChange: "transform, opacity",
+            '0 0 10px rgba(204,17,17,.9), 0 0 24px rgba(204,17,17,.5), 0 0 50px rgba(136,0,0,.3)',
+          transition: 'transform .08s cubic-bezier(.34,1.56,.64,1), opacity .2s',
+          willChange: 'transform, opacity',
         }}
       >
         <div
@@ -1757,10 +1781,10 @@ function MainApp() {
   const [wipeOn, setWipeOn] = useState(false);
   const [wipePh, setWipePh] = useState('out');
   const [cinDone, setCinDone] = useState(false);
-  const [activeTab, setActiveTab] = useState("Home");
+  const [activeTab, setActiveTab] = useState('Home');
   const [mobile, setMobile] = useState(window.innerWidth <= 768);
   const [wipeOn, setWipeOn] = useState(false);
-  const [wipePh, setWipePh] = useState("out");
+  const [wipePh, setWipePh] = useState('out');
   const [page, setPage] = useState(null);
   const [eventsData, setEventsData] = useState(fallbackEvents);
   const [searchOpen, setSearchOpen] = useState(false); // ← Search state
@@ -1773,6 +1797,7 @@ function MainApp() {
   const [wipePh, setWipePh] = useState("out");
   const [page, setPage] = useState(null);
   const [eventsData, setEventsData] = useState(fallbackEvents);
+  const [eventsData, setEventsData] = useState(() => getLocalEvents(fallbackEvents));
   const [searchOpen, setSearchOpen] = useState(false); // 🔍 Search state
   const [bookmarksOpen, setBookmarksOpen] = useState(false);
   const { resolvedTheme: theme, setTheme } = useTheme();
@@ -1796,7 +1821,7 @@ function MainApp() {
     const match = path.match(/^\/p\/([a-zA-Z0-9_-]+)/);
     if (match) {
       const name = match[1];
-      setPage({ type: "portfolio", username: name });
+      setPage({ type: 'portfolio', username: name });
     }
   }, []);
 
@@ -1928,13 +1953,10 @@ export default function App() {
             await import("./utils/pushNotificationClient");
           const vapidKey =
             import.meta.env.VITE_VAPID_PUBLIC_KEY ||
-            "BFG7-T9CszX7v2Xg707l3qTNY2p5N1N4iO3J8t5vJv5O7g7i5r5v5i5v5o5r5i5v5r5e5s5w5s";
+            'BFG7-T9CszX7v2Xg707l3qTNY2p5N1N4iO3J8t5vJv5O7g7i5r5v5i5v5o5r5i5v5r5e5s5w5s';
           await initializePushNotifications(vapidKey);
         } catch (err) {
-          console.warn(
-            "Push notification initialization skipped or failed gracefully:",
-            err
-          );
+          console.warn('Push notification initialization skipped or failed gracefully:', err);
         }
       };
       const timer = setTimeout(initPush, 3500);
@@ -1990,6 +2012,45 @@ export default function App() {
         console.error("Failed to fetch events:", err);
         setEventsData([]);
       });
+    const applyLocalEvents = () => {
+      if (alive) setEventsData(getLocalEvents(fallbackEvents));
+    };
+
+    if (!base) {
+      applyLocalEvents();
+      return subscribePublicContent(applyLocalEvents);
+    }
+
+    const url = `${base}/api/content/events`;
+
+    const fetchEvents = () => {
+      apiClient(url)
+        .then((data) => {
+          if (!alive) return;
+          if (data && Array.isArray(data.events)) {
+            setEventsData(
+              data.events.length
+                ? mergeEvents(fallbackEvents, data.events)
+                : getLocalEvents(fallbackEvents)
+            );
+          } else if (Array.isArray(data)) {
+            setEventsData(
+              data.length ? mergeEvents(fallbackEvents, data) : getLocalEvents(fallbackEvents)
+            );
+          } else {
+            console.warn('Malformed API response for events:', data);
+            setEventsData(getLocalEvents(fallbackEvents));
+          }
+        })
+        .catch((err) => {
+          if (!alive) return;
+          console.error('Failed to fetch events:', err);
+          setEventsData((prev) => (prev?.length ? prev : getLocalEvents(fallbackEvents)));
+        });
+    };
+
+    fetchEvents();
+    const interval = setInterval(fetchEvents, 4000);
     return () => {
       alive = false;
     };
@@ -2048,12 +2109,14 @@ export default function App() {
     return () => window.removeEventListener('scroll', fn);
     window.addEventListener("scroll", fn, { passive: true });
     return () => window.removeEventListener("scroll", fn);
+    window.addEventListener('scroll', fn, { passive: true });
+    return () => window.removeEventListener('scroll', fn);
   }, [mobile, page]);
 
   useEffect(() => {
     const fn = () => setMobile(window.innerWidth <= 768);
-    window.addEventListener("resize", fn, { passive: true });
-    return () => window.removeEventListener("resize", fn);
+    window.addEventListener('resize', fn, { passive: true });
+    return () => window.removeEventListener('resize', fn);
   }, []);
 
   useEffect(()=>{
@@ -2090,13 +2153,13 @@ export default function App() {
   /* ── Ctrl+K / Cmd+K opens search ── */
   useEffect(() => {
     const fn = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
         setSearchOpen((s) => !s);
       }
     };
-    window.addEventListener("keydown", fn);
-    return () => window.removeEventListener("keydown", fn);
+    window.addEventListener('keydown', fn);
+    return () => window.removeEventListener('keydown', fn);
   }, []);
 
   /* ── Ctrl+K / Cmd+K opens search ── */
@@ -2299,13 +2362,13 @@ export default function App() {
     const obs = new IntersectionObserver(
       (entries) => {
         entries.forEach((e) => {
-          if (e.isIntersecting && !e.target.classList.contains("fired")) {
-            e.target.classList.add("fired");
+          if (e.isIntersecting && !e.target.classList.contains('fired')) {
+            e.target.classList.add('fired');
             e.target.addEventListener(
-              "animationend",
+              'animationend',
               () => {
-                e.target.style.opacity = "1";
-                e.target.style.transform = "none";
+                e.target.style.opacity = '1';
+                e.target.style.transform = 'none';
               },
               { once: true }
             );
@@ -2313,15 +2376,13 @@ export default function App() {
           }
         });
       },
-      { threshold: 0.09, rootMargin: "0px 0px -36px 0px" }
+      { threshold: 0.09, rootMargin: '0px 0px -36px 0px' }
     );
     document
-      .querySelectorAll(
-        ".pop-in,.pop-left,.pop-right,.pop-scale,.pop-flip,.pop-word,.pop-num"
-      )
+      .querySelectorAll('.pop-in,.pop-left,.pop-right,.pop-scale,.pop-flip,.pop-word,.pop-num')
       .forEach((el) => obs.observe(el));
 
-    const btns = document.querySelectorAll(".mag-btn");
+    const btns = document.querySelectorAll('.mag-btn');
     const onMove = (e) => {
       btns.forEach((btn) => {
         const rect = btn.getBoundingClientRect();
@@ -2331,7 +2392,7 @@ export default function App() {
         btn.style.transform =
           d < 88
             ? `translate(${((dx * (88 - d)) / 88) * 0.32}px,${((dy * (88 - d)) / 88) * 0.32}px)`
-            : "";
+            : '';
       });
       document.querySelectorAll(".activity-card").forEach((card) => {
       document.querySelectorAll('.activity-card').forEach((card) => {
@@ -2385,6 +2446,7 @@ export default function App() {
             : "";
       });
       document.querySelectorAll(".activity-card").forEach((card) => {
+      document.querySelectorAll('.activity-card').forEach((card) => {
         const rect = card.getBoundingClientRect();
         const cx = rect.left + rect.width / 2;
         const cy = rect.top + rect.height / 2;
@@ -2405,8 +2467,8 @@ export default function App() {
             ((-dy / rect.height) * intensity).toFixed(2)
           );
         } else {
-          card.style.setProperty("--rx", "0");
-          card.style.setProperty("--ry", "0");
+          card.style.setProperty('--rx', '0');
+          card.style.setProperty('--ry', '0');
         }
       });
     };
@@ -2417,7 +2479,7 @@ export default function App() {
     window.addEventListener("mousemove", onMove, { passive: true });
     return () => {
       obs.disconnect();
-      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener('mousemove', onMove);
     };
   }, [cinDone, page]);
 
@@ -2426,11 +2488,11 @@ export default function App() {
   useActiveTabObserver(page, mobile, NAV_TABS, NAV_HEIGHTS, setActiveTab);
 
   useEffect(() => {
-    if (window.location.pathname.startsWith("/workspace/")) {
-      const roomId = window.location.pathname.split("/workspace/")[1];
+    if (window.location.pathname.startsWith('/workspace/')) {
+      const roomId = window.location.pathname.split('/workspace/')[1];
       if (roomId) {
         setCinDone(true);
-        setPage({ type: "workspace", roomId });
+        setPage({ type: 'workspace', roomId });
       }
     } else if (window.location.pathname.startsWith("/mentorship/review/")) {
       const roomId = window.location.pathname.split("/mentorship/review/")[1];
@@ -2477,12 +2539,12 @@ export default function App() {
     setWipeOn(true);
     setWipePh('out');
     setWipeOn(true);
-    setWipePh("out");
+    setWipePh('out');
     setTimeout(() => {
       fn();
       window.scrollTo({ top: 0 });
       requestAnimationFrame(() => {
-        setWipePh("in");
+        setWipePh('in');
         setTimeout(() => setWipeOn(false), 340);
       });
     }, 275);
@@ -2648,10 +2710,19 @@ export default function App() {
           "About",
           "Team",
           "Contact",
+          'Dashboard',
+          'Analytics',
+          'Projects',
+          'Roadmaps',
+          'Portfolio',
+          'Collab',
+          'About',
+          'Team',
+          'Contact',
         ].includes(tab)
       ) {
         nav(() => {
-          setPage({ type: "section", section: tab });
+          setPage({ type: 'section', section: tab });
           setActiveTab(tab);
         });
         return;
@@ -2664,10 +2735,31 @@ export default function App() {
           if (!el) return;
           window.scrollTo({
             top: el.offsetTop - (mobile ? MNH : DNH),
-            behavior: "smooth",
+            behavior: 'smooth',
           });
         }, 50);
       });
+        } else if (tab === 'Home') {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      } else {
+        // Transition back to main page, then scroll
+        nav(() => {
+          setPage(null);
+          setActiveTab(tab);
+          setTimeout(() => {
+            const el = document.getElementById(`section-${tab.toLowerCase()}`);
+            if (el) {
+              window.scrollTo({
+                top: el.offsetTop - (mobile ? MNH : DNH),
+                behavior: 'smooth',
+              });
+            } else if (tab === 'Home') {
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+          }, 50);
+        });
+      }
     },
     [nav, mobile]
   );
@@ -3137,24 +3229,21 @@ export default function App() {
 
   const onNavigate = useCallback(
     (type, title) => {
-      if (type === "activity")
-        nav(() => setPage({ type: "activity", activityKey: title }));
+      if (type === 'activity') nav(() => setPage({ type: 'activity', activityKey: title }));
     },
     [nav]
   );
 
   const onEvent = useCallback(
     (ev) => {
-      nav(() => setPage((p) => ({ ...p, type: "event", event: ev })));
+      nav(() => setPage((p) => ({ ...p, type: 'event', event: ev })));
     },
     [nav]
   );
 
   const onKSSClick = useCallback(
     (ev) => {
-      nav(() =>
-        setPage({ type: "event", activityKey: "Insight Session", event: ev })
-      );
+      nav(() => setPage({ type: 'event', activityKey: 'Insight Session', event: ev }));
     },
     [nav]
   );
@@ -3167,18 +3256,19 @@ export default function App() {
     nav(() =>
       setPage((p) => ({ type: "activity", activityKey: p.activityKey }))
     );
+    nav(() => setPage((p) => ({ type: 'activity', activityKey: p.activityKey })));
   }, [nav]);
 
   const onBackMain = useCallback(() => {
     nav(() => {
       setPage(null);
       setTimeout(() => {
-        const el = document.getElementById("section-activities");
+        const el = document.getElementById('section-activities');
         if (!el) return;
         window.scrollTo({ top: el.offsetTop - (mobile ? MNH : DNH), behavior: 'smooth' });
         window.scrollTo({
           top: el.offsetTop - (mobile ? MNH : DNH),
-          behavior: "smooth",
+          behavior: 'smooth',
         });
       }, 50);
     });
@@ -3275,18 +3365,18 @@ export default function App() {
 
   const onBackHome = useCallback(() => {
   const openApply = useCallback(() => {
-    nav(() => setPage({ type: "apply" }));
+    nav(() => setPage({ type: 'apply' }));
   }, [nav]);
 
   const openJoin = useCallback(() => {
-    nav(() => setPage({ type: "join" }));
+    nav(() => setPage({ type: 'join' }));
   }, [nav]);
 
   const onBackHome = useCallback(() => {
-    window.history.pushState({}, "", "/");
+    window.history.pushState({}, '', '/');
     nav(() => {
       setPage(null);
-      setActiveTab("Home");
+      setActiveTab('Home');
       window.scrollTo({ top: 0 });
     });
   }, [nav]);
@@ -3328,10 +3418,23 @@ export default function App() {
       {cinDone && <ScrollProgress />}
       <Cursor />
       <Wipe on={wipeOn} ph={wipePh} />
+      {/* ── Loading background: prevents white-flash on fast devices while
+           cinDone is false. Z-index sits beneath the CinematicOpening (z 9999)
+           but above everything else. Fades out once the opening completes. ── */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 8900,
+          background: theme === 'light' ? '#FFFFFF' : '#0A0A0A',
+          opacity: cinDone ? 0 : 1,
+          transition: 'opacity .5s ease',
+          pointerEvents: 'none',
+        }}
+      />
 
-      {!cinDone && (
-        <CinematicOpening theme={theme} onDone={() => setCinDone(true)} />
-      )}
+      {!cinDone && <CinematicOpening theme={theme} onDone={() => setCinDone(true)} />}
 
       {cinDone && <ScrollProgress />}
       <Cursor />
@@ -3528,17 +3631,23 @@ export default function App() {
               <DashboardPage onBack={onBackHome} />
             )}
             {page.section === "Activities" && (
+            {page.section === 'Dashboard' && <DashboardPage onBack={onBackHome} />}
+            {page.section === 'Analytics' && <AnalyticsPage onBack={onBackHome} />}
+            {page.section === 'Activities' && (
               <ActivitiesPage onNavigate={onNavigate} onBack={onBackHome} />
             )}
-            {page.section === "Events" && (
-              <EventsPage
-                onBack={onBackHome}
-                onEventClick={onKSSClick}
-                events={eventsData}
-              />
+            {page.section === 'Events' && (
+              <EventsPage onBack={onBackHome} onEventClick={onKSSClick} events={eventsData} />
             )}
-            {page.section === "Projects" && (
-              <ProjectsPage onBack={onBackHome} />
+            {page.section === 'Projects' && <ProjectsPage onBack={onBackHome} />}
+            {page.section === 'Roadmaps' && <RoadmapsPage onBack={onBackHome} />}
+            {page.section === 'Portfolio' && <PortfolioBuilder />}
+            {page.section === 'Collab' && <CollabPage onBack={onBackHome} />}
+            {page.section === 'About' && <AboutPage onBack={onBackHome} />}
+            {page.section === 'Team' && <TeamPage onBack={onBackHome} onApply={openApply} />}
+            {page.section === 'Contact' && <ContactPage onBack={onBackHome} />}
+            {page.type === 'activity' && cur && (
+              <ActivityDetailPage activity={cur} onBack={onBackMain} onSelectEvent={onEvent} />
             )}
             {page.section === "Roadmaps" && (
               <RoadmapsPage onBack={onBackHome} />
@@ -3566,6 +3675,10 @@ export default function App() {
             {page.type === "join" && <MembershipPage onBack={onBackHome} />}
             {page.type === "admin" && <AdminPage onBack={onBackHome} />}
             {page.type === "event" && page.event && (
+            {page.type === 'apply' && <RecruitmentPage onBack={onBackHome} />}
+            {page.type === 'join' && <MembershipPage onBack={onBackHome} />}
+            {page.type === 'admin' && <AdminPage onBack={onBackHome} />}
+            {page.type === 'event' && page.event && (
               <EventDetailPage
                 event={page.event}
                 onBack={page.activityKey ? onBackAct : onBackMain}
@@ -3698,7 +3811,7 @@ export default function App() {
             {page.type === "portfolio" && (
               <PublicPortfolio username={page.username} onBack={onBackHome} />
             )}
-            {page.type === "workspace" && (
+            {page.type === 'workspace' && (
               <WorkspacePage roomId={page.roomId} onBack={onBackHome} />
             )}
             {page.type &&
@@ -3714,6 +3827,9 @@ export default function App() {
                 "mentorship",
                 "review_session",
               ].includes(page.type) && <NotFoundPage onGoHome={onBackHome} />}
+              !['section', 'activity', 'event', 'apply', 'join', 'portfolio', 'workspace'].includes(
+                page.type
+              ) && <NotFoundPage onGoHome={onBackHome} />}
           </PageIn>
         ) : (
           cinDone && (
@@ -3754,6 +3870,13 @@ export default function App() {
                 onProjects={() => onTab("Projects")}
                 onRoadmaps={() => onTab("Roadmaps")}
               />
+              <div id="section-contact">
+                <Footer
+                  onAdmin={() => nav(() => setPage({ type: 'admin' }))}
+                  onProjects={() => onTab('Projects')}
+                  onRoadmaps={() => onTab('Roadmaps')}
+                />
+              </div>
             </PageIn>
           )
         )}
@@ -3894,26 +4017,29 @@ export default function App() {
             position: "fixed",
             bottom: "80px",
             left: "24px",
+            position: 'fixed',
+            bottom: '80px',
+            left: '24px',
             zIndex: 8500,
-            width: "46px",
-            height: "46px",
-            borderRadius: "50%",
-            background: "linear-gradient(135deg,#CC1111,#880000)",
-            border: "none",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            boxShadow: "0 4px 20px rgba(204,17,17,0.5)",
-            transition: "transform 0.2s, box-shadow 0.2s",
+            width: '46px',
+            height: '46px',
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg,#CC1111,#880000)',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 20px rgba(204,17,17,0.5)',
+            transition: 'transform 0.2s, box-shadow 0.2s',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.transform = "scale(1.12)";
-            e.currentTarget.style.boxShadow = "0 6px 28px rgba(204,17,17,0.75)";
+            e.currentTarget.style.transform = 'scale(1.12)';
+            e.currentTarget.style.boxShadow = '0 6px 28px rgba(204,17,17,0.75)';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.transform = "scale(1)";
-            e.currentTarget.style.boxShadow = "0 4px 20px rgba(204,17,17,0.5)";
+            e.currentTarget.style.transform = 'scale(1)';
+            e.currentTarget.style.boxShadow = '0 4px 20px rgba(204,17,17,0.5)';
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.transform = "scale(1.12)";
@@ -4074,6 +4200,9 @@ export default function App() {
           if (type === "Event") onTab("Events");
           else if (type === "Activity") onTab("Activities");
           else if (type === "Roadmap") onTab("Roadmaps");
+          if (type === 'Event') onTab('Events');
+          else if (type === 'Activity') onTab('Activities');
+          else if (type === 'Roadmap') onTab('Roadmaps');
         }}
       />
       {cinDone && <FloatingDock />}

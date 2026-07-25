@@ -1121,6 +1121,10 @@ export default function PortfolioBuilder() {
               >
                 <img
                   src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${username || "preview"}`}
+              >
+                <img
+                  loading="lazy"
+                  src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${username || 'preview'}`}
                   alt="avatar"
                   className="portfolio-avatar"
                   style={{ width: "80px", height: "80px" }}

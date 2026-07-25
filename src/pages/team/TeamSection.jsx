@@ -8,13 +8,20 @@ import apiClient from "../../utils/apiClient.js";
 import { createPortal } from "react-dom";
 import TeamMemberModal from "./TeamMemberModal";
 import { IconArrowRight, IconSpark } from "../../shared/Icons";
+import apiClient from '../../utils/apiClient.js';
+import TeamMemberModal from './TeamMemberModal';
+import { IconSpark } from '../../shared/Icons';
+import { teamMembers as fallbackTeamMembers } from '../../data/teamData';
+import {
+  getLocalTeamMembers,
+  mergeTeamMembers,
+  subscribePublicContent,
+} from '../../utils/publicContentStore.js';
 
 function MemberCard({ member, idx, onClick }) {
   const ref = useRef(null);
   const [imgError, setImgError] = useState(false);
-  const agDelay = [
-    -0.0, -2.1, -4.2, -1.0, -3.3, -5.5, -0.7, -6.1, -2.8, -4.9, -1.6, -3.8,
-  ];
+  const agDelay = [-0.0, -2.1, -4.2, -1.0, -3.3, -5.5, -0.7, -6.1, -2.8, -4.9, -1.6, -3.8];
 
   const onMove = (e) => {
     const c = ref.current;
@@ -38,6 +45,8 @@ function MemberCard({ member, idx, onClick }) {
     c.style.animationPlayState = '';
     c.style.transform = "";
     c.style.animationPlayState = "";
+    c.style.transform = '';
+    c.style.animationPlayState = '';
   };
   const click = () => {
     const c = ref.current;
@@ -47,7 +56,7 @@ function MemberCard({ member, idx, onClick }) {
         c.style.transform = '';
       c.style.transform = "scale(.9)";
       setTimeout(() => {
-        c.style.transform = "";
+        c.style.transform = '';
       }, 140);
     }
     setTimeout(() => onClick(member), 110);
@@ -63,8 +72,8 @@ function MemberCard({ member, idx, onClick }) {
         cursor: "pointer",
         perspective: "800px",
         animation: `ag 7s ease-in-out ${agDelay[idx % 12]}s infinite`,
-        willChange: "transform",
-        animationFillMode: "both",
+        willChange: 'transform',
+        animationFillMode: 'both',
         opacity: 1,
       }}
       onMouseMove={onMove}
@@ -79,6 +88,7 @@ function MemberCard({ member, idx, onClick }) {
     >
       <div className="team-card-photo-wrap">
         <img
+          loading="lazy"
           src={
             !member.photo || imgError
               ? 'https://api.dicebear.com/7.x/initials/svg?seed=' +
@@ -86,7 +96,7 @@ function MemberCard({ member, idx, onClick }) {
                 '&backgroundColor=7b6fff&textColor=ffffff'
               ? "https://api.dicebear.com/7.x/initials/svg?seed=" +
                 encodeURIComponent(member.name) +
-                "&backgroundColor=7b6fff&textColor=ffffff"
+                '&backgroundColor=7b6fff&textColor=ffffff'
               : member.photo
           }
           alt={member.name}
@@ -111,6 +121,7 @@ export default function TeamSection({ onApply }) {
   const [sel, setSel] = useState(null);
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [members, setMembers] = useState(() => getLocalTeamMembers(fallbackTeamMembers));
 
   useEffect(() => {
     let alive = true;
@@ -135,6 +146,38 @@ export default function TeamSection({ onApply }) {
         if (alive) setLoading(false);
       });
       .catch(() => {});
+    const applyLocalTeam = () => {
+      if (alive) setMembers(getLocalTeamMembers(fallbackTeamMembers));
+    };
+
+    if (!base) {
+      applyLocalTeam();
+      return subscribePublicContent(applyLocalTeam);
+    }
+
+    const url = `${base}/api/content/team`;
+
+    const fetchTeam = () => {
+      apiClient(url)
+        .then((data) => {
+          if (!alive) return;
+          if (Array.isArray(data?.members)) {
+            setMembers(
+              data.members.length
+                ? mergeTeamMembers(fallbackTeamMembers, data.members)
+                : getLocalTeamMembers(fallbackTeamMembers)
+            );
+          } else {
+            setMembers(getLocalTeamMembers(fallbackTeamMembers));
+          }
+        })
+        .catch(() => {
+          setMembers((prev) => (prev?.length ? prev : getLocalTeamMembers(fallbackTeamMembers)));
+        });
+    };
+
+    fetchTeam();
+    const interval = setInterval(fetchTeam, 4000);
     return () => {
       alive = false;
     };
@@ -158,10 +201,10 @@ export default function TeamSection({ onApply }) {
           if (e.isIntersecting && !e.target.classList.contains("fired")) {
             e.target.classList.add("fired");
             e.target.addEventListener(
-              "animationend",
+              'animationend',
               () => {
-                e.target.style.opacity = "1";
-                e.target.style.transform = "none";
+                e.target.style.opacity = '1';
+                e.target.style.transform = 'none';
               },
               { once: true }
             );
@@ -189,10 +232,10 @@ export default function TeamSection({ onApply }) {
         ) {
           el.classList.add("fired");
           el.addEventListener(
-            "animationend",
+            'animationend',
             () => {
-              el.style.opacity = "1";
-              el.style.transform = "none";
+              el.style.opacity = '1';
+              el.style.transform = 'none';
             },
             { once: true }
           );
@@ -209,9 +252,7 @@ export default function TeamSection({ onApply }) {
     <section className="section" id="section-team">
       <div className="container">
         <div className="section-heading">
-          <span className="cin-section-label pop-in">
-            GL Bajaj Group of Institutions · Mathura
-          </span>
+          <span className="cin-section-label pop-in">GL Bajaj Group of Institutions · Mathura</span>
           <h2 className="section-title pop-word">Core Team</h2>
           <p className="section-subtitle pop-in" style={{ animationDelay: '.1s' }}>
           <p
@@ -269,9 +310,9 @@ export default function TeamSection({ onApply }) {
               fontFamily: "Orbitron,monospace",
               fontSize: "1rem",
               fontWeight: 700,
-              color: "var(--c1)",
-              marginBottom: "8px",
-              letterSpacing: ".05em",
+              color: 'var(--c1)',
+              marginBottom: '8px',
+              letterSpacing: '.05em',
             }}
           >
             Want to Join NexaSphere?
@@ -292,14 +333,14 @@ export default function TeamSection({ onApply }) {
               lineHeight: 1.65,
             }}
           >
-            We&apos;re looking for passionate students to drive NexaSphere
-            forward. Fill in the form and we&apos;ll reach out!
+            We&apos;re looking for passionate students to drive NexaSphere forward. Fill in the form
+            and we&apos;ll reach out!
           </p>
           <button
             type="button"
             onClick={() => onApply && onApply()}
             className="btn btn-join btn-ripple"
-            style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
           >
             Apply Here <IconSpark />
           </button>
