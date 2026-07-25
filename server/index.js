@@ -167,6 +167,8 @@ import { validateEnvironment } from './utils/envValidator.js';
 import { performanceMonitor } from './middleware/performanceMonitor.js';
 import { tracingMiddleware } from './middleware/tracingMiddleware.js';
 import { apiRequestLogger } from './middleware/apiRequestLogger.js';
+import { enhancedTracingMiddleware } from './middleware/enhancedTracingMiddleware.js';
+import { apiLogger } from './middleware/apiLogger.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { notificationAnalyticsRepository } from './repositories/notificationAnalyticsRepository.js';
 import { notificationPreferencesRepository } from './repositories/notificationPreferencesRepository.js';
@@ -936,6 +938,9 @@ if (!useStructuredHttpLog) {
 }
 app.use(apiLogger);
 if (!useStructuredHttpLog) {
+if (useStructuredHttpLog) {
+  app.use(apiLogger);
+} else {
   app.use(morgan('combined'));
 }
 app.use(performanceMonitor);
