@@ -11,6 +11,13 @@ function formatScheduledDate(value) {
 import apiClient from '../../utils/apiClient';
 import { getApiBase, buildUrl } from '../../utils/runtimeConfig';
 
+function formatSkillSessionDate(value) {
+  if (!value) return 'Unknown date';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Unknown date';
+  return date.toLocaleDateString();
+}
+
 const USER_ID = localStorage.getItem('ns_user_id') || `user-${Date.now().toString(36)}`;
 const PROFICIENCY = ['Beginner', 'Intermediate', 'Advanced'];
 const FORMATS = ['Video', 'Chat', 'In-person'];
@@ -470,6 +477,7 @@ export default function SkillExchangePage({ onBack }) {
                     <div style={{ fontSize: '0.85rem', color: 'var(--t2)' }}>
                       Status: <strong>{s.status}</strong> · Scheduled:{' '}
                       {formatScheduledDate(s.scheduledAt)}
+                      {formatSkillSessionDate(s.scheduledAt)}
                     </div>
                     {s.notes && (
                       <div style={{ fontSize: '0.85rem', color: 'var(--t3)' }}>
