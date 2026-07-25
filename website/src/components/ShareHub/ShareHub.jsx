@@ -71,6 +71,9 @@ export default function ShareHub({ isOpen, onClose, data }) {
         }
       });
       navigator.share({ title: shareTitle, url: shareUrl }).catch(() => {});
+          navigator.clipboard.writeText(shareUrl).catch(() => {});
+        }
+      });
     }
   }
 
