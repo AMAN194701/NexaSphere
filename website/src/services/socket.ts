@@ -39,13 +39,46 @@ export const initializeSocket = (
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       timeout: isE2E ? 2000 : 20000,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 10000,
+      randomizationFactor: 0.5,
+      timeout: 20000,
       autoConnect: true,
       transports: ['websocket', 'polling'],
     });
 
+    // Offline message queue implementation
+    const originalEmit = socketInstance.emit.bind(socketInstance);
+    let offlineQueue: any[][] = [];
+
+    // Monkey-patch emit to queue messages when disconnected
+    socketInstance.emit = function (event: string, ...args: any[]) {
+      if (this.connected) {
+        return originalEmit(event, ...args);
+      } else {
+        if (import.meta.env.DEV) {
+          console.log(`[Socket.IO] Offline, queuing event: ${event}`);
+        }
+        offlineQueue.push([event, ...args]);
+        return this;
+      }
+    };
+
     socketInstance.on('connect', () => {
       if (import.meta.env.DEV) {
         logger.info(`[Socket.IO] Connected with ID: ${socketInstance?.id}`);
+      }
+
+      // Flush offline queue upon reconnection
+      if (offlineQueue.length > 0) {
+        if (import.meta.env.DEV) {
+          console.log(`[Socket.IO] Flushing ${offlineQueue.length} queued events`);
+        }
+        offlineQueue.forEach((args) => {
+          originalEmit(args[0], ...args.slice(1));
+        });
+        offlineQueue = [];
       }
     });
 
