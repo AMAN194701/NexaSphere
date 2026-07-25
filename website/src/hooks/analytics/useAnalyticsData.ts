@@ -41,6 +41,9 @@ export function useAnalyticsData(): AnalyticsDataState {
 
   useEffect(() => {
     let cancelled = false;
+    let isMounted = true;
+    const controller = new AbortController();
+    setLoading(true);
 
     async function fetchAnalytics() {
       try {
@@ -101,23 +104,17 @@ export function useAnalyticsData(): AnalyticsDataState {
         setIsOffline(false);
         const growth = growthResult.status === 'fulfilled' ? growthResult.value : null;
         const events = eventsResult.status === 'fulfilled' ? eventsResult.value : null;
+    (async () => {
+      const results = await Promise.allSettled([
+        apiClient(`${base}/api/admin/analytics/stats`, { headers, signal: controller.signal }),
+        apiClient(`${base}/api/admin/analytics/growth`, { headers, signal: controller.signal }),
+        apiClient(`${base}/api/admin/analytics/events`, { headers, signal: controller.signal }),
+      ]);
 
-        // Map API responses to chart data shapes.
-        // growth is expected to be an array of { name, users, activity, projects }
-        if (Array.isArray(growth) && growth.length > 0) {
-          setTrendData(growth as TrendDataPoint[]);
-        } else {
-          setTrendData(generateTrendData(filters.timeGranularity, effectiveMonths));
-        }
+      if (!isMounted) return;
 
-        // events is expected to be an array of { name, value } category distribution
-        if (Array.isArray(events) && events.length > 0) {
-          setDistributionData(events as DistributionDataPoint[]);
-          setComparisonData(generateComparisonData(filters.categories));
-        } else {
-          setDistributionData(generateDistributionData(filters.categories));
-          setComparisonData(generateComparisonData(filters.categories));
-        }
+      const [statsResult, growthResult, eventsResult] = results;
+      const hasAnySuccess = results.some((result) => result.status === 'fulfilled');
 
         setLoading(false);
       })
@@ -128,6 +125,40 @@ export function useAnalyticsData(): AnalyticsDataState {
 
     return () => {
       cancelled = true;
+      if (!hasAnySuccess) {
+        applyMockData();
+        return;
+      }
+
+      setIsOffline(false);
+
+      // Map API responses to chart data shapes.
+      // growth is expected to be an array of { name, users, activity, projects }
+      if (growthResult.status === 'fulfilled' && Array.isArray(growthResult.value) && growthResult.value.length > 0) {
+        setTrendData(growthResult.value as TrendDataPoint[]);
+      } else {
+        setTrendData(generateTrendData(filters.timeGranularity, effectiveMonths));
+      }
+
+      // events is expected to be an array of { name, value } category distribution
+      if (eventsResult.status === 'fulfilled' && Array.isArray(eventsResult.value) && eventsResult.value.length > 0) {
+        setDistributionData(eventsResult.value as DistributionDataPoint[]);
+      } else {
+        setDistributionData(generateDistributionData(filters.categories));
+      }
+      setComparisonData(generateComparisonData(filters.categories));
+
+      // statsResult is currently used as a health check for the analytics API.
+      // If it failed while the other endpoints succeeded, we still keep the
+      // partial analytics view instead of dropping back to mock data.
+      void statsResult;
+
+      setLoading(false);
+    })();
+
+    return () => {
+      isMounted = false;
+      controller.abort();
     };
   }, []);
 
