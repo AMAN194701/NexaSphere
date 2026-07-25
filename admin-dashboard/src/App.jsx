@@ -26,6 +26,7 @@ import UserGroups from './pages/UserGroups';
 
 import ScheduledTasksManager from './pages/ScheduledTasksManager';
 import UserGroups from './pages/UserGroups';
+import { RolesManager } from './pages/RolesManager';
 import { CoreTeamManager } from './pages/CoreTeamManager';
 import { MembershipResponsesManager } from './pages/MembershipResponsesManager';
 import { SyncMonitor } from './pages/SyncMonitor';
@@ -131,6 +132,7 @@ export default function App() {
             <Route path="/dashboard/circuit-breaker" element={<CircuitBreakerManager />} />
             <Route path="/dashboard/waiting-room" element={<WaitingRoomManager />} />
             <Route path="/dashboard/groups" element={<UserGroups />} />
+            <Route path="/dashboard/roles" element={<RolesManager />} />
             <Route path="/dashboard/tasks" element={<ScheduledTasksManager />} />
             <Route path="/dashboard/backups" element={<BackupsManager />} />
             <Route path="/dashboard/resources" element={<ResourcesManager />} />
