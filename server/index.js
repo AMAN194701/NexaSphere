@@ -283,6 +283,8 @@ app.use(
     threshold: 1024,
   })
 );
+const app = express();
+app.use(helmet());
 
 app.use(
   '/api-docs',
@@ -306,6 +308,12 @@ app.get('/api-docs.json', (req, res) => {
   res.setHeader('Content-Type', 'application/json');
   res.send(swaggerSpec);
 });
+app.use(helmet());
+app.use(cors({
+  origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',').map((value) => value.trim()).filter(Boolean) : true,
+  credentials: false,
+}));
+app.use(express.json({ limit: '512kb' }));
 
 // Middleware to monitor compression ratio
 app.use((req, res, next) => {
@@ -1458,6 +1466,7 @@ async function deleteCoreTeamStore(id) {
 
 async function appendToSupabaseForms(formType, payload) {
   if (!HAS_SUPABASE) return null;
+  if (!HAS_SUPABASE) return false;
   try {
     await supabaseRequest('form_submissions', {
       method: 'POST',
@@ -1648,6 +1657,11 @@ app.post(
   slackController.updateSlackConfig
 );
 app.delete('/api/admin/slack/disconnect', adminAuth, slackController.disconnectSlack);
+// Event channels/content
+app.get('/api/content/events', eventsController.listEvents);
+app.get('/api/content/activity-events/:activityKey', activityEventsController.listActivityEvents);
+app.post('/api/content/activity-events/:activityKey', activityEventsController.addActivityEvent);
+app.delete('/api/content/activity-events/:activityKey/:eventId', activityEventsController.deleteActivityEvent);
 
 // â”€â”€ Event Admin Management â”€â”€
 app.get('/api/admin/events', adminAuth, eventsController.adminListEvents);
@@ -1753,6 +1767,26 @@ app.post('/api/admin/circuit-breaker/reset/:name', adminAuth, async (req, res) =
     return sendError(req, res, `No circuit breaker found: "${name}"`, 404, 'NOT_FOUND');
 app.get("/api/content/activity-events/:activityKey", async (req, res) => {
   try {
+    const rawMembers = await coreTeamService.listMembers();
+    const members = (rawMembers || []).map(m => {
+      let email = m.email || null;
+      if (email && !email.toLowerCase().endsWith('@glbajajgroup.org')) {
+        email = null; // hide personal emails entirely
+      }
+      return {
+        ...m,
+        email,
+        whatsapp: 'https://chat.whatsapp.com/FhpJEaod2g419jFMfqrhGZ' // official community link
+      };
+    });
+    return res.json({ members });
+  } catch (e) {
+    return res.status(500).json({ error: e?.message || 'Failed to load core team' });
+  }
+});
+
+app.get('/api/content/core-team', async (req, res) => {
+  try {
     const activityKey = toSafeString(req.params.activityKey, 80);
     const { page, limit } = parsePagination(req.query);
     const { events, total } = await listActivityEventsStore(activityKey, {
@@ -1768,10 +1802,9 @@ app.get("/api/content/activity-events/:activityKey", async (req, res) => {
         totalPages: Math.ceil(total / limit) || 1,
       },
     });
+    return res.json({ members });
   } catch (e) {
-    return res
-      .status(500)
-      .json({ error: e?.message || "Failed to load activity events" });
+    return res.status(500).json({ error: e?.message || 'Failed to load core team' });
   }
   return sendSuccess(res, { ok: true, message: `Circuit breaker "${name}" reset to CLOSED` });
 });
@@ -1799,8 +1832,23 @@ app.post('/api/admin/circuit-breaker/retry/:name', adminAuth, async (req, res) =
     return sendSuccess(res, { ok: true, state: breaker.state, result });
   } catch (err) {
     return sendSuccess(res, { ok: false, error: err.message });
+
+// Dynamic forms
+app.post('/api/forms/membership', formRateLimiter, formsController.makeHandleForm('membership'));
+app.post('/api/forms/recruitment', formRateLimiter, formsController.makeHandleForm('recruitment'));
+app.post('/api/core-team/apply', formRateLimiter, formsController.makeHandleForm('core_team'));
+
+app.post('/api/submissions/membership', formRateLimiter, formsController.makeHandleForm('membership'));
+app.post('/api/submissions/recruitment', formRateLimiter, formsController.makeHandleForm('recruitment'));
+
+// Admin membership responses
+app.get('/api/admin/membership', adminAuth, async (req, res) => {
+  const scriptUrl = process.env.MEMBERSHIP_SCRIPT_URL;
+  const secret = process.env.MEMBERSHIP_SECRET;
+
+  if (!scriptUrl || !secret) {
+    return res.json({ responses: [] });
   }
-});
 
 // Hard cap on tracked entries. When the limit is reached, the
 // oldest inserted entry is evicted before adding a new one, preventing the
@@ -1864,6 +1912,18 @@ function checkPasskeyLockout(username, ip) {
 
   if (userEntry && userEntry.lockoutUntil !== 0 && now <= userEntry.lockoutUntil) {
     return true;
+
+    if (!response.ok) {
+      throw new Error(`Google Apps Script returned ${response.status}`);
+    }
+  }
+);
+
+    const data = await response.json();
+    return res.json({ responses: data.responses || [] });
+  } catch (err) {
+    console.error('[Membership] Failed to fetch responses:', err.message);
+    return res.status(500).json({ error: 'Failed to fetch membership responses' });
   }
 
   // Cleanup expired entries proactively
@@ -1956,6 +2016,21 @@ async function handleForm(formType, req, res) {
       });
     }
     return res.status(500).json({ error: e?.message || 'Submission failed' });
+// Real-time Push Subscriber channels
+const pushSubscriptions = new Set();
+app.post('/api/notifications/subscribe', (req, res) => {
+  try {
+    const { subscription } = req.body;
+    if (subscription) {
+      pushSubscriptions.add(JSON.stringify(subscription));
+      if (pushSubscriptions.size > 10000) {
+        const oldest = pushSubscriptions.values().next().value;
+        pushSubscriptions.delete(oldest);
+      }
+    }
+    return res.json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
   }
   if (userEntry && userEntry.lockoutUntil !== 0 && now > userEntry.lockoutUntil) {
     failedPasskeyAttemptsByUsername.delete(userKey);
@@ -2421,9 +2496,45 @@ function requireMentorshipAuth(req, res, next) {
 // Portfolio System API Endpoints
 app.get('/api/portfolio/:username', async (req, res) => {
   try {
-    const username = String(req.params.username || '').trim();
-    if (!username) {
-      return res.status(400).json({ error: 'Username is required' });
+    const payload = normalizeFormSubmission(formType, req.body || {});
+
+    const savedToSupabase = await appendToSupabaseForms(formType, payload);
+    try {
+      await appendFormToSheet(formType, payload);
+    } catch (sheetErr) {
+      if (!savedToSupabase) throw sheetErr;
+    }
+
+    // NEW: Send a welcome email to the user
+    try {
+      const verifyUrl = `${getPublicAppUrl()}/verify?email=${encodeURIComponent(req.body.collegeEmail)}`;
+      await sendWelcomeVerificationEmail(
+        req.body.collegeEmail,
+        req.body.fullName,
+        verifyUrl
+      );
+    } catch (emailErr) {
+      console.error("[Form Handler] Failed to send welcome email:", emailErr);
+      // We don't fail the whole request if email fails, but we log it.
+    }
+
+    // NEW: Real-time notification and metrics updates
+    try {
+      broadcastSSEEvent("registration", {
+        formType,
+        fullName: payload.fullName,
+        timestamp: new Date().toISOString(),
+      });
+      emitToRoom(getRoom("admin"), "admin:new-registration", {
+        formType,
+        userName: payload.fullName,
+        timestamp: new Date(),
+      });
+    } catch (realtimeErr) {
+      console.error(
+        "[Form Handler] Failed to broadcast real-time updates:",
+        realtimeErr
+      );
     }
     const portfolio = await portfolioRepository.getByUsername(username);
     if (!portfolio) {
@@ -2437,6 +2548,199 @@ app.get('/api/portfolio/:username', async (req, res) => {
 });
 
 app.put('/api/portfolio', async (req, res) => {
+const failedPasskeyAttempts = new Map();
+
+function checkPasskeyLockout(username, ip) {
+  const key = `${String(username || '').toLowerCase()}:${ip}`;
+  const entry = failedPasskeyAttempts.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.lockoutUntil) {
+    failedPasskeyAttempts.delete(key);
+    return null;
+  }
+  return entry;
+}
+
+function recordFailedPasskeyAttempt(username, ip) {
+  const key = `${String(username || '').toLowerCase()}:${ip}`;
+  const entry = failedPasskeyAttempts.get(key) || { count: 0, lockoutUntil: 0 };
+  entry.count += 1;
+  if (entry.count >= 5) {
+    entry.lockoutUntil = Date.now() + 15 * 60 * 1000; // 15 min lockout
+    entry.count = 0;
+  }
+  failedPasskeyAttempts.set(key, entry);
+  return entry;
+}
+
+function clearPasskeyAttempts(username, ip) {
+  const key = `${String(username || '').toLowerCase()}:${ip}`;
+  failedPasskeyAttempts.delete(key);
+}
+
+app.post("/api/forms/membership", formRateLimiter, (req, res) =>
+  handleForm("membership", req, res)
+);
+app.post("/api/forms/recruitment", formRateLimiter, (req, res) =>
+  handleForm("recruitment", req, res)
+);
+app.post("/api/core-team/apply", formRateLimiter, (req, res) =>
+  handleForm("core_team", req, res)
+);
+// Real-time notification subscriber channels
+const pushSubscriptions = new Set();
+app.post("/api/notifications/subscribe", (req, res) => {
+  try {
+    const { subscription } = req.body;
+    if (subscription) {
+      pushSubscriptions.add(JSON.stringify(subscription));
+      // Prevent memory leak by capping maximum subscriptions to 10,000
+      if (pushSubscriptions.size > 10000) {
+        const oldest = pushSubscriptions.values().next().value;
+        pushSubscriptions.delete(oldest);
+      }
+    }
+    return res.json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+app.post("/api/notifications/unsubscribe", (req, res) => {
+  try {
+    const { subscription } = req.body;
+    if (subscription) pushSubscriptions.delete(JSON.stringify(subscription));
+    return res.json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Server-side notifications API (simple in-memory store)
+import notificationsService from "./services/notificationsService.js";
+
+app.get("/api/notifications", (req, res) => {
+  try {
+    // If user id provided via query or auth, use that; otherwise global
+    const userId = req.query.userId || "global";
+    const list = notificationsService.getNotifications(userId);
+    return res.json({ notifications: list });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.post(
+  "/api/notifications/mark-read",
+  adminAuth,
+  notificationRateLimiter,
+  (req, res) => {
+    try {
+      const { id, userId } = req.body || {};
+      if (!id) return res.status(400).json({ error: "id required" });
+      const uid = userId || "global";
+      const ok = notificationsService.markAsRead(uid, id);
+      return res.json({ success: ok });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+app.post(
+  "/api/notifications/mark-all-read",
+  adminAuth,
+  notificationRateLimiter,
+  (req, res) => {
+    try {
+      const { userId } = req.body || {};
+      notificationsService.markAllAsRead(userId || "global");
+      return res.json({ success: true });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+app.delete(
+  "/api/notifications/:id",
+  adminAuth,
+  notificationRateLimiter,
+  (req, res) => {
+    try {
+      const id = req.params.id;
+      const userId = req.query.userId || "global";
+      const removed = notificationsService.removeNotification(userId, id);
+      if (!removed)
+        return res.status(404).json({ error: "Notification not found" });
+      return res.json({ success: true });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+// Delete all notifications for a user (or global)
+app.delete(
+  "/api/notifications",
+  adminAuth,
+  notificationRateLimiter,
+  (req, res) => {
+    try {
+      const userId = req.query.userId || "global";
+      notificationsService.clearAll(userId);
+      return res.json({ success: true });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+// Create notification (admin/testing)
+app.post(
+  "/api/notifications",
+  adminAuth,
+  notificationRateLimiter,
+  (req, res) => {
+    try {
+      const { userId, title, message, type, link } = req.body || {};
+      if (!title || !message)
+        return res
+          .status(400)
+          .json({ error: "title and message are required" });
+      const note = notificationsService.addNotification(userId || "global", {
+        title,
+        message,
+        type,
+        link,
+      });
+      return res.json({ success: true, notification: note });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+// Portfolio System API Endpoints
+app.get("/api/portfolio/:username", async (req, res) => {
+  try {
+    const username = String(req.params.username || "").trim();
+    if (!username) {
+      return res.status(400).json({ error: "Username is required" });
+    }
+    const portfolio = await portfolioRepository.getByUsername(username);
+    if (!portfolio) {
+      return res.status(404).json({ error: "Portfolio not found" });
+    }
+    return res.json(portfolio);
+  } catch (err) {
+    console.error("Error fetching portfolio:", err);
+    return res
+      .status(500)
+      .json({ error: err.message || "Internal server error" });
+  }
+});
+
+app.put("/api/portfolio", portfolioRateLimiter, async (req, res) => {
   try {
     const body = req.body || {};
     const username = String(body.username || '').trim();
@@ -2454,6 +2758,27 @@ app.put('/api/portfolio', async (req, res) => {
 
     // Verify ownership/passkey
     const isAuthorized = await portfolioRepository.verifyPasskey(username, passkey);
+      return res.status(400).json({
+        error:
+          "Username can only contain alphanumeric characters, underscores, and hyphens",
+      });
+    }
+    if (!passkey || passkey.length < 12) {
+      return res.status(400).json({ error: 'Passkey must be at least 12 characters long' });
+    }
+
+    const lockout = checkPasskeyLockout(username, ip);
+    if (lockout) {
+      return res.status(429).json({
+        error: "Too many failed passkey attempts. Please try again later.",
+      });
+    }
+
+    // Verify ownership/passkey
+    const isAuthorized = await portfolioRepository.verifyPasskey(
+      username,
+      passkey
+    );
     if (!isAuthorized) {
       return res.status(401).json({ error: 'Incorrect passkey for this username' });
     }
