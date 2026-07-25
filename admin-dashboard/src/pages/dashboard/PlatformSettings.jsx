@@ -282,6 +282,16 @@ export default function PlatformSettings() {
   const [previewing, setPreviewing] = useState(false);
   const [previewData, setPreviewData] = useState(null);
   const [toast, setToast] = useState(null);
+  const [localTheme, setLocalTheme] = useState(
+    document.documentElement.getAttribute('data-theme') || 'light'
+  );
+
+  const handleLocalThemeChange = (e) => {
+    const newTheme = e.target.value;
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('ns-admin-theme', newTheme);
+    setLocalTheme(newTheme);
+  };
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -521,6 +531,29 @@ export default function PlatformSettings() {
           <HistoryTab env={env} onRollback={loadSettings} />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {activeTab === 'General' && (
+              <div className="col-span-1 md:col-span-2 mb-2 p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                  Local Preferences
+                </h3>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Admin Dashboard Theme
+                  </label>
+                  <select
+                    value={localTheme}
+                    onChange={handleLocalThemeChange}
+                    className="w-full md:w-1/2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="light">Light Mode</option>
+                    <option value="dark">Dark Mode</option>
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    This setting is saved locally in your browser.
+                  </p>
+                </div>
+              </div>
+            )}
             {currentFields.map((field) => {
               const currentVal = field.key in pending ? pending[field.key] : settings[field.key];
               const isDirty = field.key in pending;
