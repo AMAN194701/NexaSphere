@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+# EditorConfig helps developers define and maintain consistent coding styles between different editors and IDEs
+>>>>>>> origin/pr/494
 root = true
 
 [*]
@@ -10,4 +14,7 @@ insert_final_newline = true
 
 [*.md]
 trim_trailing_whitespace = false
+<<<<<<< HEAD
  
+=======
+>>>>>>> origin/pr/494
