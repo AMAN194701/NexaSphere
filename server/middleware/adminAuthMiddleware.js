@@ -29,6 +29,7 @@ import crypto from 'crypto';
 import QRCode from 'qrcode';
 import { getScopesForRole } from '../config/rbac.js';
 import logger from '../utils/logger.js';
+import { sendEmail } from '../services/emailService.js';
 
 // lgtm[js/weak-cryptographic-algorithm]
 import { getScopesForRole } from '../config/rbac.js';
@@ -884,6 +885,18 @@ async function completeAdminLogin({ req, res, username, role, scopes, ip, userAg
     reason: suspicious?.reason,
   }).catch((err) => logger.error('Failed to record admin login attempt', { err, username }));
 
+  if (suspicious?.suspicious) {
+    sendEmail({
+      to: username, // Admin usernames are typically their emails, or should map to one
+      subject: 'Security Alert: Suspicious Login Detected',
+      templateName: 'generic',
+      data: {
+        name: 'Admin',
+        message: `We detected a suspicious login to your admin account from a new location or device (IP: ${ip}, Device: ${describeDevice(userAgent)}). If this wasn't you, please reset your password and revoke active sessions immediately.`,
+      },
+    }).catch(err => logger.error('Failed to send suspicious login alert', { err }));
+  }
+
   return res.json({
     username,
     email: username,
@@ -1134,6 +1147,18 @@ async function logoutOtherSessions(req, res) {
   }
 }
 
+async function extendSession(req, res) {
+  try {
+    // The act of calling the API automatically extends the session via getAdminSession's throttling logic
+    return res.json({ 
+      ok: true, 
+      expiresAt: req.adminSession.expiresAt
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to extend session' });
+  }
+}
+
 export const adminAuthMiddleware = {
   login,
   verifyTwoFactor,
@@ -1142,6 +1167,7 @@ export const adminAuthMiddleware = {
   getSecurityOverview,
   revokeSession,
   logoutOtherSessions,
+  extendSession,
   requireAdmin,
   requireRole,
   requireScope,

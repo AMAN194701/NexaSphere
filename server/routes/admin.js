@@ -341,6 +341,7 @@ router.post('/api/admin/sso-invite', apiRateLimiter, validate(ssoInviteSchema), 
   return sendSuccess(res, { token, inviteUrl });
 });
 router.get('/sessions', adminAuth, adminAuthMiddleware.getSecurityOverview);
+router.post('/sessions/extend', adminAuth, adminAuthMiddleware.extendSession);
 router.delete('/sessions/:sessionId', adminAuth, adminAuthMiddleware.revokeSession);
 router.delete('/sessions', adminAuth, adminAuthMiddleware.logoutOtherSessions);
 
