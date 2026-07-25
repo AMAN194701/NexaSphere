@@ -68,6 +68,9 @@ if (process.env.UPSTASH_REDIS_REST_URL) {
 
 // Determine available Redis URL
 const redisUrl = process.env.REDIS_URL;
+}
+
+const redisUrl = process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL;
 
 if (process.env.UPSTASH_REDIS_REST_URL && !process.env.REDIS_URL) {
   throw new Error(
