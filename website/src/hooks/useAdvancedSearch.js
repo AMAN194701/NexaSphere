@@ -8,6 +8,12 @@ function debounce(fn, ms) {
     clearTimeout(timer);
     timer = setTimeout(() => fn(...args), ms);
   };
+  const debounced = (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), ms);
+  };
+  debounced.cancel = () => clearTimeout(timer);
+  return debounced;
 }
 
 /**
@@ -62,6 +68,7 @@ export const useAdvancedSearch = () => {
 
   useEffect(() => {
     fetchResults(query, activeFilters);
+    return () => fetchResults.cancel();
   }, [query, activeFilters, fetchResults]);
 
   const updateRecentSearches = (q) => {
