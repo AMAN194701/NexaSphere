@@ -458,6 +458,9 @@ async function login(req, res) {
   try {
     prunePendingTokens(pendingTwoFactorSetups);
     prunePendingTokens(pendingTwoFactorChallenges);
+    const u = String(req.body?.username || req.body?.email || '').trim();
+    const p = String(req.body?.password || '');
+    const ip = getClientIp(req);
 
     const u = getLoginUsername(req.body);
     const p = String(req.body?.password || '');
