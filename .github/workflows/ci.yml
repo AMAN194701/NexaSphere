@@ -14,9 +14,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+<<<<<<< HEAD
   checks:
     name: Lint and Type Check
     runs-on: ubuntu-latest
+=======
+>>>>>>> origin/pr/2666
 
     steps:
       - name: Checkout code
