@@ -51,6 +51,7 @@ export default function RevenueDashboardPage() {
           {[...Array(3)].map((_, i) => (
             <div key={`revenue-skeleton-card-${i}`} style={styles.skeletonCard} />
             <div key={i} style={styles.skeletonCard} />
+            <div key={`skeleton-card-${i}`} style={styles.skeletonCard} />
           ))}
         </div>
       </div>
