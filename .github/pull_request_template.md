@@ -1,10 +1,14 @@
 # Summary
+## What does this PR do?
 
-## Related Issue
+This PR introduces a standard GitHub Pull Request Template to guide incoming contributions.
+
+## Why is this change needed?
 
 Fixes #[ISSUE_NUMBER]
+Currently, there is no pull request template in place, which makes it harder to ensure all PR submissions follow the repository's guidelines, checklists, and documentation standards.
 
-## Type of Change
+## What changes were made?
 
 - [ ] Feature
 - [ ] Bug Fix
@@ -16,6 +20,12 @@ Fixes #[ISSUE_NUMBER]
 - [ ] Testing
 - [ ] Infrastructure
 - [ ] Integration
+* Created a structured `.github/pull_request_template.md` containing description prompts, checklists, and verify instructions.
+
+## How to test
+
+1. Open a new pull request against this repository.
+2. Confirm the PR template is pre-populated in the description box automatically.
 
 ## Changes Implemented
 
@@ -80,3 +90,6 @@ Fixes #[ISSUE_NUMBER]
 - [ ] Performance validated
 - [ ] CI/CD passing
 - [ ] Ready for review
+* [x] Code follows project style
+* [x] Tested locally
+* [x] No breaking changes
