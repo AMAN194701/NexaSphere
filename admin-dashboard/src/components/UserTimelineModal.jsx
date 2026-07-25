@@ -44,7 +44,7 @@ export default function UserTimelineModal({ user, onClose }) {
     const params = new URLSearchParams();
     if (user.email) params.append('email', user.email);
     if (usernameInput) params.append('username', usernameInput);
-    window.open(`/api/admin/users/timeline/export?${params.toString()}`, '_blank');
+    window.open(`/api/admin/users/timeline/export?${params.toString()}`, '_blank', 'noopener,noreferrer');
   };
 
   return (
