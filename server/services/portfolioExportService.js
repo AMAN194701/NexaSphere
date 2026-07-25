@@ -215,7 +215,7 @@ const PDF_TEMPLATE = `<!DOCTYPE html>
       {{#if social_links}}
       <div class="social-links">
         {{#each social_links}}
-        <a href="{{this}}" class="social-link" target="_blank">{{@key}}</a>
+        <a href="{{this}}" class="social-link" target="_blank" rel="noopener noreferrer">{{@key}}</a>
         {{/each}}
       </div>
       {{/if}}

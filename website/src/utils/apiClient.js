@@ -53,6 +53,51 @@ function getIDBCacheKey(url) {
  */
 const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
+function createAbortSignal(timeout, callerSignal) {
+  const timeoutController = new AbortController();
+  const timeoutId = setTimeout(() => timeoutController.abort(), timeout);
+
+  if (!callerSignal) {
+    return {
+      signal: timeoutController.signal,
+      cleanup: () => clearTimeout(timeoutId),
+    };
+  }
+
+  if (typeof AbortSignal.any === 'function') {
+    return {
+      signal: AbortSignal.any([timeoutController.signal, callerSignal]),
+      cleanup: () => clearTimeout(timeoutId),
+    };
+  }
+
+  const combinedController = new AbortController();
+  const abortCombined = () => {
+    if (!combinedController.signal.aborted) {
+      combinedController.abort();
+    }
+  };
+
+  const onTimeoutAbort = () => abortCombined();
+  const onCallerAbort = () => abortCombined();
+
+  timeoutController.signal.addEventListener('abort', onTimeoutAbort, { once: true });
+  if (callerSignal.aborted) {
+    abortCombined();
+  } else {
+    callerSignal.addEventListener('abort', onCallerAbort, { once: true });
+  }
+
+  return {
+    signal: combinedController.signal,
+    cleanup: () => {
+      clearTimeout(timeoutId);
+      timeoutController.signal.removeEventListener('abort', onTimeoutAbort);
+      callerSignal.removeEventListener('abort', onCallerAbort);
+    },
+  };
+}
+
 /**
  * Centralized async API wrapper for fetch requests.
  *
@@ -184,12 +229,6 @@ export const apiClient = async (url, options = {}) => {
 
   // ── Normal online fetch ────────────────────────────────────────────────────
 
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeout);
-
-  // Combine the timeout controller's signal with any caller-provided signal.
-  // AbortSignal.any() (available in modern browsers/Node ≥20) fires whichever
-  // signal aborts first, so component unmount AND timeout both work correctly.
   const callerSignal = fetchOptions.signal;
   const combinedSignal =
   const callerSignal = fetchOptions.signal;
@@ -197,6 +236,7 @@ export const apiClient = async (url, options = {}) => {
     callerSignal && typeof AbortSignal.any === 'function'
       ? AbortSignal.any([controller.signal, callerSignal])
       : controller.signal;
+  const { signal, cleanup } = createAbortSignal(timeout, callerSignal);
 
   try {
     const response = await fetch(url, {
@@ -205,9 +245,8 @@ export const apiClient = async (url, options = {}) => {
       signal,
       credentials: fetchOptions.credentials ?? 'include',
       signal: controller.signal,
+      signal,
     });
-
-    clearTimeout(id);
 
     if (response.type === 'opaque') {
       return null;
@@ -260,8 +299,6 @@ export const apiClient = async (url, options = {}) => {
 
     return await response.text();
   } catch (error) {
-    clearTimeout(id);
-
     let standardError;
     if (error instanceof ApiError) {
       standardError = error;
@@ -285,6 +322,8 @@ export const apiClient = async (url, options = {}) => {
     }
 
     throw standardError;
+  } finally {
+    cleanup();
   }
 };
 

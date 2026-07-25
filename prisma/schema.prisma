@@ -9,18 +9,20 @@ generator client {
 }
 
 model User {
-  id               String            @id @default(uuid())
-  email            String            @unique
+  id               String              @id @default(uuid())
+  email            String              @unique
   name             String?
   password         String
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
   workspaceMembers WorkspaceMember[]
   posts            Post[]
   logs             Log[]
   feedbacks        EventFeedback[]
   actionItems      ActionItem[]
   settingsChanges  SettingsChangeLog[]
+  certificates     Certificate[]
+  registrations    EventRegistration[]
 
   @@index([createdAt])
 }
@@ -133,6 +135,28 @@ model Post {
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 }
 
+model Certificate {
+  id                 String    @id @default(uuid())
+  code               String    @unique
+  userId             String
+  eventId            String
+  attendeeName       String?
+  eventName          String?
+  date               DateTime  @default(now())
+  completionCriteria String?
+  status             String    @default("PENDING") // PENDING, ISSUED, VERIFIED, REJECTED
+  verified           Boolean   @default(false)
+  verifiedAt         DateTime?
+  expiresAt          DateTime?
+  pdfUrl             String?
+  qrUrl              String?
+  revoked            Boolean   @default(false)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  user               User      @relation(fields: [userId], references: [id])
+}
+
 model Log {
   id          String   @id @default(uuid())
   roles       Role[]   @relation("RolePermissions")
@@ -168,6 +192,9 @@ enum AuditAction {
   CREATE
   UPDATE
   DELETE
+  APPROVE
+  REJECT
+  REVOKE
 }
 
 model AuditLog {
@@ -181,6 +208,51 @@ model AuditLog {
 
   timestamp DateTime    @default(now())
 }
+
+// =========================================================
+// FEATURE #3318: SEATING LAYOUT & REGISTRATION EXTENSIONS
+// =========================================================
+
+model VenueLayout {
+  id        String   @id @default(uuid())
+  name      String
+  gridData  Json     // Holds dimensions (rows/cols) and cell matrix (types: SEAT, VIP, AISLE, BLOCKED)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  events Event[]
+}
+
+model Event {
+  id            String   @id @default(uuid())
+  title         String
+  description   String?
+  venueLayoutId String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  venueLayout   VenueLayout?        @relation(fields: [venueLayoutId], references: [id], onDelete: SetNull)
+  registrations EventRegistration[]
+}
+
+model EventRegistration {
+  id        String   @id @default(uuid())
+  eventId   String
+  userId    String
+  seatCode  String?  // e.g., "A-12" or "VIP-B4"
+  status    String   @default("CONFIRMED") // e.g., CONFIRMED, CANCELLED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, seatCode]) // Ensures no duplicate seats per event in DB
+  @@index([eventId])
+  @@index([userId])
+}
+
+// =========================================================
 
 model EventFeedback {
   id               String   @id @default(uuid())
@@ -323,4 +395,56 @@ model PriceHistory {
   createdAt DateTime @default(now())
 
   pricing   EventPricing @relation(fields: [pricingId], references: [id], onDelete: Cascade)
+}
+
+model PlatformSetting {
+  pricing EventPricing @relation(fields: [pricingId], references: [id], onDelete: Cascade)
+}
+
+model ArchivedReport {
+  id          String   @id @default(cuid())
+  environment String   @default("development")
+  key         String
+  value       String   @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([environment, key], name: "environment_key")
+  @@index([environment])
+}
+
+model SettingsChangeLog {
+  id            String   @id @default(cuid())
+  environment   String
+  key           String
+  previousValue String?  @db.Text
+  newValue      String   @db.Text
+  isRollback    Boolean  @default(false)
+  changedById   String?
+  changedBy     User?    @relation(fields: [changedById], references: [id])
+  createdAt     DateTime @default(now())
+
+  @@index([environment, key])
+  @@index([changedById])
+}
+model Certificate {
+  id                 String    @id @default(uuid())
+  code               String    @unique
+  userId             String
+  eventId            String
+  attendeeName       String?
+  eventName          String?
+  date               DateTime  @default(now())
+  completionCriteria String?
+  status             String    @default("PENDING") // PENDING, ISSUED, VERIFIED, REJECTED
+  verified           Boolean   @default(false)
+  verifiedAt         DateTime?
+  expiresAt          DateTime?
+  revoked            Boolean   @default(false)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  user               User      @relation(fields: [userId], references: [id])
+}
+
 }

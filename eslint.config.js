@@ -10,6 +10,8 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 import tseslint from 'typescript-eslint';
 
+import jsxA11y from 'eslint-plugin-jsx-a11y';
+
 export default tseslint.config(
   {
     ignores: [
@@ -25,7 +27,6 @@ export default tseslint.config(
       'server/',
       'server-java/**',
       'server-python/**',
-      'admin-dashboard/**',
       'BACKEND_INTEGRATION_EXAMPLE*.js',
       'FRONTEND_INTEGRATION_EXAMPLE*.jsx',
       'google-apps-script/**',
@@ -52,7 +53,7 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   jsxA11y.flatConfigs.recommended,
   {
-    files: ['src/**/*.{js,jsx,ts,tsx}', 'e2e/**/*.{js,jsx,ts,tsx}', '*.{js,cjs,mjs}'],
+    files: ['src/**/*.{js,jsx,ts,tsx}', 'website/src/**/*.{js,jsx,ts,tsx}', 'admin-dashboard/src/**/*.{js,jsx,ts,tsx}', 'e2e/**/*.{js,jsx,ts,tsx}', '*.{js,cjs,mjs}'],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
@@ -69,9 +70,11 @@ export default tseslint.config(
     plugins: {
       'react-hooks': reactHooks,
       'react-refresh': reactRefresh,
+      'jsx-a11y': jsxA11y,
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      ...jsxA11y.configs.recommended.rules,
       'react-hooks/rules-of-hooks': 'warn',
       'no-undef': 'warn',
       'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],

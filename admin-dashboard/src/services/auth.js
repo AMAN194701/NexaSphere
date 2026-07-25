@@ -1,5 +1,7 @@
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8787';
 const TOKEN_KEY = 'ns_admin_token';
+import { eventEmitter, EVENTS } from './eventEmitter';
+
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
 
@@ -92,6 +94,8 @@ export const auth = {
     _role = null;
     _scopes = [];
     _impersonatingUser = null;
+
+    eventEmitter.emit(EVENTS.AUTH_LOGOUT);
   },
 
   setImpersonating(user) {

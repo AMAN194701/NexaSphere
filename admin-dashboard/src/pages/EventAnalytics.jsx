@@ -3,6 +3,89 @@ import { api } from '../services/api';
 import { AdminIcon } from '../components/AdminIcon';
 import { Skeleton } from '../components/Skeleton';
 import { AttendanceHeatmap } from '../components/AttendanceHeatmap';
+import { exportToCSV } from '../utils/exportCSV';
+
+const REGISTRATION_EXPORT_LIMIT = 1000;
+
+function slugifyFilenamePart(value) {
+  return String(value || 'event')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+function formatExportDate(value) {
+  if (!value) return '';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return String(value);
+  return parsed.toISOString().slice(0, 10);
+}
+
+function formatRegistrationTime(registration) {
+  const value =
+    registration?.created_at ||
+    registration?.createdAt ||
+    registration?.registeredAt ||
+    registration?.submittedAt ||
+    registration?.updatedAt;
+
+  if (!value) return '—';
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return String(value);
+
+  return parsed.toLocaleString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function formatAttendanceStatus(registration) {
+  if (registration?.attended) return 'Attended';
+  if (registration?.status) {
+    return String(registration.status)
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+  return 'Registered';
+}
+
+async function fetchAllEventRegistrations(eventId) {
+  const registrations = [];
+  const seen = new Set();
+  const pageSize = REGISTRATION_EXPORT_LIMIT;
+  let page = 1;
+  let firstBatchFirstId = null;
+
+  while (page <= 20) {
+    // The backend accepts pagination, but we still stop safely if the same
+    // first row comes back again because some local mocks ignore page params.
+    const data = await api.eventRegistrations.list(eventId, { page, limit: pageSize });
+    const batch = Array.isArray(data?.registrations) ? data.registrations : [];
+
+    if (page === 1) {
+      firstBatchFirstId = batch[0]?.id || batch[0]?.email || null;
+    } else if (firstBatchFirstId && (batch[0]?.id || batch[0]?.email || null) === firstBatchFirstId) {
+      break;
+    }
+
+    batch.forEach((registration, index) => {
+      const key = registration?.id || registration?.email || `${page}-${index}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      registrations.push(registration);
+    });
+
+    if (batch.length < pageSize) break;
+    page += 1;
+  }
+
+  return registrations;
+}
 
 export function EventAnalytics() {
   const [events, setEvents] = useState([]);
@@ -13,6 +96,8 @@ export function EventAnalytics() {
   const [recommendationsError, setRecommendationsError] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [exportingCsv, setExportingCsv] = useState(false);
+  const [exportMessage, setExportMessage] = useState('');
 
   useEffect(() => {
     api.events
@@ -39,6 +124,45 @@ export function EventAnalytics() {
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, [selectedEventId]);
+
+  const selectedEvent = events.find((event) => event.id === selectedEventId);
+
+  const handleExportRegistrationsCsv = async () => {
+    if (!selectedEventId || exportingCsv) return;
+
+    setExportingCsv(true);
+    setExportMessage('');
+
+    try {
+      const registrations = await fetchAllEventRegistrations(selectedEventId);
+      if (!registrations.length) {
+        setExportMessage('No registrations available to export.');
+        return;
+      }
+
+      const rows = registrations.map((registration) => ({
+        'Attendee Name':
+          registration?.full_name || registration?.fullName || registration?.name || '—',
+        Email: registration?.email || '—',
+        'Registration Time': formatRegistrationTime(registration),
+        'Attendance Status': formatAttendanceStatus(registration),
+      }));
+
+      const eventName = selectedEvent?.name || 'event';
+      const eventDate = slugifyFilenamePart(formatExportDate(selectedEvent?.date));
+      const filename = `event-attendance-${slugifyFilenamePart(eventName)}${
+        eventDate ? `-${eventDate}` : ''
+      }`;
+
+      exportToCSV(rows, filename);
+      setExportMessage(`Exported ${rows.length} registration${rows.length === 1 ? '' : 's'}.`);
+    } catch (err) {
+      setExportMessage(err?.message || 'Failed to export registrations.');
+    } finally {
+      setExportingCsv(false);
+      window.setTimeout(() => setExportMessage(''), 3000);
+    }
+  };
 
   return (
     <div className="page">
@@ -186,7 +310,16 @@ export function EventAnalytics() {
         )}
       </section>
 
-      <div style={{ marginBottom: 20 }}>
+      <div
+        style={{
+          marginBottom: 20,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+          flexWrap: 'wrap',
+        }}
+      >
         <select
           value={selectedEventId}
           onChange={(e) => setSelectedEventId(e.target.value)}
@@ -206,6 +339,34 @@ export function EventAnalytics() {
             </option>
           ))}
         </select>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          {exportMessage && (
+            <span style={{ color: 'var(--admin-text-muted, #888)', fontSize: '0.85rem' }}>
+              {exportMessage}
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={handleExportRegistrationsCsv}
+            disabled={!selectedEventId || loading || exportingCsv}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '8px 14px',
+              borderRadius: 8,
+              border: '1px solid var(--admin-border, #333)',
+              background: exportingCsv ? 'rgba(59, 130, 246, 0.16)' : 'rgba(59, 130, 246, 0.12)',
+              color: '#60a5fa',
+              cursor: !selectedEventId || loading || exportingCsv ? 'not-allowed' : 'pointer',
+              opacity: !selectedEventId || loading || exportingCsv ? 0.6 : 1,
+            }}
+          >
+            <AdminIcon name="Download" size={16} />
+            {exportingCsv ? 'Exporting…' : 'Export to CSV'}
+          </button>
+        </div>
       </div>
 
       {loading && <Skeleton height={80} count={3} />}

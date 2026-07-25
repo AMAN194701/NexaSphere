@@ -1,4 +1,5 @@
 import { eventsRepository } from '../repositories/eventsRepository.js';
+import { eventsRepository } from "../repositories/eventsRepository.js";
 
 export const eventConflictService = {
   async checkConflicts() {
@@ -24,6 +25,7 @@ export const eventConflictService = {
             venueB: second.location,
             date: first.date,
             reason: 'Both events are scheduled at the same time.',
+            reason: "Both events are scheduled at the same time.",
           });
         }
       }
@@ -40,6 +42,8 @@ export const eventConflictService = {
       (event) =>
         event.location?.toLowerCase() === venue.toLowerCase() &&
         new Date(event.date).toDateString() === new Date(date).toDateString()
+        new Date(event.date).toDateString() ===
+          new Date(date).toDateString()
     );
 
     return {
@@ -57,6 +61,16 @@ export const eventConflictService = {
       event: event.name || event.shortName,
       registrations: event.registrationCount || event.registrations?.length || 0,
       impact: (event.registrationCount || event.registrations?.length || 0) > 100 ? 'High' : 'Low',
+      registrations:
+        event.registrationCount ||
+        event.registrations?.length ||
+        0,
+      impact:
+        (event.registrationCount ||
+          event.registrations?.length ||
+          0) > 100
+          ? "High"
+          : "Low",
     }));
   },
 
@@ -68,6 +82,8 @@ export const eventConflictService = {
       event: event.name || event.shortName,
       currentDate: event.date,
       recommendation: 'No scheduling conflict detected. Current schedule is suitable.',
+      recommendation:
+        "No scheduling conflict detected. Current schedule is suitable.",
     }));
   },
 
@@ -88,6 +104,7 @@ export const eventConflictService = {
 
     return conflicts.map((conflict) => ({
       level: 'warning',
+      level: "warning",
       message: `${conflict.eventA} conflicts with ${conflict.eventB}`,
       date: conflict.date,
     }));

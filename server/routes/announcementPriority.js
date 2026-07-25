@@ -63,3 +63,4 @@ router.patch('/:id/priority', announcementPriorityController.updatePriority);
 router.patch('/:id/pin', announcementPriorityController.pinAnnouncement);
 router.post('/:id/read', announcementPriorityController.markRead);
 router.get('/analytics', announcementPriorityController.analytics);
+export default router;

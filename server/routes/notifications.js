@@ -30,6 +30,7 @@ const requireNotificationPrefAuth = (req, res, next) => {
   if (req.cookies.ns_admin_token || req.headers.authorization) return next();
   return res.status(401).json({ error: 'Unauthorized' });
 };
+import { requireNotificationPrefAuth } from '../middleware/auth/customAuth.js';
 
 const router = Router();
 
@@ -397,6 +398,11 @@ router.put('/notifications/preferences', requireNotificationPrefAuth, async (req
   try {
     const userId = req.body.userId || 'global';
     const { category, email, push, in_app, sms, frequency, quiet_start, quiet_end, dnd } = req.body;
+
+router.put('/notifications/preferences', requireNotificationPrefAuth, async (req, res) => {
+  try {
+    const userId = req.body.userId || 'global';
+    const { category, email, push, in_app, sms, frequency, quiet_start, quiet_end, dnd } = req.body;
     if (!category) return res.status(400).json({ error: 'category is required' });
     const pref = await notificationPreferencesRepository.set(userId, category, {
       email,
@@ -440,6 +446,19 @@ router.post('/notifications/analytics', async (req, res) => {
     return sendSuccess(res, { ok: true });
   } catch (err) {
     return sendError(req, res, err.message, 500, 'INTERNAL_ERROR');
+  }
+});
+
+
+// Notification analytics (lightweight collector)
+router.post('/notifications/analytics', async (req, res) => {
+  try {
+    const event = req.body || {};
+    // Minimal validation — in future route can forward to analytics pipeline
+    console.log('[notification-analytics]', event.type || 'unknown', event);
+    return res.json({ ok: true });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
   }
 });
 

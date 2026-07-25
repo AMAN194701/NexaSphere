@@ -1,7 +1,7 @@
 """Create certificates table
 
-Revision ID: 004_create_certificates_table
-Revises: 003_add_sheets_sync_queue
+Revision ID: 006_create_certificates_table
+Revises: 005_add_sheets_sync_queue
 Create Date: 2026-06-21 12:00:00.000000
 
 """
@@ -10,8 +10,8 @@ from alembic import op
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
-revision: str = '004_create_certificates_table'
-down_revision: Union[str, None] = '003_add_sheets_sync_queue'
+revision: str = '006_create_certificates_table'
+down_revision: Union[str, None] = '005_add_sheets_sync_queue'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

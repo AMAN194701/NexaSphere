@@ -14,6 +14,7 @@ import logger from '../utils/logger.js';
 import { withDb } from '../repositories/db.js';
 import { HAS_SUPABASE } from '../storage/supabaseClient.js';
 import { sendSlackAlert } from '../utils/slack.js';
+import { validateTableName, validateIdentifier } from '../utils/sqlSafety.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -193,17 +194,21 @@ export const backupService = {
 
         // Truncate all tables first
         for (const table of Object.keys(tables)) {
+          // Validate table name to prevent SQL injection
+          validateTableName(table);
           // Validate table name against strict allowlist to prevent SQL injection
           if (!validTablesAllowlist.includes(table) || !/^[a-zA-Z0-9_]+$/.test(table)) {
             throw new Error(`Invalid table name in restore schema: ${table}`);
           }
           // codeql[js/sql-injection]
-          await client.query(`TRUNCATE TABLE "${table}" CASCADE`);
+          await client.query(`TRUNCATE TABLE ${validateTableName(table)} CASCADE`);
         }
 
         // Insert rows back
         for (const [table, rows] of Object.entries(tables)) {
           if (!rows || rows.length === 0) continue;
+          // Validate table name to prevent SQL injection
+          validateTableName(table);
           // Validate table name against strict allowlist to prevent SQL injection
           if (!validTablesAllowlist.includes(table) || !/^[a-zA-Z0-9_]+$/.test(table)) {
             throw new Error(`Invalid table name in restore data: ${table}`);
@@ -211,9 +216,7 @@ export const backupService = {
 
           const columns = Object.keys(rows[0]);
           for (const col of columns) {
-            if (!/^[a-zA-Z0-9_]+$/.test(col)) {
-              throw new Error(`Invalid column name in restore data: ${col}`);
-            }
+            validateIdentifier(col);
           }
           const colString = columns.map((c) => `"${c}"`).join(', ');
 

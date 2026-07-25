@@ -63,3 +63,4 @@ router.get(
 
 export default router;
 router.get('/alerts', adminAuthMiddleware.requireAdmin, eventConflictController.getOrganizerAlerts);
+export default router;

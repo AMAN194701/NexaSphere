@@ -104,6 +104,10 @@ const createLimiterHandler = (logMessage, clientErrorMessage) => {
   };
 };
 
+const setRetryAfterHeader = (res, windowMs) => {
+  res.setHeader('Retry-After', String(Math.ceil(windowMs / 1000)));
+};
+
 export const apiRateLimiter = rateLimit({
   skip: () => process.env.NODE_ENV === 'test',
   windowMs: API_WINDOW_MS,
@@ -328,6 +332,44 @@ export const portfolioRateLimiter = rateLimit({
     prefix: "rl:activity:",
   }),
   handler: (req, res, next, options) => {
+    logger.warn('Activity auth rate limit exceeded', {
+      ip: req.ip,
+      path: req.originalUrl || req.path,
+      method: req.method,
+    });
+    res.status(options.statusCode).json({
+      error: 'Too many activity authentication attempts. Please try again later.',
+    });
+  },
+});
+
+// Sync rate limiter: 30 requests per minute per IP.
+export const syncRateLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 30, // 30 requests per minute
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: createRateLimitStore('rate-limit:sync:'),
+  handler: (req, res, next, options) => {
+    logger.warn('Activity auth rate limit exceeded', {
+      ip: req.ip,
+      path: req.originalUrl || req.path,
+      method: req.method,
+    });
+    res.status(options.statusCode).json({
+      error: 'Too many activity authentication attempts. Please try again later.',
+    });
+  },
+});
+
+// Sync rate limiter: 30 requests per minute per IP.
+export const syncRateLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 30, // 30 requests per minute
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: createRateLimitStore('rate-limit:sync:'),
+  handler: (req, res, next, options) => {
     logger.warn('Sync batch rate limit exceeded', {
     logger.warn("Portfolio update rate limit exceeded", {
       ip: req.ip,
@@ -338,6 +380,17 @@ export const portfolioRateLimiter = rateLimit({
       error: 'Too many sync requests from this IP, please try again later.',
     });
   },
+});
+// Sync rate limiter — 10 requests per IP per 15 minutes
+export const syncRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: true,
+  handler: createLimiterHandler(
+    'Sync rate limit exceeded',
+    'Too many sync requests from this IP, please try again later.'
+  ),
 });
 
 // Sync rate limiter — 100 requests per IP per 5 minutes
@@ -375,25 +428,51 @@ export const syncRateLimiter = rateLimit({
   handler: createLimiterHandler('Sync rate limit exceeded', 'Too many sync requests.'),
 });
 
-// Event registration rate limiter — 10 requests per IP per hour
-export const eventRegistrationLimiter = rateLimit({
+// Event registration rate limiter — 100 requests per IP per hour
+export const eventRegistrationIpLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
-  max: 10,
+  max: 100,
   standardHeaders: true,
   legacyHeaders: true,
-  store: createRateLimitStore('rate-limit:event-reg:'),
+  store: createRateLimitStore('rate-limit:event-reg-ip:'),
   handler: (req, res, _next, options) => {
-    logger.warn('Event registration rate limit exceeded', {
+    logger.warn('Event registration IP rate limit exceeded', {
       ip: req.ip,
       path: req.originalUrl || req.path,
       method: req.method,
     });
+    setRetryAfterHeader(res, options.windowMs);
     res.status(options.statusCode).json({
       error: 'Too many registration attempts. Please try again later.',
+    res.status(429).json({
+      error: 'Too many registration attempts from this IP. Please try again later.',
     });
   },
 });
 
+// Event registration rate limiter — 5 requests per User per minute
+export const eventRegistrationUserLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: true,
+  keyGenerator: (req) => {
+    // If user is authenticated, limit by user ID; otherwise fallback to IP
+    return req.user?.id || req.ip;
+  },
+  store: createRateLimitStore('rate-limit:event-reg-user:'),
+  handler: (req, res, _next, options) => {
+    logger.warn('Event registration user rate limit exceeded', {
+      userId: req.user?.id || 'unauthenticated',
+      ip: req.ip,
+      path: req.originalUrl || req.path,
+      method: req.method,
+    });
+    res.status(429).json({
+      error: 'Too many registration attempts. Please try again in a minute.',
+    });
+  },
+});
 
 // Sync rate limiter: 5 requests per minute per IP.
 export const syncRateLimiter = rateLimit({
@@ -409,6 +488,51 @@ export const syncRateLimiter = rateLimit({
     });
     res.status(options.statusCode).json({
       error: 'Too many sync requests. Please slow down.',
+function getEventRegistrationIdentity(req) {
+  const email = String(req.body?.email || '').trim().toLowerCase();
+  if (req.user?.id) return `user:${req.user.id}`;
+  if (req.studentUser?.id) return `student:${req.studentUser.id}`;
+  if (req.studentUser?.email) return `student:${String(req.studentUser.email).toLowerCase()}`;
+  if (email) return `email:${email}`;
+  return `ip:${req.ip}`;
+}
+
+export const eventRegistrationUserLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: true,
+  store: createRateLimitStore('rate-limit:event-reg-user:'),
+  keyGenerator: getEventRegistrationIdentity,
+  handler: (req, res, _next, options) => {
+    logger.warn('Event registration user rate limit exceeded', {
+      identity: getEventRegistrationIdentity(req),
+      ip: req.ip,
+      path: req.originalUrl || req.path,
+      method: req.method,
+    });
+    setRetryAfterHeader(res, options.windowMs);
+    res.status(options.statusCode).json({
+      error: 'Too many registration attempts from this user. Please try again later.',
+    });
+  },
+});
+
+export const eventRegistrationIpLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: true,
+  store: createRateLimitStore('rate-limit:event-reg-ip:'),
+  handler: (req, res, _next, options) => {
+    logger.warn('Event registration IP rate limit exceeded', {
+      ip: req.ip,
+      path: req.originalUrl || req.path,
+      method: req.method,
+    });
+    setRetryAfterHeader(res, options.windowMs);
+    res.status(options.statusCode).json({
+      error: 'Too many registration attempts from this IP. Please try again later.',
     });
   },
 });
@@ -465,6 +589,25 @@ export const searchRateLimiter = rateLimit({
 // Throws immediately if any limiter failed to initialise, preventing the silent
 // "undefined middleware" failure mode that this issue was created to fix.
 // ---------------------------------------------------------------------------
+
+// Sync rate limiter: 10 batch sync requests per minute per IP (authenticated, write-heavy).
+export const syncRateLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 10, // 10 requests per minute
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: createRateLimitStore('rate-limit:sync:'),
+  handler: (req, res, next, options) => {
+    logger.warn('Sync rate limit exceeded', {
+      ip: req.ip,
+      path: req.originalUrl || req.path,
+    });
+    res.status(options.statusCode).json({
+      error: 'Too many sync requests. Please slow down.',
+    });
+  },
+});
+
 export function validateLimiters() {
   const limiters = {
     apiRateLimiter,
@@ -472,9 +615,13 @@ export function validateLimiters() {
     authRateLimiter,
     notificationRateLimiter,
     activityAuthRateLimiter,
+    eventRegistrationLimiter,
+    eventRegistrationUserLimiter,
+    eventRegistrationIpLimiter,
     syncRateLimiter,
     portfolioRateLimiter,
-    eventRegistrationLimiter,
+    eventRegistrationIpLimiter,
+    eventRegistrationUserLimiter,
     searchRateLimiter,
   };
 

@@ -446,6 +446,15 @@ export default function MembershipPage({ onBack }) {
     INITIAL_FORM
   );
 
+  const { draftRestored, clearDraft, startOver, continueDraft } = useFormDraft(
+    'ns_membership_draft',
+    form,
+    step,
+    setForm,
+    setStep,
+    INITIAL_FORM
+  );
+
   function set(key, val) {
     setForm((f) => ({ ...f, [key]: val }));
   }

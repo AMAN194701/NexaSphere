@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { initializeSocket, getSocket, on, off, emit } from '../../utils/socketClient';
+import { getEstimatedWaitMinutes } from './waitingRoomUtils.js';
 
 export default function WaitingRoom({ eventId, fullName, email, onJoinEvent }) {
   const [status, setStatus] = useState('connecting');
@@ -24,12 +25,12 @@ export default function WaitingRoom({ eventId, fullName, email, onJoinEvent }) {
 
     const handleQueueUpdate = (data) => {
       if (data.position === 0) {
-        setPosition((prev) => (prev ? prev - 1 : 0));
+        setPosition((prev) => (prev != null && prev > 0 ? prev - 1 : 0));
       } else {
         setPosition(data.position);
       }
       setTotal(data.total);
-      estimateWait(data.position || position);
+      estimateWait(data.position ?? position);
     };
 
     const handleAdmitted = () => {
@@ -77,7 +78,16 @@ export default function WaitingRoom({ eventId, fullName, email, onJoinEvent }) {
     if (pos === null || pos === undefined) return;
     // Position 0 means front of queue — wait time is 0, not forced to 1
     const mins = pos === 0 ? 0 : Math.max(1, Math.round(pos * 2));
+    if (pos === 0) {
+      setWaitTime(0);
+      return;
+    }
+
+    const mins = Math.max(1, Math.round(pos * 2));
+    if (pos == null) return;
+    const mins = pos === 0 ? 0 : Math.max(1, Math.round(pos * 2));
     setWaitTime(mins);
+    setWaitTime(getEstimatedWaitMinutes(pos));
   };
 
   if (status === 'offline') {
@@ -175,7 +185,9 @@ export default function WaitingRoom({ eventId, fullName, email, onJoinEvent }) {
         </div>
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--t1)' }}>
-            ~{waitTime ?? '-'}m
+            {waitTime === 0 ? 'Ready' : waitTime != null ? `~${waitTime}m` : '-'}
+        <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--t1)' }}>
+            {waitTime === 0 ? 'Ready' : `~${waitTime ?? '-'}m`}
           </div>
           <div style={{ fontSize: '0.75rem', color: 'var(--t3)' }}>Est. Wait</div>
         </div>
@@ -211,7 +223,12 @@ export default function WaitingRoom({ eventId, fullName, email, onJoinEvent }) {
             borderRadius: '2px',
             background: 'var(--c1)',
             transition: 'width 0.5s ease',
-            width: position && total ? `${((total - position + 1) / total) * 100}%` : '0%',
+            width:
+              position != null && total
+                ? position === 0
+                  ? '100%'
+                  : `${((total - position + 1) / total) * 100}%`
+                : '0%',
           }}
         />
       </div>

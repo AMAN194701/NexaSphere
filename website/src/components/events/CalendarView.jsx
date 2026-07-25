@@ -20,6 +20,17 @@ export default function CalendarView({ events: initialEvents, onEventClick, isAd
   const [draggedEvent, setDraggedEvent] = useState(null);
   const [conflictToast, setConflictToast] = useState(null); // { message, severity }
   const conflictToastTimeoutRef = useRef(null);
+  const conflictToastTimerRef = useRef(null);
+  const conflictToastTimerRef = React.useRef(null);
+
+  useEffect(
+    () => () => {
+      if (conflictToastTimerRef.current) {
+        clearTimeout(conflictToastTimerRef.current);
+      }
+    },
+    []
+  );
 
   const { on: onSocket } = useSocketConnection();
 
@@ -32,6 +43,13 @@ export default function CalendarView({ events: initialEvents, onEventClick, isAd
     });
     return unsubscribe;
   }, [onSocket]);
+
+  useEffect(() => {
+    return () => {
+      if (conflictToastTimerRef.current) clearTimeout(conflictToastTimerRef.current);
+      conflictToastTimerRef.current = null;
+    };
+  }, []);
 
   const parseEventDate = (dateStr) => {
     if (!dateStr) return null;
@@ -71,9 +89,16 @@ export default function CalendarView({ events: initialEvents, onEventClick, isAd
   };
 
   const showConflictToast = (message, severity) => {
+    if (conflictToastTimerRef.current) clearTimeout(conflictToastTimerRef.current);
     setConflictToast({ message, severity });
     if (conflictToastTimeoutRef.current) clearTimeout(conflictToastTimeoutRef.current);
     conflictToastTimeoutRef.current = setTimeout(() => setConflictToast(null), 4000);
+    conflictToastTimerRef.current = setTimeout(() => {
+      setConflictToast(null);
+      conflictToastTimerRef.current = null;
+    }, 4000);
+    if (conflictToastTimerRef.current) clearTimeout(conflictToastTimerRef.current);
+    conflictToastTimerRef.current = setTimeout(() => setConflictToast(null), 4000);
   };
 
   useEffect(() => {
@@ -323,7 +348,19 @@ export default function CalendarView({ events: initialEvents, onEventClick, isAd
       {filteredEvents
         .sort((a, b) => new Date(a.date) - new Date(b.date))
         .map((ev) => (
-          <div key={ev.id} className="agenda-item" onClick={() => onEventClick(ev)}>
+          <div
+            key={ev.id}
+            className="agenda-item"
+            role="button"
+            tabIndex={0}
+            onClick={() => onEventClick(ev)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onEventClick(ev);
+              }
+            }}
+          >
             <div className="agenda-date">{new Date(ev.date).toLocaleDateString()}</div>
             <div className={`agenda-type-tag ${ev.category?.toLowerCase()}`}>{ev.category}</div>
             <div className="agenda-info">

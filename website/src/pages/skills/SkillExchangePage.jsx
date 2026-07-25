@@ -11,10 +11,24 @@ function formatScheduledDate(value) {
 import apiClient from '../../utils/apiClient';
 import { getApiBase, buildUrl } from '../../utils/runtimeConfig';
 
+function formatSkillSessionDate(value) {
+  if (!value) return 'Unknown date';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Unknown date';
+  return date.toLocaleDateString();
+}
+
 const USER_ID = localStorage.getItem('ns_user_id') || `user-${Date.now().toString(36)}`;
 const PROFICIENCY = ['Beginner', 'Intermediate', 'Advanced'];
 const FORMATS = ['Video', 'Chat', 'In-person'];
 const DURATIONS = [30, 60, 90];
+
+function formatSkillDate(value) {
+  if (!value) return 'Unknown date';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Unknown date';
+  return date.toLocaleDateString();
+}
 
 if (!localStorage.getItem('ns_user_id')) {
   localStorage.setItem('ns_user_id', USER_ID);
@@ -470,6 +484,8 @@ export default function SkillExchangePage({ onBack }) {
                     <div style={{ fontSize: '0.85rem', color: 'var(--t2)' }}>
                       Status: <strong>{s.status}</strong> · Scheduled:{' '}
                       {formatScheduledDate(s.scheduledAt)}
+                      {formatSkillSessionDate(s.scheduledAt)}
+                      {formatSkillDate(s.scheduledAt)}
                     </div>
                     {s.notes && (
                       <div style={{ fontSize: '0.85rem', color: 'var(--t3)' }}>
@@ -578,7 +594,15 @@ export default function SkillExchangePage({ onBack }) {
                   >
                     <span>{entry.xp} XP</span>
                     <span>{entry.sessions} sessions</span>
-                    <span>{entry.streak} week streak</span>
+                    <span>
+                      {entry.streak > 0 ? (
+                        <span style={{ color: '#F59E0B', fontWeight: 'bold' }}>
+                          {entry.streak} 🔥 week streak
+                        </span>
+                      ) : (
+                        `${entry.streak} week streak`
+                      )}
+                    </span>
                   </div>
                 </div>
               ))}

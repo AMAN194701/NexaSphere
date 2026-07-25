@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { sendSuccess, sendError } from '../utils/responseHelper.js';
+import eventManager from '../services/eventEmitterService.js';
 
 const prisma = new PrismaClient();
 
@@ -59,8 +60,13 @@ export const updateEventAttended = async (req, res) => {
       },
     });
 
-    // TODO: Trigger automated emails (e.g. Welcome email, recommend new events) based on newStage here.
-
+    if (lifecycle.stage !== newStage) {
+      eventManager.emitEvent('user-stage-changed', {
+        userId,
+        oldStage: lifecycle.stage,
+        newStage,
+      });
+    }
     sendSuccess(res, { lifecycle: updated });
   } catch (error) {
     console.error('Error updating event attended:', error);

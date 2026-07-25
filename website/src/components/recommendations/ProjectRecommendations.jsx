@@ -18,6 +18,12 @@ export default function ProjectRecommendations({ onBack }) {
     return () => {
       isMountedRef.current = false;
       if (fallbackTimeoutRef.current) clearTimeout(fallbackTimeoutRef.current);
+  const fallbackTimerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
+      fallbackTimerRef.current = null;
     };
   }, []);
 
@@ -57,6 +63,8 @@ export default function ProjectRecommendations({ onBack }) {
     fallbackTimeoutRef.current = setTimeout(() => {
       if (!isMountedRef.current) return;
     setTimeout(() => {
+    if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
+    fallbackTimerRef.current = setTimeout(() => {
       setIsDemo(true);
       // Hardcoded fallback recommendations matching our mock projects list
       setRecommendations([
@@ -83,6 +91,7 @@ export default function ProjectRecommendations({ onBack }) {
         },
       ]);
       setStep('result');
+      fallbackTimerRef.current = null;
     }, 2000);
   };
 

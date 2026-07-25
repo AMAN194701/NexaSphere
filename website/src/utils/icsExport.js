@@ -35,3 +35,30 @@ export function downloadICS(event) {
   link.click();
   document.body.removeChild(link);
 }
+
+const formatDateForUrl = (date) => {
+  return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+};
+
+export function generateGoogleCalendarUrl(event) {
+  const startDate = new Date(event.date || Date.now());
+  const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
+
+  const title = encodeURIComponent(event.name || 'NexaSphere Event');
+  const details = encodeURIComponent(event.description || event.overview || '');
+  const location = encodeURIComponent(event.location || 'GL Bajaj Group of Institutions, Mathura');
+  const dates = `${formatDateForUrl(startDate)}/${formatDateForUrl(endDate)}`;
+
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dates}&details=${details}&location=${location}`;
+}
+
+export function generateOutlookCalendarUrl(event) {
+  const startDate = new Date(event.date || Date.now());
+  const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
+
+  const title = encodeURIComponent(event.name || 'NexaSphere Event');
+  const details = encodeURIComponent(event.description || event.overview || '');
+  const location = encodeURIComponent(event.location || 'GL Bajaj Group of Institutions, Mathura');
+
+  return `https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent&startdt=${startDate.toISOString()}&enddt=${endDate.toISOString()}&subject=${title}&body=${details}&location=${location}`;
+}

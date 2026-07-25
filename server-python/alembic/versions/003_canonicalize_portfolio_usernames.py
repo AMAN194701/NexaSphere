@@ -1,7 +1,7 @@
 """canonicalize_portfolio_usernames
 
-Revision ID: 003
-Revises: 002
+Revision ID: 003_canonicalize_portfolio_usernames
+Revises: 002_seed_recommendation_data
 Create Date: 2026-05-28 00:00:00.000000
 
 """
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '003'
-down_revision = '002'
+revision = '003_canonicalize_portfolio_usernames'
+down_revision = '002_seed_recommendation_data'
 branch_labels = None
 depends_on = None
 

@@ -1,7 +1,7 @@
 """add_portfolio_fields
 
-Revision ID: 004
-Revises: 003
+Revision ID: 004_add_portfolio_fields
+Revises: 003_canonicalize_portfolio_usernames
 Create Date: 2026-05-28 00:00:01.000000
 
 """
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '004'
-down_revision = '003'
+revision = '004_add_portfolio_fields'
+down_revision = '003_canonicalize_portfolio_usernames'
 branch_labels = None
 depends_on = None
 

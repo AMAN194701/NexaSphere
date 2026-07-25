@@ -64,7 +64,7 @@ export default function EventCalendarView({ events, onEventClick }) {
     const start = event.start?.toISOString().replace(/-|:|\.\d+/g, '');
     const end = event.end?.toISOString().replace(/-|:|\.\d+/g, '');
     const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&dates=${start}/${end}&details=${encodeURIComponent(event.extendedProps?.description || '')}&location=${encodeURIComponent(event.extendedProps?.location || '')}`;
-    window.open(url, '_blank');
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   const downloadICS = (event) => {

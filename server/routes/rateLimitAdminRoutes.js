@@ -48,21 +48,24 @@ router.use(
 );
 async function redis() {
   return getRedisClient();
+
+async function redis() {
+  try {
+    return getRedisClient();
+  } catch {
+    return null;
+  }
 }
 
 
 // ── Redis client (reuse connection) ──────────────────────────────────────────
 let _redis = null;
 async function redis() {
-  if (_redis) return _redis;
   try {
-    _redis = createClient({ url: process.env.REDIS_URL });
-    _redis.on('error', () => {});
-    await _redis.connect();
+    return getRedisClient();
   } catch {
-    _redis = null;
+    return null;
   }
-  return _redis;
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -77,6 +80,21 @@ async function scanKeys(pattern) {
     });
     stream.on('end', () => resolve(keys));
     stream.on('error', reject);
+  return new Promise((resolve) => {
+    const keys = [];
+    const stream = r.scanStream({
+      match: pattern,
+      count: 200,
+    });
+    stream.on('data', (resultKeys) => {
+      keys.push(...resultKeys);
+    });
+    stream.on('end', () => {
+      resolve(keys);
+    });
+    stream.on('error', () => {
+      resolve([]);
+    });
   });
 }
 
@@ -254,7 +272,7 @@ router.post(
       const { identifier, limitPerMinute } = req.body;
 
       const r = await redis();
-      if (r) await r.set(`ratelimit:override:${identifier}`, String(limitPerMinute), { EX: 86400 });
+      if (r) await r.set(`ratelimit:override:${identifier}`, String(limitPerMinute), 'EX', 86400);
 
       logger.info('Rate limit override set', {
         identifier,

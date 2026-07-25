@@ -1,7 +1,7 @@
 """Add google_sheets_sync_queue table
 
-Revision ID: 003_add_sheets_sync_queue
-Revises: 002_seed_recommendation_data
+Revision ID: 005_add_sheets_sync_queue
+Revises: 004
 Create Date: 2026-06-14 12:00:00.000000
 
 """
@@ -10,8 +10,8 @@ from alembic import op
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
-revision: str = '003_add_sheets_sync_queue'
-down_revision: Union[str, None] = '002_seed_recommendation_data'
+revision: str = '005_add_sheets_sync_queue'
+down_revision: Union[str, None] = '004_add_portfolio_fields'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

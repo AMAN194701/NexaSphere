@@ -26,38 +26,49 @@ export function ActivityEventForm({ activityKey, onClose }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal">
+    <div
+      className="modal-overlay"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+      onKeyDown={(e) => e.key === 'Escape' && onClose()}
+    >
+      <div
+        className="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="activity-event-form-title"
+      >
         <div className="modal-header">
-          <h3>Add Activity Event</h3>
-          <button className="modal-close" onClick={onClose} aria-label="Close">
+          <h3 id="activity-event-form-title">Add Activity Event</h3>
+          <button className="modal-close" onClick={onClose} aria-label="Close modal">
             <AdminIcon name="X" size={18} />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="form">
           <div className="form-row">
-            <label>Name *</label>
-            <input value={form.name} onChange={(e) => set('name', e.target.value)} required />
+            <label htmlFor="activity-event-name">Name *</label>
+            <input id="activity-event-name" value={form.name} onChange={(e) => set('name', e.target.value)} required />
           </div>
           <div className="form-row">
-            <label>Date</label>
-            <input value={form.date} onChange={(e) => set('date', e.target.value)} type="date" />
+            <label htmlFor="activity-event-date">Date</label>
+            <input id="activity-event-date" value={form.date} onChange={(e) => set('date', e.target.value)} type="date" />
           </div>
           <div className="form-row">
-            <label>Participants</label>
+            <label htmlFor="activity-event-participants">Participants</label>
             <input
+              id="activity-event-participants"
               value={form.participants}
               onChange={(e) => set('participants', e.target.value)}
               placeholder="e.g. 120"
             />
           </div>
           <div className="form-row">
-            <label>Result / Winner</label>
-            <input value={form.result} onChange={(e) => set('result', e.target.value)} />
+            <label htmlFor="activity-event-result">Result / Winner</label>
+            <input id="activity-event-result" value={form.result} onChange={(e) => set('result', e.target.value)} />
           </div>
           <div className="form-row">
-            <label>Description</label>
+            <label htmlFor="activity-event-description">Description</label>
             <textarea
+              id="activity-event-description"
               value={form.description}
               onChange={(e) => set('description', e.target.value)}
               rows={3}

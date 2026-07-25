@@ -20,6 +20,9 @@ export const getTemplates = async (req, res) => {
     sendSuccess(res, templates);
   } catch (error) {
     sendError(req, res, 'Failed to fetch templates', 500, 'INTERNAL_ERROR');
+    res.json(templates);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch templates' });
   }
 };
 
@@ -32,6 +35,9 @@ export const createTemplate = async (req, res) => {
     sendSuccess(res, template, 201);
   } catch (error) {
     sendError(req, res, 'Failed to save template', 500, 'INTERNAL_ERROR');
+    res.status(201).json(template);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to save template' });
   }
 };
 
@@ -49,5 +55,8 @@ export const cloneTemplate = async (req, res) => {
     sendSuccess(res, clonedData);
   } catch (error) {
     sendError(req, res, 'Cloning processing failure', 500, 'INTERNAL_ERROR');
+    res.json(clonedData);
+  } catch (error) {
+    res.status(500).json({ error: 'Cloning processing failure' });
   }
 };

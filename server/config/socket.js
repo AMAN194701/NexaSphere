@@ -46,8 +46,7 @@ const JOIN_ROOM_WINDOW_MS = 60000;
 const MAX_CURSOR_X = 5000;
 const MAX_CURSOR_Y = 5000;
 // ===================================// WEBSOCKET BACKPRESSURE & THROTTLING CONFIG
-// ==========================================
-const MAX_PENDING_PACKETS = parseInt(process.env.WS_MAX_PENDING_PACKETS) || 100;
+// ===================================const MAX_PENDING_PACKETS = parseInt(process.env.WS_MAX_PENDING_PACKETS) || 100;
 const SLOW_CONSUMER_TIMEOUT_MS = parseInt(process.env.WS_SLOW_CONSUMER_TIMEOUT_MS) || 5000;
 
 const EVENT_POLICIES = {
@@ -267,6 +266,19 @@ export function stopSocketValidation() {
 /**
  * Parse Bearer token from auth header
  */
+=======
+// ── Heartbeat / stale-connection detection ──────────────────────────────────
+// Sockets that drop without a clean close (e.g. network failure, mobile sleep)
+// leave their entries in connectedUsers and workspaceRoomMembers forever.
+// A periodic ping-pong cycle marks each socket as "awaiting pong" and forcibly
+// disconnects any that have not responded by the next tick, preventing the
+// unbounded memory growth described in issue #3845.
+const HEARTBEAT_INTERVAL_MS = 30_000; // emit ping every 30 s
+const HEARTBEAT_TIMEOUT_MS = 10_000; // allow 10 s for pong before evicting
+const MAX_CONNECTED_USERS = 10_000; // safety cap on the connectedUsers map
+
+let heartbeatInterval = null;
+
 function parseBearer(authHeader) {
   if (!authHeader || !authHeader.startsWith("Bearer ")) return "";
   return authHeader.slice(7).trim();
@@ -389,6 +401,9 @@ export function initializeSocketIO(httpServer) {
   // Start distributed revocation checks for admin WebSocket clients
   startSocketValidation();
 
+  // Start the server-driven heartbeat so stale sockets are evicted promptly.
+  startHeartbeat();
+
   return io;
 }
 
@@ -432,7 +447,6 @@ export function _onConnection(socket) {
     socket.join(handshakeRoomId);
   }
 
-  // Keep track of identify operations to rate limit floods per-socket (Max 3 events per lifetime)
   let identifyCount = 0;
 
   socket.on('user:identify', (userData) => {
@@ -457,6 +471,13 @@ export function _onConnection(socket) {
     // 2. Defensive Payload Structure & Type Validation
     if (!userData || typeof userData !== "object") {
       logger.warn("Invalid user identification payload type rejected", {
+      return;
+    }
+
+    const { userId, email } = userData;
+
+    if (typeof userId !== 'string' || typeof email !== 'string') {
+      logger.warn('User identification payload fields must be primitive strings', {
         socketId: socket.id,
       });
       return;
@@ -490,6 +511,20 @@ export function _onConnection(socket) {
   // Store connected user
   socket.on("user:identify", (userData) => {
     // 4. Safe Deep Copy (Persist sanitized primitives)
+    if (userId.length > 128 || email.length > 256) {
+      logger.warn('Oversized user identification payload values rejected', { socketId: socket.id });
+      return;
+    }
+
+    if (connectedUsers.size >= MAX_CONNECTED_USERS) {
+      logger.warn('Max connected users cap reached, rejecting identification', {
+        socketId: socket.id,
+        cap: MAX_CONNECTED_USERS,
+      });
+      socket.emit('error', { message: 'Server at capacity, please retry later.' });
+      return;
+    }
+
     connectedUsers.set(socket.id, {
       id: String(userId),
       email: String(email),
@@ -595,7 +630,6 @@ export function _onConnection(socket) {
       });
     }
 
-    // 4. Per-Socket Bounded Active Rooms Cap (Set size check)
     const joinedCount = socket.rooms ? socket.rooms.size - 1 : 0;
     if (joinedCount >= MAX_ROOMS_PER_SOCKET) {
       logger.warn("Socket joined rooms limit exceeded", {
@@ -633,7 +667,6 @@ export function _onConnection(socket) {
       return;
     }
 
-    // 2. Per-Socket Bounded Active Rooms Cap
     const joinedCount = socket.rooms ? socket.rooms.size - 1 : 0;
     if (joinedCount >= MAX_ROOMS_PER_SOCKET) {
       logger.warn("Socket workspace joined rooms limit exceeded", {
@@ -688,7 +721,6 @@ export function _onConnection(socket) {
       }
     }).catch(() => {});
 
-    // Sanitize user details to prevent reference leaks / massive nested objects
     const sanitizedUser =
       user && typeof user === 'object'
         ? {
@@ -787,7 +819,6 @@ export function _onConnection(socket) {
     }
   });
 
-  // Event planning real-time collaboration
   socket.on('planning:join', (eventId) => {
     if (typeof eventId === 'string' && /^[a-zA-Z0-9\-_]{1,100}$/.test(eventId)) {
       socket.join(`planning:${eventId}`);
@@ -1195,7 +1226,6 @@ export function _onConnection(socket) {
     }
   });
 
-  // Waiting room — join queue
   socket.on('waiting:join', ({ eventId, fullName, email, isPriority } = {}) => {
     if (!eventId || !email || !fullName) return;
     const userId = socket.id;
@@ -1290,14 +1320,12 @@ export function _onConnection(socket) {
     _cleanupWorkspaceMembership(socket.id);
   });
 
-  // Waiting room — get current queue status
   socket.on('waiting:status', ({ eventId } = {}) => {
     if (!eventId) return;
     const queue = waitingRoomService.getQueue(eventId);
     socket.emit('waiting:status:update', { eventId, queue, total: queue.length });
   });
 
-  // Waiting room — admin admit one
   socket.on('waiting:admit-one', ({ eventId } = {}) => {
     if (!socket.adminAuthenticated || !eventId) return;
     const entry = waitingRoomService.admitOne(eventId);
@@ -1306,35 +1334,45 @@ export function _onConnection(socket) {
     }
   });
 
-  // Waiting room — admin admit all
   socket.on('waiting:admit-all', ({ eventId } = {}) => {
     if (!socket.adminAuthenticated || !eventId) return;
     const admitted = waitingRoomService.admitAll(eventId);
     socket.emit('waiting:admitted-entries', { eventId, count: admitted.length });
   });
 
-  // Waiting room — admin remove attendee
   socket.on('waiting:remove', ({ eventId, entryId } = {}) => {
     if (!socket.adminAuthenticated || !eventId || !entryId) return;
     waitingRoomService.removeFromQueue(eventId, entryId);
     socket.emit('waiting:removed-entry', { eventId, entryId });
   });
 
-  // Waiting room — admin move to front
   socket.on('waiting:move-front', ({ eventId, entryId } = {}) => {
     if (!socket.adminAuthenticated || !eventId || !entryId) return;
     waitingRoomService.moveToFront(eventId, entryId);
     socket.emit('waiting:moved-front', { eventId, entryId });
   });
 
-  // Waiting room — admin send message to waiting room
   socket.on('waiting:send-message', ({ eventId, message } = {}) => {
     if (!socket.adminAuthenticated || !eventId || !message) return;
     waitingRoomService.sendMessage(eventId, message);
   });
 
+  // ── Heartbeat pong handler ─────────────────────────────────────────────────
+  // The server sends a 'ping' event periodically (see startHeartbeat).
+  // Clients must respond with 'pong'.  If no pong arrives before the next
+  // heartbeat tick the socket is forcibly disconnected, releasing all memory.
+  socket.on('pong', () => {
+    socket._heartbeatAlive = true;
+  });
+
+  // Mark the socket as alive on initial connection so the first heartbeat
+  // cycle does not immediately evict it.
+  socket._heartbeatAlive = true;
+
   // Handle disconnection
   socket.on("disconnect", () => {
+  socket.on('disconnect', () => {
+  socket.on('disconnect', (reason) => {
     connectedUsers.delete(socket.id);
     logger.info("User disconnected", { socketId: socket.id });
   });
@@ -1359,10 +1397,9 @@ export function _onConnection(socket) {
     logger.error("Socket error", { error: error.message, socketId: socket.id });
     _cleanupWorkspaceMembership(socket.id);
     joinRoomAttempts.delete(socket.id);
-    logger.info('User disconnected', { socketId: socket.id });
+    logger.info('User disconnected', { socketId: socket.id, reason });
   });
 
-  // Error handling
   socket.on('error', (error) => {
     logger.error('Socket error', { error: error.message, socketId: socket.id });
   });
@@ -1410,18 +1447,12 @@ export function emitToUser(userId, eventName, data) {
   }
 }
 
-/**
- * Emit event to specific user by email
- */
 export function emitToUserByEmail(email, eventName, data) {
   if (!io) return;
   io.to(`user-${String(email).toLowerCase()}`).emit(eventName, data);
   logger.debug('Emit to user by email room', { email, event: eventName });
 }
 
-/**
- * Get connected users count
- */
 export function getConnectedUsersCount() {
   return connectedUsers.size;
 }
@@ -1511,6 +1542,61 @@ export function _setIOForTests(mockIo) {
  * @param {string} eventName - Event name
  * @param {Object} data - Payload
  */
+ * Starts (or restarts) the server-side heartbeat that detects stale sockets.
+ *
+ * Every HEARTBEAT_INTERVAL_MS milliseconds the server:
+ *   1. Emits a 'ping' event to every connected socket.
+ *   2. Marks each socket as NOT alive (_heartbeatAlive = false).
+ *   3. After HEARTBEAT_TIMEOUT_MS, any socket still marked NOT alive has not
+ *      responded with 'pong' and is forcibly disconnected.
+ *
+ * On disconnect the existing handler removes the socket from connectedUsers,
+ * workspaceRoomMembers, and joinRoomAttempts, so no manual cleanup is needed
+ * here — the disconnect event does all the work.
+ */
+export function startHeartbeat() {
+  if (heartbeatInterval) clearInterval(heartbeatInterval);
+
+  heartbeatInterval = setInterval(() => {
+    if (!io) return;
+
+    io.sockets.sockets.forEach((socket) => {
+      if (!socket._heartbeatAlive) {
+        // Did not respond to last ping — evict immediately.
+        logger.warn('Evicting unresponsive socket (missed heartbeat pong)', {
+          socketId: socket.id,
+        });
+        socket.disconnect(true);
+        return;
+      }
+
+      // Mark as NOT alive; the 'pong' handler will flip it back to true.
+      socket._heartbeatAlive = false;
+      socket.emit('ping');
+    });
+  }, HEARTBEAT_INTERVAL_MS);
+
+  // Avoid keeping the process alive solely for the heartbeat in test/CLI envs.
+  if (heartbeatInterval.unref) heartbeatInterval.unref();
+
+  logger.info('Socket heartbeat started', {
+    intervalMs: HEARTBEAT_INTERVAL_MS,
+    timeoutMs: HEARTBEAT_TIMEOUT_MS,
+  });
+}
+
+/**
+ * Stops the heartbeat interval.  Call this during graceful server shutdown
+ * or in test teardown to prevent open handle warnings.
+ */
+export function stopHeartbeat() {
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval);
+    heartbeatInterval = null;
+    logger.info('Socket heartbeat stopped.');
+  }
+}
+
 export function emitToRole(roles, eventName, data) {
   if (!io) return;
   const list = Array.isArray(roles) ? roles : [roles];
@@ -1538,6 +1624,8 @@ export default {
   emitToUser,
   emitToUserByEmail,
   emitToRole,
+  startHeartbeat,
+  stopHeartbeat,
   _clearConnectedUsers,
   _clearWorkspaceRoomMembers,
   _clearJoinRoomAttempts,

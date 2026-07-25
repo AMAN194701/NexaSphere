@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Globe, Type } from 'lucide-react';
+import { Globe, Contrast } from 'lucide-react';
 import { BRAND_LOGO_FULL, BRAND_LOGO_ICON } from './brandAssets';
 
 const TABS = [

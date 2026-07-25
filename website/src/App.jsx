@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, lazy, memo, useLayoutEffect, useRef } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { BrowserRouter, useLocation, useNavigate } from 'react-router-dom';
 import {
   useState,
@@ -36,8 +37,7 @@ import './i18n';
 
 // Core structural elements
 import AppProviders from './providers/AppProviders';
-import AppRoutes, { Wipe } from './router/routes';
-import Cursor from './components/Cursor';
+import AppRoutes from './router/routes';
 import useAppBootstrap from './hooks/useAppBootstrap';
 import { useTheme } from './hooks/useTheme';
 import { useDeveloperMode } from './hooks/useDeveloperMode';
@@ -46,10 +46,12 @@ import { useBackToTop } from './hooks/useScrollLogic';
 
 // Shared layout and telemetry widgets
 import Navbar from './shared/Navbar';
+import SkipLink from './components/common/SkipLink';
 import MoveToTop from './shared/MoveToTop';
 import Chatbot from './shared/Chatbot';
 import ScrollProgress from './shared/ScrollProgress';
 import SearchBar from './components/SearchBar';
+import SkipLink from './components/common/SkipLink';
 import Terminal from './components/developer/Terminal';
 import BookmarksDrawer from './components/bookmarks/BookmarksDrawer';
 import CinematicOpening from './shared/CinematicOpening';
@@ -87,10 +89,14 @@ import { useBackToTop } from './hooks/useScrollLogic';
 const MNH = 88;
 const DNH = 64;
 
+import ErrorBoundary from './components/common/ErrorBoundary';
+import ErrorBoundary from './components/ErrorBoundary';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
+
 // Lazy-loaded heavy pages
 const RecruitmentPage = lazy(() => import('./pages/recruitment/RecruitmentPage'));
 const MembershipPage = lazy(() => import('./pages/membership/MembershipPage'));
-const AdminPage = lazy(() => import('./pages/admin/AdminPage'));
+// const AdminPage = lazy(() => import('./pages/admin/AdminPage')); // TODO: page missing from repo, see issue tracker
 const ActivitiesPage = lazy(() => import('./pages/activities/ActivitiesPage'));
 const ActivityDetailPage = lazy(() => import('./pages/activities/ActivityDetailPage'));
 const EventsPage = lazy(() => import('./pages/events/EventsPage'));
@@ -102,7 +108,7 @@ const ResourcesPage = lazy(() => import('./pages/resources/ResourcesPage'));
 const RoadmapsPage = lazy(() => import('./pages/roadmaps/RoadmapsPage'));
 const ProjectsPage = lazy(() => import('./pages/projects/ProjectsPage'));
 const CertificateVerifyPage = lazy(() => import('./pages/certificates/CertificateVerifyPage'));
-const CollabPage = lazy(() => import('./pages/collab/CollabPage'));
+// const CollabPage = lazy(() => import('./pages/collab/CollabPage')); // TODO: page missing from repo, see issue tracker
 const PortfolioBuilder = lazy(() => import('./components/portfolio/PortfolioBuilder'));
 const PublicPortfolio = lazy(() => import('./pages/portfolio/PublicPortfolio'));
 const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage'));
@@ -132,6 +138,7 @@ const MNH = 88,
   DNH = 64;
 
 /* ── Page wipe transition ── */
+/* â”€â”€ Page wipe transition â”€â”€ */
 const Wipe = memo(function Wipe({ on: wipeOn, ph }) {
   if (!wipeOn) return null;
   return (
@@ -791,6 +798,8 @@ function MainRouter({
   return (
     <SessionRecordingProvider sessionId={sessionId}>
       {cinDone && <AmbientOrbs theme={theme} />}
+      <SkipLink targetId="main-content" label="Skip to main content" />
+      <SkipLink />
       {cinDone && (
         <Navbar
           activeTab={activeTab}
@@ -811,6 +820,7 @@ function MainRouter({
         style={{ paddingTop: nh, position: 'relative', zIndex: 1 }}
         aria-label="Main content"
       >
+      <main id="main-content" style={{ paddingTop: nh, position: 'relative', zIndex: 1 }}>
         <Suspense fallback={<PageLoadingSpinner />}>
           <Routes>
             {/* â”€â”€ Home (scrollable sections) â”€â”€ */}
@@ -1032,6 +1042,20 @@ function MainRouter({
               }
             />
 
+            {/* â”€â”€ Collab â”€â”€ (disabled: CollabPage missing from repo) */}
+            {false && (
+              <Route
+                path="/collab"
+                element={
+                  <ErrorBoundary>
+                    <PageIn k="collab">
+                      <CollabPage onBack={onBackHome} />
+                    </PageIn>
+                  </ErrorBoundary>
+                }
+              />
+            )}
+
             {/* â”€â”€ About â”€â”€ */}
             <Route
               path="/about"
@@ -1226,6 +1250,20 @@ function MainRouter({
                 </ErrorBoundary>
               }
             />
+
+            {/* â”€â”€ Admin (disabled: AdminPage missing from repo) â”€â”€ */}
+            {false && (
+              <Route
+                path="/admin"
+                element={
+                  <ErrorBoundary>
+                    <PageIn k="admin">
+                      <AdminPage onBack={onBackHome} />
+                    </PageIn>
+                  </ErrorBoundary>
+                }
+              />
+            )}
 
             {/* â”€â”€ Resources / Library â”€â”€ */}
             <Route
@@ -1422,5 +1460,6 @@ function MainRouter({
         }}
       />
     </SessionRecordingProvider>
+    </>
   );
 }

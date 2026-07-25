@@ -427,7 +427,7 @@ async function checkNotNullConstraints(client) {
     }
 
     const res = await client.query(
-      `SELECT COUNT(*) AS count FROM ${table} WHERE ${column} IS NULL`
+      `SELECT COUNT(*) AS count FROM ${validateTableName(table)} WHERE ${validateColumnName(column)} IS NULL`
     );
     const nullCount = parseInt(res.rows[0].count, 10);
     if (nullCount > 0) {
@@ -450,7 +450,7 @@ async function checkRowCounts(client) {
       continue;
     }
 
-    const res = await client.query(`SELECT COUNT(*) AS count FROM ${table}`);
+    const res = await client.query(`SELECT COUNT(*) AS count FROM ${validateTableName(table)}`);
     const count = parseInt(res.rows[0].count, 10);
     console.log(`  → "${table}": ${count} rows (minimum: ${minCount})`);
     if (count < minCount) {

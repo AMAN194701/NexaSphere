@@ -101,6 +101,16 @@ export const listEvents = wrapAsync(async (req, res) => {
       });
       return { events: rows, pagination: buildPaginationMeta(page, limit, total) };
     },
+  const { rows, total } = await eventsService.listEvents({
+    page,
+    limit,
+    status,
+    studentGroups,
+    startDate,
+    endDate,
+    category,
+    location,
+    search,
   });
   return res.json({ events: rows, pagination: buildPaginationMeta(page, limit, total) });
 

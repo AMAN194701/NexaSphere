@@ -4,6 +4,8 @@ import test, { after } from 'node:test';
 import {
   apiRateLimiter,
   formRateLimiter,
+  eventRegistrationUserLimiter,
+  eventRegistrationIpLimiter,
   notificationRateLimiter,
   portfolioRateLimiter,
   validateLimiters,
@@ -184,6 +186,64 @@ test('portfolioRateLimiter calls next() for a first-time request within the limi
     assert.equal(res._status, null, 'Status must not be set for an allowed request');
     done();
   });
+});
+
+test('eventRegistrationUserLimiter enforces 5 registrations per minute per user', async () => {
+  const makeRes = () => makeMockRes();
+  const req = makeMockReq({
+    method: 'POST',
+    path: '/api/content/events/event-1/register',
+    originalUrl: '/api/content/events/event-1/register',
+    body: { email: 'student@example.com' },
+  });
+
+  let allowed = 0;
+  for (let i = 0; i < 5; i++) {
+    await new Promise((resolve) => {
+      eventRegistrationUserLimiter(req, makeRes(), () => {
+        allowed++;
+        resolve();
+      });
+    });
+  }
+  assert.equal(allowed, 5);
+
+  const blockedRes = makeRes();
+  await new Promise((resolve) => {
+    eventRegistrationUserLimiter(req, blockedRes, () => resolve());
+    setImmediate(resolve);
+  });
+
+  assert.equal(blockedRes._status, 429);
+  assert.equal(blockedRes._body?.error, 'Too many registration attempts from this user. Please try again later.');
+  assert.ok(blockedRes._headers['Retry-After']);
+});
+
+test('eventRegistrationIpLimiter enforces 100 registrations per hour per IP', async () => {
+  const makeRes = () => makeMockRes();
+  const req = makeMockReq({
+    method: 'POST',
+    path: '/api/content/events/event-2/register',
+    originalUrl: '/api/content/events/event-2/register',
+    body: { email: 'bot@example.com' },
+    ip: '198.51.100.20',
+  });
+
+  for (let i = 0; i < 100; i++) {
+    await new Promise((resolve) => {
+      eventRegistrationIpLimiter(req, makeRes(), () => resolve());
+    });
+  }
+
+  const blockedRes = makeRes();
+  await new Promise((resolve) => {
+    eventRegistrationIpLimiter(req, blockedRes, () => resolve());
+    setImmediate(resolve);
+  });
+
+  assert.equal(blockedRes._status, 429);
+  assert.equal(blockedRes._body?.error, 'Too many registration attempts from this IP. Please try again later.');
+  assert.ok(blockedRes._headers['Retry-After']);
 });
 
 // ---------------------------------------------------------------------------

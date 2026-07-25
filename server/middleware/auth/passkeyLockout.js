@@ -107,3 +107,4 @@ let targetJs = js.replace(
 );
 fs.writeFileSync('server/index.js', targetJs);
 }
+}

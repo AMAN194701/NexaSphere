@@ -143,6 +143,21 @@ export async function enableAdminTwoFactor({ username, secret, backupCodes }) {
   });
 }
 
+export async function disableAdminTwoFactor(username) {
+  await ensureReady();
+  const uname = normalizeUsername(username);
+  
+  await pool.query(
+    `update admin_security
+       set totp_secret = null,
+           backup_code_hashes = null,
+           two_factor_enabled = false,
+           updated_at = current_timestamp
+     where username = $1`,
+    [uname]
+  );
+}
+
 export async function verifyAndConsumeBackupCode(username, code) {
   const normalized = normalizeUsername(username);
   const codeHash = hashSecurityValue(code);

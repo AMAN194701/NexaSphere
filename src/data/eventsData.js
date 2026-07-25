@@ -19,6 +19,8 @@ export const events = [
     tags: ['AI', 'Learning', 'Community'],
     location: 'Conference Hall',
     capacity: 50,
+    rsvpCount: 50,
+    waitlistCount: 0,
   },
   {
     id: 2,
@@ -35,6 +37,8 @@ export const events = [
     tags: ['Git', 'GitHub', 'Workshop'],
     location: 'Computer Lab, CSE Block',
     capacity: 30,
+    rsvpCount: 30,
+    waitlistCount: 5,
   },
   {
     id: 3,
@@ -51,6 +55,8 @@ export const events = [
     tags: ['Hackathon', 'Coding', 'Innovation', 'Prizes'],
     location: 'Main Auditorium',
     capacity: 100,
+    rsvpCount: 85, // Upcoming, filling up fast!
+    waitlistCount: 0,
   },
   {
     id: 4,
@@ -67,6 +73,8 @@ export const events = [
     tags: ['Debate', 'AI', 'Critical Thinking'],
     location: 'Seminar Room 203',
     capacity: 40,
+    rsvpCount: 40, // At capacity! Will test the "Join Waitlist" switch.
+    waitlistCount: 2,
   },
   {
     id: 5,
@@ -83,6 +91,8 @@ export const events = [
     tags: ['Open Source', 'Git', 'GitHub', 'First PR'],
     location: 'Computer Lab',
     capacity: 35,
+    rsvpCount: 12,
+    waitlistCount: 0,
   },
   {
     id: 6,
@@ -99,6 +109,8 @@ export const events = [
     tags: ['AI', 'Prompt Engineering', 'Generative AI'],
     location: 'Online (Zoom)',
     capacity: 100,
+    rsvpCount: 98,
+    waitlistCount: 0,
   },
   {
     id: 7,
@@ -114,5 +126,7 @@ export const events = [
     tags: ['React', 'Frontend', 'Web Development'],
     location: 'Computer Lab',
     capacity: 50,
+    rsvpCount: 50,
+    waitlistCount: 0,
   },
 ];

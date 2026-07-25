@@ -77,7 +77,7 @@ function initializeSentry(app) {
     // Graceful fallback if os import fails
   }
 
-  Sentry.addGlobalEventProcessor((event) => {
+  Sentry.addEventProcessor((event) => {
     const ctx = getLogContext();
     event.tags = event.tags || {};
     if (ctx.reqId) event.tags.reqId = ctx.reqId;
@@ -91,8 +91,10 @@ function initializeSentry(app) {
   return Sentry;
 };
 
+  return Sentry;
+}
+
 function addSentryErrorHandler(app) {
-  // The error handler must be the last middleware on the app
   if (typeof Sentry.setupExpressErrorHandler === 'function') {
     Sentry.setupExpressErrorHandler(app);
   } else if (Sentry.Handlers && typeof Sentry.Handlers.errorHandler === 'function') {
