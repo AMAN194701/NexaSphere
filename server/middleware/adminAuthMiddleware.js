@@ -680,6 +680,13 @@ async function login(req, res) {
         secret,
         backupCodes,
         graceEndsAt: securityAccount?.grace_ends_at,
+
+      return res.status(200).json({
+        requiresTwoFactorSetup: true,
+        setupToken,
+        qrCodeDataUrl,
+        backupCodes,
+        expiresAt: Date.now() + PENDING_2FA_TTL_MS,
       });
     }
 
