@@ -1008,6 +1008,12 @@ app.get('/api/auth/me', requireStudentAuth, studentAuthController.getMe);
 app.post('/api/auth/theme', requireStudentAuth, studentAuthController.updateTheme);
 
 // Student Profile Endpoints
+app.get('/api/auth/profile',       requireStudentAuth, studentAuthController.getProfile);
+app.put('/api/auth/profile',       requireStudentAuth, studentAuthController.updateProfile);
+app.get('/api/auth/registrations', requireStudentAuth, studentAuthController.getRegistrations);
+app.post('/api/auth/logout', studentAuthController.logout);
+
+// Student Profile Endpoints
 app.get('/api/auth/profile', requireStudentAuth, studentAuthController.getProfile);
 app.put('/api/auth/profile', requireStudentAuth, studentAuthController.updateProfile);
 app.get('/api/auth/registrations', requireStudentAuth, studentAuthController.getRegistrations);
