@@ -362,6 +362,26 @@ import MoveToTop from './shared/MoveToTop';
 import OfflineBanner from './components/pwa/OfflineBanner.jsx';
 import InstallPrompt from './components/pwa/InstallPrompt.jsx';
 import UpdatePrompt from './components/pwa/UpdatePrompt.jsx';
+import MoveToTop from './shared/MoveToTop';
+import OfflineBanner from './components/pwa/OfflineBanner.jsx';
+import InstallPrompt from './components/pwa/InstallPrompt.jsx';
+import UpdatePrompt from './components/pwa/UpdatePrompt.jsx';
+
+const MNH = 88,
+  DNH = 86;
+const TABS = [
+  'Home',
+  'Dashboard',
+  'Activities',
+  'Events',
+  'Projects',
+  'Roadmaps',
+  'Portfolio',
+  'Collab',
+  'About',
+  'Team',
+  'Contact',
+];
 
 const MNH = 88,
   DNH = 86;
@@ -564,6 +584,12 @@ function PageIn({ children, k }) {
     return () => cancelAnimationFrame(raf);
   }, [k]);
   return (
+  const [r, setR] = useState(false);
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setR(true));
+    return () => cancelAnimationFrame(raf);
+  }, [k]);
+  return (
     <div
       style={{
         opacity: r ? 1 : 0,
@@ -645,6 +671,15 @@ function Cursor() {
   const trailRef = useRef(null);
   const glowRef = useRef(null);
   const stateRef = useRef({
+    mx: 0,
+    my: 0,
+    ox: 0,
+    oy: 0,
+    floatY: 0,
+    floatPhase: 0,
+    hovering: false,
+    clicking: false,
+    visible: true,
     mx: 0,
     my: 0,
     ox: 0,
@@ -1785,6 +1820,52 @@ export default function App() {
   const onNavigate = useCallback(
     (type, title) => {
       if (type === 'activity') nav(() => setPage({ type: 'activity', activityKey: title }));
+  const onTab = useCallback(
+    (tab) => {
+      if (
+        [
+          'Dashboard',
+          'Analytics',
+          'Activities',
+          'Events',
+          'Projects',
+          'Roadmaps',
+          'Portfolio',
+          'Collab',
+          'About',
+          'Team',
+          'Contact',
+        ].includes(tab)
+      ) {
+        nav(() => {
+          setPage({ type: 'section', section: tab });
+          setActiveTab(tab);
+        });
+        return;
+      }
+      nav(() => {
+        setPage(null);
+        setActiveTab(tab);
+        setTimeout(() => {
+          const el = document.getElementById(`section-${tab.toLowerCase()}`);
+          if (!el) return;
+          window.scrollTo({ top: el.offsetTop - (mobile ? MNH : DNH), behavior: 'smooth' });
+        }, 50);
+      });
+    },
+    [nav, mobile]
+  );
+
+  const onNavigate = useCallback(
+    (type, title) => {
+      if (type === 'activity') nav(() => setPage({ type: 'activity', activityKey: title }));
+    },
+    [nav]
+  );
+
+  const onEvent = useCallback(
+    (ev) => {
+      nav(() => setPage((p) => ({ ...p, type: 'event', event: ev })));
     },
     [nav]
   );
@@ -2295,6 +2376,36 @@ export default function App() {
               <PublicPortfolio username={page.username} onBack={onBackHome} />
             )}
             {page.section === 'Dashboard' && <DashboardPage onBack={onBackHome} />}
+            {page.section === 'Activities' && (
+              <ActivitiesPage onNavigate={onNavigate} onBack={onBackHome} />
+            )}
+            {page.section === 'Events' && (
+              <EventsPage onBack={onBackHome} onEventClick={onKSSClick} events={eventsData} />
+            )}
+            {page.section === 'Projects' && <ProjectsPage onBack={onBackHome} />}
+            {page.section === 'Roadmaps' && <RoadmapsPage onBack={onBackHome} />}
+            {page.section === 'Portfolio' && <PortfolioBuilder />}
+            {page.section === 'Collab' && <CollabPage onBack={onBackHome} />}
+            {page.section === 'About' && <AboutPage onBack={onBackHome} />}
+            {page.section === 'Team' && <TeamPage onBack={onBackHome} onApply={openApply} />}
+            {page.section === 'Contact' && <ContactPage onBack={onBackHome} />}
+            {page.type === 'activity' && cur && (
+              <ActivityDetailPage activity={cur} onBack={onBackMain} onSelectEvent={onEvent} />
+            )}
+            {page.type === 'apply' && <RecruitmentPage onBack={onBackHome} />}
+            {page.type === 'join' && <MembershipPage onBack={onBackHome} />}
+            {page.type === 'admin' && <AdminPage onBack={onBackHome} />}
+            {page.type === 'event' && page.event && (
+              <EventDetailPage
+                event={page.event}
+                onBack={page.activityKey ? onBackAct : onBackMain}
+              />
+            )}
+            {page.type === 'portfolio' && (
+              <PublicPortfolio username={page.username} onBack={onBackHome} />
+            )}
+            {page.section === 'Dashboard' && <DashboardPage onBack={onBackHome} />}
+            {page.section === 'Analytics' && <AnalyticsPage onBack={onBackHome} />}
             {page.section === 'Activities' && (
               <ActivitiesPage onNavigate={onNavigate} onBack={onBackHome} />
             )}

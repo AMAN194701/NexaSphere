@@ -39,6 +39,13 @@ export default function Login() {
       }
       navigate(adminPath('/dashboard'));
     setError("");
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
     setLoading(true);
     try {
       await auth.login(email, password, allowOffline);

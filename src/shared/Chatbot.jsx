@@ -96,6 +96,8 @@ const Chatbot = () => {
     } catch (e) {
       setMessages((prev) => [...prev, { role: 'bot', text: data.reply }]);
     } catch (e) {
+      setMessages((prev) => [...prev, { role: 'bot', text: data.reply }]);
+    } catch (e) {
       console.error('AI chat request failed', e);
       setMessages((prev) => [
         ...prev,

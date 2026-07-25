@@ -48,6 +48,22 @@ const TABS = [
 import { ThemeToggle } from "../components/common/ThemeToggle";
 import { BRAND_LOGO_FULL, BRAND_LOGO_ICON } from './brandAssets';
 import NotificationBell from '../components/NotificationBell';
+import { BRAND_LOGO_FULL, BRAND_LOGO_ICON } from './brandAssets';
+import NotificationBell from '../components/NotificationBell';
+
+const TABS = [
+  'Home',
+  'Activities',
+  'Events',
+  'Projects',
+  'Roadmaps',
+  'Portfolio',
+  'About',
+  'Team',
+  'Contact',
+];
+
+import { ThemeToggle } from '../components/common/ThemeToggle';
 
 const TABS = [
   'Home',
@@ -440,11 +456,7 @@ export default function Navbar({ activeTab, onTabChange, onApply, onJoin, onTogg
           style={{ cursor: "pointer" }}
           aria-label="Go to homepage"
         >
-          <img
-            src={BRAND_LOGO_ICON}
-            alt="NexaSphere"
-            className="ns-mobile-logo-ns"
-          />
+          <img src={BRAND_LOGO_ICON} alt="NexaSphere" className="ns-mobile-logo-ns" />
 
           <span className="ns-mobile-brand">
             <span>NexaSphere</span>
@@ -500,8 +512,8 @@ export default function Navbar({ activeTab, onTabChange, onApply, onJoin, onTogg
         <div className="ns-nav-top">
           <div
             className="ns-nav-logos"
-            onClick={() => handleTab("Home")}
-            style={{ cursor: "pointer" }}
+            onClick={() => handleTab('Home')}
+            style={{ cursor: 'pointer' }}
             aria-label="Go to homepage"
           >
   const handleTab = (tab) => {

@@ -797,7 +797,15 @@ export function broadcastEvent(eventName, data) {
   logger.debug("Broadcast event", { event: eventName });
 }
 
+export let emitToRoomOverride = null;
+
+/**
+ * Emit event to specific room
+ */
 export function emitToRoom(roomName, eventName, data) {
+  if (emitToRoomOverride) {
+    return emitToRoomOverride(roomName, eventName, data);
+  }
   if (!io) return;
   io.to(roomName).emit(eventName, data);
   logger.debug("Emit to room", { room: roomName, event: eventName });
@@ -828,6 +836,10 @@ export function getConnectedUsers() {
 
 export function getRoom(roomType) {
   return rooms[roomType] || null;
+}
+
+export function setEmitToRoomOverride(fn) {
+  emitToRoomOverride = fn;
 }
 
 export function _clearConnectedUsers() {
@@ -902,6 +914,7 @@ export default {
   _setIOForTests,
   _clearConnectedUsers,
   _onConnection,
+  setEmitToRoomOverride,
   applyBackpressureProtection,
   getQueuePressureMetrics,
 };

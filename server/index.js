@@ -246,6 +246,7 @@ import * as indexSchemas from './validators/routes/indexSchemas.js';
 import { sendSuccess, sendError, sendNoContent } from './utils/responseHelper.js';
 import apiKeysRouter from './routes/apiKeys.js';
 import { apiKeysRepository } from './repositories/apiKeysRepository.js';
+import { initCacheListener } from './services/cacheService.js';
 
 validateLimiters();
 import adminStreamRouter from './routes/adminStream.js';
@@ -254,6 +255,9 @@ import { initializeSocketIO } from './config/socket.js';
 import { performanceMonitor } from './middleware/performanceMonitor.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
+
+// Start distributed cache and notification synchronization listener
+initCacheListener();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -734,6 +738,7 @@ app.use(apiKeysRouter);
 app.use('/api/monitoring', monitoringRouter);
 app.use('/api', documentationRouter);
 
+const adminAuth = adminAuthMiddleware.requireAdmin;
 const adminAuth = adminAuthMiddleware.requireAdmin;
 adminEvents.on('CORE_TEAM_MEMBER_ADDED', (event) =>
   console.log(`[EVENT] CORE_TEAM_MEMBER_ADDED:`, event)
@@ -1534,6 +1539,7 @@ async function appendToSupabaseForms(formType, payload) {
   } catch (e) {
     console.error('[Supabase] Failed to store form submission:', e.message);
     throw e;
+    await fs.writeFile(CONTENT_FILE, JSON.stringify(defaultContent, null, 2), 'utf8');
   }
 export async function supabaseRequest(pathname, { method = 'GET', body } = {}) {
   if (!HAS_SUPABASE) throw new Error('Supabase is not configured');
@@ -2341,6 +2347,34 @@ app.post('/api/content/activity-events/:activityKey', activityAuthRateLimiter, a
     return activityEventsController.addActivityEvent(req, res);
   } catch (err) {
     return res.status(500).json({ error: err.message });
+// Admin Team Management
+app.get('/api/admin/core-team', adminAuth, coreTeamController.adminListCoreTeamMembers);
+app.post('/api/admin/core-team', adminAuth, coreTeamController.adminAddCoreTeamMember);
+app.delete('/api/admin/core-team/:id', adminAuth, coreTeamController.adminDeleteCoreTeamMember);
+
+// Dynamic forms
+app.post('/api/forms/membership', formRateLimiter, formsController.makeHandleForm('membership'));
+app.post('/api/forms/recruitment', formRateLimiter, formsController.makeHandleForm('recruitment'));
+app.post('/api/core-team/apply', formRateLimiter, formsController.makeHandleForm('core_team'));
+
+app.post(
+  '/api/submissions/membership',
+  formRateLimiter,
+  formsController.makeHandleForm('membership')
+);
+app.post(
+  '/api/submissions/recruitment',
+  formRateLimiter,
+  formsController.makeHandleForm('recruitment')
+);
+
+// Admin membership responses
+app.get('/api/admin/membership', adminAuth, async (req, res) => {
+  const scriptUrl = process.env.MEMBERSHIP_SCRIPT_URL;
+  const secret = process.env.MEMBERSHIP_SECRET;
+
+  if (!scriptUrl || !secret) {
+    return res.json({ responses: [] });
   }
 });
 
@@ -2575,7 +2609,7 @@ async function handleForm(formType, req, res) {
     return res.status(500).json({ error: e?.message || 'Submission failed' });
 // Real-time Push Subscriber channels
 const pushSubscriptions = new Set();
-app.post('/api/notifications/subscribe', (req, res) => {
+app.post('/api/notifications/subscribe', notificationRateLimiter, (req, res) => {
   try {
     const { subscription } = req.body;
     if (subscription) {
@@ -2685,6 +2719,7 @@ app.post("/api/notifications/subscribe", (req, res) => {
 });
 
 app.get('/api/notifications/preferences', adminAuth, async (req, res) => {
+app.post('/api/notifications/unsubscribe', notificationRateLimiter, (req, res) => {
   try {
     const userId = req.query.userId || 'global';
     const prefs = await notificationPreferencesRepository.list(userId);
@@ -3000,9 +3035,33 @@ app.post('/api/notifications/mark-read', adminAuth, notificationAuthRateLimiter,
 });
 
 app.post('/api/notifications/mark-all-read', adminAuth, notificationAuthRateLimiter, (req, res) => {
+// Server side notifications store api
+app.get('/api/notifications', adminAuth, notificationRateLimiter, (req, res) => {
   try {
-    const { userId } = req.body || {};
-    notificationsService.markAllAsRead(userId || 'global');
+    const userId = req.adminSession?.username || 'global';
+    const list = notificationsService.getNotifications(userId);
+    return res.json({ notifications: list });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/notifications/mark-read', adminAuth, notificationRateLimiter, (req, res) => {
+  try {
+    const { id } = req.body || {};
+    if (!id) return res.status(400).json({ error: 'id required' });
+    const uid = req.adminSession?.username || 'global';
+    const ok = notificationsService.markAsRead(uid, id);
+    return res.json({ success: ok });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/notifications/mark-all-read', adminAuth, notificationRateLimiter, (req, res) => {
+  try {
+    const uid = req.adminSession?.username || 'global';
+    notificationsService.markAllAsRead(uid);
     return res.json({ success: true });
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -3012,8 +3071,8 @@ app.post('/api/notifications/mark-all-read', adminAuth, notificationAuthRateLimi
 app.delete('/api/notifications/:id', adminAuth, notificationAuthRateLimiter, (req, res) => {
   try {
     const id = req.params.id;
-    const userId = req.query.userId || 'global';
-    const removed = notificationsService.removeNotification(userId, id);
+    const uid = req.adminSession?.username || 'global';
+    const removed = notificationsService.removeNotification(uid, id);
     if (!removed) return res.status(404).json({ error: 'Notification not found' });
     return res.json({ success: true });
   } catch (err) {
@@ -3024,8 +3083,8 @@ app.delete('/api/notifications/:id', adminAuth, notificationAuthRateLimiter, (re
 // Delete all notifications for a user (or global)
 app.delete('/api/notifications', adminAuth, notificationAuthRateLimiter, (req, res) => {
   try {
-    const userId = req.query.userId || 'global';
-    notificationsService.clearAll(userId);
+    const uid = req.adminSession?.username || 'global';
+    notificationsService.clearAll(uid);
     return res.json({ success: true });
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -3035,12 +3094,19 @@ app.delete('/api/notifications', adminAuth, notificationAuthRateLimiter, (req, r
 // Create notification (admin-only)
 app.post('/api/notifications', adminAuth, notificationAuthRateLimiter, (req, res) => {
   try {
-    const { userId, title, message, type, link } = req.body || {};
+    const { title, message, type, link } = req.body || {};
     if (!title || !message) {
       return res.status(400).json({ error: 'title and message are required' });
     }
     const note = notificationsService.addNotification(userId || 'global', { title, message, type, link });
     return res.status(201).json({ success: true, notification: note });
+    const note = notificationsService.addNotification(req.adminSession?.username || 'global', {
+      title,
+      message,
+      type,
+      link,
+    });
+    return res.json({ success: true, notification: note });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
@@ -3390,6 +3456,7 @@ app.get('/api/portfolio/:username', async (req, res) => {
 });
 
 app.put("/api/portfolio", portfolioRateLimiter, async (req, res) => {
+app.put('/api/portfolio', portfolioRateLimiter, async (req, res) => {
   try {
     const body = req.body || {};
     const username = String(body.username || '').trim();

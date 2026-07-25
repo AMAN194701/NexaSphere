@@ -204,6 +204,9 @@ export default function DashboardPage({ onBack }) {
       const res = await fetch(recommendationsUrl);
       if (res.ok) {
         const data = await res.json();
+      const base = import.meta.env.VITE_API_BASE || 'http://localhost:8000';
+      const data = await apiClient(`${base}/recommend/events/${currentUser.id}`);
+      if (data) {
         setRecommendations(data.recommended_events || []);
       } else {
         setRecsError(true);
