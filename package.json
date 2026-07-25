@@ -153,7 +153,8 @@
     "lint-staged": "^17.0.6",
     "prettier": "^3.8.4"
     "prettier": "^3.8.3",
-    "prisma": "^5.12.1"
+    "prisma": "^5.12.1",
+    "typescript": "^6.0.3"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
@@ -256,6 +257,10 @@
     "dexie-react-hooks": "^1.1.7"
     "next-intl": "^4.13.0",
     "@prisma/client": "^5.12.1"
+    "@prisma/client": "^5.12.1",
+    "jwt-decode": "^4.0.0",
+    "lru-cache": "^11.5.1",
+    "next-intl": "^4.13.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-is": "^19.0.0",

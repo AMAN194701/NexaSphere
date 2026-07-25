@@ -11,12 +11,20 @@
     "forceConsistentCasingInFileNames": true,
     "module": "ESNext",
     "moduleResolution": "bundler",
+    "moduleResolution": "Bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx"
   },
-  "include": ["src", "tests", "e2e", "vite.config.js", "vitest.config.ts", "playwright.config.ts"],
+  "include": [
+    "src",
+    "tests",
+    "e2e",
+    "vite.config.js",
+    "vitest.config.ts",
+    "playwright.config.ts"
+  ],
   "references": []
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "ESNext",
