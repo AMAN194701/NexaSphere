@@ -16,39 +16,58 @@ import {
  * Falls back to mock data when offline or unconfigured.
  */
 const isApiConfigured = () => Boolean(getApiBase());
+import { useState, useEffect } from 'react';
+import { getApiBase } from '../../../runtimeConfig';
 
-export const useAnalyticsData = () => {
-  const { filters } = useAnalyticsFilters();
-  const [loading, setLoading] = useState(false);
-  const [isOffline, setIsOffline] = useState(false);
+export interface AnalyticsData {
+  totalUsers: number;
+  activeUsers: number;
+  pageViews: number;
+  sessions: number;
+  bounceRate: number;
+  avgSessionDuration: number;
+}
 
-  const [trendData, setTrendData] = useState<TrendDataPoint[]>([]);
-  const [distributionData, setDistributionData] = useState<DistributionDataPoint[]>([]);
-  const [comparisonData, setComparisonData] = useState<ComparisonDataPoint[]>([]);
+export interface AnalyticsDataState {
+  data: AnalyticsData | null;
+  loading: boolean;
+  error: string | null;
+}
+
+export function useAnalyticsData(): AnalyticsDataState {
+  const [data, setData] = useState<AnalyticsData | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let isMounted = true;
-    setLoading(true);
+    let cancelled = false;
 
-    const months =
-      (filters.dateRange.end.getFullYear() - filters.dateRange.start.getFullYear()) * 12 +
-      (filters.dateRange.end.getMonth() - filters.dateRange.start.getMonth());
-    const effectiveMonths = Math.max(1, months);
+    async function fetchAnalytics() {
+      try {
+        setLoading(true);
+        setError(null);
 
-    const applyMockData = () => {
-      if (!isMounted) return;
-      setIsOffline(true);
-      setTrendData(generateTrendData(filters.timeGranularity, effectiveMonths));
-      setDistributionData(generateDistributionData(filters.categories));
-      setComparisonData(generateComparisonData(filters.categories));
-      setLoading(false);
-    };
+        const base = getApiBase();
+        const response = await fetch(`${base}/api/analytics`);
 
-    if (!isApiConfigured()) {
-      applyMockData();
-      return () => {
-        isMounted = false;
-      };
+        if (!response.ok) {
+          throw new Error(`Failed to fetch analytics: ${response.status} ${response.statusText}`);
+        }
+
+        const json: AnalyticsData = await response.json();
+
+        if (!cancelled) {
+          setData(json);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Unknown error');
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
     }
 
     const base = getApiBase();
@@ -107,36 +126,12 @@ export const useAnalyticsData = () => {
       .catch(() => {
         if (isMounted) applyMockData();
       });
+    fetchAnalytics();
 
     return () => {
-      isMounted = false;
+      cancelled = true;
     };
-  }, [filters]);
+  }, []);
 
-  const overviewMetrics = useMemo(() => {
-    if (trendData.length === 0)
-      return { totalUsers: 0, totalActivity: 0, totalProjects: 0, userGrowth: 0 };
-
-    const latest = trendData[trendData.length - 1];
-    const previous = trendData.length > 1 ? trendData[trendData.length - 2] : null;
-
-    const userGrowth =
-      previous && previous.users > 0 ? ((latest.users - previous.users) / previous.users) * 100 : 0;
-
-    return {
-      totalUsers: latest.users,
-      totalActivity: latest.activity,
-      totalProjects: latest.projects,
-      userGrowth: userGrowth.toFixed(1),
-    };
-  }, [trendData]);
-
-  return {
-    loading,
-    isOffline,
-    trendData,
-    distributionData,
-    comparisonData,
-    overviewMetrics,
-  };
-};
+  return { data, loading, error };
+}
