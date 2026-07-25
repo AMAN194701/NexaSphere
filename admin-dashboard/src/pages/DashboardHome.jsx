@@ -142,6 +142,7 @@ export function DashboardHome() {
           >
             Retry
           </button>
+          <Skeleton height={100} count={4} />
         </div>
       ) : (
         <div className="stats-grid">
@@ -178,6 +179,14 @@ export function DashboardHome() {
               <AdminIcon name="Users" size={28} aria-hidden="true" />
               <AdminIcon name="Users" size={28} />
             </span>
+          <span className="stat-icon"><AdminIcon name="Clock" size={28} /></span>
+           <div>
+          <div className="stat-value">{stats.upcomingEvents}</div>
+          <div className="stat-label">Upcoming Events</div>
+         </div>
+        </div>
+          <div className="stat-card">
+            <span className="stat-icon"><AdminIcon name="Users" size={28} /></span>
             <div>
               <div className="stat-value">{stats.teamMembers}</div>
               <div className="stat-label">
