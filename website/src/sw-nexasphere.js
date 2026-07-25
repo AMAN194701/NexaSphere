@@ -96,6 +96,27 @@ registerRoute(
 // Falls back to the cached response when offline so the UI still renders.
 // Cached responses expire after 5 minutes to avoid stale data surprises.
 
+// 5. Dashboard, analytics, notifications — longer cache TTL, registered before
+// the generic API catch-all so Workbox's first-match-wins does not shadow it.
+registerRoute(
+  ({ url, request }) =>
+    request.method === 'GET' &&
+    /\/api\/(dashboard|analytics|notifications|profile)/i.test(url.pathname),
+  new NetworkFirst({
+    cacheName: 'nexasphere-dashboard-cache',
+    networkTimeoutSeconds: 5,
+    plugins: [
+      new CacheableResponsePlugin({ statuses: [200] }),
+      new ExpirationPlugin({
+        maxEntries: 30,
+        maxAgeSeconds: 60 * 10, // 10 minutes
+      }),
+    ],
+  })
+);
+
+// 6. Generic API GET requests — NetworkFirst catch-all
+// Auth/token endpoints are explicitly EXCLUDED (never cached)
 registerRoute(
   ({ url }) => url.pathname.startsWith('/api/'),
   new NetworkFirst({
@@ -129,6 +150,7 @@ registerRoute(
 );
 
 // Web app manifests and JSON config files
+// 7. Auth / session — NetworkFirst with short cache, 3s timeout
 registerRoute(
   ({ url }) => url.pathname.endsWith('.webmanifest') || url.pathname.endsWith('manifest.json'),
   new StaleWhileRevalidate({
