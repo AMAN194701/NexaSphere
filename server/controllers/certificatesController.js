@@ -14,6 +14,9 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 import { buildBadgeAssertion } from '../services/certificates/openBadgesGenerator.js';
+import { generateQrCodeImageBuffer, buildVerificationUrl } from '../services/certificates/qrGenerator.js';
+import { renderCertificatePdf } from '../services/certificates/certificatePdfGenerator.js';
+import { uploadCertificatePdfToS3, uploadQrCodeToS3 } from '../services/certificates/s3Storage.js';
 
 // --- Helpers ---
 function buildCertificateCode({ userId, eventId }) {
@@ -290,6 +293,11 @@ export async function issueCertificates(req, res) {
     for (const userId of attendeeIds) {
       const code = buildCertificateCode({ userId, eventId });
 
+  try {
+    const issued = [];
+    for (const userId of attendeeIds) {
+      const code = buildCertificateCode({ userId, eventId });
+
       const verifyUrl = buildVerificationUrl({ code });
       const qrBuffer = await generateQrCodeImageBuffer({ url: verifyUrl });
       const pdfBuffer = await renderCertificatePdf({ variables: { code, verifyUrl } });
@@ -313,6 +321,15 @@ export async function issueCertificates(req, res) {
         },
       });
       issued.push(cert);
+      // Note: Full persistence is handled in Issue 3770 PR.
+      issued.push({
+        userId,
+        eventId,
+        code,
+        status: 'ISSUED',
+        qrUrl: qrUpload.url || qrUpload.key,
+        pdfUrl: pdfUpload.url || pdfUpload.key,
+      });
     }
     return sendSuccess(res, { issued });
   } catch (error) {
