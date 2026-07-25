@@ -51,6 +51,12 @@ export function StudentAuthProvider({ children }) {
 
     // Normal startup: attempt to fetch current user via cookie-based session.
     fetchMe().finally(() => setLoading(false));
+    const storedToken = localStorage.getItem(TOKEN_KEY);
+    if (storedToken) {
+      fetchMe(storedToken).finally(() => setLoading(false));
+    } else {
+      setLoading(false);
+    }
   }, [fetchMe]);
 
   useEffect(() => {
