@@ -122,6 +122,7 @@ const errorHandler = (err, req, res, next) => {
   // Slack alert for ≥500 only (avoids noise from 401 scanners, etc.)
   if (status >= 500) {
     const pathOnly = req.originalUrl.split('?')[0];
+  // Send Slack alert for critical errors
   if (status >= 500 || (status === 401 && !req.user && !req.adminSession)) {
     sendSlackAlert({
       title: `${status} Error Detected`,

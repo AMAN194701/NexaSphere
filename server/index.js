@@ -106,6 +106,8 @@ import { broadcastSSEEvent } from './services/sseService.js';
 import rateLimit from 'express-rate-limit';
 import { formRateLimiter } from './middleware/rateLimiter.js';
 import { apiRateLimiter, authRateLimiter } from './middleware/rateLimiter.js';
+import { performanceMonitor } from './middleware/performanceMonitor.js';
+import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
 import { portfolioRepository } from './repositories/portfolioRepository.js';
 import { portfolioContentSchema, portfolioPutSchema } from './validators/portfolioSchemas.js';
