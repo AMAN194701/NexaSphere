@@ -4899,6 +4899,23 @@ app.post("/api/notifications/unsubscribe", (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 });
+// ── Forum / Q&A ──
+app.get('/api/forum/categories', forumController.listCategories);
+app.get('/api/forum/threads', forumController.listThreads);
+app.get('/api/forum/threads/:id', forumController.getThread);
+app.post('/api/forum/threads', requireStudentAuth, forumController.createThread);
+app.put('/api/forum/threads/:id', requireStudentAuth, forumController.updateThread);
+app.delete('/api/forum/threads/:id', requireStudentAuth, forumController.deleteThread);
+app.get('/api/forum/threads/:id/replies', forumController.listReplies);
+app.post('/api/forum/threads/:id/replies', requireStudentAuth, forumController.createReply);
+app.put('/api/forum/replies/:replyId', requireStudentAuth, forumController.updateReply);
+app.delete('/api/forum/replies/:replyId', requireStudentAuth, forumController.deleteReply);
+app.post('/api/forum/threads/:id/vote', requireStudentAuth, forumController.voteThread);
+app.post('/api/forum/replies/:replyId/vote', requireStudentAuth, forumController.voteReply);
+app.post('/api/forum/threads/:id/accept/:replyId', requireStudentAuth, forumController.acceptReply);
+app.patch('/api/admin/forum/threads/:id/moderate', adminAuth, forumController.moderateThread);
+app.patch('/api/admin/forum/replies/:replyId/moderate', adminAuth, forumController.moderateReply);
+app.get('/api/admin/forum/threads', adminAuth, forumController.adminListThreads);
 
 app.post('/api/notifications/mark-read', adminAuth, notificationRateLimiter, (req, res) => {
   try {
