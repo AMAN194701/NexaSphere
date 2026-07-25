@@ -86,6 +86,7 @@ const MNH = 88;
 const DNH = 64;
 
 import ErrorBoundary from './components/common/ErrorBoundary';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Lazy-loaded heavy pages
 const RecruitmentPage = lazy(() => import('./pages/recruitment/RecruitmentPage'));
