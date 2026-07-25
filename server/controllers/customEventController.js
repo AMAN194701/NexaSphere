@@ -13,6 +13,11 @@ function validateProperties(properties) {
   if (properties.length > MAX_PROPERTIES) return `Maximum ${MAX_PROPERTIES} properties allowed`;
   for (const prop of properties) {
     if (!prop.name || typeof prop.name !== 'string') return 'Each property must have a string name';
+  if (properties.length > MAX_PROPERTIES)
+    return `Maximum ${MAX_PROPERTIES} properties allowed`;
+  for (const prop of properties) {
+    if (!prop.name || typeof prop.name !== 'string')
+      return 'Each property must have a string name';
     if (!VALID_PROPERTY_TYPES.includes(prop.type))
       return `Invalid property type "${prop.type}". Must be one of: ${VALID_PROPERTY_TYPES.join(', ')}`;
   }
@@ -30,6 +35,10 @@ export const createEventDefinition = wrapAsync(async (req, res) => {
   }
   const propError = validateProperties(properties);
   if (propError) return sendError(req, res, propError, 400, 'VALIDATION_ERROR');
+    return res.status(400).json({ error: 'Event name is required' });
+  }
+  const propError = validateProperties(properties);
+  if (propError) return res.status(400).json({ error: propError });
 
   const createdBy = req.adminSession?.username || 'unknown';
   const definition = await customEventRepository.createDefinition({
@@ -39,18 +48,22 @@ export const createEventDefinition = wrapAsync(async (req, res) => {
     createdBy,
   });
   return sendSuccess(res, { definition }, 201);
+  return res.status(201).json({ success: true, definition });
 });
 
 export const listEventDefinitions = wrapAsync(async (req, res) => {
   const activeOnly = req.query.active === 'true';
   const definitions = await customEventRepository.listDefinitions({ activeOnly });
   return sendSuccess(res, { definitions });
+  return res.json({ success: true, definitions });
 });
 
 export const getEventDefinition = wrapAsync(async (req, res) => {
   const definition = await customEventRepository.getDefinition(req.params.id);
   if (!definition) return sendError(req, res, 'Event definition not found', 404, 'NOT_FOUND');
   return sendSuccess(res, { definition });
+  if (!definition) return res.status(404).json({ error: 'Event definition not found' });
+  return res.json({ success: true, definition });
 });
 
 export const updateEventDefinition = wrapAsync(async (req, res) => {
@@ -58,6 +71,7 @@ export const updateEventDefinition = wrapAsync(async (req, res) => {
   if (properties !== undefined) {
     const propError = validateProperties(properties);
     if (propError) return sendError(req, res, propError, 400, 'VALIDATION_ERROR');
+    if (propError) return res.status(400).json({ error: propError });
   }
   const definition = await customEventRepository.updateDefinition(req.params.id, {
     name,
@@ -67,12 +81,16 @@ export const updateEventDefinition = wrapAsync(async (req, res) => {
   });
   if (!definition) return sendError(req, res, 'Event definition not found', 404, 'NOT_FOUND');
   return sendSuccess(res, { definition });
+  if (!definition) return res.status(404).json({ error: 'Event definition not found' });
+  return res.json({ success: true, definition });
 });
 
 export const deleteEventDefinition = wrapAsync(async (req, res) => {
   const definition = await customEventRepository.deleteDefinition(req.params.id);
   if (!definition) return sendError(req, res, 'Event definition not found', 404, 'NOT_FOUND');
   return sendSuccess(res, { message: 'Event definition deleted' });
+  if (!definition) return res.status(404).json({ error: 'Event definition not found' });
+  return res.json({ success: true, message: 'Event definition deleted' });
 });
 
 // ---------------------------------------------------------------------------
@@ -88,6 +106,12 @@ export const logCustomEvent = wrapAsync(async (req, res) => {
   const definition = await customEventRepository.getDefinition(eventDefinitionId);
   if (!definition) return sendError(req, res, 'Event definition not found', 404, 'NOT_FOUND');
   if (!definition.is_active) return sendError(req, res, 'Event definition is inactive', 400, 'VALIDATION_ERROR');
+    return res.status(400).json({ error: 'eventDefinitionId is required' });
+  }
+
+  const definition = await customEventRepository.getDefinition(eventDefinitionId);
+  if (!definition) return res.status(404).json({ error: 'Event definition not found' });
+  if (!definition.is_active) return res.status(400).json({ error: 'Event definition is inactive' });
 
   const sessionId = req.headers['x-session-id'] || req.ip;
   const log = await customEventRepository.logEvent({
@@ -97,6 +121,7 @@ export const logCustomEvent = wrapAsync(async (req, res) => {
     properties: properties || {},
   });
   return sendSuccess(res, { log }, 201);
+  return res.status(201).json({ success: true, log });
 });
 
 // ---------------------------------------------------------------------------
@@ -112,6 +137,10 @@ export const getEventAnalytics = wrapAsync(async (req, res) => {
 
   const analytics = await customEventRepository.getEventAnalytics(id, { days });
   return sendSuccess(res, { definition, analytics });
+  if (!definition) return res.status(404).json({ error: 'Event definition not found' });
+
+  const analytics = await customEventRepository.getEventAnalytics(id, { days });
+  return res.json({ success: true, definition, analytics });
 });
 
 export const getRecentLogs = wrapAsync(async (req, res) => {
@@ -121,6 +150,7 @@ export const getRecentLogs = wrapAsync(async (req, res) => {
 
   const result = await customEventRepository.getRecentLogs(id, { page, limit });
   return sendSuccess(res, { ...result });
+  return res.json({ success: true, ...result });
 });
 
 export const exportEventData = wrapAsync(async (req, res) => {
@@ -129,6 +159,7 @@ export const exportEventData = wrapAsync(async (req, res) => {
 
   const definition = await customEventRepository.getDefinition(id);
   if (!definition) return sendError(req, res, 'Event definition not found', 404, 'NOT_FOUND');
+  if (!definition) return res.status(404).json({ error: 'Event definition not found' });
 
   const logs = await customEventRepository.exportEventLogs(id, { since, until });
 
@@ -151,6 +182,9 @@ export const exportEventData = wrapAsync(async (req, res) => {
     ...logs.map((log) => {
       const props =
         typeof log.properties === 'string' ? JSON.parse(log.properties) : log.properties || {};
+      const props = typeof log.properties === 'string'
+        ? JSON.parse(log.properties)
+        : log.properties || {};
       return [
         log.id,
         log.user_id || '',

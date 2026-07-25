@@ -11,6 +11,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { LoginPage } from './pages/LoginPage';
 import { UnauthorizedPage } from './pages/UnauthorizedPage';
 const ComprehensiveAnalytics = React.lazy(() => import('./pages/ComprehensiveAnalytics').then(module => ({ default: module.ComprehensiveAnalytics })));
+import { ComprehensiveAnalytics } from './pages/ComprehensiveAnalytics';
 import { FunnelAnalysis } from './pages/FunnelAnalysis';
 import { CustomEventTracking } from './pages/CustomEventTracking';
 import { ForumManager } from './pages/ForumManager';
@@ -51,6 +52,7 @@ import { EventRegistrations } from './pages/EventRegistrations';
 import { EventScanner } from './pages/EventScanner';
 import { EventAttendanceReport } from './pages/EventAttendanceReport';
 import { FunnelAnalysis } from './pages/FunnelAnalysis';
+import { ImpersonationBanner } from './components/ImpersonationBanner';
 import './styles/admin.css';
 
 import ScheduledReports from './pages/dashboard/ScheduledReports';
