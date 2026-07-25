@@ -17,6 +17,7 @@ insert_final_newline = true
 [*.md]
 trim_trailing_whitespace = false
 <<<<<<< HEAD
+<<<<<<< HEAD
  
 =======
 >>>>>>> origin/pr/494
@@ -73,3 +74,6 @@ indent_size = 4
 [*.java]
 indent_size = 4
 >>>>>>> origin/pr/597
+=======
+ 
+>>>>>>> origin/pr/853
