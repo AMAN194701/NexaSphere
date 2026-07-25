@@ -18,6 +18,7 @@ function formatThreadDate(value) {
 export default function ForumThreadPage({ onBack }) {
   const { id } = useParams();
   const threadIdNum = parseInt(id, 10);
+  const threadIdNum = threadIdNum;
   const navigate = useNavigate();
   const [thread, setThread] = useState(null);
   const [replies, setReplies] = useState([]);
