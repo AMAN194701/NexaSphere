@@ -12,6 +12,9 @@ import SchedulingAssistant from '../../components/scheduling/SchedulingAssistant
 import useIntersectionObserver from '../../hooks/useIntersectionObserver';
 import PersonalizedFeed from '../../components/recommendation/PersonalizedFeed';
 import EventCalendarView from '../../components/calendar/EventCalendarView';
+import PersonalizedFeed from '../../components/recommendation/PersonalizedFeed';
+import EventCalendarView from '../../components/calendar/EventCalendarView';
+import BookmarkButton from '../../components/common/BookmarkButton';
 
 export default function EventsPage({ onBack, onEventClick, events = fallbackEvents }) {
   const [view, setView] = useState('timeline');
@@ -124,6 +127,9 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
           marginBottom: "60px",
           position: "relative",
           overflow: "hidden",
+      <div
+        className="page-banner"
+        style={{
       <div
         className="page-banner"
         style={{
@@ -682,6 +688,7 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
                          even when the global custom cursor sets cursor:none on desktop */
                       cursor: hasDetailPage ? 'pointer' : 'default',
                       transition: 'all .28s ease',
+                      position: 'relative',
                     }}
                     onClick={isKSS ? () => onEventClick(ev) : undefined}
                     onMouseEnter={
@@ -722,6 +729,18 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
                     <BookmarkButton
                       item={{ id: `event-${ev.id}`, type: 'Event', title: ev.name, date: ev.date }}
                       style={{ position: 'absolute', top: '12px', right: '12px', zIndex: 20 }}
+                      item={{
+                        id: `event-${ev.id}`,
+                        type: 'Event',
+                        title: ev.name,
+                        date: ev.date,
+                      }}
+                      style={{
+                        position: 'absolute',
+                        top: '12px',
+                        right: '12px',
+                        zIndex: 20,
+                      }}
                     />
                     <div
                       style={{
@@ -880,6 +899,16 @@ function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
                             />{' '}
                               style={{ marginRight: "4px" }}
                             />{" "}
+                      }}
+                    >
+                      <span
+                        className={`timeline-badge ${ev.status}`}
+                        style={{ fontSize: '.64rem', padding: '1px 8px' }}
+                      >
+                        {ev.status === 'completed' ? (
+                          <>
+                            <DynamicIcon
+                              name="CheckCircle"
                       }}
                     >
                       <span
