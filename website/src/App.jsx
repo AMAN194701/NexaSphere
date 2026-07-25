@@ -38,6 +38,7 @@ import InstallPrompt from './components/pwa/InstallPrompt.jsx';
 import UpdatePrompt from './components/pwa/UpdatePrompt.jsx';
 import EnablePushPrompt from './components/pwa/EnablePushPrompt.jsx';
 
+import ResourcesPage from './pages/resources/ResourcesPage';
 import {
   AmbientOrbs,
   useNsReveal,
