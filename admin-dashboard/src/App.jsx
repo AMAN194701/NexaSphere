@@ -7,6 +7,7 @@ import AuditLogViewer from './pages/dashboard/AuditLogViewer';
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import { Sidebar } from './components/Sidebar';
+import { MobileBottomNav } from './components/MobileBottomNav';
 import { Toast } from './components/Toast';
 import { OfflineBanner } from './components/OfflineBanner';
 import { ImpersonationBanner } from './components/ImpersonationBanner';
@@ -85,13 +86,14 @@ function DashboardLayout() {
       <OfflineBanner />
       <ImpersonationBanner />
       <Sidebar />
-      <main className="main-content" id="main-content">
+      <main className="main-content" id="main-content" style={{ paddingBottom: '88px' }}>
         <ErrorBoundary>
           <Suspense fallback={<div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading module...</div>}>
             <Outlet />
           </Suspense>
         </ErrorBoundary>
       </main>
+      <MobileBottomNav />
       <Toast />
       <OnboardingTour />
     </div>
