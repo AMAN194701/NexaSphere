@@ -30,6 +30,7 @@ const requireNotificationPrefAuth = (req, res, next) => {
   if (req.cookies.ns_admin_token || req.headers.authorization) return next();
   return res.status(401).json({ error: 'Unauthorized' });
 };
+import { requireNotificationPrefAuth } from '../middleware/auth/customAuth.js';
 
 const router = Router();
 
