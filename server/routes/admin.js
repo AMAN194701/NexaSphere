@@ -95,6 +95,9 @@ router.get('/membership', adminAuth, async (req, res) => {
           method: 'GET',
         }
       );
+      const data = await supabaseBreaker.execute('form_submissions?form_type=eq.membership&order=created_at.desc', {
+        method: 'GET',
+      });
       const responses = (data || []).map((row) => ({
         submittedAt: row.created_at,
         formType: row.form_type,
@@ -109,6 +112,10 @@ router.get('/membership', adminAuth, async (req, res) => {
         console.warn(
           '[Membership] Supabase circuit breaker is OPEN, falling back to Google Apps Script'
         );
+      return res.json({ responses });
+    } catch (err) {
+      if (err.code === 'CIRCUIT_OPEN') {
+        console.warn('[Membership] Supabase circuit breaker is OPEN, falling back to Google Apps Script');
       } else {
         console.error('[Membership] Failed to fetch from Supabase:', err.message);
       }
@@ -148,6 +155,11 @@ router.get('/membership', adminAuth, async (req, res) => {
     }
     console.error('[Membership] Failed to fetch responses from Google Apps Script:', err.message);
     return sendError(req, res, 'Failed to fetch membership responses', 500, 'INTERNAL_ERROR');
+      console.warn('[Membership] Google Apps Script circuit breaker is OPEN, returning empty responses');
+      return res.json({ responses: [] });
+    }
+    console.error('[Membership] Failed to fetch responses from Google Apps Script:', err.message);
+    return res.status(500).json({ error: 'Failed to fetch membership responses' });
   }
 });
 
