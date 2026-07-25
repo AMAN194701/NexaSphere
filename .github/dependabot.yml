@@ -1,5 +1,6 @@
 version: 2
 <<<<<<< HEAD
+<<<<<<< HEAD
 updates:
   - package-ecosystem: 'npm'
     directory: '/'
@@ -44,6 +45,14 @@ updates:
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
+=======
+
+updates:
+  # Root package
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+>>>>>>> origin/pr/1698
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 5

@@ -206,6 +206,7 @@ We thank the security researchers who responsibly disclose vulnerabilities to us
 | Date | Package | Severity | Fix Applied | PR |
 |------|---------|----------|-------------|-----|
 | 2026-06-09 | Automated scanning setup | - | Added dependency-scan.yml + dependabot.yml | #1697 |
+| 2026-06-09 | Automated scanning setup | - | Added dependency-scan.yml + dependabot.yml | #1698 |
 
 ## Automated Scanning
 
