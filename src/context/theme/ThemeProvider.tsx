@@ -56,6 +56,18 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
     };
   }, []);
 
+  // Listen for storage changes across tabs to synchronize theme state
+  useEffect(() => {
+    const syncTheme = (e: StorageEvent) => {
+      if (e.key === "ns-theme") {
+        const nextTheme = (e.newValue as Theme) || "system";
+        setThemeState(nextTheme);
+      }
+    };
+    window.addEventListener("storage", syncTheme);
+    return () => window.removeEventListener("storage", syncTheme);
+  }, []);
+
   const resolvedTheme = theme === "system" ? systemTheme : theme;
   const isDark = resolvedTheme === "dark";
 

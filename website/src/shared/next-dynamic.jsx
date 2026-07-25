@@ -1,4 +1,5 @@
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense } from "react";
+import ErrorBoundary from "../components/common/ErrorBoundary";
 
 export default function dynamic(importFunc, options = {}) {
   const LazyComponent = lazy(importFunc);
@@ -6,9 +7,11 @@ export default function dynamic(importFunc, options = {}) {
   return function DynamicComponent(props) {
     const fallback = options.loading ? options.loading() : null;
     return (
-      <Suspense fallback={fallback}>
-        <LazyComponent {...props} />
-      </Suspense>
+      <ErrorBoundary>
+        <Suspense fallback={fallback}>
+          <LazyComponent {...props} />
+        </Suspense>
+      </ErrorBoundary>
     );
   };
 }

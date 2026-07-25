@@ -133,6 +133,8 @@ createRoot(document.getElementById("root")).render(
     </HelmetProvider>
 createRoot(document.getElementById("root")).render(
   <StrictMode>
+createRoot(document.getElementById("root")).render(
+  <StrictMode>
     <AppProviders>
       <App />
     </AppProviders>

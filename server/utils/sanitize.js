@@ -69,6 +69,20 @@ function sanitizeText(value, max = 4000) {
 }
 
 function sanitizeNullableText(value, max = 4000) {
+  return String(value ?? "")
+    .replace(/[&<>"'`]/g, (character) => HTML_ESCAPE_MAP[character])
+    .trim();
+}
+
+function sanitizeText(value, max = 4000) {
+  return escapeHtml(
+    String(value ?? "")
+      .trim()
+      .slice(0, max)
+  );
+}
+
+function sanitizeNullableText(value, max = 4000) {
   const text = String(value ?? "")
     .trim()
     .slice(0, max);
@@ -530,8 +544,8 @@ export {
   validateSection,
   validateWhatsApp,
 };
-=======
 export { escapeHtml, sanitizeNullableText, sanitizeText, sanitizeTextArray };
+=======
 =======
 =======
 export { escapeHtml, sanitizeNullableText, sanitizeText, sanitizeTextArray };

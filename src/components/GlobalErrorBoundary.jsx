@@ -65,6 +65,14 @@ const GlobalErrorBoundary = ({ children }) => {
     };
   }
 
+    this.state = {
+      hasError: false,
+      error: null,
+      errorInfo: null,
+      showDiagnostics: false,
+    };
+  }
+
   static getDerivedStateFromError(error) {
     return { hasError: true, error };
   }

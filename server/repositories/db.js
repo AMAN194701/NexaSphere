@@ -1,5 +1,7 @@
 import pg from 'pg';
 import logger from '../utils/logger.js';
+import pg from "pg";
+import { readContent, writeContent } from "../storage/contentFileStore.js";
 
 // ---------------------------------------------------------------------------
 // Pool configuration
@@ -516,6 +518,12 @@ export async function withDb(fn) {
 
   if (!p) {
     const client = new MockClient();
+  if (!p) {
+    const client = new MockClient();
+    return await fn(client);
+  }
+  const client = await p.connect();
+  try {
     return await fn(client);
   }
   const client = await p.connect();
@@ -595,4 +603,3 @@ export async function query(text, params) {
   });
 }
 
-export { pg };
