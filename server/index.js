@@ -264,6 +264,7 @@ import complianceRouter from './routes/compliance.js';
 import healthDashboardRouter from './routes/healthDashboard.js';
 import { logEvent } from './controllers/analyticsController.js';
 import * as slackController from './controllers/slackController.js';
+import { startStreamingWorkers } from './streaming/startStreamingWorkers.js';
 
 import { startStreamingWorkers } from './streaming/startStreamingWorkers.js';
 

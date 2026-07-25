@@ -474,6 +474,7 @@ export async function withDb(fn) {
             recordSlowQuery(sqlText, duration, { error: err?.message })
           )
           .catch((importErr) => logger.error('Failed to record slow query', { importErr }));
+          .catch(() => {});
       }
 
       // Request trace collection (existing behavior)
