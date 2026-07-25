@@ -678,7 +678,6 @@ async function logout(req, res) {
     const bearer = parseBearer(req.headers.authorization || "");
     if (bearer) {
       await revokeAdminSession(bearer);
-=======
     const token = req.cookies?.ns_admin_token || getCookie(req, 'ns_admin_token') || parseBearer(req.headers.authorization || '');
     if (token) {
       // Revoke from PostgreSQL audit store
@@ -703,7 +702,11 @@ async function logout(req, res) {
       req.session.destroy((err) => {
         if (err) console.error('[Session] Error destroying session:', err);
       });
->>>>>>> origin/pr/596
+=======
+    const bearer = parseBearer(req.headers.authorization || "");
+    if (bearer) {
+      await revokeAdminSession(bearer);
+>>>>>>> origin/pr/600
     }
 
     res.clearCookie('ns_admin_token', {
