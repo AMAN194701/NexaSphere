@@ -135,11 +135,17 @@ router.get('/portfolio/github-repos/:username', async (req, res) => {
   const username = String(req.params.username || '').trim();
   if (!GITHUB_USERNAME_PATTERN.test(username)) {
     return sendError(req, res, 'Invalid GitHub username format.', 400, 'VALIDATION_ERROR');
+    return res.status(400).json({
+      error: 'Invalid GitHub username format.',
+    });
   }
 
   const token = getGitHubToken();
   if (!token) {
     return sendError(req, res, 'GitHub repository import is unavailable because the server token is not configured.', 503, 'DEPENDENCY_ERROR');
+    return res.status(503).json({
+      error: 'GitHub repository import is unavailable because the server token is not configured.',
+    });
   }
 
   const sort =
@@ -173,6 +179,22 @@ router.get('/portfolio/github-repos/:username', async (req, res) => {
 
     if (!response.ok) {
       return sendError(req, res, `GitHub API error: ${response.status} ${response.statusText}`, response.status, 'DEPENDENCY_ERROR');
+      return res.status(response.status).json({
+        error: 'GitHub rate limit reached. Please try again later.',
+        rateLimitReset: resetDate,
+      });
+    }
+
+    if (response.status === 404) {
+      return res.status(404).json({
+        error: `GitHub user "${username}" not found. Please check the username and try again.`,
+      });
+    }
+
+    if (!response.ok) {
+      return res.status(response.status).json({
+        error: `GitHub API error: ${response.status} ${response.statusText}`,
+      });
     }
 
     const repos = await response.json();
@@ -181,6 +203,12 @@ router.get('/portfolio/github-repos/:username', async (req, res) => {
   } catch (err) {
     console.error('Error fetching GitHub repositories:', err);
     return sendError(req, res, 'Failed to fetch repositories from GitHub.', 502, 'DEPENDENCY_ERROR');
+    return res.json(repos);
+  } catch (err) {
+    console.error('Error fetching GitHub repositories:', err);
+    return res.status(502).json({
+      error: 'Failed to fetch repositories from GitHub.',
+    });
   }
 });
 
