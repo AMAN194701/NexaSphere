@@ -222,6 +222,8 @@
     "@rollup/rollup-linux-x64-gnu": "4.61.1",
     "@rollup/rollup-linux-x64-musl": "4.61.1"
     "express-rate-limit": "^8.5.2"
+  "dependencies": {
+    "jwt-decode": "^4.0.0",
     "lru-cache": "^11.5.1"
 
   }

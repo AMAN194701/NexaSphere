@@ -200,3 +200,23 @@ Please include the following details in your report:
 
 We will acknowledge receipt of your report within 48 hours and work to resolve the issue as quickly as possible.
 We thank the security researchers who responsibly disclose vulnerabilities to us.
+
+## Security Patch Log
+
+| Date | Package | Severity | Fix Applied | PR |
+|------|---------|----------|-------------|-----|
+| 2026-06-09 | Automated scanning setup | - | Added dependency-scan.yml + dependabot.yml | #1697 |
+
+## Automated Scanning
+
+This project uses:
+- **npm audit** — runs on every push and weekly schedule
+- **Dependabot** — auto-creates PRs for patch updates
+- **GitHub Actions** — fails CI on critical vulnerabilities
+
+To manually run a scan:
+```bash
+npm audit                    # Check vulnerabilities
+npm audit fix                # Auto-fix safe patches
+npm audit fix --force        # Force fix (may break things, review carefully)
+```
