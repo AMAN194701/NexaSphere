@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 /**
  * Premium Anti-Gravity Custom Orb Cursor.
@@ -9,6 +9,7 @@ export default function Cursor() {
   const orbRef = useRef(null);
   const trailRef = useRef(null);
   const glowRef = useRef(null);
+  const [isTouch, setIsTouch] = useState(false);
   const stateRef = useRef({
     mx: 0,
     my: 0,
@@ -24,6 +25,18 @@ export default function Cursor() {
 
   useEffect(() => {
     if (window.matchMedia('(hover:none)').matches) return;
+    const touchDevice =
+      window.matchMedia('(hover: none) and (pointer: coarse)').matches ||
+      'ontouchstart' in window ||
+      navigator.maxTouchPoints > 0; // ← add this line
+    setIsTouch(touchDevice);
+  }, []);
+
+  useEffect(() => {
+    // Don't run cursor logic on touch devices
+    if (isTouch) return;
+    if (window.matchMedia('(hover:none)').matches) return;
+
     document.body.style.cursor = 'none';
     const s = stateRef.current;
 
@@ -63,6 +76,12 @@ export default function Cursor() {
       const fy = s.oy + s.floatY;
       const scale = s.clicking ? 0.7 : s.hovering ? 1.55 : 1;
       const opacity = s.visible ? (s.hovering ? 0.95 : 0.82) : 0;
+        Math.sin(s.floatPhase * 0.5) * 1.5;
+
+      const fy = s.oy + s.floatY;
+      const scale = s.clicking ? 0.9 : s.hovering ? 1.15 : 1;
+      const opacity = s.hovering ? 0.75 : 0.6;
+
       if (orbRef.current) {
         orbRef.current.style.left = s.ox + 'px';
         orbRef.current.style.top = fy + 'px';
@@ -98,7 +117,10 @@ export default function Cursor() {
       document.documentElement.removeEventListener('mouseleave', onMouseLeave);
       document.documentElement.removeEventListener('mouseenter', onMouseEnter);
     };
-  }, []);
+  }, [isTouch]); // re-runs only if isTouch changes
+
+  // Render nothing on touch/mobile devices
+  if (isTouch) return null;
 
   return (
     <>
@@ -116,6 +138,13 @@ export default function Cursor() {
           transform: 'translate(-50%,-50%)',
           transition: 'opacity .3s',
           willChange: 'transform, opacity',
+          width: '180px',
+          height: '180px',
+          borderRadius: '50%',
+          background:
+            'radial-gradient(circle, rgba(204,17,17,.025) 0%, rgba(136,0,0,.015) 40%, transparent 70%)',
+          transform: 'translate(-50%,-50%)',
+          transition: 'opacity .3s',
         }}
       />
       <div
@@ -132,6 +161,13 @@ export default function Cursor() {
           filter: 'blur(6px)',
           transition: 'opacity .25s',
           willChange: 'transform, opacity',
+          width: '16px',
+          height: '16px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(204,17,17,0.35) 0%, transparent 70%)',
+          transform: 'translate(-50%,-50%)',
+          filter: 'blur(3px)',
+          transition: 'opacity .25s',
         }}
       />
       <div
@@ -148,6 +184,13 @@ export default function Cursor() {
             '0 0 10px rgba(204,17,17,.9), 0 0 24px rgba(204,17,17,.5), 0 0 50px rgba(136,0,0,.3)',
           transition: 'transform .08s cubic-bezier(.34,1.56,.64,1), opacity .2s',
           willChange: 'transform, opacity',
+          zIndex: 10005,
+          width: '12px',
+          height: '12px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle at 35% 35%, #fff 0%, #CC1111 40%, #880000 100%)',
+          boxShadow: '0 0 4px rgba(204,17,17,.35), 0 0 8px rgba(204,17,17,.15)',
+          transition: 'transform .18s cubic-bezier(.34,1.56,.64,1), opacity .2s',
         }}
       >
         <div
@@ -160,6 +203,11 @@ export default function Cursor() {
             borderRadius: '50%',
             background: 'rgba(255,255,255,.9)',
             filter: 'blur(1px)',
+            width: '3px',
+            height: '3px',
+            borderRadius: '50%',
+            background: 'rgba(255,255,255,.7)',
+            filter: 'blur(.5px)',
           }}
         />
       </div>
