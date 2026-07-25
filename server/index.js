@@ -1717,6 +1717,20 @@ async function withRetry(fn, retries = 2, delay = 500) {
   }
 }
 
+async function withRetry(fn, retries = 2, delay = 500) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      if (i < retries - 1) {
+        await new Promise(r => setTimeout(r, delay * (i + 1)));
+      } else {
+        throw e;
+      }
+    }
+  }
+}
+
 async function handleForm(formType, req, res) {
   try {
     const payload = normalizeFormSubmission(formType, req.body || {});
@@ -1726,6 +1740,11 @@ async function handleForm(formType, req, res) {
     await withRetry(() => appendFormToSheet(formType, payload));
 
     // Then write to Supabase if configured (non-fatal if this fails, data is already in Sheets)
+    // Write to Sheets first (external API, more likely to fail).
+    // If this fails, no data is persisted anywhere — consistency guaranteed.
+    await withRetry(() => appendFormToSheet(formType, payload));
+
+    // Write to Supabase after Sheets succeeds (non-fatal, data is already safe)
     try {
       await appendToSupabaseForms(formType, payload);
     } catch (supabaseErr) {
@@ -1733,11 +1752,20 @@ async function handleForm(formType, req, res) {
     }
 
     // Send welcome email with retries (non-fatal if it fails)
+    // Send welcome email with retries (non-fatal)
     try {
       const verifyUrl = `${process.env.CORS_ORIGIN || 'http://localhost:5173'}/verify?email=${encodeURIComponent(req.body.collegeEmail)}`;
       await withRetry(() => sendWelcomeVerificationEmail(req.body.collegeEmail, req.body.fullName, verifyUrl));
     } catch (emailErr) {
       console.error('[Form Handler] Failed to send welcome email after retries:', emailErr);
+    }
+
+    // Real-time notification and metrics updates (non-fatal)
+    try {
+      broadcastSSEEvent('registration', { formType, fullName: payload.fullName, timestamp: new Date().toISOString() });
+      emitToRoom(getRoom('admin'), 'admin:new-registration', { formType, userName: payload.fullName, timestamp: new Date() });
+    } catch (realtimeErr) {
+      console.error('[Form Handler] Failed to broadcast real-time updates:', realtimeErr);
     }
 
     return res.json({ ok: true });
