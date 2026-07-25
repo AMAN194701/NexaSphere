@@ -131,6 +131,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const CONTENT_FILE = path.join(__dirname, 'data', 'content.json');
 
+validateEnvironment();
+
 const app = express();
 
 app.use(cors({
@@ -158,6 +160,14 @@ function requestLogger(req, res, next) {
   });
 
   next();
+initializeSentry(app);
+app.use(compression());
+
+const corsOrigin =
+  process.env.CORS_ORIGIN ||
+  (process.env.NODE_ENV === 'test' ? 'http://localhost,http://127.0.0.1' : '');
+if (!corsOrigin) {
+  throw new Error('CORS_ORIGIN environment variable must be set.');
 }
 
 app.use(requestLogger);
@@ -996,12 +1006,13 @@ app.get('/api/auth/github/portfolio', studentAuthController.githubPortfolioAuth)
 app.get('/api/auth/github/portfolio/callback', studentAuthController.githubPortfolioCallback);
 app.get('/api/auth/me', requireStudentAuth, studentAuthController.getMe);
 app.post('/api/auth/theme', requireStudentAuth, studentAuthController.updateTheme);
-app.post('/api/auth/logout', studentAuthController.logout);
 
 // Student Profile Endpoints
 app.get('/api/auth/profile', requireStudentAuth, studentAuthController.getProfile);
 app.put('/api/auth/profile', requireStudentAuth, studentAuthController.updateProfile);
 app.get('/api/auth/registrations', requireStudentAuth, studentAuthController.getRegistrations);
+app.post('/api/auth/logout', studentAuthController.logout);
+
 
 // Slack Integration Endpoints
 app.post('/api/auth/slack-settings', requireStudentAuth, studentAuthController.updateSlackSettings);
@@ -1580,6 +1591,8 @@ if (process.env.NODE_ENV !== 'test') {
     slackIntegrationService.init();
     server = app.listen(port, () => {
       console.log(`NexaSphere server listening on http://localhost:${port}`);
+      schedulerService.init();
+      startWebhookRetryProcessor();
     });
     initializeSocketIO(server);
   });
