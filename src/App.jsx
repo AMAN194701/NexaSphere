@@ -3012,6 +3012,8 @@ export default function App() {
             )}
             {page.section === "Analytics" && (
               <AnalyticsPage onBack={onBackHome} />
+            {page.section === "Dashboard" && (
+              <DashboardPage onBack={onBackHome} />
             )}
             {page.section === "Activities" && (
               <ActivitiesPage onNavigate={onNavigate} onBack={onBackHome} />

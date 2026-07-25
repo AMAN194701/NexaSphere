@@ -11,6 +11,11 @@ import { render, screen } from "@testing-library/react";
 import TeamPage from "../pages/team/TeamPage";
 import { teamMembers } from "../data/teamData";
 
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen } from "@testing-library/react";
+import TeamPage from "../pages/team/TeamPage";
+import { teamMembers } from "../data/teamData";
+
 describe("TeamPage Component", () => {
   const mockOnBack = vi.fn();
   const mockOnApply = vi.fn();
@@ -73,6 +78,29 @@ describe("TeamPage Component", () => {
     expect(await screen.findByText(/Core Members/i)).toBeInTheDocument();
   });
 
+    global.fetch = vi.fn(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(teamMembers),
+      })
+    ) as any;
+  });
+
+  it("renders team page with title", () => {
+    render(<TeamPage onBack={mockOnBack} onApply={mockOnApply} />);
+    expect(screen.getAllByText(/Core Team/i).length).toBeGreaterThan(0);
+  });
+
+  it("displays leadership section", () => {
+    render(<TeamPage onBack={mockOnBack} onApply={mockOnApply} />);
+    expect(screen.getByText("Leadership")).toBeInTheDocument();
+  });
+
+  it("displays core members section", () => {
+    render(<TeamPage onBack={mockOnBack} onApply={mockOnApply} />);
+    expect(screen.getByText("Core Members")).toBeInTheDocument();
+  });
+
   it("renders apply card with call to action", () => {
     render(<TeamPage onBack={mockOnBack} onApply={mockOnApply} />);
     expect(screen.getByText(/Want to Join NexaSphere/i)).toBeInTheDocument();
@@ -104,6 +132,13 @@ describe("TeamPage Component", () => {
     render(<TeamPage onBack={mockOnBack} onApply={mockOnApply} />);
     const orgMembers = teamMembers.filter(
       (m) => m.role === "Organiser" || m.role === "Co-organiser"
+  it("displays at least one team member card", async () => {
+    render(<TeamPage onBack={mockOnBack} onApply={mockOnApply} />);
+    const orgMembers = teamMembers.filter(
+      (m) =>
+        m.role === "Organiser" ||
+        m.role === "Co-organiser" ||
+        m.role.toLowerCase().includes("lead")
     );
     if (orgMembers.length > 0) {
       expect(await screen.findByText(orgMembers[0].name)).toBeInTheDocument();
