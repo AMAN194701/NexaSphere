@@ -551,6 +551,8 @@
  *
  *     summary: Update workspace
  *     tags: [Workspaces]
+ *   - name: Knowledge Assistant
+ *     description: AI-Powered Platform Knowledge Assistant
  * /api/notification-preferences/{userId}:
  *   get:
  *     summary: Get notification preferences
@@ -643,6 +645,10 @@
  *     responses:
  *       201:
  *         description: Resource created successfully
+ * /api/knowledge-assistant/query:
+ *   post:
+ *     summary: Ask the AI knowledge assistant
+ *     tags: [Knowledge Assistant]
  * /api/notification-preferences/{userId}:
  *   put:
  *     summary: Update notification preferences
@@ -719,11 +725,19 @@
  *     responses:
  *       201:
  *         description: Emergency maintenance activated
+ *         description: AI response generated successfully
  *         description: Preferences updated successfully
  */
 
 /**
  * @swagger
+ * /api/knowledge-assistant/search:
+ *   get:
+ *     summary: Natural language search
+ *     tags: [Knowledge Assistant]
+ *     parameters:
+ *       - in: query
+ *         name: q
  * /api/notification-preferences/{userId}/history:
  *   get:
  *     summary: Get notification history
@@ -737,6 +751,7 @@
  *           type: string
  *     responses:
  *       200:
+ *         description: Search results returned successfully
  *         description: Notification history returned successfully
  * ...
  */
@@ -747,6 +762,125 @@
 
 /**
  * @swagger
+ * /api/knowledge-assistant/documentation:
+ *   get:
+ *     summary: Search documentation
+ *     tags: [Knowledge Assistant]
+ *     parameters:
+ *       - in: query
+ *         name: topic
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Documentation retrieved successfully
+ */
+
+/**
+ * @swagger
+ * /api/knowledge-assistant/events:
+ *   get:
+ *     summary: Get event recommendations
+ *     tags: [Knowledge Assistant]
+ *     responses:
+ *       200:
+ *         description: Event recommendations returned successfully
+ */
+
+/**
+ * @swagger
+ * /api/knowledge-assistant/clubs:
+ *   get:
+ *     summary: Get club information
+ *     tags: [Knowledge Assistant]
+ *     parameters:
+ *       - in: query
+ *         name: club
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Club information retrieved successfully
+ */
+
+/**
+ * @swagger
+ * /api/knowledge-assistant/faqs:
+ *   get:
+ *     summary: Generate FAQs
+ *     tags: [Knowledge Assistant]
+ *     responses:
+ *       200:
+ *         description: FAQs generated successfully
+ */
+
+/**
+ * @swagger
+ * /api/knowledge-assistant/guides:
+ *   get:
+ *     summary: Get step-by-step guides
+ *     tags: [Knowledge Assistant]
+ *     parameters:
+ *       - in: query
+ *         name: topic
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Guides returned successfully
+ */
+
+/**
+ * @swagger
+ * /api/knowledge-assistant/suggestions:
+ *   get:
+ *     summary: Smart search suggestions
+ *     tags: [Knowledge Assistant]
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Suggestions returned successfully
+ */
+
+/**
+ * @swagger
+ * /api/knowledge-assistant/translate:
+ *   post:
+ *     summary: Translate assistant response
+ *     tags: [Knowledge Assistant]
+ *     requestBody:
+ *       required: true
+ *     responses:
+ *       200:
+ *         description: Translation completed successfully
+ */
+
+/**
+ * @swagger
+ * /api/knowledge-assistant/history:
+ *   get:
+ *     summary: Get query history
+ *     tags: [Knowledge Assistant]
+ *     responses:
+ *       200:
+ *         description: Query history returned successfully
+ */
+
+/**
+ * @swagger
+ * /api/knowledge-assistant/feedback:
+ *   post:
+ *     summary: Submit assistant feedback
+ *     tags: [Knowledge Assistant]
+ *     requestBody:
+ *       required: true
+ *     responses:
+ *       201:
+ *         description: Feedback submitted successfully
  * /api/announcements:
  *   get:
  *     summary: Get all announcements
@@ -818,6 +952,13 @@
  *         description: Maintenance history retrieved
  * /api/maintenance/countdown/{id}:
  *     summary: Get maintenance countdown
+ * /api/knowledge-assistant/analytics:
+ *   get:
+ *     summary: Get assistant analytics
+ *     tags: [Knowledge Assistant]
+ *     responses:
+ *       200:
+ *         description: Analytics retrieved successfully
  * /api/announcements/{id}/priority:
  *   patch:
  *     summary: Update announcement priority
@@ -911,6 +1052,15 @@
  *   post:
  *     summary: Send maintenance notifications
  *     tags: [Maintenance]
+ * /api/knowledge-assistant/update:
+ *   post:
+ *     summary: Update knowledge base
+ *     tags: [Knowledge Assistant]
+ *     responses:
+ *       200:
+ *         description: Knowledge base updated successfully
+ */
+
  * /api/announcements/{id}/pin:
  *   patch:
  *     summary: Pin or unpin an announcement

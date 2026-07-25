@@ -29,11 +29,9 @@ import * as followsController from '../controllers/followsController.js';
 import * as portfolioAnalyticsController from '../controllers/portfolioAnalyticsController.js';
 import { achievementSchema } from '../validators/portfolioSchemas.js';
 import { auditLogRepository } from '../repositories/auditLogRepository.js';
-import announcementPriorityRouter from './announcementPriority.js';
-import eventConflictRouter from './eventConflict.js';
-import waitlistRoutes from './waitlist.js';
-import recommendationEngine from './recommendationEngine.js';
-import platformAnalyticsRoutes from './platformAnalytics.js';
+import announcementPriorityRouter from "./announcementPriority.js";
+import eventConflictRouter from "./eventConflict.js";
+import waitlistRoutes from "./waitlist.js";
 import * as localAuthController from '../controllers/localAuthController.js';
 import * as whiteboardController from '../controllers/whiteboardController.js';
 import * as portfolioAnalyticsController from '../controllers/portfolioAnalyticsController.js';
@@ -74,6 +72,22 @@ const upload = multer({
 // Public
 router.get('/api/dashboard/leaderboard', gamificationController.getLeaderboard);
 router.post('/api/dashboard/xp', protectedActionRateLimiter, adminAuthMiddleware.requireAdmin, gamificationController.awardXP);
+const knowledgeAssistantRoutes = require("./knowledgeAssistant");
+const router = Router();
+
+// Public
+router.get('/api/dashboard/leaderboard', gamificationController.getLeaderboard);
+router.post('/api/dashboard/xp', gamificationController.awardXP);
+router.use("/knowledge-assistant", knowledgeAssistantRoutes);
+
+// Public
+router.get('/api/dashboard/leaderboard', gamificationController.getLeaderboard);
+router.post(
+  '/api/dashboard/xp',
+  protectedActionRateLimiter,
+  adminAuthMiddleware.requireAdmin,
+  gamificationController.awardXP
+);
 router.post(
   '/api/assistant/recommend',
   upload.single('file'),
@@ -298,6 +312,7 @@ router.post(
   '/api/portfolio/:username/visit',
   portfolioAnalyticsController.recordPortfolioVisit
 );
+router.post('/api/portfolio/:username/visit', portfolioAnalyticsController.recordPortfolioVisit);
 
 router.get(
   '/api/portfolio/:username/monthly-report',
@@ -405,6 +420,7 @@ router.use(
 );
 
 // Audit Log Viewer APIs
+}); // Audit Log Viewer APIs
 router.get('/api/admin/audit-logs', adminAuthMiddleware.requireAdmin, auditLogController.listLogs);
 
 router.get(
@@ -412,5 +428,68 @@ router.get(
   adminAuthMiddleware.requireAdmin,
   auditLogController.getStats
 );
+router.use(
+  "/recommendations",
+  recommendationEngine
+);
+router.use('/recommendations', recommendationEngine);
+
+// Follows/User Following System APIs
+// Follow/Unfollow operations
+router.post(
+  '/api/student/follows/:followingId',
+  requireStudentAuth,
+  protectedActionRateLimiter,
+  followsController.followUser
+);
+router.delete(
+  '/api/student/follows/:followingId',
+  requireStudentAuth,
+  protectedActionRateLimiter,
+  followsController.unfollowUser
+);
+
+// Check follow status
+router.get(
+  '/api/student/follows/status/:followingId',
+  requireStudentAuth,
+  followsController.checkFollowStatus
+);
+
+// Get followers and following lists
+router.get('/api/student/users/:userId/followers', followsController.getUserFollowers);
+router.get('/api/student/users/:userId/following', followsController.getUserFollowing);
+
+// Get follow counts
+router.get('/api/student/users/:userId/follow-counts', followsController.getFollowCounts);
+
+// Current user endpoints
+router.get(
+  '/api/student/me/followers',
+  requireStudentAuth,
+  followsController.getCurrentUserFollowers
+);
+router.get(
+  '/api/student/me/following',
+  requireStudentAuth,
+  followsController.getCurrentUserFollowing
+);
+router.get(
+  '/api/student/me/follow-counts',
+  requireStudentAuth,
+  followsController.getCurrentUserFollowCounts
+);
+
+// Activity feed from followed users
+router.get(
+  '/api/student/activity-feed/followed',
+  requireStudentAuth,
+  followsController.getFollowedUsersActivityFeed
+);
+
+// Platform Analytics APIs
+router.use('/api/analytics', platformAnalyticsRoutes);
+
+router.use("/api-analytics", apiAnalyticsRoutes);
 
 export default router;
