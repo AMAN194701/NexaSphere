@@ -49,6 +49,10 @@ test('Controller handles admin API responses correctly', async () => {
   const originalGetAll = usersRepository.getAllUsersAdmin;
   let receivedArgs;
   usersRepository.getAllUsersAdmin = async (args) => {
+test('Controller handles public API responses correctly', async () => {
+  const originalGetAll = usersRepository.getAllPublicUsers;
+  let receivedArgs;
+  usersRepository.getAllPublicUsers = async (args) => {
     receivedArgs = args;
     return [mockRawUser];
   };
@@ -74,6 +78,12 @@ test('Controller handles admin API responses correctly', async () => {
   assert.equal(jsonRes.users[0].password_hash, undefined);
   assert.equal(jsonRes.users[0].reset_token, undefined);
   assert.equal(jsonRes.users[0].email, 'hacker@example.com');
+  assert.ok(Array.isArray(jsonRes));
+  assert.equal(jsonRes.length, 1);
+  assert.equal(jsonRes[0].username, 'hacker123');
+  assert.equal(jsonRes[0].password_hash, undefined);
+  assert.equal(jsonRes[0].reset_token, undefined);
+  assert.equal(jsonRes[0].email, undefined);
 
   // Restore mock
   usersRepository.getAllUsersAdmin = originalGetAll;
