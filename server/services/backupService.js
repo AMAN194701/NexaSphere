@@ -142,14 +142,15 @@ export const backupService = {
           AND table_name != 'backup_restore_logs'
       `);
 
-      const tables = tablesResult.rows.map((r) => r.table_name);
+      const validTablesAllowlist = tablesResult.rows.map((r) => r.table_name);
+      const tables = validTablesAllowlist;
       const dump = {};
 
       // 2. Dump data row-by-row
       for (const table of tables) {
         try {
-          // Validate table name to prevent SQL injection
-          if (!/^[a-zA-Z0-9_]+$/.test(table)) {
+          // Validate table name against strict database schema allowlist
+          if (!validTablesAllowlist.includes(table) || !/^[a-zA-Z0-9_]+$/.test(table)) {
             throw new Error(`Invalid table name: ${table}`);
           }
           // codeql[js/sql-injection]
@@ -181,10 +182,19 @@ export const backupService = {
       // Run in a single transaction
       await client.query('BEGIN');
       try {
+        // Build a strict allowlist of known tables from the database schema
+        const schemaResult = await client.query(`
+          SELECT table_name 
+          FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+            AND table_type = 'BASE TABLE'
+        `);
+        const validTablesAllowlist = schemaResult.rows.map((r) => r.table_name);
+
         // Truncate all tables first
         for (const table of Object.keys(tables)) {
-          // Validate table name to prevent SQL injection
-          if (!/^[a-zA-Z0-9_]+$/.test(table)) {
+          // Validate table name against strict allowlist to prevent SQL injection
+          if (!validTablesAllowlist.includes(table) || !/^[a-zA-Z0-9_]+$/.test(table)) {
             throw new Error(`Invalid table name in restore schema: ${table}`);
           }
           // codeql[js/sql-injection]
@@ -194,8 +204,8 @@ export const backupService = {
         // Insert rows back
         for (const [table, rows] of Object.entries(tables)) {
           if (!rows || rows.length === 0) continue;
-          // Validate table name to prevent SQL injection
-          if (!/^[a-zA-Z0-9_]+$/.test(table)) {
+          // Validate table name against strict allowlist to prevent SQL injection
+          if (!validTablesAllowlist.includes(table) || !/^[a-zA-Z0-9_]+$/.test(table)) {
             throw new Error(`Invalid table name in restore data: ${table}`);
           }
 
