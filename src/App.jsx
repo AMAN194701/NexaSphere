@@ -212,47 +212,10 @@ function AdminDashboard() {
 function MentorDashboard() {
   return <h1>Mentor Dashboard</h1>;
 }
+import ResumeAnalyzer from "./pages/ResumeAnalyzer";
 
 function App() {
-  return (
-    <Routes>
-
-      <Route path="/login" element={<Login />} />
-
-      <Route
-        path="/"
-        element={<Home />}
-      />
-
-      <Route
-        path="/unauthorized"
-        element={<Unauthorized />}
-      />
-
-      <Route
-        path="/admin"
-        element={
-          <ProtectedRoute
-            allowedRoles={["ADMIN", "SUPER_ADMIN"]}
-          >
-            <AdminDashboard />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/mentor"
-        element={
-          <ProtectedRoute
-            allowedRoles={["MENTOR", "ADMIN"]}
-          >
-            <MentorDashboard />
-          </ProtectedRoute>
-        }
-      />
-
-    </Routes>
-  );
+  return <ResumeAnalyzer />;
 }
 
 /* ─────────────────────────────────────────
