@@ -125,6 +125,9 @@ const links = [
     to: '/dashboard/audit-logs',
     label: 'Audit Logs',
     icon: 'FileText',
+    to: '/dashboard/compliance',
+    label: 'Compliance',
+    icon: 'Shield',
     requiredScope: 'settings:admin',
   },
   {

@@ -329,6 +329,9 @@ import compression from 'compression';
 import syncRouter from './routes/sync.js';
 import multer from 'multer';
 import * as resourcesController from './controllers/resourcesController.js';
+import complianceRouter from './routes/compliance.js';
+import scheduledTasksRouter from './routes/scheduledTasks.js';
+import { schedulerService } from './services/schedulerService.js';
 
 // Fail fast on startup if any rate limiter failed to export correctly.
 validateLimiters();
@@ -1993,6 +1996,9 @@ function clearActivityAuthAttempts(ip) {
 }
 // Event Certification & Digital Badges (#1787)
 app.use('/api', certificatesRouter);
+
+// Compliance & Legal Documents (handles both public and admin routes internally)
+app.use('/api/compliance', complianceRouter);
 
 // Compliance & Legal Documents (handles both public and admin routes internally)
 app.use('/api/compliance', complianceRouter);

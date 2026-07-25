@@ -31,6 +31,8 @@ import { PortfolioManager } from './pages/PortfolioManager';
 import { StreamManager } from './pages/StreamManager';
 import { CircuitBreakerManager } from './pages/CircuitBreakerManager';
 import { WaitingRoomManager } from './pages/WaitingRoomManager';
+import { ResourcesManager } from './pages/ResourcesManager';
+import { ComplianceManager } from './pages/ComplianceManager';
 import { SponsorshipsManager } from './pages/SponsorshipsManager';
 import { UserSegmentation } from './pages/UserSegmentation';
 import PlatformSettings from './pages/dashboard/PlatformSettings';
@@ -111,6 +113,8 @@ export default function App() {
             <Route path="/dashboard/groups" element={<UserGroups />} />
             <Route path="/dashboard/tasks" element={<ScheduledTasksManager />} />
             <Route path="/dashboard/backups" element={<BackupsManager />} />
+            <Route path="/dashboard/resources" element={<ResourcesManager />} />
+            <Route path="/dashboard/compliance" element={<ComplianceManager />} />
             <Route path="/dashboard/sponsorships" element={<SponsorshipsManager />} />
             <Route path="/dashboard/audit-logs" element={<AuditLogViewer />} />
             <Route path="/dashboard/reports" element={<UserEngagementReport />} />
