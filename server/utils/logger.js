@@ -1,7 +1,6 @@
-/**
- * Winston Logger Configuration
- * Structured logging for all backend operations
- */
+import winston from 'winston';
+import path from 'path';
+import fs from 'fs';
 
 import winston from 'winston';
 import path from 'path';
@@ -36,6 +35,11 @@ function ensureLogsDirectory() {
 const isStorageWritable = ensureLogsDirectory();
 
 // Define log levels
+const logsDir = path.join(process.cwd(), 'logs');
+if (!fs.existsSync(logsDir)) {
+  fs.mkdirSync(logsDir, { recursive: true });
+}
+
 const levels = {
   error: 0,
   warn: 1,
@@ -44,7 +48,6 @@ const levels = {
   debug: 4,
 };
 
-// Define colors for console output
 const colors = {
   error: 'red',
   warn: 'yellow',
@@ -65,6 +68,8 @@ const correlationFormat = winston.format((info) => {
 
 const jsonFormat = winston.format.combine(
   winston.format.timestamp(),
+const format = winston.format.combine(
+  winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),
   winston.format.errors({ stack: true }),
   correlationFormat(),
   winston.format.json()
@@ -107,6 +112,9 @@ const textFormat = winston.format.combine(
 
     return `${ts} [${level}]: ${message} ${
       Object.keys(cleanArgs).length ? JSON.stringify(cleanArgs) : ''
+    const ts = timestamp.slice(0, 19).replace('T', ' ');
+    return `${ts} [${level}]: ${message} ${
+      Object.keys(args).length ? JSON.stringify(args, null, 2) : ''
     }`;
   })
 );
@@ -199,6 +207,46 @@ const logger = winston.createLogger({
         }),
       ]
     : undefined,
+const transports = [
+  new winston.transports.Console({
+    format: winston.format.combine(
+      winston.format.colorize({ all: true }),
+      format
+    ),
+  }),
+  new winston.transports.File({
+    filename: path.join(logsDir, 'error.log'),
+    level: 'error',
+    format: winston.format.uncolorize(),
+  }),
+  new winston.transports.File({
+    filename: path.join(logsDir, 'combined.log'),
+    format: winston.format.uncolorize(),
+  }),
+  new winston.transports.File({
+    filename: path.join(logsDir, 'application-%DATE%.log'),
+    datePattern: 'YYYY-MM-DD',
+    maxSize: '20m',
+    maxFiles: '14d',
+    format: winston.format.uncolorize(),
+  }),
+];
+
+const logger = winston.createLogger({
+  level: process.env.LOG_LEVEL || 'info',
+  levels,
+  format,
+  transports,
+  exceptionHandlers: [
+    new winston.transports.File({
+      filename: path.join(logsDir, 'exceptions.log'),
+    }),
+  ],
+  rejectionHandlers: [
+    new winston.transports.File({
+      filename: path.join(logsDir, 'rejections.log'),
+    }),
+  ],
 });
 
 export default logger;

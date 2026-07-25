@@ -203,6 +203,8 @@ validateLimiters();
 import adminStreamRouter from './routes/adminStream.js';
 import { portfolioRepository } from './repositories/portfolioRepository.js';
 import { initializeSocketIO } from './config/socket.js';
+import { performanceMonitor } from './middleware/performanceMonitor.js';
+import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -320,6 +322,8 @@ const allowedOrigins = corsOrigin
   .split(',')
   .map((s) => s.trim())
   .filter(Boolean);
+app.use(requestLogger);
+app.use(performanceMonitor);
 
 app.use(
   helmet({
@@ -2008,6 +2012,8 @@ app.put('/api/portfolio', async (req, res) => {
   }
 });
 
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 const server = http.createServer(app);
 initializeSocketIO(server);

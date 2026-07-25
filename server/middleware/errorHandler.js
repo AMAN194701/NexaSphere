@@ -63,6 +63,13 @@ const errorHandler = (err, req, res, next) => {
   // ---- Tracking & instrumentation ----
   const trackedError = trackError(err);
   logger.error('Tracked Error', trackedError);
+import logger from '../utils/logger.js';
+import { captureException } from '../utils/sentry.js';
+import { sendSlackAlert } from '../utils/slack.js';
+
+const errorHandler = (err, req, res, next) => {
+  const status = err.statusCode || err.status || 500;
+  const message = err.message || 'Internal Server Error';
 
   const errorLog = {
     status,
@@ -73,6 +80,7 @@ const errorHandler = (err, req, res, next) => {
     ip: req.ip,
     userId: resolveUserId(req),
     traceId,
+    userId: req.adminSession?.username || req.user?.id,
     timestamp: new Date().toISOString(),
     stack: err.stack,
   };
@@ -102,9 +110,9 @@ const errorHandler = (err, req, res, next) => {
     });
   }
 
-  // Capture to Sentry
   captureException(err, {
     userId: resolveUserId(req),
+    userId: req.adminSession?.username || req.user?.id,
     requestPath: req.originalUrl,
     method: req.method,
     tags: { errorType: err.name, code, status },
@@ -114,12 +122,14 @@ const errorHandler = (err, req, res, next) => {
   // Slack alert for ≥500 only (avoids noise from 401 scanners, etc.)
   if (status >= 500) {
     const pathOnly = req.originalUrl.split('?')[0];
+  if (status >= 500 || (status === 401 && !req.user && !req.adminSession)) {
     sendSlackAlert({
-      title: `🚨 ${status} Error Detected`,
+      title: `${status} Error Detected`,
       message,
       url: pathOnly,
       method: req.method,
       userId: resolveUserId(req),
+      userId: req.adminSession?.username || req.user?.id,
       timestamp: errorLog.timestamp,
       stack: err.stack?.substring(0, 500),
     });
@@ -132,6 +142,9 @@ const errorHandler = (err, req, res, next) => {
       message,
       ...(details !== undefined && { details }),
       ...(traceId && { traceId }),
+      status,
+      message: process.env.NODE_ENV === 'production' ? 'Something went wrong' : message,
+      ...(process.env.NODE_ENV !== 'production' && { stack: err.stack }),
     },
   });
 };
@@ -203,3 +216,9 @@ const asyncHandler = (fn) => (req, res, next) => {
 };
 
 export { errorHandler, notFoundHandler, validationErrorHandler, asyncHandler };
+export {
+  errorHandler,
+  notFoundHandler,
+  validationErrorHandler,
+  asyncHandler,
+};

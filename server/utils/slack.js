@@ -34,6 +34,13 @@ async function dispatchToSlack(payload, alertContext) {
 
   if (!webhookUrl) {
     logger.warn(`Slack webhook URL not configured. Skipping ${alertContext}.`);
+import logger from './logger.js';
+
+async function sendSlackAlert(alertData) {
+  const webhookUrl = process.env.SLACK_WEBHOOK_URL;
+
+  if (!webhookUrl) {
+    logger.warn('Slack webhook URL not configured. Skipping alert.');
     return;
   }
 
@@ -48,6 +55,7 @@ async function dispatchToSlack(payload, alertContext) {
 
     if (!response.ok) {
       logger.error(`Failed to send ${alertContext}`, {
+      logger.error('Failed to send Slack alert', {
         status: response.status,
         statusText: response.statusText,
       });
@@ -121,6 +129,15 @@ function formatSlackMessage(data) {
       },
     ],
   });
+      logger.info('Slack alert sent successfully', { alertType: alertData.title });
+    }
+  } catch (error) {
+    logger.error('Error sending Slack alert', { error: error.message });
+  }
+}
+
+function formatSlackMessage(data) {
+  const color = data.severity === 'critical' ? 'danger' : 'warning';
 
   return {
     attachments: [
@@ -128,6 +145,7 @@ function formatSlackMessage(data) {
         color: color,
         blocks: blocks,
         title: data.title || '🚨 Alert',
+        title: data.title || 'Alert',
         fields: [
           {
             title: 'Message',
@@ -171,6 +189,7 @@ function formatSlackMessage(data) {
                       ? parsedDate.toISOString()
                       : new Date().toISOString(); // Safe fallback to current time
                   })(),
+                  value: new Date(data.timestamp).toISOString(),
                   short: true,
                 },
               ]
@@ -192,10 +211,6 @@ function formatSlackMessage(data) {
   };
 }
 
-/**
- * Send performance alert
- * @param {Object} metrics - Performance metrics
- */
 async function sendPerformanceAlert(metrics) {
   const payload = {
     attachments: [
@@ -231,19 +246,74 @@ async function sendPerformanceAlert(metrics) {
   };
 
   await dispatchToSlack(payload, 'performance alert');
+  const webhookUrl = process.env.SLACK_WEBHOOK_URL;
+
+  if (!webhookUrl) {
+    return;
+  }
+
+  try {
+    const payload = {
+      attachments: [
+        {
+          color: metrics.errorRate > 5 ? 'danger' : 'warning',
+          title: 'Performance Alert',
+          fields: [
+            {
+              title: 'Error Rate',
+              value: `${metrics.errorRate.toFixed(2)}%`,
+              short: true,
+            },
+            {
+              title: 'Total Requests',
+              value: metrics.totalRequests.toString(),
+              short: true,
+            },
+            {
+              title: 'Total Errors',
+              value: metrics.totalErrors.toString(),
+              short: true,
+            },
+            {
+              title: 'Threshold',
+              value: '5%',
+              short: true,
+            },
+          ],
+          footer: 'NexaSphere Performance Monitoring',
+          ts: Math.floor(Date.now() / 1000),
+        },
+      ],
+    };
+
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      logger.error('Failed to send performance alert');
+    }
+  } catch (error) {
+    logger.error('Error sending performance alert', { error: error.message });
+  }
 }
 
-/**
- * Send error rate alert
- * @param {number} errorRate - Current error rate
- * @param {number} threshold - Error rate threshold
- */
 async function sendErrorRateAlert(errorRate, threshold) {
   await sendSlackAlert({
     title: `⚠️ Error Rate Alert`,
+  sendSlackAlert({
+    title: 'Error Rate Alert',
     message: `Error rate (${errorRate.toFixed(2)}%) has exceeded threshold (${threshold}%)`,
     severity: errorRate > threshold * 2 ? 'critical' : 'warning',
   });
 }
 
 export { sendSlackAlert, formatSlackMessage, sendPerformanceAlert, sendErrorRateAlert };
+export {
+  sendSlackAlert,
+  formatSlackMessage,
+  sendPerformanceAlert,
+  sendErrorRateAlert,
+};
