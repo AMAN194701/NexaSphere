@@ -112,6 +112,16 @@ export const studentUsersRepository = {
     });
   },
 
+  async findById(id) {
+    if (!HAS_SUPABASE) return null;
+    return withDb(async (client) => {
+      const { rows } = await client.query('SELECT * FROM student_users WHERE id = $1 LIMIT 1', [
+        id,
+      ]);
+      return rows[0] || null;
+    });
+  },
+
   async upsertFromOAuth({ provider, providerId, email, fullName, avatarUrl }) {
     if (!HAS_SUPABASE) return null;
     return withDb(async (client) => {
@@ -209,10 +219,7 @@ export const studentUsersRepository = {
   async markRecoveryCodeUsed(id) {
     if (!HAS_SUPABASE) return;
     return withDb(async (client) => {
-      await client.query(
-        'UPDATE recovery_codes SET used = true WHERE id = $1',
-        [id]
-      );
+      await client.query('UPDATE recovery_codes SET used = true WHERE id = $1', [id]);
     });
   },
 
