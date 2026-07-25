@@ -77,7 +77,7 @@ export const roadmapData = {
   },
   ai_ml: {
     title: "AI & Machine Learning",
-    description: "From data wrangling to complex deep neural networks. Embark on the AI revolution.",
+    description: "From Python fundamentals to deep learning systems. Follow a structured path that builds data skills, classical ML knowledge, and neural network expertise.",
     nodes: [
       {
         id: "python-basics",
@@ -233,6 +233,235 @@ export const roadmapData = {
         practice: [
           { title: "MNIST Image Classification on Kaggle", url: "https://www.kaggle.com/competitions/digit-recognizer" },
           { title: "Hugging Face Transformers Playground", url: "https://huggingface.co/spaces" }
+        label: "Python Programming",
+        description: "Start with clean code, data structures, and environment setup so you can build reproducible AI projects.",
+        concepts: ["Lists, Dictionaries, Tuples", "Control Flow & Functions", "File I/O", "Virtual Environments"],
+        docs: "https://docs.python.org/3/",
+        tutorials: [
+          { title: "Python for Everybody - Coursera/FreeCodeCamp", url: "https://www.youtube.com/watch?v=8DvywoWv6fI" },
+          { title: "Learn Python - Codecademy", url: "https://www.codecademy.com/learn/learn-python-3" }
+        ],
+        practice: [
+          { title: "Python Practice - HackerRank", url: "https://www.hackerrank.com/domains/python" },
+          { title: "Automate the Boring Stuff Projects", url: "https://automatetheboringstuff.com" }
+        ]
+      },
+      {
+        id: "numpy-pandas",
+        label: "NumPy & Pandas",
+        description: "Master fast numerical operations and tabular data manipulation, the foundation of modern data workflows.",
+        concepts: ["NumPy Arrays & Broadcasting", "Pandas DataFrames", "Indexing & Joins", "GroupBy & Aggregation"],
+        docs: "https://numpy.org/doc/stable/",
+        tutorials: [
+          { title: "Python Data Science Handbook - Jake VanderPlas", url: "https://jakevdp.github.io/PythonDataScienceHandbook/" },
+          { title: "Pandas Full Tutorial - Keith Galli", url: "https://www.youtube.com/watch?v=vmEHCJof1kU" }
+        ],
+        practice: [
+          { title: "Kaggle Data Cleaning Challenges", url: "https://www.kaggle.com/learn/data-cleaning" }
+        ]
+      },
+      {
+        id: "data-visualization-eda",
+        label: "Data Visualization & EDA",
+        description: "Explore datasets with charts, summary statistics, and visual storytelling to uncover insights and detect patterns.",
+        concepts: ["Matplotlib Basics", "Seaborn Visualizations", "Distribution Plots", "EDA Reporting"],
+        docs: "https://matplotlib.org/stable/contents.html",
+        tutorials: [
+          { title: "Data Visualization with Python - FreeCodeCamp", url: "https://www.youtube.com/watch?v=0VXM0g7PpQM" },
+          { title: "Seaborn Tutorial - DataCamp", url: "https://www.datacamp.com/community/tutorials/seaborn-python-tutorial" }
+        ],
+        practice: [
+          { title: "Kaggle EDA Notebooks", url: "https://www.kaggle.com/learn/overview" }
+        ]
+      },
+      {
+        id: "statistics-probability",
+        label: "Statistics & Probability",
+        description: "Learn the probability and statistical tools that power model selection, performance measurement, and data-driven decisions.",
+        concepts: ["Probability Distributions", "Bayes Theorem", "Descriptive Statistics", "Hypothesis Testing"],
+        docs: "https://www.khanacademy.org/math/statistics-probability",
+        tutorials: [
+          { title: "Intro to Statistics - Khan Academy", url: "https://www.khanacademy.org/math/statistics-probability" },
+          { title: "StatQuest Statistics Playlist", url: "https://www.youtube.com/playlist?list=PLblh5JKOoLUIxGDQs4LFFD--41Vzf-ME1" }
+        ],
+        practice: [
+          { title: "Statistics Practice - Khan Academy", url: "https://www.khanacademy.org/math/statistics-probability" }
+        ]
+      },
+      {
+        id: "linear-algebra-calculus",
+        label: "Linear Algebra & Calculus",
+        description: "Master the mathematical foundation for machine learning models, including matrix operations, gradients, and derivative intuition.",
+        concepts: ["Vectors & Matrices", "Dot Product", "Gradients", "Derivatives & Chain Rule"],
+        docs: "https://www.3blue1brown.com/",
+        tutorials: [
+          { title: "Essence of Linear Algebra - 3Blue1Brown", url: "https://www.youtube.com/playlist?list=PLZHQObOWTQDOj4C_qDXu9U33JRRFwz0tA" },
+          { title: "Calculus for ML - Khan Academy", url: "https://www.khanacademy.org/math/calculus-1" }
+        ],
+        practice: [
+          { title: "Linear Algebra Practice", url: "https://www.khanacademy.org/math/linear-algebra" }
+        ]
+      },
+      {
+        id: "data-cleaning-sql",
+        label: "Data Cleaning & SQL",
+        description: "Prepare datasets for modeling by cleaning, normalizing, and querying data from relational sources.",
+        concepts: ["Missing Value Handling", "Outlier Detection", "SQL SELECT Queries", "JOINs & Aggregation"],
+        docs: "https://www.sqltutorial.org/",
+        tutorials: [
+          { title: "Data Cleaning Tutorial - Kaggle", url: "https://www.kaggle.com/learn/data-cleaning" },
+          { title: "SQL Basics - Mode Analytics", url: "https://mode.com/sql-tutorial/" }
+        ],
+        practice: [
+          { title: "SQLBolt Interactive Lessons", url: "https://sqlbolt.com/" }
+        ]
+      },
+      {
+        id: "feature-engineering",
+        label: "Feature Engineering",
+        description: "Turn raw inputs into stronger model features with transformations, encoding, scaling and new derived signals.",
+        concepts: ["Feature Scaling & Normalization", "Encoding Categorical Data", "Feature Selection", "Polynomial Features"],
+        docs: "https://scikit-learn.org/stable/modules/feature_selection.html",
+        tutorials: [
+          { title: "Feature Engineering Guide - Towards Data Science", url: "https://towardsdatascience.com/feature-engineering-for-machine-learning-3a5e293a5114" }
+        ],
+        practice: [
+          { title: "Feature Engineering Hands-on", url: "https://www.kaggle.com/learn/feature-engineering" }
+        ]
+      },
+      {
+        id: "machine-learning-fundamentals",
+        label: "Machine Learning Fundamentals",
+        description: "Understand how models learn from data using common supervised and unsupervised methods.",
+        concepts: ["Supervised vs Unsupervised", "Regression", "Classification", "Clustering"],
+        docs: "https://scikit-learn.org/stable/",
+        tutorials: [
+          { title: "Intro to Machine Learning - Kaggle", url: "https://www.kaggle.com/learn/intro-to-machine-learning" }
+        ],
+        practice: [
+          { title: "Kaggle Titanic Project", url: "https://www.kaggle.com/c/titanic" }
+        ]
+      },
+      {
+        id: "supervised-learning",
+        label: "Supervised Learning",
+        description: "Build models for regression and classification while handling training data, labels, and optimization.",
+        concepts: ["Linear Regression", "Logistic Regression", "Decision Trees", "Model Training"],
+        docs: "https://scikit-learn.org/stable/supervised_learning.html",
+        tutorials: [
+          { title: "Supervised Learning Crash Course", url: "https://www.coursera.org/learn/machine-learning-introduction" }
+        ],
+        practice: [
+          { title: "Regression Practice Notebook", url: "https://www.kaggle.com/learn/advanced-machine-learning" }
+        ]
+      },
+      {
+        id: "unsupervised-learning",
+        label: "Unsupervised Learning",
+        description: "Discover hidden patterns and structure with clustering, dimensionality reduction, and anomaly detection.",
+        concepts: ["K-Means Clustering", "Hierarchical Clustering", "PCA", "Anomaly Detection"],
+        docs: "https://scikit-learn.org/stable/unsupervised_learning.html",
+        tutorials: [
+          { title: "Unsupervised Learning Explained", url: "https://www.udacity.com/course/unsupervised-learning--ud741" }
+        ],
+        practice: [
+          { title: "Clustering with Scikit-Learn", url: "https://scikit-learn.org/stable/modules/clustering.html" }
+        ]
+      },
+      {
+        id: "model-evaluation",
+        label: "Model Evaluation",
+        description: "Measure model quality, handle bias-variance tradeoffs, and validate results with robust cross-validation.",
+        concepts: ["Accuracy & F1 Score", "Confusion Matrix", "Bias vs Variance", "Cross Validation"],
+        docs: "https://scikit-learn.org/stable/modules/model_evaluation.html",
+        tutorials: [
+          { title: "Model Evaluation in ML", url: "https://www.coursera.org/learn/machine-learning" }
+        ],
+        practice: [
+          { title: "Cross Validation Practice", url: "https://scikit-learn.org/stable/modules/cross_validation.html" }
+        ]
+      },
+      {
+        id: "tools-frameworks",
+        label: "Tools & Frameworks",
+        description: "Use the Python ecosystem tools that professionals rely on for experimentation, visualization, and model building.",
+        concepts: ["Scikit-Learn", "Jupyter Notebooks", "Matplotlib", "Seaborn"],
+        docs: "https://scikit-learn.org/stable/",
+        tutorials: [
+          { title: "Jupyter Notebook Tutorial", url: "https://www.dataquest.io/blog/jupyter-notebook-tutorial/" },
+          { title: "Matplotlib Tutorial", url: "https://matplotlib.org/stable/tutorials/index.html" }
+        ],
+        practice: [
+          { title: "Build an ML Experiment Notebook", url: "https://www.kaggle.com/learn/intro-to-machine-learning" }
+        ]
+      },
+      {
+        id: "deep-learning-fundamentals",
+        label: "Deep Learning Fundamentals",
+        description: "Learn the core neural network building blocks: perceptrons, activation functions, and backpropagation.",
+        concepts: ["Neural Networks", "Perceptrons", "Activation Functions", "Backpropagation"],
+        docs: "https://www.tensorflow.org/learn",
+        tutorials: [
+          { title: "Neural Networks from Scratch - 3Blue1Brown", url: "https://www.youtube.com/watch?v=aircAruvnKk" }
+        ],
+        practice: [
+          { title: "TensorFlow Playground", url: "https://playground.tensorflow.org" }
+        ]
+      },
+      {
+        id: "modern-neural-architectures",
+        label: "CNN, RNN & Transformers",
+        description: "Explore convolutional, recurrent, and transformer architectures for images, sequences and language tasks.",
+        concepts: ["CNN Basics", "RNN Basics", "Transformer Introduction", "Transfer Learning"],
+        docs: "https://www.tensorflow.org/tutorials",
+        tutorials: [
+          { title: "Intro to CNNs - TensorFlow", url: "https://www.tensorflow.org/tutorials/images/cnn" },
+          { title: "Transformer Primer", url: "https://huggingface.co/course/chapter1/1" }
+        ],
+        practice: [
+          { title: "Image Classification Project", url: "https://www.tensorflow.org/tutorials/images/classification" }
+        ]
+      },
+      {
+        id: "beginner-projects",
+        label: "Beginner AI Projects",
+        description: "Build small, practical projects that reinforce Python, data handling and visualization skills.",
+        concepts: ["Data Cleaning Projects", "Visualization Dashboards", "Mini Predictive Models", "Project Documentation"],
+        docs: "https://www.freecodecamp.org/news/data-science-projects-for-beginners/",
+        tutorials: [
+          { title: "Beginner Data Science Projects", url: "https://www.freecodecamp.org/news/data-science-projects-for-beginners/" }
+        ],
+        practice: [
+          { title: "Weather Dashboard App", url: "https://www.makeuseof.com/python-weather-app-tutorial/" },
+          { title: "Expense Tracker Notebook", url: "https://realpython.com/python-gui-tkinter/" }
+        ]
+      },
+      {
+        id: "ml-projects",
+        label: "Machine Learning Projects",
+        description: "Practice end-to-end ML workflows with regression, classification, and clustering use cases.",
+        concepts: ["Model Training Pipelines", "Evaluation Reports", "Feature Engineering", "Model Improvement"],
+        docs: "https://www.kaggle.com/learn/overview",
+        tutorials: [
+          { title: "Kaggle ML Project Tutorials", url: "https://www.kaggle.com/learn/overview" }
+        ],
+        practice: [
+          { title: "Titanic Survival Prediction", url: "https://www.kaggle.com/c/titanic" },
+          { title: "House Price Regression", url: "https://www.kaggle.com/c/house-prices-advanced-regression-techniques" }
+        ]
+      },
+      {
+        id: "deep-learning-projects",
+        label: "Deep Learning Mini Projects",
+        description: "Translate deep learning concepts into mini projects to gain experience with CNNs, RNNs, and transformers.",
+        concepts: ["Image Classification", "Sequence Modeling", "Transfer Learning", "Model Debugging"],
+        docs: "https://www.tensorflow.org/tutorials",
+        tutorials: [
+          { title: "TensorFlow Beginner Tutorials", url: "https://www.tensorflow.org/tutorials" }
+        ],
+        practice: [
+          { title: "Cats vs Dogs Classifier", url: "https://www.tensorflow.org/tutorials/images/classification" },
+          { title: "Text Generation with RNNs", url: "https://www.tensorflow.org/text/tutorials/text_generation" }
         ]
       }
     ]
