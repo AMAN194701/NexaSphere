@@ -180,6 +180,32 @@ const ErrorBoundaryFallback = ({ error, resetError }) => (
     </div>
   </div>
 );
+import React from "react";
+import * as Sentry from "@sentry/react";
+import { captureHandledException } from "../utils/errorTracking";
+import ErrorFallback from "./common/ErrorFallback";
+
+const ErrorBoundaryFallback = ({ error, resetError }) => {
+  const handleRefresh = () => {
+    if (typeof resetError === "function") {
+      resetError();
+      return;
+    }
+    window.location.reload();
+  };
+
+  return (
+    <ErrorFallback
+      error={error}
+      fullPage
+      showGoHome
+      onRefresh={handleRefresh}
+      onGoHome={() => window.location.assign("/")}
+      title="Oops! Something went wrong"
+      message="We've been notified of the issue and are working to fix it."
+    />
+  );
+};
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -193,7 +219,10 @@ class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     // Log error to Sentry
-    captureHandledException(error, `React Error Boundary: ${errorInfo.componentStack}`);
+    captureHandledException(
+      error,
+      `React Error Boundary: ${errorInfo.componentStack}`
+    );
 
     // Log to console in development
     if (process.env.NODE_ENV === 'development') {
@@ -209,7 +238,12 @@ class ErrorBoundary extends React.Component {
 
   render() {
     if (this.state.hasError) {
-      return <ErrorBoundaryFallback error={this.state.error} resetError={this.resetError} />;
+      return (
+        <ErrorBoundaryFallback
+          error={this.state.error}
+          resetError={this.resetError}
+        />
+      );
     }
 
     return this.props.children;
