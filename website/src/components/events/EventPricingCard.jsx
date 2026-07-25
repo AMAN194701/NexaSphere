@@ -82,6 +82,9 @@ export default function EventPricingCard({ eventId, onRegister }) {
           {friendlyReasons.map((reason) => (
             <span
               key={reason}
+          {friendlyReasons.map((reason, idx) => (
+            <span
+              key={idx}
               className="inline-block bg-indigo-50 text-indigo-700 text-xs px-2 py-1 rounded-md font-medium border border-indigo-100"
             >
               {reason}

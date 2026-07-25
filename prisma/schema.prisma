@@ -183,6 +183,7 @@ model AuditLog {
   timestamp DateTime    @default(now())
 }
 
+<<<<<<< HEAD
 model EventFeedback {
   id               String   @id @default(uuid())
   eventId          String
@@ -281,3 +282,32 @@ model WebhookDelivery {
   endpoint     WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
 }
 >>>>>>> origin/pr/1829
+=======
+// ── Dynamic Event Capacity Pricing ──
+
+model EventPricing {
+  id              String   @id @default(uuid())
+  eventId         String   @unique
+  basePrice       Float    // Original / standard price in INR
+  currentPrice    Float    // Live computed price
+  minPrice        Float    // Floor — never go below this
+  maxPrice        Float    // Cap — never exceed this
+  capacity        Int      // Total seats
+  registrations   Int      @default(0)
+  eventDate       DateTime // Used for time-based tier calculation
+  adminOverride   Float?   // Admin can pin a manual price (null = use algorithm)
+  updatedAt       DateTime @updatedAt
+  createdAt       DateTime @default(now())
+  priceHistory    PriceHistory[]
+}
+
+model PriceHistory {
+  id        String       @id @default(uuid())
+  pricingId String
+  price     Float
+  reason    String       // e.g. "early_bird", "demand_80pct", "admin_override"
+  createdAt DateTime     @default(now())
+
+  pricing   EventPricing @relation(fields: [pricingId], references: [id], onDelete: Cascade)
+}
+>>>>>>> origin/pr/2325

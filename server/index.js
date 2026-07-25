@@ -332,6 +332,7 @@ import * as resourcesController from './controllers/resourcesController.js';
 import complianceRouter from './routes/compliance.js';
 import scheduledTasksRouter from './routes/scheduledTasks.js';
 import { schedulerService } from './services/schedulerService.js';
+import dynamicPricingRouter from './routes/dynamicPricing.js';
 
 // Fail fast on startup if any rate limiter failed to export correctly.
 validateLimiters();
@@ -1051,6 +1052,15 @@ app.use(apiKeysRouter);
 // Mount monitoring + API documentation routes
 app.use('/api/monitoring', monitoringRouter);
 app.use('/api', documentationRouter);
+app.use('/', apiRouter);
+app.use('/', healthRouter);
+app.use('/', coreTeamRouter);
+app.use('/api', formsRouter);
+app.use('/api', portfolioRouter);
+app.use('/api', notificationsRouter);
+app.use('/api/admin', adminRouter);
+app.use('/', syncRouter);
+app.use('/api/pricing', dynamicPricingRouter);
 
 const adminAuth = adminAuthMiddleware.requireAdmin;
 const adminAuth = adminAuthMiddleware.requireAdmin;
