@@ -27,6 +27,9 @@ router.get('/stream', requireAdmin, (req, res) => {
   if (!adminId) {
     return sendError(req, res, 'Unauthorized', 401, 'UNAUTHORIZED');
   }
+router.get('/stream', setupSSEHeaders, (req, res) => {
+  const adminId = req.adminSession?.username || 'anonymous';
+  logger.info('Admin connected to SSE stream', { adminId });
 
   logger.info('Admin connected to SSE stream', { adminId });
   addSSEClient(res, req.adminSession);

@@ -9,6 +9,7 @@ import helmet from 'helmet';
 import express from 'express';
 import morgan from 'morgan';
 import compression from 'compression';
+import http from 'http';
 import { EventEmitter } from 'events';
 import cors from 'cors';
 import csrf from 'csurf';
@@ -199,7 +200,9 @@ import apiKeysRouter from './routes/apiKeys.js';
 import { apiKeysRepository } from './repositories/apiKeysRepository.js';
 
 validateLimiters();
+import adminStreamRouter from './routes/adminStream.js';
 import { portfolioRepository } from './repositories/portfolioRepository.js';
+import { initializeSocketIO } from './config/socket.js';
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -1426,6 +1429,7 @@ app.use('/api/compliance', complianceRouter);
 app.use('/api/admin/analytics', adminAuth, analyticsRouter);
 app.use('/api/admin/custom-events', adminAuth, customEventsRouter);
 app.use('/api/admin/metrics', adminAuth, adminStreamRouter);
+app.use('/api/admin', adminAuth, adminStreamRouter);
 
 // Setup Bull Board for background job monitoring
 const serverAdapter = new ExpressAdapter();
@@ -2005,11 +2009,14 @@ app.put('/api/portfolio', async (req, res) => {
 });
 
 
+const server = http.createServer(app);
+initializeSocketIO(server);
+
 const port = Number(process.env.PORT || 8787);
 if (!process.env.VERCEL) {
   const boot = HAS_SUPABASE ? Promise.resolve() : ensureContentFile();
   boot.then(() => {
-    app.listen(port, () => {
+    server.listen(port, () => {
       // eslint-disable-next-line no-console
       console.log(`NexaSphere server listening on http://localhost:${port}`);
     });
@@ -2167,6 +2174,7 @@ app.use('*', (req, res) => {
   res.status(404).json({ error: 'Endpoint not found' });
 });
   const server = app.listen(port, () => {
+  server.listen(port, () => {
     // eslint-disable-next-line no-console
     console.log(`NexaSphere server listening on http://localhost:${port}`);
   });
