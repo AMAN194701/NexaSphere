@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import {
   createAdminSession,
   getAdminSession,
@@ -58,6 +59,8 @@ try {
   console.error('Failed to parse ADMIN_USERS_JSON', err);
   process.exit(1);
 }
+const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH ? String(process.env.ADMIN_PASSWORD_HASH).trim() : null;
+const ADMIN_PASSWORD = ADMIN_PASSWORD_HASH ? null : requiredStrongPassword('ADMIN_PASSWORD');
 const LOGIN_WINDOW_MS = parsePositiveInteger(process.env.ADMIN_LOGIN_WINDOW_MS, 15 * 60 * 1000);
 const LOGIN_MAX_ATTEMPTS = parsePositiveInteger(process.env.ADMIN_LOGIN_MAX_ATTEMPTS, 5);
 const LOGIN_MAX_TRACKED_IPS = parsePositiveInteger(process.env.ADMIN_LOGIN_MAX_TRACKED_IPS, 10000);
@@ -379,6 +382,17 @@ async function requireAdmin(req, res, next) {
       createdAt: session.createdAt,
       expiresAt: session.expiresAt,
     };
+    const stateChangingMethods = ['POST', 'PUT', 'DELETE', 'PATCH'];
+    if (stateChangingMethods.includes(req.method)) {
+      const clientCsrfToken = req.headers['x-csrf-token'];
+      const sessionCsrfToken = session.metadata?.csrfToken;
+
+      if (!clientCsrfToken || !sessionCsrfToken || clientCsrfToken !== sessionCsrfToken) {
+        return res.status(403).json({ error: 'Invalid or missing CSRF token' });
+      }
+    }
+
+    req.adminSession = session;
     return next();
   } catch {
     return res.status(500).json({ error: "Unable to validate admin session" });
@@ -470,6 +484,15 @@ async function login(req, res) {
       intrusionDetectionService.reportEvent(EVENT_TYPES.AUTH_FAILURE, ip, u).catch(console.error);
       return res.status(401).json({ error: 'Invalid credentials' });
     if (u !== ADMIN_USERNAME || p !== ADMIN_PASSWORD) {
+    let isPasswordValid = false;
+    if (ADMIN_PASSWORD_HASH) {
+      const hash = crypto.createHash('sha256').update(p).digest('hex');
+      isPasswordValid = (hash === ADMIN_PASSWORD_HASH);
+    } else {
+      isPasswordValid = (p === ADMIN_PASSWORD);
+    }
+
+    if (u !== ADMIN_USERNAME || !isPasswordValid) {
       recordLoginAttempt(ip);
       return res.status(401).json({ error: "Invalid credentials" });
     }
@@ -495,6 +518,7 @@ async function login(req, res) {
         scopes,
         secret,
         backupCodes,
+    const csrfToken = crypto.randomBytes(32).toString('hex');
     const session = await createAdminSession({
       username: u,
       metadata: {
@@ -514,6 +538,16 @@ async function login(req, res) {
         graceEndsAt: securityAccount?.grace_ends_at,
       });
     }
+        csrfToken,
+      },
+    });
+
+    res.cookie('ns_admin_token', session.token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      expires: new Date(session.expiresAt),
+    });
 
     const challengeToken = createPendingToken(pendingTwoFactorChallenges, {
       username: u,
@@ -564,6 +598,7 @@ async function completeAdminLogin({ req, res, username, role, scopes, ip, userAg
       metadata: session.metadata || { userAgent, ip, role, scopes },
       createdAt: new Date().toISOString(),
       expiresAt: session.expiresAt,
+      csrfToken,
     });
     const redis = getRedisClient();
     if (redis) await redis.set(redisKey, redisPayload, 'EX', SESSION_TTL_SECONDS);
@@ -674,7 +709,6 @@ async function logout(req, res) {
       req.cookies?.ns_admin_token ||
       getCookie(req, 'ns_admin_token') ||
       parseBearer(req.headers.authorization || '');
-<<<<<<< HEAD
     const bearer = parseBearer(req.headers.authorization || "");
     if (bearer) {
       await revokeAdminSession(bearer);
@@ -702,17 +736,15 @@ async function logout(req, res) {
       req.session.destroy((err) => {
         if (err) console.error('[Session] Error destroying session:', err);
       });
-=======
     const bearer = parseBearer(req.headers.authorization || "");
     if (bearer) {
       await revokeAdminSession(bearer);
->>>>>>> origin/pr/600
     }
 
     res.clearCookie('ns_admin_token', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: 'strict',
     });
 
     return res.json({ ok: true });

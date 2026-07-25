@@ -548,6 +548,7 @@ async function fetchWithAuth(url, options = {}) {
       if (shouldIncludeCsrf(method)) {
         headers['X-CSRF-Token'] = getCsrfToken();
       }
+      const csrfToken = localStorage.getItem('ns_csrf_token');
       const res = await fetch(`${API_BASE}${url}`, {
         ...options,
         credentials: 'include',
@@ -555,6 +556,7 @@ async function fetchWithAuth(url, options = {}) {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${auth.getToken()}`,
+          ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
           ...options.headers,
         },
       });
