@@ -9,6 +9,7 @@ function formatCampaignDate(value) {
   if (Number.isNaN(d.getTime())) return 'Unknown';
   return d.toLocaleDateString();
 }
+import { buildUrl, getApiBase } from '../../utils/runtimeConfig';
 
 const pageStyle = {
   minHeight: '100vh',
@@ -496,7 +497,7 @@ export default function EmailCampaignsPage() {
                     <td style={tdStyle}>
                       <span style={statusBadgeStyle(campaign.status)}>{campaign.status}</span>
                     </td>
-                    <td style={tdStyle}>{new Date(campaign.createdAt).toLocaleDateString()}</td>
+                    <td style={tdStyle}>{formatCampaignDate(campaign.createdAt)}</td>
                     <td style={tdStyle}>
                       <div style={{ display: 'flex', gap: '8px' }}>
                         {campaign.status === 'draft' && (
