@@ -314,6 +314,39 @@ async function markTotpUsed(username, code) {
   return false;
 }
 
+function normalizeUsername(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase();
+}
+
+function getLoginUsername(body = {}) {
+  return normalizeUsername(body.username || body.email);
+}
+
+function createPendingToken(store, payload) {
+  const token = crypto.randomBytes(32).toString('hex');
+  store.set(token, {
+    ...payload,
+    expiresAt: Date.now() + PENDING_2FA_TTL_MS,
+  });
+  return token;
+}
+
+function consumePendingToken(store, token) {
+  const pending = store.get(token);
+  store.delete(token);
+  if (!pending || pending.expiresAt <= Date.now()) return null;
+  return pending;
+}
+
+function prunePendingTokens(store) {
+  const now = Date.now();
+  for (const [token, pending] of store.entries()) {
+    if (pending.expiresAt <= now) store.delete(token);
+  }
+}
+
 /**
  * Compute the SHA-256 hash of a token string.
  * This MUST match the Java TokenService.hashToken() algorithm exactly
@@ -477,8 +510,11 @@ async function login(req, res) {
     prunePendingTokens(pendingTwoFactorSetups);
     prunePendingTokens(pendingTwoFactorChallenges);
     const u = String(req.body?.username || req.body?.email || '').trim();
+
+    const u = getLoginUsername(req.body);
     const p = String(req.body?.password || '');
     const ip = getClientIp(req);
+    const userAgent = req.get('user-agent') || '';
 
     const u = getLoginUsername(req.body);
     const p = String(req.body?.password || '');
@@ -519,6 +555,14 @@ async function login(req, res) {
 
     if (!matchedUser) {
       recordLoginAttempt(ip);
+      await recordAdminLoginAttempt({
+        username: u || 'unknown',
+        ipAddress: ip,
+        userAgent,
+        success: false,
+        suspicious: false,
+        reason: 'invalid_credentials',
+      }).catch(() => {});
       return res.status(401).json({ error: 'Invalid credentials' });
     if (u !== ADMIN_USERNAME || p !== ADMIN_PASSWORD) {
     let isPasswordValid = false;
@@ -558,6 +602,10 @@ async function login(req, res) {
     const csrfToken = crypto.randomBytes(32).toString('hex');
     const role = matchedUser.role || 'SuperAdmin';
     const scopes = getScopesForRole(role);
+    const securityAccount = await getOrCreateAdminSecurityAccount(u, matchedUser.email || u);
+    const suspicious = await assessSuspiciousLogin({ username: u, ipAddress: ip, userAgent }).catch(
+      () => ({ suspicious: false, reason: null })
+    );
 
     const session = await createAdminSession({
       username: u,
@@ -600,8 +648,41 @@ async function login(req, res) {
       userAgent,
       suspicious,
       expiresAt: session.expiresAt,
+    if (!securityAccount?.two_factor_enabled) {
+      const secret = generateTotpSecret();
+      const backupCodes = generateBackupCodes(8);
+      const otpAuthUrl = buildOtpAuthUrl({ username: u, secret });
+      const qrCodeDataUrl = await QRCode.toDataURL(otpAuthUrl);
+      const setupToken = createPendingToken(pendingTwoFactorSetups, {
+        username: u,
+        role,
+        scopes,
+        secret,
+        backupCodes,
+        ip,
+        userAgent,
+        suspicious,
+      });
+
+      return res.status(202).json({
+        requiresTwoFactorSetup: true,
+        setupToken,
+        qrCodeDataUrl,
+        otpAuthUrl,
+        secret,
+        backupCodes,
+        graceEndsAt: securityAccount?.grace_ends_at,
+      });
+    }
+
+    const challengeToken = createPendingToken(pendingTwoFactorChallenges, {
+      username: u,
       role,
       scopes,
+      secret: securityAccount.totp_secret,
+      ip,
+      userAgent,
+      suspicious,
     });
 
     return res.status(200).json({
@@ -611,6 +692,99 @@ async function login(req, res) {
     });
   } catch (error) {
     console.error('[Admin Login] Failed before 2FA challenge:', error);
+    return res.status(202).json({
+      requiresTwoFactor: true,
+      challengeToken,
+      suspicious: suspicious.suspicious,
+      reason: suspicious.reason,
+    });
+  } catch (error) {
+    console.error('[Admin Login] Failed before 2FA challenge:', error);
+    return res.status(500).json({ error: 'Unable to create admin session' });
+  }
+}
+
+async function completeAdminLogin({ res, username, role, scopes, ip, userAgent, suspicious }) {
+  // Create session in PostgreSQL (audit trail + persistence)
+  const session = await createAdminSession({
+    username,
+    metadata: {
+      userAgent,
+      ip,
+      location: describeLocation(ip),
+      device: describeDevice(userAgent),
+      role,
+      scopes,
+      twoFactorVerified: true,
+      suspiciousLogin: !!suspicious?.suspicious,
+      suspiciousReason: suspicious?.reason || null,
+    },
+  });
+
+  // Write session to shared Redis for cross-service validation
+  try {
+    const tokenHash = hashToken(session.token);
+    const redisKey = REDIS_SESSION_PREFIX + tokenHash;
+    const redisPayload = JSON.stringify({
+      token: tokenHash,
+      email: username,
+      username,
+      metadata: session.metadata || { userAgent, ip, role, scopes },
+      createdAt: new Date().toISOString(),
+      expiresAt: session.expiresAt,
+    });
+    const redis = getRedisClient();
+    if (redis) await redis.set(redisKey, redisPayload, 'EX', SESSION_TTL_SECONDS);
+  } catch (redisErr) {
+    // Log but don't fail the login — PostgreSQL session is the fallback
+    console.error('[Admin Login] Failed to write session to Redis:', redisErr);
+  }
+
+  res.cookie('ns_admin_token', session.token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    expires: new Date(session.expiresAt),
+  });
+
+  await recordAdminLoginAttempt({
+    username,
+    ipAddress: ip,
+    userAgent,
+    success: true,
+    suspicious: !!suspicious?.suspicious,
+    reason: suspicious?.reason,
+  }).catch(() => {});
+
+  return res.json({
+    username,
+    email: username,
+    expiresAt: session.expiresAt,
+    role,
+    scopes,
+    suspicious: !!suspicious?.suspicious,
+  });
+}
+
+async function verifyTwoFactor(req, res) {
+  try {
+    const { challengeToken, code } = req.body || {};
+    const pending = consumePendingToken(pendingTwoFactorChallenges, challengeToken);
+    if (!pending) {
+      return res.status(400).json({ error: 'Two-factor challenge expired. Please sign in again.' });
+    }
+
+    const validTotp = verifyTotpCode(pending.secret, code);
+    const validBackup = validTotp
+      ? false
+      : await verifyAndConsumeBackupCode(pending.username, code).catch(() => false);
+
+    if (!validTotp && !validBackup) {
+      return res.status(401).json({ error: 'Invalid verification code' });
+    }
+
+    return completeAdminLogin({ res, ...pending });
+  } catch {
     return res.status(500).json({ error: 'Unable to create admin session' });
   }
 }
@@ -734,6 +908,10 @@ async function verifyTwoFactorSetup(req, res) {
       return res.status(401).json({ error: 'Authenticator code already used' });
     }
 
+    if (!verifyTotpCode(pending.secret, code)) {
+      return res.status(401).json({ error: 'Invalid authenticator code' });
+    }
+
     await enableAdminTwoFactor({
       username: pending.username,
       secret: pending.secret,
@@ -741,6 +919,7 @@ async function verifyTwoFactorSetup(req, res) {
     });
 
     return completeAdminLogin({ req, res, ...pending });
+    return completeAdminLogin({ res, ...pending });
   } catch (error) {
     console.error('[Admin 2FA] Setup verification failed:', error);
     return res.status(500).json({ error: 'Unable to verify two-factor setup' });
@@ -859,6 +1038,67 @@ async function logoutOtherSessions(req, res) {
   }
 }
 
+async function getSecurityOverview(req, res) {
+  try {
+    const username = req.adminSession.username;
+    const currentSessionId = hashToken(req.adminSession.token).slice(0, 16);
+    const sessions = await listAdminSessions(username);
+    const loginHistory = await listAdminLoginHistory(username, 10);
+
+    return res.json({
+      sessions: sessions.map((session) => ({
+        ...session,
+        current: session.id === currentSessionId,
+      })),
+      loginHistory,
+      sessionTimeoutMinutes: Math.round(
+        (Number(process.env.ADMIN_SESSION_IDLE_TIMEOUT_MS) || 30 * 60 * 1000) / 60000
+      ),
+    });
+  } catch {
+    return res.status(500).json({ error: 'Unable to load security overview' });
+  }
+}
+
+async function revokeSession(req, res) {
+  try {
+    const sessionId = String(req.params.sessionId || '');
+    const currentSessionId = hashToken(req.adminSession.token).slice(0, 16);
+    if (sessionId === currentSessionId) {
+      return res.status(400).json({ error: 'Use logout to end the current session.' });
+    }
+
+    const revokedTokenHash = await revokeAdminSessionById(req.adminSession.username, sessionId);
+    if (revokedTokenHash) {
+      const redis = getRedisClient();
+      await redis?.del(REDIS_SESSION_PREFIX + revokedTokenHash);
+    }
+
+    return res.json({ revoked: !!revokedTokenHash });
+  } catch {
+    return res.status(500).json({ error: 'Unable to revoke session' });
+  }
+}
+
+async function logoutOtherSessions(req, res) {
+  try {
+    const result = await revokeOtherAdminSessions(
+      req.adminSession.username,
+      req.adminSession.token
+    );
+    const redis = getRedisClient();
+    if (redis) {
+      await Promise.all(
+        result.tokenHashes.map((tokenHash) => redis.del(REDIS_SESSION_PREFIX + tokenHash))
+      );
+    }
+
+    return res.json({ revoked: result.count });
+  } catch {
+    return res.status(500).json({ error: 'Unable to logout other sessions' });
+  }
+}
+
 export const adminAuthMiddleware = {
   login,
   verifyTwoFactor,
@@ -904,3 +1144,15 @@ export { login, logout, requireAdmin, requireRole, requireScope };
 // DCO sign-off commit
 };
 export { login, logout, requireAdmin, requireRole, requireScope };
+export {
+  login,
+  logout,
+  verifyTwoFactor,
+  verifyTwoFactorSetup,
+  getSecurityOverview,
+  revokeSession,
+  logoutOtherSessions,
+  requireAdmin,
+  requireRole,
+  requireScope,
+};

@@ -81,6 +81,7 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
 });
 import {z} from 'zod'
+import { auditLogRepository } from '../repositories/auditLogRepository.js';
 
 import apiAnalyticsRoutes from './apiAnalytics.js';
 import budgetRoutes from './budget.js';
@@ -337,6 +338,12 @@ router.post(
   adminAuthMiddleware.verifyTwoFactorSetup
 );
 router.post('/api/admin/login', authRateLimiter, adminAuthMiddleware.login);
+router.post('/api/admin/2fa/verify', authRateLimiter, adminAuthMiddleware.verifyTwoFactor);
+router.post(
+  '/api/admin/2fa/setup/verify',
+  authRateLimiter,
+  adminAuthMiddleware.verifyTwoFactorSetup
+);
 router.post('/api/admin/logout', adminAuthMiddleware.requireAdmin, adminAuthMiddleware.logout);
 router.get(
   '/api/admin/security',
@@ -356,6 +363,7 @@ router.post(
 router.get('/api/admin/audit-logs', adminAuthMiddleware.requireAdmin, async (req, res) => {
   const logs = await auditLogRepository.searchAuditLogs(req.query);
   return sendSuccess(res, { logs });
+  return res.json({ logs });
 });
 router.get('/api/admin/audit-logs/export', adminAuthMiddleware.requireAdmin, async (req, res) => {
   const csv = await auditLogRepository.exportAuditLogsCsv(req.query);

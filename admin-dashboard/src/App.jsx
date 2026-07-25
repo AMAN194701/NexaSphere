@@ -41,6 +41,8 @@ import { ModerationManager } from './pages/ModerationManager';
 import { RBACManager } from './pages/RBACManager';
 import { BackupsManager } from './pages/BackupsManager';
 import { UserEngagementReport } from './pages/UserEngagementReport';
+import { SecurityCenter } from './pages/SecurityCenter';
+import './styles/admin.css';
 
 import ScheduledReports from './pages/dashboard/ScheduledReports';
 import './styles/admin.css';
@@ -118,6 +120,7 @@ export default function App() {
             <Route path="/dashboard/sponsorships" element={<SponsorshipsManager />} />
             <Route path="/dashboard/audit-logs" element={<AuditLogViewer />} />
             <Route path="/dashboard/reports" element={<UserEngagementReport />} />
+            <Route path="/dashboard/security" element={<SecurityCenter />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />

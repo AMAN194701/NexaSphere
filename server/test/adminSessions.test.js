@@ -208,6 +208,14 @@ test('Revoking a session by id returns the revoked token hash when found', async
   assert.equal(result, 'abc123');
 });
 
+test('Revoking a session by id returns the revoked token hash when found', async () => {
+  const { revokeAdminSessionById } = await import('../repositories/adminSessionsRepository.js');
+  mockQueriesResult.select = [{ token_hash: 'abc123' }];
+
+  const result = await revokeAdminSessionById('admin_user', 'abc');
+  assert.equal(result, 'abc123');
+});
+
 test('Periodic cleanup clears the throttled sessions and purges database', async () => {
 test("Periodic cleanup clears the throttled sessions and purges database", async () => {
   const count = await cleanupExpiredAdminSessions();

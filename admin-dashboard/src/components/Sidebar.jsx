@@ -200,6 +200,11 @@ const links = [
   },
   { to: '/dashboard/membership', label: 'Membership', icon: 'FileText' },
   { to: '/dashboard/certificates', label: 'Certificates', icon: 'Award' },
+    to: '/dashboard/security',
+    label: 'Security',
+    icon: 'Globe',
+    requiredScope: 'settings:admin',
+  },
 ];
 
 export function Sidebar() {
