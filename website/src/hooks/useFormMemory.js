@@ -10,6 +10,12 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 const STORAGE_PREFIX = 'ns_form_memory_';
 const MAX_HISTORY = 20;
 
+function logStorageWarning(action, error) {
+  if (import.meta.env.DEV) {
+    console.warn(`[useFormMemory] ${action} failed:`, error);
+  }
+}
+
 /* ── Branch inference from GL Bajaj email domain ── */
 function inferBranchFromEmail(email) {
   if (!email || !email.includes('@')) return null;
@@ -43,6 +49,8 @@ function readStorage(key) {
     if (import.meta.env.DEV) {
       console.warn('[useFormMemory] Failed to read from sessionStorage:', err.message);
     }
+  } catch (error) {
+    logStorageWarning('read', error);
     return {};
   }
 }
@@ -54,6 +62,9 @@ function writeStorage(key, data) {
     if (import.meta.env.DEV) {
       console.warn('[useFormMemory] Failed to write to sessionStorage:', err.message);
     }
+  } catch (error) {
+    logStorageWarning('write', error);
+    // sessionStorage unavailable — degrade silently
   }
 }
 
@@ -64,6 +75,8 @@ function clearStorage(key) {
     if (import.meta.env.DEV) {
       console.warn('[useFormMemory] Failed to clear sessionStorage:', err.message);
     }
+  } catch (error) {
+    logStorageWarning('clear', error);
   }
 }
 
