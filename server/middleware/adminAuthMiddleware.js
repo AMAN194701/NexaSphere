@@ -204,6 +204,24 @@ async function recordLoginAttempt(ip) {
     console.error('[Redis Error] Failed to record login attempt:', err.message);
     return { attempts: 1 };
   }
+    // 2. If still full, evict the oldest tracked entry (FIFO)
+if (loginAttemptsByIp.size >= LOGIN_MAX_TRACKED_IPS) {
+  const oldestKey = loginAttemptsByIp.keys().next().value;
+
+  if (oldestKey) {
+    loginAttemptsByIp.delete(oldestKey);
+  }
+}
+}
+
+  const existing = loginAttemptsByIp.get(ip);
+  const attempts = existing && existing.expiresAt > now ? existing.attempts : 0;
+  const entry = {
+    attempts: attempts + 1,
+    expiresAt: now + LOGIN_WINDOW_MS,
+  };
+  loginAttemptsByIp.set(ip, entry);
+  return entry;
 }
 
 async function getLoginAttemptState(ip) {
