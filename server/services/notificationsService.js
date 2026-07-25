@@ -1,4 +1,3 @@
-import { notificationPreferencesRepository } from '../repositories/notificationPreferencesRepository.js';
 import { notificationAnalyticsRepository } from '../repositories/notificationAnalyticsRepository.js';
 import { pushSubscriptionsRepository } from '../repositories/pushSubscriptionsRepository.js';
 import { notificationsRepository } from '../repositories/notificationsRepository.js';
@@ -412,9 +411,11 @@ export default {
     const prefs = await notificationPreferencesRepository.get(userId);
     const config = prefs.types[type] || { push: true, frequency: 'immediate' };
 
-    if (!config.push) return; // Opted out
+    // 2. Check delivery preferences (handles DND, quiet hours, channel prefs)
+    const result = await shouldDeliver(userId, type, 'push', priority === 'high');
+    if (!result.deliver) return;
 
-    let effectiveFrequency = config.frequency;
+    let effectiveFrequency = result.frequency;
 
     // Feature: If user hasn't opened app in 5 days, increase frequency (bypass digest)
     if (activity.daysSinceLastActive >= 5 && effectiveFrequency !== 'disabled') {
@@ -438,6 +439,24 @@ export default {
         return this.queueForLater(userId, data, 'quiet_hours');
       }
       return this.sendNow(userId, data);
+    // Create the notification record in DB
+    const id =
+      data.id ||
+      (typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : Math.random().toString(36).substring(2));
+    const note = await notificationsRepository.create({
+      id,
+      userId,
+      type,
+      title,
+      message,
+      link,
+      isRead: data.isRead || false,
+    });
+
+    if (effectiveFrequency === 'immediate') {
+      await this.sendNow(userId, { ...data, id });
     } else if (effectiveFrequency !== 'disabled') {
       return this.addToDigest(userId, effectiveFrequency, data);
     }
