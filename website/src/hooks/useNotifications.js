@@ -97,6 +97,14 @@ export function useNotifications() {
               });
           }
 
+            return res.ok ? res.json() : { notifications: [] };
+          })
+        );
+
+        if (isMounted) {
+          const allNotifications = responses
+            .filter((r) => r.status === 'fulfilled')
+            .flatMap((r) => r.value.notifications || []);
           // De-duplicate by unique id
           const seen = new Set();
           const uniqueNotifications = [];
@@ -109,6 +117,9 @@ export function useNotifications() {
           // Sort by creation date (newest first)
           uniqueNotifications.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
           setNotifications(uniqueNotifications);
+          if (import.meta.env.DEV && responses.some((r) => r.status === 'rejected')) {
+            console.warn('[useNotifications] One or more notification fetches failed; using partial results.');
+          }
         }
       } catch (err) {
         // ignore fetch errors — fallback to empty list
