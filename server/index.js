@@ -128,6 +128,7 @@ import { eventRemindersQueue } from './services/queueService.js';
 import feedbackRouter from './routes/feedbackRoutes.js';
 import * as slackController from './controllers/slackController.js';
 import formSubmissionsRouter from './routes/smartForms.js';
+import activityTimelineRoutes from './routes/activityTimeline.js';
 
 import { portfolioRepository } from './repositories/portfolioRepository.js';
 
