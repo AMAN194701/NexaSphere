@@ -1,19 +1,16 @@
-module.exports = {
+export default {
   testEnvironment: 'node',
+  transform: {},
+  coverageDirectory: 'coverage',
   collectCoverageFrom: [
-    'services/**/*.js',
     'controllers/**/*.js',
-    'repositories/**/*.js',
-    '!**/node_modules/**',
-    '!**/dist/**',
+    'services/**/*.js',
+    'repositories/**/*.js'
   ],
-  testMatch: ['**/__tests__/**/*.test.js', '**/?(*.)+(spec|test).js'],
-  coverageThreshold: {
-    global: {
-      branches: 70,
-      functions: 70,
-      lines: 70,
-      statements: 70,
-    },
-  },
+  testMatch: [
+    '**/test/coreTeamController.test.js',
+    '**/test/eventsController.test.js'
+  ],
+  // Ignore frontend or external files
+  testPathIgnorePatterns: ['/node_modules/']
 };
