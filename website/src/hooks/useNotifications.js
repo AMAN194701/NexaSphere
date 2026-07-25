@@ -188,6 +188,7 @@ export function useNotifications() {
               localStorage.setItem(key, JSON.stringify(arr));
             } catch (e) {
               setNotifications((prev) => [note, ...prev]);
+              console.error('[useNotifications] Failed to persist suppressed notification:', e);
             }
             return;
           }
@@ -341,6 +342,9 @@ export function useNotifications() {
       } catch (e) {
         console.error('[useNotifications] Failed to mark as read:', e);
       }
+        } catch (e) {
+          console.error('[useNotifications] Failed to mark notification as read:', e);
+        }
     })();
   }, []);
 
@@ -358,6 +362,7 @@ export function useNotifications() {
         });
       } catch (e) {
         console.error('[useNotifications] Failed to mark all as read:', e);
+        console.error('[useNotifications] Failed to mark all notifications as read:', e);
       }
     })();
   }, []);
