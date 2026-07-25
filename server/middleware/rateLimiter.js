@@ -14,6 +14,10 @@ function parsePositiveInt(value, fallback) {
   const n = parseInt(value, 10);
   return Number.isFinite(n) && n > 0 ? n : fallback;
 }
+import rateLimit from "express-rate-limit";
+import RedisStore from "rate-limit-redis";
+import redisClient from "../utils/redis.js"; // Adjust path if your redis utility is elsewhere
+import logger from "../utils/logger.js";
 // ---------------------------------------------------------------------------
 // SECURITY WARNING: Upstream Proxy Dependency
 // These rate limiters rely entirely on `req.ip` mapping to individual clients.
@@ -315,6 +319,10 @@ export const portfolioRateLimiter = rateLimit({
     prefix: 'rl:activity:',
   }),
   store: createRateLimitStore('rl:activity:'),
+  store: new RedisStore({
+    sendCommand: (...args) => redisClient.call(args[0], ...args.slice(1)),
+    prefix: "rl:activity:",
+  }),
   handler: (req, res, next, options) => {
     logger.warn('Sync batch rate limit exceeded', {
     logger.warn("Portfolio update rate limit exceeded", {
