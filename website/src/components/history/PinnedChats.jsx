@@ -15,10 +15,18 @@ const PinnedChats = ({
   const loadPinnedPrompts = async () => {
     setLoading(true);
     setError(null);
+  const [loadError, setLoadError] = useState('');
+
+  const loadPinnedPrompts = async () => {
+    setLoading(true);
+    setLoadError('');
     try {
-      const pinned = await getPinnedPrompts(workspace);
+      const pinned = await getPinnedPrompts(workspace, { throwOnError: true });
       setPinnedPrompts(pinned);
     } catch (err) {
+    } catch (error) {
+      setPinnedPrompts([]);
+      setLoadError('Pinned conversations could not be loaded.');
       if (import.meta.env.DEV) {
         console.error('[PinnedChats] Error loading pinned prompts:', err.message);
       }
@@ -55,6 +63,18 @@ const PinnedChats = ({
         </div>
         <div className="pinned-error" style={{ color: '#ef4444', padding: '12px 16px', fontSize: '0.9rem' }}>
           {error}
+  if (loading) {
+    return null;
+  }
+
+  if (loadError) {
+    return (
+      <div className="pinned-chats-container" role="status" aria-live="polite">
+        <div className="pinned-header">
+          <h4>📌 Pinned Conversations</h4>
+        </div>
+        <div style={{ padding: '12px 16px', color: 'var(--text-secondary, #666)' }}>
+          {loadError}
         </div>
       </div>
     );
