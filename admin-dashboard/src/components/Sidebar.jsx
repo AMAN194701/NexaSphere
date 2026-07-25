@@ -7,6 +7,11 @@ import { PermissionGuard } from './PermissionGuard';
 
 /* Public website URL */
 const WEBSITE_URL = import.meta.env.VITE_WEBSITE_URL || 'http://localhost:5175';
+import { useState } from "react";
+import { NavLink } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
+import { AdminIcon } from "./AdminIcon";
+import { adminPath } from "../utils/adminBasePath";
 
 const links = [
   { to: '/dashboard', label: 'Dashboard', icon: 'Dashboard' },
@@ -189,6 +194,7 @@ const links = [
 
 export function Sidebar() {
   const { email, logout } = useAuth();
+  const [open, setOpen] = useState(false);
 
   const location = useLocation();
 
@@ -421,10 +427,44 @@ export function Sidebar() {
             aria-label={`Logout ${email}`}
             style={{ marginTop: '10px' }}
           >
+      <button
+        className="sidebar-toggle"
+        onClick={() => setOpen((o) => !o)}
+        aria-label="Toggle sidebar"
+      >
+        <AdminIcon name="Menu" size={20} />
+      </button>
+      {open && (
+        <div className="sidebar-overlay" onClick={() => setOpen(false)} />
+      )}
+      <aside className={`sidebar${open ? " open" : ""}`}>
+        <div className="sidebar-brand">
+          <span className="brand-dot" />
+          <span>NexaSphere Admin</span>
+        </div>
+        <nav className="sidebar-nav" onClick={() => setOpen(false)}>
+          {links.map(({ to, label, icon }) => (
+            <NavLink
+              key={to}
+              to={adminPath(to)}
+              end={to === "/dashboard"}
+              className={({ isActive }) =>
+                `nav-link${isActive ? " active" : ""}`
+              }
+            >
+              <AdminIcon name={icon} size={16} />
+              {label}
+            </NavLink>
+          ))}
+        </nav>
+        <div className="sidebar-footer">
+          <span className="sidebar-email">{email}</span>
+          <button className="btn-logout" onClick={logout}>
             Logout
           </button>
         </div>
       </aside>
     </>
+  );
   );
 }

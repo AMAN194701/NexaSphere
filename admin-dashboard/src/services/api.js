@@ -105,7 +105,27 @@ try {
     if (oldTeam.length === 3 || hasFakePhotos) {
       localStorage.removeItem('ns_db_core_team');
       localStorage.removeItem('ns_db_events');
+// Migration: uses schema version key to avoid silent data loss
+const SCHEMA_VERSION = 2;
+try {
+  const storedVersion = parseInt(
+    localStorage.getItem("ns_db_schema_version") || "0",
+    10
+  );
+  if (storedVersion < SCHEMA_VERSION) {
+    const oldTeamRaw = localStorage.getItem("ns_db_core_team");
+    if (oldTeamRaw) {
+      const oldTeam = JSON.parse(oldTeamRaw);
+      const hasFakePhotos =
+        oldTeam.length > 0 &&
+        typeof oldTeam[0].photo === "string" &&
+        oldTeam[0].photo.startsWith("http");
+      if (oldTeam.length === 3 || hasFakePhotos) {
+        localStorage.removeItem("ns_db_core_team");
+        localStorage.removeItem("ns_db_events");
+      }
     }
+    localStorage.setItem("ns_db_schema_version", String(SCHEMA_VERSION));
   }
 } catch (e) {
   if (import.meta.env.DEV) console.error('Migration failed', e);
@@ -1402,6 +1422,7 @@ async function fetchWithAuth(url, options = {}) {
         }
       }
     }, 300); // simulate slight network delay
+    }, 300);
   });
 }
 

@@ -46,36 +46,11 @@ function GlitchText({ text, color }) {
     <span
       style={{ position: 'relative', display: 'inline-block' }}
       style={{ position: "relative", display: "inline-block" }}
+      style={{ position: "relative", display: "inline-block", color }}
       className="glitch-text"
       data-text={text}
     >
       {text}
-      <style>{`
-        .glitch-text { color: ${color}; }
-        .glitch-text::before, .glitch-text::after {
-          content: attr(data-text);
-          position: absolute;
-          top: 0; left: 0;
-          width: 100%; height: 100%;
-          opacity: 0;
-        }
-        .glitch-text:hover::before {
-          opacity: 0.7;
-          color: #ff0080;
-          clip-path: polygon(0 20%, 100% 20%, 100% 40%, 0 40%);
-          transform: translateX(-3px);
-          animation: glitch1 0.3s steps(2) infinite;
-        }
-        .glitch-text:hover::after {
-          opacity: 0.7;
-          color: #00ffff;
-          clip-path: polygon(0 60%, 100% 60%, 100% 80%, 0 80%);
-          transform: translateX(3px);
-          animation: glitch2 0.3s steps(2) infinite;
-        }
-        @keyframes glitch1 { 0%{transform:translateX(-3px)} 50%{transform:translateX(3px)} 100%{transform:translateX(-3px)} }
-        @keyframes glitch2 { 0%{transform:translateX(3px)} 50%{transform:translateX(-3px)} 100%{transform:translateX(3px)} }
-      `}</style>
     </span>
   );
 }
@@ -151,6 +126,19 @@ function ScanLine({ color }) {
         }}
       />
     </>
+    <div
+      style={{
+        position: "absolute",
+        left: 0,
+        right: 0,
+        height: "2px",
+        background: `linear-gradient(90deg, transparent, ${color}, transparent)`,
+        opacity: 0.3,
+        pointerEvents: "none",
+        zIndex: 0,
+        animation: "scanline 4s linear infinite",
+      }}
+    />
   );
 }
 
@@ -265,6 +253,15 @@ function EventCard({ event, activityColor, onSelect }) {
               style={{
                 fontFamily: 'Orbitron, monospace',
                 fontSize: '0.95rem',
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              marginBottom: "8px",
+              flexWrap: "wrap",
+            }}
+          >
+            <h3
+              style={{
                 fontFamily: "Orbitron, monospace",
                 fontSize: "0.95rem",
                 fontWeight: 700,
@@ -520,6 +517,8 @@ export default function ActivityDetailPage({
   const apiBase = (import.meta?.env?.VITE_API_BASE || '').replace(/\/+$/, '');
   const [manualEvents, setManualEvents] = useState([]);
   const [busy, setBusy] = useState(false);
+  const [loadingEvents, setLoadingEvents] = useState(true);
+  const [eventsError, setEventsError] = useState(null);
   const apiBase = (import.meta?.env?.VITE_API_BASE || "").replace(/\/+$/, "");
   const activityKey = encodeURIComponent(activity.title);
 
@@ -557,6 +556,21 @@ export default function ActivityDetailPage({
       : `/api/content/activity-events/${activityKey}`;
     const data = await apiClient(url).catch(() => ({}));
     if (Array.isArray(data?.events)) setManualEvents(data.events);
+    setLoadingEvents(true);
+    setEventsError(null);
+    const url = apiBase
+      ? `${apiBase}/api/content/activity-events/${activityKey}`
+      : `/api/content/activity-events/${activityKey}`;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (Array.isArray(data?.events)) setManualEvents(data.events);
+    } catch (err) {
+      setEventsError(err.message);
+    } finally {
+      setLoadingEvents(false);
+    }
   };
 
   useEffect(() => {
@@ -569,6 +583,20 @@ export default function ActivityDetailPage({
         entries.forEach((e) => {
           if (e.isIntersecting) {
             e.target.classList.add('fired');
+    fetchManualEvents();
+    const obs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting && !e.target.classList.contains("fired")) {
+            e.target.classList.add("fired");
+            e.target.addEventListener(
+              "animationend",
+              () => {
+                e.target.style.opacity = "1";
+                e.target.style.transform = "none";
+              },
+              { once: true }
+            );
             obs.unobserve(e.target);
           }
         });
@@ -578,6 +606,11 @@ export default function ActivityDetailPage({
     document
       .querySelectorAll(
         '#activity-detail-page .pop-in, #activity-detail-page .pop-left, #activity-detail-page .pop-right, #activity-detail-page .pop-word'
+      { threshold: 0.09, rootMargin: "0px 0px -36px 0px" }
+    );
+    document
+      .querySelectorAll(
+        ".pop-in,.pop-left,.pop-right,.pop-scale,.pop-flip,.pop-word,.pop-num"
       )
       .forEach((el) => obs.observe(el));
     return () => obs.disconnect();
@@ -712,6 +745,10 @@ export default function ActivityDetailPage({
             onMouseLeave={(e) => {
               e.target.style.background = 'none';
               e.target.style.transform = '';
+        <div className="container" style={{ position: "relative", zIndex: 1 }}>
+          <button
+            onClick={onBack}
+            style={{
         <div className="container" style={{ position: "relative", zIndex: 1 }}>
           <button
             onClick={onBack}
@@ -864,6 +901,7 @@ export default function ActivityDetailPage({
                 alignItems: 'center',
                 gap: '10px',
       <div className="container" style={{ paddingTop: "56px" }}>
+      <div className="container" style={{ paddingTop: "32px" }}>
         {((activity.conductedEvents && activity.conductedEvents.length > 0) ||
           manualEvents.length > 0) && (
           <div style={{ marginBottom: "56px" }}>
@@ -928,6 +966,28 @@ export default function ActivityDetailPage({
                 {busy ? "Please wait..." : "+ Add Event"}
               </button>
             </div>
+            {loadingEvents && (
+              <div
+                style={{
+                  color: "var(--text-muted)",
+                  fontSize: "0.85rem",
+                  padding: "20px 0",
+                }}
+              >
+                Loading events...
+              </div>
+            )}
+            {eventsError && (
+              <div
+                style={{
+                  color: "var(--text-muted)",
+                  fontSize: "0.85rem",
+                  padding: "20px 0",
+                }}
+              >
+                Could not load events from server. Showing cached data.
+              </div>
+            )}
             <div
               style={{
                 display: "flex",
@@ -967,6 +1027,7 @@ export default function ActivityDetailPage({
                 display: 'flex',
                 alignItems: 'center',
                 gap: '10px',
+        {activity.upcomingEvents && activity.upcomingEvents.length > 0 && (
         {activity.upcomingEvents && activity.upcomingEvents.length > 0 && (
           <div style={{ maxWidth: "760px" }}>
             <h2
