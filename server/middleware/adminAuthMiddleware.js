@@ -13,6 +13,7 @@ import {
   describeDevice,
   describeLocation,
   enableAdminTwoFactor,
+  disableAdminTwoFactor,
   getOrCreateAdminSecurityAccount,
   listAdminLoginHistory,
   recordAdminLoginAttempt,
@@ -29,12 +30,13 @@ import crypto from 'crypto';
 import QRCode from 'qrcode';
 import { getScopesForRole } from '../config/rbac.js';
 import logger from '../utils/logger.js';
+import { sendEmail } from '../services/emailService.js';
 
 // lgtm[js/weak-cryptographic-algorithm]
 import { getScopesForRole } from '../config/rbac.js';
 
 function safeEqual(a, b) {
-  if (!a || !b) return false;
+  if (a === undefined || a === null || b === undefined || b === null) return false;
   const hashA = crypto.createHash('sha256').update(String(a)).digest();
   const hashB = crypto.createHash('sha256').update(String(b)).digest();
   const bufA = Buffer.from(String(a));
@@ -201,6 +203,15 @@ async function recordLoginAttempt(ip) {
       attempts: attempts + 1,
       expiresAt: now + LOGIN_WINDOW_MS,
     };
+
+    // Evict oldest insertion if size exceeds 5 to bound memory usage (FIFO)
+    if (!existing && loginAttemptsByIp.size >= 5) {
+      const oldestKey = loginAttemptsByIp.keys().next().value;
+      if (oldestKey !== undefined) {
+        loginAttemptsByIp.delete(oldestKey);
+      }
+    }
+
     loginAttemptsByIp.set(ip, entry);
 
     return entry;
@@ -483,7 +494,9 @@ function requireRole(allowedRoles) {
     const userRole = req.adminSession.metadata?.role || 'user';
 
     if (!allowedRoles.includes(userRole)) {
-      intrusionDetectionService.reportEvent(EVENT_TYPES.PRIVILEGE_ESCALATION, req.ip, req.adminSession?.username).catch(console.error);
+      intrusionDetectionService
+        .reportEvent(EVENT_TYPES.PRIVILEGE_ESCALATION, req.ip, req.adminSession?.username)
+        .catch(console.error);
       return res.status(403).json({ error: 'Forbidden: Insufficient privileges' });
     }
 
@@ -504,7 +517,9 @@ function requireScope(requiredScope) {
 
       const sessionScopes = req.adminSession?.metadata?.scopes || [];
       if (!sessionScopes.includes(requiredScope)) {
-        intrusionDetectionService.reportEvent(EVENT_TYPES.PRIVILEGE_ESCALATION, req.ip, req.adminSession?.username).catch(console.error);
+        intrusionDetectionService
+          .reportEvent(EVENT_TYPES.PRIVILEGE_ESCALATION, req.ip, req.adminSession?.username)
+          .catch(console.error);
         return res.status(403).json({ error: 'Forbidden: Insufficient permissions' });
       }
 
@@ -588,14 +603,18 @@ async function login(req, res) {
 
     await clearLoginAttempts(ip);
 
-    const role = matchedUser.role || 'SuperAdmin';
+    const userRecord = adminUsers.find((user) => safeEqual(user.username, u)) || adminUsers[0];
+    const role = userRecord.role || 'SuperAdmin';
     const scopes = getScopesForRole(role);
-    const securityAccount = await getOrCreateAdminSecurityAccount(u, matchedUser.email || u);
+    const securityAccount = await getOrCreateAdminSecurityAccount(u, userRecord.email || u);
     const suspicious = await assessSuspiciousLogin({ username: u, ipAddress: ip, userAgent }).catch(
       () => ({ suspicious: false, reason: null })
     );
 
     if (!securityAccount?.two_factor_enabled) {
+      if (role !== 'SuperAdmin') {
+        return completeAdminLogin({ req, res, username: u, role, scopes, ip, userAgent, suspicious });
+      }
       const secret = generateTotpSecret();
       const backupCodes = generateBackupCodes(8);
       const otpAuthUrl = buildOtpAuthUrl({ username: u, secret });
@@ -679,6 +698,17 @@ async function login(req, res) {
         secret,
         backupCodes,
         graceEndsAt: securityAccount?.grace_ends_at,
+
+      });
+
+      });
+
+      return res.status(200).json({
+        requiresTwoFactorSetup: true,
+        setupToken,
+        qrCodeDataUrl,
+        backupCodes,
+        expiresAt: Date.now() + PENDING_2FA_TTL_MS,
       });
     }
 
@@ -863,6 +893,18 @@ async function completeAdminLogin({ req, res, username, role, scopes, ip, userAg
     reason: suspicious?.reason,
   }).catch((err) => logger.error('Failed to record admin login attempt', { err, username }));
 
+  if (suspicious?.suspicious) {
+    sendEmail({
+      to: username, // Admin usernames are typically their emails, or should map to one
+      subject: 'Security Alert: Suspicious Login Detected',
+      templateName: 'generic',
+      data: {
+        name: 'Admin',
+        message: `We detected a suspicious login to your admin account from a new location or device (IP: ${ip}, Device: ${describeDevice(userAgent)}). If this wasn't you, please reset your password and revoke active sessions immediately.`,
+      },
+    }).catch(err => logger.error('Failed to send suspicious login alert', { err }));
+  }
+
   return res.json({
     username,
     email: username,
@@ -937,6 +979,92 @@ async function verifyTwoFactorSetup(req, res) {
   } catch (error) {
     console.error('[Admin 2FA] Setup verification failed:', error);
     return res.status(500).json({ error: 'Unable to verify two-factor setup' });
+  }
+}
+
+async function getTwoFactorStatus(req, res) {
+  try {
+    const user = req.adminSession?.user;
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    const securityAccount = await getOrCreateAdminSecurityAccount(user.username, user.email || user.username);
+    return res.json({ enabled: !!securityAccount?.two_factor_enabled });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to get 2FA status' });
+  }
+}
+
+async function initTwoFactorSetup(req, res) {
+  try {
+    const user = req.adminSession?.user;
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const secret = generateTotpSecret();
+    const backupCodes = generateBackupCodes(8);
+    const otpAuthUrl = buildOtpAuthUrl({ username: user.username, secret });
+    const qrCodeDataUrl = await QRCode.toDataURL(otpAuthUrl);
+    const setupToken = createPendingToken(pendingTwoFactorSetups, {
+      username: user.username,
+      secret,
+      backupCodes,
+    });
+
+    return res.json({
+      setupToken,
+      qrCodeDataUrl,
+      otpAuthUrl,
+      secret,
+      backupCodes,
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to init 2FA setup' });
+  }
+}
+
+async function verifySettingsTwoFactorSetup(req, res) {
+  try {
+    const user = req.adminSession?.user;
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { setupToken, code } = req.body || {};
+    const pending = consumePendingToken(pendingTwoFactorSetups, setupToken);
+    if (!pending || pending.username !== user.username) {
+      return res.status(400).json({ error: 'Two-factor setup expired or invalid.' });
+    }
+
+    const cleanCode = String(code || '').replace(/\s+/g, '');
+    if (!verifyTotpCode(pending.secret, cleanCode)) {
+      return res.status(401).json({ error: 'Invalid authenticator code' });
+    }
+
+    const replayed = await markTotpUsed(pending.username, cleanCode);
+    if (replayed) {
+      return res.status(401).json({ error: 'Authenticator code already used' });
+    }
+
+    await enableAdminTwoFactor({
+      username: pending.username,
+      secret: pending.secret,
+      backupCodes: pending.backupCodes,
+    });
+
+    return res.json({ success: true });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to verify 2FA setup' });
+  }
+}
+
+async function disableTwoFactor(req, res) {
+  try {
+    const user = req.adminSession?.user;
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    if (user.role === 'SuperAdmin') {
+      return res.status(403).json({ error: 'SuperAdmins cannot disable two-factor authentication.' });
+    }
+    
+    await disableAdminTwoFactor(user.username);
+    return res.json({ success: true });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to disable 2FA' });
   }
 }
 
@@ -1113,14 +1241,31 @@ async function logoutOtherSessions(req, res) {
   }
 }
 
+async function extendSession(req, res) {
+  try {
+    // The act of calling the API automatically extends the session via getAdminSession's throttling logic
+    return res.json({ 
+      ok: true, 
+      expiresAt: req.adminSession.expiresAt
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to extend session' });
+  }
+}
+
 export const adminAuthMiddleware = {
   login,
   verifyTwoFactor,
   verifyTwoFactorSetup,
+  getTwoFactorStatus,
+  initTwoFactorSetup,
+  verifySettingsTwoFactorSetup,
+  disableTwoFactor,
   logout,
   getSecurityOverview,
   revokeSession,
   logoutOtherSessions,
+  extendSession,
   requireAdmin,
   requireRole,
   requireScope,

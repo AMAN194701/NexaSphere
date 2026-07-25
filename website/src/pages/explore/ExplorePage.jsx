@@ -33,11 +33,8 @@ export default function ExplorePage({ onBack, eventsData }) {
   const [activeTab, setActiveTab] = useState('discover');
 
   useEffect(() => {
-    // apiClient creates its own internal AbortController per call (for its
-    // request timeout) and does not currently accept an external signal, so
-    // in-flight requests here cannot be cancelled directly. Guard against
-    // state updates firing after unmount with an `alive` flag instead,
-    // consistent with the pattern already used in TeamPage.jsx.
+    // Guard against state updates after unmount; this page does not pass its
+    // own AbortSignal to apiClient, so we still need an `alive` flag here.
     let alive = true;
     const fetchData = async () => {
       const base = getApiBase();

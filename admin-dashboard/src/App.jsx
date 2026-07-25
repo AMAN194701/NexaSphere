@@ -2,10 +2,12 @@ import React, { Suspense } from 'react';
 import RateLimitMonitor from './pages/dashboard/RateLimitMonitor';
 const AuditLogViewer = React.lazy(() => import('./pages/dashboard/AuditLogViewer'));
 import RateLimitMonitor from './pages/dashboard/RateLimitMonitor';
+import PlatformSettings from './pages/dashboard/PlatformSettings';
 import AuditLogViewer from './pages/dashboard/AuditLogViewer';
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import { Sidebar } from './components/Sidebar';
+import { MobileBottomNav } from './components/MobileBottomNav';
 import { Toast } from './components/Toast';
 import { OfflineBanner } from './components/OfflineBanner';
 import { ImpersonationBanner } from './components/ImpersonationBanner';
@@ -26,6 +28,7 @@ import UserGroups from './pages/UserGroups';
 
 import ScheduledTasksManager from './pages/ScheduledTasksManager';
 import UserGroups from './pages/UserGroups';
+import { RolesManager } from './pages/RolesManager';
 import { CoreTeamManager } from './pages/CoreTeamManager';
 import { MembershipResponsesManager } from './pages/MembershipResponsesManager';
 import { SyncMonitor } from './pages/SyncMonitor';
@@ -83,13 +86,14 @@ function DashboardLayout() {
       <OfflineBanner />
       <ImpersonationBanner />
       <Sidebar />
-      <main className="main-content" id="main-content">
+      <main className="main-content" id="main-content" style={{ paddingBottom: '88px' }}>
         <ErrorBoundary>
           <Suspense fallback={<div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading module...</div>}>
             <Outlet />
           </Suspense>
         </ErrorBoundary>
       </main>
+      <MobileBottomNav />
       <Toast />
       <OnboardingTour />
     </div>
@@ -131,6 +135,7 @@ export default function App() {
             <Route path="/dashboard/circuit-breaker" element={<CircuitBreakerManager />} />
             <Route path="/dashboard/waiting-room" element={<WaitingRoomManager />} />
             <Route path="/dashboard/groups" element={<UserGroups />} />
+            <Route path="/dashboard/roles" element={<RolesManager />} />
             <Route path="/dashboard/tasks" element={<ScheduledTasksManager />} />
             <Route path="/dashboard/backups" element={<BackupsManager />} />
             <Route path="/dashboard/resources" element={<ResourcesManager />} />
@@ -140,6 +145,8 @@ export default function App() {
             <Route path="/dashboard/reports" element={<UserEngagementReport />} />
             <Route path="/dashboard/security" element={<SecurityCenter />} />
             <Route path="/dashboard/reports" element={<UserEngagementReport />} />
+            <Route path="/dashboard/sponsorships" element={<SponsorshipsManager />} />
+            <Route path="/dashboard/audit-logs" element={<AuditLogViewer />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />

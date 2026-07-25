@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import EventsPage from '../pages/events/EventsPage';
 
 describe('EventsPage Component', () => {
@@ -66,5 +66,51 @@ describe('EventsPage Component', () => {
   it('renders coming soon message', () => {
     render(<EventsPage events={mockEvents} onBack={mockOnBack} onEventClick={mockOnEventClick} />);
     expect(screen.getByText(/More events coming soon/i)).toBeInTheDocument();
+  });
+
+  // ── Search Functionality Tests ──
+
+  it('renders search input field', () => {
+    render(<EventsPage events={mockEvents} onBack={mockOnBack} onEventClick={mockOnEventClick} />);
+    const searchInput = screen.getByPlaceholderText(/search events/i);
+    expect(searchInput).toBeInTheDocument();
+  });
+
+  it('filters events by name (case-insensitive)', () => {
+    render(<EventsPage events={mockEvents} onBack={mockOnBack} onEventClick={mockOnEventClick} />);
+    const searchInput = screen.getByPlaceholderText(/search events/i);
+
+    fireEvent.change(searchInput, { target: { value: 'ai workshop' } });
+    expect(screen.getByText(/KSS #153 — AI Workshop/i)).toBeInTheDocument();
+    expect(screen.queryByText(/KSS #154 — Web Dev/i)).not.toBeInTheDocument();
+  });
+
+  it('filters events by tag', () => {
+    render(<EventsPage events={mockEvents} onBack={mockOnBack} onEventClick={mockOnEventClick} />);
+    const searchInput = screen.getByPlaceholderText(/search events/i);
+
+    fireEvent.change(searchInput, { target: { value: 'react' } });
+    expect(screen.getByText(/KSS #154 — Web Dev/i)).toBeInTheDocument();
+    expect(screen.queryByText(/KSS #153 — AI Workshop/i)).not.toBeInTheDocument();
+  });
+
+  it('shows all events when search query is cleared', () => {
+    render(<EventsPage events={mockEvents} onBack={mockOnBack} onEventClick={mockOnEventClick} />);
+    const searchInput = screen.getByPlaceholderText(/search events/i);
+
+    fireEvent.change(searchInput, { target: { value: 'nonexistent' } });
+    expect(screen.queryByText(/KSS #153 — AI Workshop/i)).not.toBeInTheDocument();
+
+    fireEvent.change(searchInput, { target: { value: '' } });
+    expect(screen.getByText(/KSS #153 — AI Workshop/i)).toBeInTheDocument();
+    expect(screen.getByText(/KSS #154 — Web Dev/i)).toBeInTheDocument();
+  });
+
+  it('shows "no events found" message when no match', () => {
+    render(<EventsPage events={mockEvents} onBack={mockOnBack} onEventClick={mockOnEventClick} />);
+    const searchInput = screen.getByPlaceholderText(/search events/i);
+
+    fireEvent.change(searchInput, { target: { value: 'zzzxyz' } });
+    expect(screen.getByText(/No events found/i)).toBeInTheDocument();
   });
 });

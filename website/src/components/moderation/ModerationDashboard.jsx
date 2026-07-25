@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { buildUrl } from '../../utils/runtimeConfig';
+import useFocusTrap from '../../hooks/useFocusTrap';
 
 const pageStyle = {
   padding: '24px',
@@ -115,6 +116,10 @@ export default function ModerationDashboard() {
   const [showResolveModal, setShowResolveModal] = useState(false);
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [selectedFlag, setSelectedFlag] = useState(null);
+
+  const reportModalRef = useFocusTrap(showReportModal, () => setShowReportModal(false));
+  const resolveModalRef = useFocusTrap(showResolveModal, () => setShowResolveModal(false));
+  const noteModalRef = useFocusTrap(showNoteModal, () => setShowNoteModal(false));
 
   const [reportForm, setReportForm] = useState({
     contentType: 'comment',
@@ -545,9 +550,22 @@ export default function ModerationDashboard() {
 
         {/* Report Content Modal */}
         {showReportModal && (
-          <div style={MODAL_OVERLAY} onClick={() => setShowReportModal(false)}>
-            <div style={MODAL_STYLE} onClick={(e) => e.stopPropagation()}>
+          <div style={MODAL_OVERLAY} onClick={() => setShowReportModal(false)} role="dialog" aria-modal="true">
+            <div ref={reportModalRef} style={MODAL_STYLE} onClick={(e) => e.stopPropagation()}>
+          <div
+            style={MODAL_OVERLAY}
+            onClick={() => setShowReportModal(false)}
+            onKeyDown={(e) => e.key === 'Escape' && setShowReportModal(false)}
+          >
+            <div
+              style={MODAL_STYLE}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="report-content-title"
+              onClick={(e) => e.stopPropagation()}
+            >
               <h3
+                id="report-content-title"
                 style={{
                   margin: '0 0 24px 0',
                   fontSize: '20px',
@@ -638,9 +656,22 @@ export default function ModerationDashboard() {
 
         {/* Resolve Modal */}
         {showResolveModal && selectedFlag && (
-          <div style={MODAL_OVERLAY} onClick={() => setShowResolveModal(false)}>
-            <div style={MODAL_STYLE} onClick={(e) => e.stopPropagation()}>
+          <div style={MODAL_OVERLAY} onClick={() => setShowResolveModal(false)} role="dialog" aria-modal="true">
+            <div ref={resolveModalRef} style={MODAL_STYLE} onClick={(e) => e.stopPropagation()}>
+          <div
+            style={MODAL_OVERLAY}
+            onClick={() => setShowResolveModal(false)}
+            onKeyDown={(e) => e.key === 'Escape' && setShowResolveModal(false)}
+          >
+            <div
+              style={MODAL_STYLE}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="resolve-flag-title"
+              onClick={(e) => e.stopPropagation()}
+            >
               <h3
+                id="resolve-flag-title"
                 style={{
                   margin: '0 0 24px 0',
                   fontSize: '20px',
@@ -693,9 +724,22 @@ export default function ModerationDashboard() {
 
         {/* Add Note Modal */}
         {showNoteModal && (
-          <div style={MODAL_OVERLAY} onClick={() => setShowNoteModal(false)}>
-            <div style={MODAL_STYLE} onClick={(e) => e.stopPropagation()}>
+          <div style={MODAL_OVERLAY} onClick={() => setShowNoteModal(false)} role="dialog" aria-modal="true">
+            <div ref={noteModalRef} style={MODAL_STYLE} onClick={(e) => e.stopPropagation()}>
+          <div
+            style={MODAL_OVERLAY}
+            onClick={() => setShowNoteModal(false)}
+            onKeyDown={(e) => e.key === 'Escape' && setShowNoteModal(false)}
+          >
+            <div
+              style={MODAL_STYLE}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="add-moderator-note-title"
+              onClick={(e) => e.stopPropagation()}
+            >
               <h3
+                id="add-moderator-note-title"
                 style={{
                   margin: '0 0 24px 0',
                   fontSize: '20px',

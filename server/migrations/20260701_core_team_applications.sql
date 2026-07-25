@@ -1,4 +1,7 @@
 -- Up Migration
+﻿-- Migration: Create core_team_applications table
+-- Issue: #1510 - Core Team Approval Workflow
+
 CREATE TABLE IF NOT EXISTS core_team_applications (
   id            SERIAL PRIMARY KEY,
   student_id    TEXT        NOT NULL,

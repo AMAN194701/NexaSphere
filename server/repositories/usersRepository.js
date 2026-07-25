@@ -44,6 +44,19 @@ export const usersRepository = {
     return withDb(async (client) => {
       const { text, values } = buildUserListQuery({ page, limit, role });
       const { rows } = await client.query(text, values);
+      const { rows } = await client.query(`
+        SELECT 
+          id, 
+          username, 
+          display_name, 
+          avatar_url, 
+          bio, 
+          phone_number,
+          created_at as joined_at
+        FROM users
+        ORDER BY created_at DESC
+        LIMIT 100
+      `);
       return rows;
     });
   },
@@ -52,6 +65,21 @@ export const usersRepository = {
     return withDb(async (client) => {
       const { text, values } = buildUserListQuery({ includeEmail: true, page, limit, role });
       const { rows } = await client.query(text, values);
+      const { rows } = await client.query(`
+        SELECT 
+          id, 
+          username, 
+          display_name, 
+          avatar_url, 
+          bio, 
+          phone_number,
+          created_at as joined_at,
+          email,
+          admin_roles,
+          last_login
+        FROM users
+        ORDER BY created_at DESC
+      `);
       return rows;
     });
   },
@@ -71,8 +99,19 @@ export const usersRepository = {
   async getUserById(id) {
     return withDb(async (client) => {
       const { rows } = await client.query(
+        'SELECT id, username, display_name, email, phone_number, admin_roles, created_at FROM users WHERE id = $1',
         'SELECT id, username, display_name, email, admin_roles, created_at FROM users WHERE id = $1',
         [id]
+      );
+      return rows[0] || null;
+    });
+  },
+
+  async getUserByEmail(email) {
+    return withDb(async (client) => {
+      const { rows } = await client.query(
+        'SELECT id, username, display_name, email, admin_roles, created_at FROM users WHERE email = $1',
+        [email]
       );
       return rows[0] || null;
     });
@@ -101,7 +140,7 @@ export const usersRepository = {
       }
       if (fields.length === 0) return null;
       values.push(id);
-      const queryText = `UPDATE users SET ${fields.join(', ')} WHERE id = $${i} RETURNING id, username, display_name, email, admin_roles, created_at as joined_at`;
+      const queryText = `UPDATE users SET ${fields.join(', ')} WHERE id = $${i} RETURNING id, username, display_name, email, phone_number, admin_roles, created_at as joined_at`;
       const { rows } = await client.query(queryText, values);
       const hasDisplayName = updates.display_name !== undefined;
       const hasEmail = updates.email !== undefined;

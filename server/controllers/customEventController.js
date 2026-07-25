@@ -185,6 +185,14 @@ export const exportEventData = wrapAsync(async (req, res) => {
       const props = typeof log.properties === 'string'
         ? JSON.parse(log.properties)
         : log.properties || {};
+      let props = log.properties || {};
+      if (typeof props === 'string') {
+        try {
+          props = JSON.parse(props);
+        } catch (e) {
+          props = {};
+        }
+      }
       return [
         log.id,
         log.user_id || '',

@@ -14,13 +14,13 @@ import {
   Folder,
   MessageSquare,
 } from 'lucide-react';
-// TODO: useSearch hook not implemented yet
-// import { useSearch } from '../hooks/useSearch';
+import { useSearch } from '../hooks/useSearch';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X, ArrowRight, Calendar, Zap, Users, BookOpen } from 'lucide-react';
 import { useSearch } from '../hooks/useSearch';
+import { useEventSearch } from '../hooks/useEventSearch';
 
 function Highlight({ text, query }) {
   if (!text) return null;
@@ -28,6 +28,13 @@ function Highlight({ text, query }) {
   // If the text contains Typesense highlight <mark> tags, render it as HTML safely
   if (String(text).includes('<mark>')) {
     const clean = DOMPurify.sanitize(text, { ALLOWED_TAGS: ['mark'] });
+  // If the text contains Typesense highlight <mark> tags, sanitize before rendering as HTML.
+  // Only <mark> is allowed through — everything else (scripts, event handlers, other tags) is stripped.
+  if (String(text).includes('<mark>')) {
+    const clean = DOMPurify.sanitize(text, {
+      ALLOWED_TAGS: ['mark'],
+      ALLOWED_ATTR: [],
+    });
     return <span dangerouslySetInnerHTML={{ __html: clean }} />;
   }
 
@@ -121,35 +128,21 @@ export default function SearchBar({ open, onClose, activities, events, onNavigat
   const inputRef = useRef(null);
   const listRef = useRef(null);
   const [focusIdx, setFocusIdx] = useState(-1);
-  // TODO: useSearch hook not implemented yet
-  // const {
-  //   query,
-  //   setQuery,
-  //   filter,
-  //   setFilter,
-  //   results,
-  //   groupedResults,
-  //   loading,
-  //   error,
-  //   clearSearch,
-  //   recentSearches,
-  //   addRecentSearch,
-  //   removeRecentSearch,
-  // } = useSearch(activities, events);
+  const {
+    query,
+    setQuery,
+    filter,
+    setFilter,
+    results,
+    groupedResults,
+    loading,
+    error,
+    clearSearch,
+    recentSearches,
+    addRecentSearch,
+    removeRecentSearch,
+  } = useSearch(activities, events);
 
-  // Placeholder values for now
-  const query = '';
-  const setQuery = () => {};
-  const filter = null;
-  const setFilter = () => {};
-  const results = [];
-  const groupedResults = {};
-  const loading = false;
-  const error = null;
-  const clearSearch = () => {};
-  const recentSearches = [];
-  const addRecentSearch = () => {};
-  const removeRecentSearch = () => {};
 
   const [localQuery, setLocalQuery] = useState('');
   const timeoutRef = useRef(null);
@@ -179,6 +172,36 @@ export default function SearchBar({ open, onClose, activities, events, onNavigat
     events,
     apiBase
   );
+  const {
+    query,
+    setQuery,
+    filter,
+    setFilter,
+    results,
+    groupedResults,
+    loading,
+    error,
+    clearSearch,
+    recentSearches,
+    addRecentSearch,
+    removeRecentSearch,
+  } = useEventSearch(activities, events);
+
+  const [localQuery, setLocalQuery] = useState('');
+  const timeoutRef = useRef(null);
+
+  const handleInputChange = (e) => {
+    const val = e.target.value;
+    setLocalQuery(val);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
+      setQuery(val);
+    }, 350);
+  };
+
+  useEffect(() => {
+    setLocalQuery(query);
+  }, [query]);
 
   useEffect(() => {
     if (open) {
@@ -187,7 +210,7 @@ export default function SearchBar({ open, onClose, activities, events, onNavigat
       return () => clearTimeout(t);
     }
     setFocusIdx(-1);
-  }, [open]);
+  }, [open, clearSearch]);
 
   useEffect(() => {
     setFocusIdx(-1);
@@ -212,6 +235,7 @@ export default function SearchBar({ open, onClose, activities, events, onNavigat
       clearSearch();
     },
     [onNavigate, onEventClick, onClose, clearSearch]
+    [onNavigate, onEventClick, onClose, clearSearch, navigate, addRecentSearch, query]
   );
 
   useEffect(() => {
@@ -341,6 +365,8 @@ export default function SearchBar({ open, onClose, activities, events, onNavigat
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search events, posts, users, resources…"
+                value={localQuery}
+                onChange={handleInputChange}
                 placeholder="Search events, members, activities…"
                 aria-label="Search"
                 style={{

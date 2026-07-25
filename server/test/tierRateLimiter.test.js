@@ -5,6 +5,7 @@ import {
   tierRateLimiter,
   pruneMemoryStores,
 } from '../middleware/tierRateLimiter.js';
+import { pruneMemoryStores, tierRateLimiter } from '../middleware/tierRateLimiter.js';
 
 test('Tier-Based Rate Limiting & Backoff Middleware Tests', async (t) => {
   await t.test('0. Unknown tiers fall back to guest defaults', () => {

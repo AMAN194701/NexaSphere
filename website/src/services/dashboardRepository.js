@@ -1,5 +1,6 @@
 // src/services/dashboardRepository.js
 // Data layer - NO MOCK DATA, only empty structures
+import apiClient from '../utils/apiClient.js';
 
 // Storage keys
 const STORAGE_KEYS = {
@@ -37,18 +38,7 @@ export const dashboardRepository = {
   // Get all dashboard data
   async getAll() {
     try {
-      // TODO: Replace with real API call when backend is ready
-      // const response = await fetch('/api/user/dashboard');
-      // return await response.json();
-
-      // Read from localStorage (user-generated data only, no defaults)
-      return {
-        metrics: this.getMetrics(),
-        activities: this.getActivities(),
-        achievements: this.getAchievements(),
-        weeklyActivity: this.getWeeklyActivity(),
-        profileCompletion: this.getProfileCompletion(),
-      };
+      return await apiClient('/api/user/dashboard');
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('[dashboardRepository] Failed to load dashboard data:', error.message);

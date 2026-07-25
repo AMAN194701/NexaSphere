@@ -195,16 +195,24 @@ export function RolesManager() {
 
       {/* Create Role Modal */}
       {showRoleModal && (
-        <div className="modal-overlay" onClick={() => setShowRoleModal(false)}>
+        <div
+          className="modal-overlay"
+          onClick={() => setShowRoleModal(false)}
+          onKeyDown={(e) => e.key === 'Escape' && setShowRoleModal(false)}
+        >
           <div 
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="create-custom-role-title"
             style={{ backgroundColor: 'var(--surface)', padding: '24px', borderRadius: 'var(--radius)', width: '500px', maxWidth: '95%', border: '1px solid var(--border)' }}
             onClick={e => e.stopPropagation()}
           >
-            <h2 style={{ margin: '0 0 20px 0', fontSize: '20px', color: 'var(--text)' }}>Create Custom Role</h2>
+            <h2 id="create-custom-role-title" style={{ margin: '0 0 20px 0', fontSize: '20px', color: 'var(--text)' }}>Create Custom Role</h2>
             <form onSubmit={handleCreateRole} className="form">
               <div className="form-row">
-                <label>Role Name</label>
+                <label htmlFor="create-role-name">Role Name</label>
                 <input 
+                  id="create-role-name"
                   type="text" 
                   value={roleForm.name} 
                   onChange={e => setRoleForm({...roleForm, name: e.target.value})} 
@@ -213,8 +221,9 @@ export function RolesManager() {
                 />
               </div>
               <div className="form-row">
-                <label>Description</label>
+                <label htmlFor="create-role-description">Description</label>
                 <input 
+                  id="create-role-description"
                   type="text" 
                   value={roleForm.description} 
                   onChange={e => setRoleForm({...roleForm, description: e.target.value})} 
@@ -249,16 +258,24 @@ export function RolesManager() {
 
       {/* Invite Admin Modal */}
       {showInviteModal && (
-        <div className="modal-overlay" onClick={() => setShowInviteModal(false)}>
+        <div
+          className="modal-overlay"
+          onClick={() => setShowInviteModal(false)}
+          onKeyDown={(e) => e.key === 'Escape' && setShowInviteModal(false)}
+        >
           <div 
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="invite-admin-title"
             style={{ backgroundColor: 'var(--surface)', padding: '24px', borderRadius: 'var(--radius)', width: '400px', maxWidth: '95%', border: '1px solid var(--border)' }}
             onClick={e => e.stopPropagation()}
           >
-            <h2 style={{ margin: '0 0 20px 0', fontSize: '20px', color: 'var(--text)' }}>Invite Admin</h2>
+            <h2 id="invite-admin-title" style={{ margin: '0 0 20px 0', fontSize: '20px', color: 'var(--text)' }}>Invite Admin</h2>
             <form onSubmit={handleInviteAdmin} className="form">
               <div className="form-row">
-                <label>Email Address</label>
+                <label htmlFor="invite-admin-email">Email Address</label>
                 <input 
+                  id="invite-admin-email"
                   type="email" 
                   value={inviteForm.email} 
                   onChange={e => setInviteForm({...inviteForm, email: e.target.value})} 

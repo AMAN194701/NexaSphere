@@ -1,4 +1,4 @@
-﻿import passport from 'passport';
+import passport from 'passport';
 import { studentUsersRepository } from '../repositories/studentUsersRepository.js';
 import { studentAuthService } from '../services/studentAuthService.js';
 import { withDb } from '../repositories/db.js';
@@ -32,10 +32,11 @@ export const googleAuth = passport.authenticate('google', {
 
 export const googleCallback = (req, res, next) => {
   passport.authenticate('google', { session: false }, (err, data, info) => {
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5175';
     if (err) return next(err);
     if (!data) {
       return res.redirect(
-        `/login?error=${encodeURIComponent(info?.message || 'Authentication failed')}`
+        `${frontendUrl}/login?error=${encodeURIComponent(info?.message || 'Authentication failed')}`
       );
     }
     res.cookie('ns_student_token', data.token, {
@@ -81,10 +82,11 @@ export const githubAuth = passport.authenticate('github', {
 
 export const githubCallback = (req, res, next) => {
   passport.authenticate('github', { session: false }, (err, data, info) => {
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5175';
     if (err) return next(err);
     if (!data) {
       return res.redirect(
-        `/login?error=${encodeURIComponent(info?.message || 'Authentication failed')}`
+        `${frontendUrl}/login?error=${encodeURIComponent(info?.message || 'Authentication failed')}`
       );
     }
     res.cookie('ns_student_token', data.token, {
@@ -119,7 +121,6 @@ export const getMe = async (req, res) => {
   if (!req.studentUser) {
     return sendError(req, res, 'Not authenticated', 401, 'UNAUTHORIZED');
   }
-  // Load fresh user data including theme from DB
   let freshUser = null;
   try {
     freshUser = await studentUsersRepository.findByProvider(
@@ -206,6 +207,11 @@ export const logout = async (req, res) => {
 export const getProfile = async (req, res) => {
   if (!req.studentUser) {
     return sendError(req, res, 'Not authenticated', 401, 'UNAUTHORIZED');
+// ── NEW: Student Profile endpoints ──────────────────────────────────────────
+
+export const getProfile = async (req, res) => {
+  if (!req.studentUser) {
+    return res.status(401).json({ error: 'Not authenticated' });
   }
   try {
     const userId = req.studentUser.sub || req.studentUser.id;
@@ -219,6 +225,16 @@ export const getProfile = async (req, res) => {
     // Safely count related data â€” tables may not exist yet in all envs
     let registrations = [];
     let forumPosts = 0;
+    const user = await studentUsersRepository.findByProvider(
+      req.studentUser.provider,
+      userId
+    ) || await studentUsersRepository.findByEmail(req.studentUser.email);
+
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // Safely count related data — tables may not exist yet in all envs
+    let registrations = [];
+    let forumPosts    = 0;
     let mentorSessions = 0;
 
     try {
@@ -267,9 +283,37 @@ export const getProfile = async (req, res) => {
       email: user.email,
       avatar: user.avatar_url,
       bio: user.bio || '',
+    } catch (_) { /* table may not exist yet */ }
+
+    try {
+      const { default: db } = await import('../db/index.js');
+      const [{ count }] = await db('forum_threads').where({ author_id: user.id }).count('id as count');
+      forumPosts = Number(count);
+    } catch (_) { /* table may not exist yet */ }
+
+    try {
+      const { default: db } = await import('../db/index.js');
+      const [{ count }] = await db('mentor_sessions').where({ mentee_id: user.id }).count('id as count');
+      mentorSessions = Number(count);
+    } catch (_) { /* table may not exist yet */ }
+
+    const attendedEvents = registrations.filter(
+      r => r.attended || r.status === 'attended'
+    ).length;
+
+    return res.json({
+      id:          user.id,
+      fullName:    user.full_name,
+      email:       user.email,
+      avatar:      user.avatar_url,
+      bio:         user.bio || '',
+      phoneNumber: user.phone_number || '',
       socialLinks: user.social_links || {},
       role: user.role,
       createdAt: user.created_at,
+      socialLinks: user.social_links || {},
+      role:        user.role,
+      createdAt:   user.created_at,
       stats: {
         totalRegistrations: registrations.length,
         attendedEvents,
@@ -281,6 +325,7 @@ export const getProfile = async (req, res) => {
   } catch (err) {
     console.error('getProfile error:', err);
     return sendError(req, res, 'Server error', 500, 'INTERNAL_ERROR', err.message);
+    return res.status(500).json({ error: 'Server error', detail: err.message });
   }
 };
 
@@ -290,6 +335,21 @@ export const updateProfile = async (req, res) => {
   }
   try {
     const userId = req.studentUser.sub || req.studentUser.id;
+    
+    // SECURITY: explicitly delete immutable fields to prevent privilege escalation
+    delete req.body.roleId;
+    delete req.body.permissions;
+    delete req.body.status;
+    delete req.body.role;
+    delete req.body.admin_roles;
+
+    const allowed = ['fullName', 'bio', 'socialLinks'];
+    const userId  = req.studentUser.sub || req.studentUser.id;
+    const allowed = ['fullName', 'bio', 'socialLinks', 'phoneNumber'];
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+  try {
+    const userId  = req.studentUser.sub || req.studentUser.id;
     const allowed = ['fullName', 'bio', 'socialLinks'];
     const updates = {};
     for (const key of allowed) {
@@ -302,6 +362,10 @@ export const updateProfile = async (req, res) => {
     if (updates.bio !== undefined) dbUpdates.bio = updates.bio;
     if (updates.socialLinks !== undefined)
       dbUpdates.social_links = JSON.stringify(updates.socialLinks);
+    if (updates.fullName    !== undefined) dbUpdates.full_name    = updates.fullName;
+    if (updates.bio         !== undefined) dbUpdates.bio          = updates.bio;
+    if (updates.phoneNumber !== undefined) dbUpdates.phone_number = updates.phoneNumber;
+    if (updates.socialLinks !== undefined) dbUpdates.social_links = JSON.stringify(updates.socialLinks);
 
     const updatedUser = await studentUsersRepository.updateProfile(userId, dbUpdates);
     if (!updatedUser) return sendError(req, res, 'User not found', 404, 'NOT_FOUND');
@@ -311,11 +375,25 @@ export const updateProfile = async (req, res) => {
       fullName: updatedUser.full_name,
       email: updatedUser.email,
       bio: updatedUser.bio || '',
+    if (updates.fullName    !== undefined) dbUpdates.full_name    = updates.fullName;
+    if (updates.bio         !== undefined) dbUpdates.bio          = updates.bio;
+    if (updates.socialLinks !== undefined) dbUpdates.social_links = JSON.stringify(updates.socialLinks);
+
+    const updatedUser = await studentUsersRepository.updateProfile(userId, dbUpdates);
+    if (!updatedUser) return res.status(404).json({ error: 'User not found' });
+
+    return res.json({
+      id:          updatedUser.id,
+      fullName:    updatedUser.full_name,
+      email:       updatedUser.email,
+      bio:         updatedUser.bio || '',
+      phoneNumber: updatedUser.phone_number || '',
       socialLinks: updatedUser.social_links || {},
     });
   } catch (err) {
     console.error('updateProfile error:', err);
     return sendError(req, res, 'Server error', 500, 'INTERNAL_ERROR', err.message);
+    return res.status(500).json({ error: 'Server error', detail: err.message });
   }
 };
 
@@ -326,6 +404,11 @@ export const getRegistrations = async (req, res) => {
   try {
     const user = await studentUsersRepository.findByEmail(req.studentUser.email);
     if (!user) return sendError(req, res, 'User not found', 404, 'NOT_FOUND');
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+  try {
+    const user = await studentUsersRepository.findByEmail(req.studentUser.email);
+    if (!user) return res.status(404).json({ error: 'User not found' });
 
     let registrations = [];
     try {
@@ -400,4 +483,12 @@ export const getMe = (req, res) => {
 export const logout = (req, res) => {
   res.clearCookie('ns_student_token');
   return res.json({ ok: true });
+};
+    } catch (_) { /* table may not exist yet */ }
+
+    return res.json(registrations);
+  } catch (err) {
+    console.error('getRegistrations error:', err);
+    return res.status(500).json({ error: 'Server error', detail: err.message });
+  }
 };

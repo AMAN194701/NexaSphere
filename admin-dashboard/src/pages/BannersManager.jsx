@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { fetchWithAuth } from '../services/api';
+import { apiClient } from '../services/api';
 
 export function BannersManager() {
   const [banners, setBanners] = useState([]);
@@ -16,6 +17,7 @@ export function BannersManager() {
   const fetchBanners = async () => {
     try {
       const res = await fetchWithAuth('/api/admin/banners');
+      const res = await apiClient('/api/admin/banners');
       setBanners(res.banners || []);
     } catch (e) {
       console.error(e);
@@ -44,6 +46,12 @@ export function BannersManager() {
         endTime: '',
         isActive: true,
       });
+      await apiClient('/api/admin/banners', {
+        method: 'POST',
+        body: JSON.stringify(formState)
+      });
+      fetchBanners();
+      setFormState({ title: '', imageUrl: '', linkUrl: '', startTime: '', endTime: '', isActive: true });
     } catch (e) {
       console.error(e);
       alert('Error saving banner');
@@ -54,6 +62,7 @@ export function BannersManager() {
     if (!window.confirm('Delete this banner?')) return;
     try {
       await fetchWithAuth(`/api/admin/banners/${id}`, { method: 'DELETE' });
+      await apiClient(`/api/admin/banners/${id}`, { method: 'DELETE' });
       fetchBanners();
     } catch (e) {
       console.error(e);
@@ -136,6 +145,7 @@ export function BannersManager() {
                   alt={b.title}
                   className="w-full h-32 object-cover mb-2 rounded"
                 />
+                <img src={b.imageUrl} alt={b.title} className="w-full h-32 object-cover mb-2 rounded" />
                 <h3 className="font-bold">{b.title}</h3>
                 <p className="text-sm text-gray-600">
                   Status: {b.isActive ? 'Active' : 'Inactive'}
@@ -145,6 +155,7 @@ export function BannersManager() {
                     onClick={() => handleDelete(b.id)}
                     className="btn text-red-600 border border-red-600 p-1 rounded text-sm"
                   >
+                  <button onClick={() => handleDelete(b.id)} className="btn text-red-600 border border-red-600 p-1 rounded text-sm">
                     Delete / Archive
                   </button>
                 </div>

@@ -76,3 +76,9 @@ const fileMutex = new Mutex();
 export async function runWithFileLock(callback) {
   return await fileMutex.runExclusive(callback);
 }
+
+const fileMutex = new Mutex();
+
+export async function runWithFileLock(callback) {
+  return await fileMutex.runExclusive(callback);
+}

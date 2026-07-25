@@ -90,6 +90,18 @@ export default function LanguageSelector() {
     >
       <button
         onClick={() => setOpen((v) => !v)}
+        onKeyDown={(e) => {
+          if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && !open) {
+            e.preventDefault();
+            setOpen(true);
+            // We need to wait for the DOM to update to focus the first li
+            setTimeout(() => {
+              ref.current?.querySelector('li')?.focus();
+            }, 0);
+          }
+        }}
+        aria-haspopup="listbox"
+        aria-expanded={open}
         aria-label="Select language"
         tabIndex={-1}
         style={{
@@ -171,6 +183,65 @@ export default function LanguageSelector() {
               </li>
             );
           })}
+          {LANGUAGES.map((lang, idx) => (
+            <li
+              key={lang.code}
+              role="option"
+              aria-selected={lang.code === current.code}
+              tabIndex={0}
+              onClick={() => handleSelect(lang.code)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleSelect(lang.code);
+                } else if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  const next = e.currentTarget.nextElementSibling;
+                  if (next) next.focus();
+                } else if (e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  const prev = e.currentTarget.previousElementSibling;
+                  if (prev) prev.focus();
+                } else if (e.key === 'Escape') {
+                  e.preventDefault();
+                  setOpen(false);
+                  ref.current?.querySelector('button')?.focus();
+                }
+              }}
+              style={{
+                padding: '8px 12px',
+                cursor: 'pointer',
+                borderRadius: '7px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                fontSize: '0.875rem',
+                color: lang.code === current.code ? '#E63946' : 'var(--text-primary, #fff)',
+                background: lang.code === current.code ? 'rgba(230,57,70,0.1)' : 'transparent',
+                fontWeight: lang.code === current.code ? 600 : 400,
+                transition: 'background 0.15s',
+                outline: 'none',
+              }}
+              onFocus={(e) => {
+                if (lang.code !== current.code)
+                  e.currentTarget.style.background = 'var(--bdr, #333)';
+              }}
+              onBlur={(e) => {
+                if (lang.code !== current.code)
+                  e.currentTarget.style.background = 'transparent';
+              }}
+              onMouseOver={(e) => {
+                if (lang.code !== current.code)
+                  e.currentTarget.style.background = 'var(--bdr, #333)';
+              }}
+              onMouseOut={(e) => {
+                if (lang.code !== current.code) e.currentTarget.style.background = 'transparent';
+              }}
+            >
+              <span>{lang.flag}</span>
+              <span>{lang.label}</span>
+            </li>
+          ))}
         </ul>
       )}
     </div>

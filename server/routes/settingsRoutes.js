@@ -41,5 +41,10 @@ router.get('/history', getHistory);
 router.post('/rollback', validate(rollbackSettingSchema), rollbackSetting);
 router.get('/export', exportSettings);
 router.post('/import', validate(importSettingsSchema), importSettings);
+router.put('/', updateSettings);
+router.get('/history', getHistory);
+router.post('/rollback', rollbackSetting);
+router.get('/export', exportSettings);
+router.post('/import', importSettings);
 
 export default router;

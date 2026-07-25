@@ -1,8 +1,10 @@
+import * as syncRepo from '../repositories/syncStatusRepository.js';
+
 export const runConsistencyCheck = () => {
   return {
     status: 'CONSISTENT',
     checkedAt: new Date().toISOString(),
-    servicesChecked: ['Authentication', 'Events', 'Notifications'],
+    servicesChecked: ['Authentication', 'Events', 'Notifications', 'SyncNodes'],
   };
 };
 
@@ -10,13 +12,16 @@ export const getSynchronizationStatus = () => {
   return {
     synchronized: true,
     lastSync: new Date().toISOString(),
+    nodes: syncRepo.getNodesStatus(),
+    metrics: syncRepo.getMetrics(),
   };
 };
 
 export const detectConflicts = () => {
+  const conflicts = syncRepo.getConflicts();
   return {
-    conflictsFound: 0,
-    conflicts: [],
+    conflictsFound: conflicts.length,
+    conflicts: conflicts,
   };
 };
 
@@ -32,3 +37,8 @@ export const getConsistencyAlerts = () => {
     alerts: [],
   };
 };
+
+export const triggerForceSync = () => {
+  return syncRepo.triggerForceSync();
+};
+

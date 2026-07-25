@@ -19,7 +19,10 @@ import { z } from 'zod';
 export const awardXPSchema = z
   .object({
     userId: z.string().trim().min(1, 'userId is required'),
-    amount: z.number({ required_error: 'amount is required' }).int().positive('amount must be a positive integer'),
+    amount: z
+      .number({ required_error: 'amount is required' })
+      .int()
+      .positive('amount must be a positive integer'),
   })
   .strict();
 
@@ -142,6 +145,11 @@ export const adminUpdateUserSchema = z
     display_name: z.string().trim().max(200).optional(),
     email: z.string().trim().email().max(254).optional(),
     phone_number: z.string().trim().max(30).optional(),
+  })
+  .strict();
+
+export const adminUpdateUserRoleSchema = z
+  .object({
     admin_roles: z.array(z.string()).optional(),
   })
   .strict();
@@ -204,6 +212,7 @@ export const adminCreateEventSchema = z
     recurrencePattern: z.enum(['daily', 'weekly', 'monthly', 'custom']).optional().nullable(),
     recurrenceEndDate: z.string().optional().nullable(),
     occurrenceIndex: z.number().int().optional().nullable(),
+    capacity: z.coerce.number().int().min(1).optional().nullable(),
   })
   .strict()
   .passthrough();

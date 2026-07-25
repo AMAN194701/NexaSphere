@@ -8,6 +8,7 @@ import { adminAuthMiddleware } from '../middleware/adminAuthMiddleware.js';
 import { supabaseBreaker, HAS_SUPABASE } from '../storage/supabaseClient.js';
 import { validate } from '../middleware/validate.js';
 import { ssoInviteSchema } from '../validators/routes/adminSchemas.js';
+import { usersRepository } from '../repositories/usersRepository.js';
 import { financialService } from '../services/financialService.js';
 import {
   validateConfigChange,
@@ -44,6 +45,7 @@ import {
   detectConflicts,
   generateIntegrityReport,
   getConsistencyAlerts,
+  triggerForceSync,
 } from '../utils/consistencyVerifier.js';
 import { sendSuccess, sendError, sendNoContent } from '../utils/responseHelper.js';
 
@@ -60,7 +62,7 @@ async function _rawMembershipFetch(scriptUrl, secret) {
   const response = await fetch(scriptUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'getResponses', token: secret }),
+    body: JSON.stringify({ action: 'getResponses', apiKey: secret, token: secret }),
   });
   if (!response.ok) {
     throw new Error(`Google Apps Script returned ${response.status}`);
@@ -164,6 +166,51 @@ router.get('/membership', adminAuth, async (req, res) => {
 });
 
 /**
+ * POST /api/admin/membership/sync — Manually sync missed Google Forms responses.
+ */
+router.post('/membership/sync', adminAuth, async (req, res) => {
+  const scriptUrl = process.env.MEMBERSHIP_SCRIPT_URL;
+  const secret = process.env.MEMBERSHIP_SECRET;
+
+  if (!scriptUrl || !secret) {
+    return sendError(req, res, 'Membership script URL or secret not configured', 503, 'SERVICE_UNAVAILABLE');
+  }
+
+  try {
+    const data = await membershipBreaker.execute(scriptUrl, secret);
+    const responses = data.responses || [];
+
+    let createdCount = 0;
+    for (const response of responses) {
+      const email = response.email || response.collegeEmail || response.college_email;
+      const fullName = response.fullName || response.full_name || response.name;
+
+      if (!email) continue;
+
+      const existingUser = await usersRepository.getUserByEmail(email);
+      if (existingUser) continue;
+
+      try {
+        await usersRepository.createUser({
+          username: email,
+          display_name: fullName || email.split('@')[0],
+          email: email,
+          role: 'member',
+        });
+        createdCount++;
+      } catch (err) {
+        console.error(`[Membership Sync] Failed to create user for ${email}:`, err.message);
+      }
+    }
+
+    return sendSuccess(res, { message: 'Sync complete', created: createdCount });
+  } catch (err) {
+    console.error('[Membership Sync] Failed to sync responses:', err.message);
+    return sendError(req, res, 'Failed to sync membership responses', 500, 'INTERNAL_ERROR');
+  }
+});
+
+/**
  * GET /me — Returns the authenticated admin's username.
  */
 router.get('/me', adminAuth, (req, res) => {
@@ -254,6 +301,11 @@ router.get('/api/admin/sync-status', adminAuth, (req, res) => {
   sendSuccess(res, getSynchronizationStatus());
 });
 
+router.post('/api/admin/sync/force', adminAuth, (req, res) => {
+  sendSuccess(res, triggerForceSync());
+});
+
+
 router.get('/api/admin/conflicts', adminAuth, (req, res) => {
   sendSuccess(res, detectConflicts());
 });
@@ -313,34 +365,53 @@ router.get('/api/admin/reports/revenue', adminAuth, async (req, res) => {
     const report = await financialService.getRevenueReport(user);
     sendSuccess(res, report);
   } catch (error) {
-    sendError(req, res, error.message || 'Failed to generate revenue report', 500, 'INTERNAL_ERROR');
+    sendError(
+      req,
+      res,
+      error.message || 'Failed to generate revenue report',
+      500,
+      'INTERNAL_ERROR'
+    );
   }
 });
 
 import jwt from 'jsonwebtoken';
 
-router.post('/api/admin/sso-invite', apiRateLimiter, validate(ssoInviteSchema), adminAuth, (req, res) => {
-  const { email } = req.body;
-  if (!email || typeof email !== 'string' || !email.includes('@')) {
-    return sendError(req, res, 'Valid email address is required', 400, 'VALIDATION_ERROR');
+router.post(
+  '/api/admin/sso-invite',
+  apiRateLimiter,
+  validate(ssoInviteSchema),
+  adminAuth,
+  (req, res) => {
+    const { email } = req.body;
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
+      return sendError(req, res, 'Valid email address is required', 400, 'VALIDATION_ERROR');
+    }
+
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      return sendError(
+        req,
+        res,
+        'JWT_SECRET is not configured on the server',
+        500,
+        'INTERNAL_ERROR'
+      );
+    }
+
+    // Generate a token valid for 24 hours
+    const token = jwt.sign({ email: email.toLowerCase(), bypassSso: true }, jwtSecret, {
+      expiresIn: '24h',
+    });
+
+    const baseUrl = process.env.BASE_URL || 'http://localhost:8080';
+    const inviteUrl = `${baseUrl}/api/auth/google?token=${token}`;
+
+    return sendSuccess(res, { token, inviteUrl });
   }
-
-  const jwtSecret = process.env.JWT_SECRET;
-  if (!jwtSecret) {
-    return sendError(req, res, 'JWT_SECRET is not configured on the server', 500, 'INTERNAL_ERROR');
-  }
-
-  // Generate a token valid for 24 hours
-  const token = jwt.sign({ email: email.toLowerCase(), bypassSso: true }, jwtSecret, {
-    expiresIn: '24h',
-  });
-
-  const baseUrl = process.env.BASE_URL || 'http://localhost:8080';
-  const inviteUrl = `${baseUrl}/api/auth/google?token=${token}`;
-
-  return sendSuccess(res, { token, inviteUrl });
-});
+);
 router.get('/sessions', adminAuth, adminAuthMiddleware.getSecurityOverview);
+router.post('/sessions/extend', adminAuth, adminAuthMiddleware.extendSession);
 router.delete('/sessions/:sessionId', adminAuth, adminAuthMiddleware.revokeSession);
 router.delete('/sessions', adminAuth, adminAuthMiddleware.logoutOtherSessions);
 

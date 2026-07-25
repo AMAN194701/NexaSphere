@@ -142,6 +142,7 @@ export const portfolioPutSchema = z
 export const portfolioContentSchema = z
   .object({
     theme: z.string().trim().min(1).max(50).optional(),
+    isPublic: z.boolean().optional(),
     visibleSections: VisibleSectionsSchema.optional(),
     socialLinks: SocialLinksSchema.optional(),
     customDomain: z.string().trim().max(255).optional(),
@@ -159,7 +160,10 @@ export const portfolioContentSchema = z
       .string()
       .trim()
       .max(39)
-      .regex(/^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9])){0,38}$/, 'Invalid GitHub username format')
+      .regex(
+        /^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9])){0,38}$/,
+        'Invalid GitHub username format'
+      )
       .optional(),
   })
   .strict();

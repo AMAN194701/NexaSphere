@@ -26,6 +26,22 @@ export async function uploadCertificatePdfToS3({ buffer, key }) {
   return { key, url };
 }
 
+export async function uploadQrCodeToS3({ buffer, key }) {
+  const bucket = requireBucket();
+  await s3
+    .putObject({
+      Bucket: bucket,
+      Key: key,
+      Body: buffer,
+      ContentType: 'image/png',
+      CacheControl: 'public, max-age=31536000, immutable',
+    })
+    .promise();
+
+  const url = CDN_BASE ? `${CDN_BASE}/${key}` : '';
+  return { key, url };
+}
+
 export async function downloadCertificatePdfFromS3({ key }) {
   const bucket = requireBucket();
   const obj = await s3.getObject({ Bucket: bucket, Key: key }).promise();

@@ -1,5 +1,13 @@
 import { withDb } from './db.js';
 
+function safeParseJSON(str, fallback = []) {
+  try {
+    return JSON.parse(str);
+  } catch (e) {
+    return fallback;
+  }
+}
+
 function mapThreadRow(row) {
   return {
     id: row.id,
@@ -14,7 +22,7 @@ function mapThreadRow(row) {
     isLocked: row.is_locked,
     isAnswered: row.is_answered,
     acceptedReplyId: row.accepted_reply_id,
-    tags: typeof row.tags === 'string' ? JSON.parse(row.tags) : row.tags,
+    tags: typeof row.tags === 'string' ? safeParseJSON(row.tags, []) : (row.tags || []),
     upvotes: row.upvotes,
     replyCount: row.reply_count,
     viewCount: row.view_count,

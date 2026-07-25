@@ -281,7 +281,7 @@ function ArchiveTab() {
   }, [load]);
 
   function handleDownload(id, filename) {
-    window.open(`${API}/archive/${id}/download`, '_blank');
+    window.open(`${API}/archive/${id}/download`, '_blank', 'noopener,noreferrer');
   }
 
   return (

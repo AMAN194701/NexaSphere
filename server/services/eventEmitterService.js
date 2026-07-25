@@ -14,7 +14,9 @@ import {
   sendWaitlistPromotionEmail,
   sendEventReminderEmail,
   sendAttendanceConfirmationEmail,
+  sendEmail,
 } from './emailService.js';
+import { usersRepository } from '../repositories/usersRepository.js';
 import { sendPushNotification, sendToTopic } from './pushNotificationService.js';
 import gamificationService from './gamificationService.js';
 import { sendPushNotification } from './pushNotificationService.js';
@@ -129,6 +131,50 @@ class RealTimeEventManager extends EventEmitter {
 
     // Portfolio updated
     this.on('portfolio-updated', this.handlePortfolioUpdated.bind(this));
+
+    // User stage changed
+    this.on('user-stage-changed', this.handleUserStageChanged.bind(this));
+  }
+
+  /**
+   * Handle user stage changed event
+   */
+  async handleUserStageChanged(data) {
+    try {
+      logger.info('Event: User stage changed', { userId: data.userId, newStage: data.newStage });
+
+      const user = await usersRepository.getUserById(data.userId);
+      if (!user || !user.email) return;
+
+      let subject = '';
+      let templateName = '';
+
+      switch (data.newStage) {
+        case 'NEW_USER':
+          subject = 'Welcome to NexaSphere!';
+          templateName = 'welcome';
+          break;
+        case 'ACTIVE':
+          subject = 'You are now an Active User!';
+          templateName = 'active-user';
+          break;
+        case 'POWER_USER':
+          subject = 'Congratulations! You are a Power User!';
+          templateName = 'power-user';
+          break;
+        default:
+          return; // No automated email for this stage
+      }
+
+      await sendEmail({
+        to: user.email,
+        subject,
+        templateName,
+        data: { name: user.display_name || user.username },
+      });
+    } catch (error) {
+      logger.error('Error handling user stage changed event', { error: error.message });
+    }
   }
 
   /**
@@ -611,7 +657,7 @@ class RealTimeEventManager extends EventEmitter {
           if (prefPush.deliver) {
             await sendPushNotification(data.pushToken, {
               title: `⏰ ${data.eventName} is coming up!`,
-              body: `Don't forget: ${data.eventName} on ${data.eventDate}`,
+              body: `Don't forget: ${data.eventName} is starting in ${data.timeUntilEvent || 'soon'}`,
               data: { eventId: data.eventId, type: 'reminder' },
               link: `/events/${data.eventId}`,
               tag: 'reminder',
@@ -620,7 +666,7 @@ class RealTimeEventManager extends EventEmitter {
         } catch (e) {
           await sendPushNotification(data.pushToken, {
             title: `⏰ ${data.eventName} is coming up!`,
-            body: `Don't forget: ${data.eventName} on ${data.eventDate}`,
+            body: `Don't forget: ${data.eventName} is starting in ${data.timeUntilEvent || 'soon'}`,
             data: { eventId: data.eventId, type: 'reminder' },
             link: `/events/${data.eventId}`,
             tag: 'reminder',

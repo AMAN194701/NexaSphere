@@ -5,7 +5,21 @@ import apiClient from '../../utils/apiClient';
 import { downloadICS } from '../../utils/icsExport';
 import { API_BASE } from '../../data/config';
 import apiClient from '../../utils/apiClient';
+import DOMPurify from 'dompurify';
+import {
+  downloadICS,
+  generateGoogleCalendarUrl,
+  generateOutlookCalendarUrl,
+} from '../../utils/icsExport';
+import {
+  showNotification,
+  requestNotificationPermission,
+} from '../../utils/pushNotificationClient';
 
+import {
+  showNotification,
+  requestNotificationPermission,
+} from '../../utils/pushNotificationClient';
 function hexToRgb(hex) {
   if (!hex || !hex.startsWith('#')) return '0,212,255';
   return `${parseInt(hex.slice(1, 3), 16)},${parseInt(hex.slice(3, 5), 16)},${parseInt(hex.slice(5, 7), 16)}`;
@@ -55,6 +69,7 @@ function StatCard({ label, value, color }) {
   const ref = useRef(null);
   const started = useRef(false);
   const countIntervalRef = useRef(null);
+  const intervalRef = useRef(null);
   useEffect(() => {
     const obs = new IntersectionObserver(
       ([e]) => {
@@ -72,6 +87,16 @@ function StatCard({ label, value, color }) {
               setCount(num);
               clearInterval(countIntervalRef.current);
               countIntervalRef.current = null;
+          intervalRef.current = setInterval(() => {
+            cur += Math.ceil(num / 40);
+            if (cur >= num) {
+              setCount(num);
+          intervalRef.current = setInterval(() => {
+            cur += Math.ceil(num / 40);
+            if (cur >= num) {
+              setCount(num);
+              if (intervalRef.current) clearInterval(intervalRef.current);
+              intervalRef.current = null;
             } else setCount(cur);
           }, 25);
         }
@@ -85,6 +110,8 @@ function StatCard({ label, value, color }) {
         clearInterval(countIntervalRef.current);
         countIntervalRef.current = null;
       }
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      intervalRef.current = null;
     };
   }, [value]);
   const rgb = hexToRgb(color);
@@ -474,6 +501,9 @@ function MediaBtn({ href, icon, label, color }) {
 function QRTicketCard({ event, ticket, color, rgb, onCalendarDownload }) {
   const canvasRef = useRef(null);
   const ticketRef = useRef(null);
+  const [showCalendarMenu, setShowCalendarMenu] = useState(false);
+  const [showReminderMenu, setShowReminderMenu] = useState(false);
+  const [reminderSet, setReminderSet] = useState('');
   const [downloading, setDownloading] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -797,7 +827,7 @@ function QRTicketCard({ event, ticket, color, rgb, onCalendarDownload }) {
             }}
           >
             {ticket.qrDataUrl ? (
-              <img src={ticket.qrDataUrl} alt="Entry QR" width={160} height={160} />
+              <img loading="lazy" src={ticket.qrDataUrl} alt="Entry QR" width={160} height={160} />
             ) : (
               <canvas ref={canvasRef} width={160} height={160} style={{ display: 'block' }} />
             )}
@@ -889,6 +919,7 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
   const [regSubmitting, setRegSubmitting] = useState(false);
   const [localQrDataUrl, setLocalQrDataUrl] = useState(null);
   const [downloading, setDownloading] = useState(false);
+  const registrationKey = `ns_event_registration_${event.id}`;
   useEffect(() => {
     window.scrollTo({ top: 0 });
     const mountTimer = setTimeout(() => setMounted(true), 60);
@@ -916,7 +947,44 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
     };
   }, []);
 
-  const isUpcoming = event.status === 'upcoming';
+  const handleCalendarDownload = () => {
+    const base = getApiBase();
+    const url = `${base}/api/content/events/${event.id}/calendar`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const color = activityColor || '#a855f7';
+  const rgb = hexToRgb(color);
+
+  const [showReminderMenu, setShowReminderMenu] = useState(false);
+  const [reminderSet, setReminderSet] = useState('');
+
+  const handleSetReminder = async (minutes, label) => {
+    const permission = await requestNotificationPermission();
+    if (permission === 'granted') {
+      const eventTime = new Date(event.date).getTime();
+      const reminderTime = eventTime - minutes * 60 * 1000;
+      const delay = reminderTime - Date.now();
+
+      if (delay > 0) {
+        setTimeout(() => {
+          showNotification(`Reminder: ${event.name}`, {
+            body: `Starting in ${label} at ${event.location || 'TBA'}`,
+            icon: '/pwa-192x192.png',
+          });
+        }, delay);
+        setReminderSet(label);
+        setShowReminderMenu(false);
+        alert(`Reminder set for ${label} before the event!`);
+      } else {
+        alert('This event is too close or has already started.');
+      }
+    } else {
+      alert('Please enable notifications in your browser settings to use reminders.');
+    }
+  };
+
+  const isUpcoming = event.status === 'upcoming' || event.status === 'registration_open';
   const eventEnd = event.endDate ?? event.startDate ?? event.date;
   const isInFuture = eventEnd ? new Date(eventEnd) > new Date() : isUpcoming;
   const canRegister = isUpcoming && isInFuture && event.capacity > 0;
@@ -926,20 +994,40 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
   const handleRegistration = async (e) => {
     e.preventDefault();
     if (regSubmitting) return;
+    if (typeof window !== 'undefined' && sessionStorage.getItem(registrationKey) === 'confirmed') {
+      setRegStatus('confirmed');
+      setRegError('');
+      return;
+    }
     setRegError('');
     setRegSubmitting(true);
     try {
       const base = getApiBase();
       const base = API_BASE || '';
       const url = `${base}/api/content/events/${event.id}/register`;
+      const idempotencyKey =
+        typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `reg-${event.id}-${Date.now().toString(36)}`;
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem(registrationKey, idempotencyKey);
+      }
       const data = await apiClient(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        timeout: 5000,
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': idempotencyKey,
+          'X-Idempotency-Key': idempotencyKey,
+        },
         body: JSON.stringify(regForm),
       });
       if (data.ticket) {
         setRegTicket(data.ticket);
         setRegStatus('confirmed');
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem(registrationKey, 'confirmed');
+        }
       } else {
         // Create a local ticket when backend doesn't return one
         const localTicket = {
@@ -950,18 +1038,41 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
         };
         setRegTicket(localTicket);
         setRegStatus('confirmed');
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem(registrationKey, 'confirmed');
+        }
         // Store in localStorage for retrieval
         try {
           const stored = JSON.parse(localStorage.getItem('ns_registrations') || '[]');
           stored.push(localTicket);
           localStorage.setItem('ns_registrations', JSON.stringify(stored.slice(-20)));
-        } catch {}
+        } catch (error) {
+          if (import.meta.env.DEV) {
+            console.warn('[EventDetailPage] Failed to persist local registration:', error);
+        } catch (err) {
+          if (import.meta.env.DEV) {
+            console.warn('Failed to persist event registration ticket locally:', err);
+        } 
+        catch (error) {
+          if (import.meta.env.DEV) {
+            console.warn(
+              "Failed to store event registration in localStorage:",
+              error
+            );
+          }
+        } catch (err) {
+          console.error('Failed to save ticket locally:', err);
+          setRegError('Warning: Could not save ticket to your device. Please take a screenshot.');
+        }
       }
     } catch (err) {
       if (err.message?.includes('waitlist')) {
         setRegStatus('waitlisted');
       } else {
         setRegError(err.message || 'Registration failed');
+        if (typeof window !== 'undefined') {
+          sessionStorage.removeItem(registrationKey);
+        }
       }
     } finally {
       setRegSubmitting(false);
@@ -1179,6 +1290,171 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
                 {status === 'completed' ? 'Completed' : 'Upcoming'}
               </span>
               {isUpcoming && (
+                <div style={{ position: 'relative' }}>
+                  <button
+                    onClick={() => setShowReminderMenu(!showReminderMenu)}
+                    title="Set Reminder"
+                    style={{
+                      background: reminderSet ? `rgba(34,197,94,0.15)` : `rgba(${rgb},0.1)`,
+                      border: reminderSet ? `1px solid #22c55e` : `1px solid rgba(${rgb},0.3)`,
+                      color: reminderSet ? '#22c55e' : color,
+                    onClick={() => setShowCalendarMenu(!showCalendarMenu)}
+                    title="Export to Calendar"
+                    style={{
+                      background: `rgba(${rgb},0.1)`,
+                      border: `1px solid rgba(${rgb},0.3)`,
+                      color: color,
+                      borderRadius: '50%',
+                      width: '28px',
+                      height: '28px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'scale(1.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = '';
+                    }}
+                  >
+                    <DynamicIcon name="Bell" size={14} />
+                  </button>
+                  {showReminderMenu && (
+                      e.currentTarget.style.background = `rgba(${rgb},0.2)`;
+                      e.currentTarget.style.transform = 'scale(1.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = `rgba(${rgb},0.1)`;
+                      e.currentTarget.style.transform = '';
+                    }}
+                  >
+                    <DynamicIcon name="CalendarPlus" size={14} />
+                  </button>
+                  {showCalendarMenu && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '36px',
+                        left: 0,
+                        right: 0,
+                        background: 'var(--bg-card)',
+                        border: '1px solid var(--border-subtle)',
+                        borderRadius: '8px',
+                        padding: '8px 0',
+                        zIndex: 10,
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                        minWidth: '160px',
+                        minWidth: '200px',
+                      }}
+                    >
+                      <div
+                        style={{
+                          padding: '4px 16px',
+                          fontSize: '0.75rem',
+                          color: 'var(--text-muted)',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
+                          marginBottom: '4px',
+                        }}
+                      >
+                        Set Reminder
+                      </div>
+                      <button
+                        onClick={() => handleSetReminder(15, '15 minutes')}
+                        style={{
+                          display: 'block',
+                        Add to Calendar
+                      </div>
+                      <button
+                        onClick={() => {
+                          setShowCalendarMenu(false);
+                          window.open(generateGoogleCalendarUrl(event), '_blank');
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          width: '100%',
+                          textAlign: 'left',
+                          padding: '8px 16px',
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--text-primary)',
+                          fontSize: '0.85rem',
+                          cursor: 'pointer',
+                        }}
+                        onMouseEnter={(e) => (e.target.style.background = 'var(--bg-card-hover)')}
+                        onMouseLeave={(e) => (e.target.style.background = 'none')}
+                      >
+                        15 minutes before
+                      </button>
+                      <button
+                        onClick={() => handleSetReminder(60, '1 hour')}
+                        style={{
+                          display: 'block',
+                        <DynamicIcon name="Chrome" size={14} /> Google Calendar
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowCalendarMenu(false);
+                          window.open(generateOutlookCalendarUrl(event), '_blank');
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          width: '100%',
+                          textAlign: 'left',
+                          padding: '8px 16px',
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--text-primary)',
+                          fontSize: '0.85rem',
+                          cursor: 'pointer',
+                        }}
+                        onMouseEnter={(e) => (e.target.style.background = 'var(--bg-card-hover)')}
+                        onMouseLeave={(e) => (e.target.style.background = 'none')}
+                      >
+                        1 hour before
+                      </button>
+                      <button
+                        onClick={() => handleSetReminder(24 * 60, '1 day')}
+                        style={{
+                          display: 'block',
+                        <DynamicIcon name="Mail" size={14} /> Outlook
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowCalendarMenu(false);
+                          downloadICS(event);
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          width: '100%',
+                          textAlign: 'left',
+                          padding: '8px 16px',
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--text-primary)',
+                          fontSize: '0.85rem',
+                          cursor: 'pointer',
+                        }}
+                        onMouseEnter={(e) => (e.target.style.background = 'var(--bg-card-hover)')}
+                        onMouseLeave={(e) => (e.target.style.background = 'none')}
+                      >
+                        1 day before
+                        <DynamicIcon name="Download" size={14} /> Apple / ICS
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+              {isUpcoming && (
                 <button
                   onClick={() => downloadICS(event)}
                   title="Download Calendar Event"
@@ -1285,17 +1561,16 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
                     pointerEvents: 'none',
                   }}
                 />
-                <p
+                <div
+                  className="event-description-html"
                   style={{
                     color: 'var(--text-secondary)',
-                    lineHeight: 1.85,
-                    fontSize: '0.98rem',
+                    fontSize: '0.95rem',
+                    lineHeight: 1.8,
                     margin: 0,
-                    whiteSpace: 'pre-line',
                   }}
-                >
-                  <Typewriter text={overview} speed={6} />
-                </p>
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(overview) }}
+                />
               </div>
             </section>
           )}

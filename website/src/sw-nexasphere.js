@@ -271,6 +271,23 @@ self.addEventListener('push', (event) => {
       actions: notificationData.actions,
     })
   );
+    let error = null;
+    try {
+      await queue.replayRequests();
+    } catch (err) {
+      error = err;
+      throw err;
+    } finally {
+      if (!error && self.registration && self.registration.showNotification) {
+        self.registration.showNotification('Sync Completed', {
+          body: 'Your offline actions have been synced successfully.',
+          icon: '/pwa-192x192.png',
+          badge: '/pwa-192x192.png',
+          tag: 'sync-completed',
+        });
+      }
+    }
+  },
 });
 
 // Intercept mutating requests to our API — queue them when offline
@@ -369,6 +386,12 @@ setCatchHandler(async ({ request }) => {
            (await matchPrecache('/offline.html')) || 
            (await caches.match('/offline.html')) || 
            Response.error();
+// ── 5. Offline Fallback ───────────────────────────────────────────────────────
+// Provide a fallback response when a navigation request fails because the app
+// is offline and the requested route isn't cached.
+setCatchHandler(async ({ request }) => {
+  if (request.destination === 'document') {
+    return (await matchPrecache('/offline.html')) || Response.error();
   }
   return Response.error();
 });

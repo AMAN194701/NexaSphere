@@ -5,16 +5,24 @@
  * @returns {string} A human-readable relative time string.
  */
 export function formatRelativeTime(timestamp) {
-  if (!timestamp) return 'Unknown time';
+  if (!timestamp && timestamp !== 0) return 'Unknown time';
 
-  const date = new Date(timestamp);
+  let timeMs = timestamp;
+  if (typeof timestamp === 'number' && timestamp > 0 && timestamp < 1e11) {
+    timeMs = timestamp * 1000;
+  }
 
-  if (Number.isNaN(date.getTime())) {
+  const date = new Date(timeMs);
+
+  if (Number.isNaN(date.getTime()) || date.getTime() === 0) {
     return 'Unknown time';
   }
 
   const diff = Math.floor((Date.now() - date.getTime()) / 1000);
 
+  if (diff < 0) {
+    return '0w ago';
+  }
   if (diff < 60) return 'Just now';
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;

@@ -23,6 +23,23 @@ const router = Router();
  * POST /moderation/ai-check — Server-side AI content moderation proxy.
  * Calls Gemini API using the server-side GEMINI_API_KEY (never exposed to client).
  */
+router.post('/ai-check', apiRateLimiter, validate(aiCheckSchema), requireStudentAuth, async (req, res) => {
+  try {
+    const { content } = req.body || {};
+    if (!content || typeof content !== 'string') {
+      return sendError(req, res, 'content string is required', 400, 'VALIDATION_ERROR');
+router.post('/ai-check', requireStudentAuth, async (req, res) => {
+  try {
+    const { content } = req.body || {};
+    if (!content || typeof content !== 'string') {
+      return res.status(400).json({ error: 'content string is required' });
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return sendSuccess(res, { flags: [], confidence: 0, explanation: 'AI moderation not configured' });
+      return res.json({ flags: [], confidence: 0, explanation: 'AI moderation not configured' });
+    }
 router.post(
   '/ai-check',
   apiRateLimiter,
@@ -65,6 +82,21 @@ router.post(
       const response = await result.response;
       const text = response.text();
       const parsed = JSON.parse(text);
+
+    return sendSuccess(res, {
+    return res.json({
+      flags: parsed.categories?.map((cat) => ({ type: cat, confidence: parsed.confidence })) || [],
+      confidence: parsed.confidence || 0.7,
+      explanation: parsed.explanation,
+    });
+  } catch (error) {
+    console.error('[AI Moderation] Error:', error.message);
+    return sendSuccess(res, { flags: [], confidence: 0, explanation: 'AI moderation unavailable' });
+  }
+});
+    return res.json({ flags: [], confidence: 0, explanation: 'AI moderation unavailable' });
+  }
+});
 
       return sendSuccess(res, {
         flags:

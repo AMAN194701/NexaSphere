@@ -1944,3 +1944,16 @@ body {
   .quick-grid { grid-template-columns: 1fr 1fr; }
   .offline-banner { left: 0; }
 }
+/* ── Light Mode High Contrast WCAG AA Theme Overrides ── */
+:root[data-theme='light'] {
+  --bg: #f9fafb;
+  --surface: #ffffff;
+  --surface2: #f3f4f6;
+  --border: #d1d5db;
+  --red: #cc1111;
+  --red-hover: #b30e0e;
+  --text: #111827;
+  --text2: #374151;
+  --text-muted: #4b5563;
+}
+

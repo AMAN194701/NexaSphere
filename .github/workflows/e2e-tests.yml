@@ -114,6 +114,7 @@ jobs:
           ADMIN_EVENT_PASSWORD: StrongEventPassword123!
           ADMIN_USERS_JSON: ${{ secrets.ADMIN_USERS_JSON }}
           ADMIN_EVENT_PASSWORD: ${{ secrets.ADMIN_EVENT_PASSWORD }}
+          ADMIN_EVENT_PASSWORD: ${{ secrets.E2E_ADMIN_EVENT_PASSWORD || 'ChangeMe123!Event' }}
         timeout-minutes: 5
 
       - name: Wait for server
@@ -127,6 +128,7 @@ jobs:
 
       - name: Run E2E tests (${{ matrix.browser }})
         run: npx playwright test e2e/auth.spec.ts e2e/main.spec.ts e2e/prompt-history.spec.ts e2e/student-flows.spec.ts --project=${{ matrix.browser }}
+        run: npx playwright test --project=${{ matrix.browser }}
         timeout-minutes: 50
         run: npx playwright test e2e/auth.spec.ts e2e/main.spec.ts e2e/prompt-history.spec.ts e2e/journeys/05-admin-event-creation-journey.spec.ts --project=${{ matrix.browser }}
         timeout-minutes: 20

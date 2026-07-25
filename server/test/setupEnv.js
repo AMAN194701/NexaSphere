@@ -11,3 +11,4 @@ process.env.MEMBERSHIP_SECRET = 'membership-secret';
 process.env.SUPABASE_URL = 'https://dummy.supabase.co';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'dummy-key';
 process.env.ENCRYPTION_KEY = '12345678901234567890123456789012';
+process.env.SESSION_SECRET = 'StrongSessionPassword123!@#';

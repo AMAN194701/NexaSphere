@@ -205,7 +205,7 @@ const PDF_TEMPLATE = `<!DOCTYPE html>
       {{#if social_links}}
       <div class="social-links">
         {{#each social_links}}
-        <a href="{{this}}" class="social-link" target="_blank">{{@key}}</a>
+        <a href="{{this}}" class="social-link" target="_blank" rel="noopener noreferrer">{{@key}}</a>
         {{/each}}
       </div>
       {{/if}}
@@ -436,7 +436,7 @@ export const portfolioExportService = {
           ? `
       <div class="social-links">
         ${Object.entries(portfolio.social_links)
-          .map(([key, url]) => `<a href="${url}" class="social-link" target="_blank">${key}</a>`)
+          .map(([key, url]) => `<a href="${url}" class="social-link" target="_blank" rel="noopener noreferrer">${key}</a>`)
           .join('\n        ')}
       </div>`
           : ''

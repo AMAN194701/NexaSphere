@@ -36,10 +36,20 @@ jobs:
 
             // -- Skip Non Bug Issues ----------------------
             if (!isBug) return;
+            const labels   = (issue.labels || []).map((label) => label.name);
+            const isBug    = labels.includes('bug');
 
             // ── Skip bots ─────────────────────────────────────────────────────
             if (author.endsWith('[bot]')) {
               console.log('⏭️  Skipping bot-created issue');
+              return;
+            }
+
+            // ── Only validate bug reports ────────────────────────────────────
+            if (!isBug) {
+              await removeLabel('needs-more-info');
+              await removeLabel('valid-issue');
+              console.log(`↩️  Issue #${issueNum} is not labeled bug; skipping validation`);
               return;
             }
 
@@ -70,6 +80,9 @@ jobs:
               { pattern: /^#{1,6}\s*(?:bug\s+)?description\b/im,           label: '**Description** — What is the issue?' },
               { pattern: /^#{1,6}\s*steps\s+to\s+reproduce/im, label: '**Steps to Reproduce** — How can we reproduce the issue?' },
               { pattern: /^#{1,6}\s*expected\s+behav/im,      label: '**Expected Behavior** — What should happen?' },
+              { pattern: /^#{1,6}\s*(?:bug\s+)?description\b/im,    label: '**Description** — What is the issue?' },
+              { pattern: /^#{1,6}\s*steps\s+to\s+reproduce\b/im,    label: '**Steps to Reproduce** — How can we reproduce the issue?' },
+              { pattern: /^#{1,6}\s*expected\s+behav(?:ior|iour)\b/im, label: '**Expected Behavior** — What should happen?' },
             ];
 
             const missing = REQUIRED_SECTIONS

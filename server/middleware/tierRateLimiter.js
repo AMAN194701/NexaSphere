@@ -66,8 +66,7 @@ export function pruneMemoryStores(now = Date.now()) {
 /**
  * Clean up expired memory entries to prevent memory leaks
  */
-function pruneMemoryStores() {
-  const now = Date.now();
+export function pruneMemoryStores(now = Date.now()) {
   for (const [key, val] of memoryViolations.entries()) {
     if (now > val.expiresAt) memoryViolations.delete(key);
   }

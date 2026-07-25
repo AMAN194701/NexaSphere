@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, Users, AtSign, Settings, X, CheckCheck, Trash2 } from 'lucide-react';
@@ -25,6 +26,7 @@ export default function NotificationBell() {
 
   const shouldReduceMotion = useReducedMotion();
   const panelRef = useRef(null);
+  const location = useLocation();
 
   // Close on outside click
   useEffect(() => {
@@ -45,6 +47,10 @@ export default function NotificationBell() {
     if (isOpen) window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [isOpen, closePanel]);
+
+  useEffect(() => {
+    if (isOpen) closePanel();
+  }, [location.pathname, isOpen, closePanel]);
 
   return (
     <div ref={panelRef} style={{ position: 'relative', display: 'inline-block' }}>
@@ -124,6 +130,8 @@ export default function NotificationBell() {
         {isOpen && (
           <motion.div
             id="notification-panel"
+            role="region"
+            aria-label="Notifications Panel"
             initial={{
               opacity: 0,
               y: shouldReduceMotion ? 0 : -10,
@@ -221,6 +229,7 @@ export default function NotificationBell() {
                     whileTap={{ scale: 0.95 }}
                     onClick={clearAll}
                     title="Clear all"
+                    aria-label="Clear all notifications"
                     style={{
                       background: 'rgba(255,255,255,0.07)',
                       border: 'none',
@@ -239,6 +248,7 @@ export default function NotificationBell() {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={closePanel}
+                  aria-label="Close notifications"
                   style={{
                     background: 'rgba(255,255,255,0.07)',
                     border: 'none',
