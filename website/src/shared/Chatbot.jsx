@@ -129,6 +129,49 @@ const knowledgeBase = [
     answer:
       'Sorry to hear that! You can report bugs via:\n• **GitHub Issues**: github.com/Ayushh-Sharmaa/NexaSphere\n• **Email**: nexasphere@glbajajgroup.org\n• **Contact page**: Use the contact form on our website\n\nPlease describe the issue and which page/feature is affected.',
     quickReplies: ['Contact us', 'Go to GitHub', 'Try refreshing the page'],
+    keywords: ['nexasphere', 'about', 'community', 'what is'],
+    answer:
+      'NexaSphere is the official tech ecosystem at GL Bajaj Group of Institutions, Mathura, run by students for students to foster innovation and learning.',
+  },
+  {
+    keywords: ['hackathon', 'codathon', 'ideathon', 'promptathon'],
+    answer:
+      'NexaSphere hosts various competitions: Hackathons (building apps), Codathons (DSA/Competitive Programming), Ideathons (pitching ideas), and Promptathons (AI prompting).',
+  },
+  {
+    keywords: ['workshop', 'git', 'github', 'react', 'learn'],
+    answer:
+      'We conduct hands-on workshops on Git, GitHub, React, and emerging tech. Check the "Activities" page for upcoming sessions!',
+  },
+  {
+    keywords: ['event', 'kss', 'insight', 'session'],
+    answer:
+      'NexaSphere organizes Knowledge Sharing Sessions (KSS) and Insight Sessions where peers share technical expertise and industry trends.',
+  },
+  {
+    keywords: ['team', 'mentor', 'leader', 'organizer', 'ayush', 'tanishk'],
+    answer:
+      'NexaSphere is led by Ayush Sharma and Tanishk Bansal, supported by a dedicated Core Team of developers, designers, and content creators.',
+  },
+  {
+    keywords: ['join', 'member', 'membership', 'register'],
+    answer:
+      'To join as a member, click the "Join" button on our homepage. Note: You must use your @glbajajgroup.org email address.',
+  },
+  {
+    keywords: ['apply', 'core team', 'recruitment', 'hiring'],
+    answer:
+      'Core Team applications open periodically. Keep an eye on the "Apply" button in the navigation bar or our WhatsApp community updates.',
+  },
+  {
+    keywords: ['contact', 'email', 'reach out', 'help'],
+    answer:
+      'You can reach us at nexasphere@glbajajgroup.org or via the official contact form on the website.',
+  },
+  {
+    keywords: ['history', 'save', 'workspace'],
+    answer:
+      'Your chats are automatically saved! Use the 📋 icon to toggle history, or use the workspace selector to organize your queries into General, Coding, or Research.',
   },
 ];
 
