@@ -4434,6 +4434,8 @@ app.post("/api/notifications/subscribe", (req, res) => {
 
 app.get('/api/notifications/preferences', adminAuth, async (req, res) => {
 app.post('/api/notifications/unsubscribe', notificationRateLimiter, (req, res) => {
+// Notification Preferences
+app.get('/api/notifications/preferences', adminAuth, async (req, res) => {
   try {
     const userId = req.query.userId || 'global';
     const prefs = await notificationPreferencesRepository.list(userId);
@@ -4469,6 +4471,29 @@ app.put(
       return res.json({ success: ok });
     } catch (err) {
       return res.status(500).json({ error: err.message });
+
+app.put('/api/notifications/preferences', adminAuth, async (req, res) => {
+  try {
+    const userId = req.body.userId || 'global';
+    const { category, email, push, in_app } = req.body;
+    if (!category) return res.status(400).json({ error: 'category is required' });
+    const pref = await notificationPreferencesRepository.set(userId, category, {
+      email,
+      push,
+      in_app,
+    });
+    return res.json({ preference: pref });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/notifications/preferences/bulk', adminAuth, async (req, res) => {
+  try {
+    const userId = req.body.userId || 'global';
+    const { preferences } = req.body;
+    if (!Array.isArray(preferences) || !preferences.length) {
+      return res.status(400).json({ error: 'preferences array is required' });
     }
   }
 );
