@@ -1,4 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
+// src/hooks/useRecommendations.js
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { userInterestTracker } from '../services/recommendation/userInterestTracker';
+import apiClient from '../utils/apiClient';
+import { getApiBase } from '../utils/runtimeConfig';
+import { recommendationEngine } from '../services/recommendation/recommendationEngine';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
@@ -31,6 +37,30 @@ export function useRecommendations(userId, { limit = 10, page = 1 } = {}) {
     } catch (err) {
       console.error('[useRecommendations] fetch error:', err);
       setError(err.message);
+      // In a real application, the user_id would come from an authentication context.
+      // For now, using a placeholder.
+      const userId = '101'; // Example user ID
+
+      const base = getApiBase();
+      if (!base) {
+        setRecommendations([]);
+        setLoading(false);
+        return;
+      }
+
+      // The backend recommendation engine should ideally fetch all necessary user data
+      // (interests, history, followed users, etc.) from the database based on the user_id.
+      const response = await apiClient(`${base}/api/recommendations?user_id=${userId}`);
+      if (response && response.recommendations) {
+        setRecommendations(response.recommendations);
+      } else if (response && Array.isArray(response)) {
+        setRecommendations(response);
+      } else {
+        setRecommendations([]);
+      }
+    } catch (error) {
+      console.error('Failed to fetch recommendations from backend:', error);
+      setRecommendations([]); // Fallback to empty recommendations on error
     } finally {
       setLoading(false);
     }
@@ -56,6 +86,15 @@ export function useRecommendations(userId, { limit = 10, page = 1 } = {}) {
     // Ideally, this interaction should be sent to the backend for the ML model's feedback loop.
     // Example: axios.post(`${import.meta.env.VITE_API_BASE}/user-interactions`, { userId: '101', eventId, action, metadata });
   }, []);
+  const trackEvent = useCallback(
+    (eventId, action, metadata) => {
+      userInterestTracker.trackEventInteraction(eventId, action, metadata);
+      // generateRecommendations(); // Commented out / not defined in original
+    },
+    []
+    // Ideally, this interaction should be sent to the backend for the ML model's feedback loop.
+    // Example: apiClient(`${base}/api/user-interactions`, { method: 'POST', body: JSON.stringify({ userId: '101', eventId, action, metadata }) });
+  );
 
   const getSimilarEvents = useCallback(
     (event, limit = 3) => {
@@ -64,6 +103,9 @@ export function useRecommendations(userId, { limit = 10, page = 1 } = {}) {
       if (similarEvents[event.id]) {
         return similarEvents[event.id];
       }
+      const similar = recommendationEngine.getSimilarEvents(event, eventsRef.current, limit); // Still uses client-side engine for similarity
+      setSimilarEvents((prev) => ({ ...prev, [event.id]: similar }));
+      return similar;
     },
     [userId]
   );
@@ -84,6 +126,8 @@ export function useRecommendations(userId, { limit = 10, page = 1 } = {}) {
       }
     },
     [userId, fetchRecommendations]
+    [fetchRecommendationsFromBackend]
+    // Ideally, these preferences should be sent to the backend to update the user's profile for ML.
   );
 
   return {
