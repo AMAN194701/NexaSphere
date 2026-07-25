@@ -5,10 +5,7 @@ datasource db {
 
 generator client {
   provider = "prisma-client-js"
-<<<<<<< HEAD
   output   = "../server/node_modules/.prisma/client"
-=======
->>>>>>> origin/pr/1398
 }
 
 model User {
@@ -21,7 +18,6 @@ model User {
   workspaceMembers WorkspaceMember[]
   posts            Post[]
   logs             Log[]
-<<<<<<< HEAD
   feedbacks        EventFeedback[]
   actionItems      ActionItem[]
   settingsChanges  SettingsChangeLog[]
@@ -52,7 +48,6 @@ model WorkspaceMember {
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   role      Role      @relation(fields: [roleId], references: [id])
-=======
 }
 
 model Workspace {
@@ -79,25 +74,21 @@ model WorkspaceMember {
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   role        Role      @relation(fields: [roleId], references: [id])
->>>>>>> origin/pr/1398
 
   @@unique([workspaceId, userId])
 }
 
 model Role {
-<<<<<<< HEAD
   id          String   @id @default(uuid())
   name        String
   workspaceId String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-=======
   id          String            @id @default(uuid())
   name        String
   workspaceId String?
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
->>>>>>> origin/pr/1398
 
   workspace   Workspace?        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   permissions Permission[]      @relation("RolePermissions")
@@ -113,7 +104,6 @@ model Permission {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-<<<<<<< HEAD
   roles Role[] @relation("RolePermissions")
 }
 
@@ -133,7 +123,6 @@ model Post {
 
 model Log {
   id          String   @id @default(uuid())
-=======
   roles       Role[]   @relation("RolePermissions")
 }
 
@@ -153,12 +142,10 @@ model Post {
 
 model Log {
   id          String    @id @default(uuid())
->>>>>>> origin/pr/1398
   action      String
   details     String?
   userId      String?
   workspaceId String
-<<<<<<< HEAD
   createdAt   DateTime @default(now())
 
   user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
@@ -183,7 +170,6 @@ model AuditLog {
   timestamp DateTime    @default(now())
 }
 
-<<<<<<< HEAD
 model EventFeedback {
   id               String   @id @default(uuid())
   eventId          String
@@ -246,15 +232,11 @@ model SettingsChangeLog {
   @@index([changedById])
 }
 
-=======
   createdAt   DateTime  @default(now())
 
   user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 }
-<<<<<<< HEAD
->>>>>>> origin/pr/1398
-=======
 
 model WebhookEndpoint {
   id          String            @id @default(uuid())
@@ -281,8 +263,6 @@ model WebhookDelivery {
 
   endpoint     WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
 }
->>>>>>> origin/pr/1829
-=======
 // ── Dynamic Event Capacity Pricing ──
 
 model EventPricing {
@@ -310,4 +290,3 @@ model PriceHistory {
 
   pricing   EventPricing @relation(fields: [pricingId], references: [id], onDelete: Cascade)
 }
->>>>>>> origin/pr/2325

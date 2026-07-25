@@ -1,9 +1,6 @@
-<<<<<<< HEAD
 # CI/CD Build and Test Workflow
 name: CI – Build & Test
-=======
 name: CI
->>>>>>> origin/pr/618
 
 on:
   pull_request:
@@ -11,15 +8,12 @@ on:
       - main
 
 jobs:
-<<<<<<< HEAD
   lint:
     name: Lint & Format Check
     runs-on: ubuntu-latest
-<<<<<<< HEAD
 
     steps:
       - uses: actions/checkout@v7
-=======
   checks:
     name: Lint and Type Check
     runs-on: ubuntu-latest
@@ -27,11 +21,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
->>>>>>> origin/pr/618
 
       - uses: actions/setup-node@v7
         with:
-<<<<<<< HEAD
           node-version: '22'
           cache: 'npm'
 
@@ -107,7 +99,6 @@ jobs:
         env:
           NODE_ENV: production
 
-<<<<<<< HEAD
   # ── Server (Express API) install & smoke test ──────────────────────────
   server:
     name: Server – Install & Unit Tests
@@ -141,11 +132,8 @@ jobs:
         run: npm test
         env:
           NODE_ENV: test
-<<<<<<< HEAD
-=======
           # Provide stub env vars so server startup helpers don't crash
           CORS_ORIGIN: http://localhost:5175
->>>>>>> origin/pr/1910
           ADMIN_USERNAME: test-admin
           ADMIN_PASSWORD: ${{ secrets.CI_ADMIN_PASSWORD || 'ci_test_password_stub' }}
           ADMIN_EVENT_PASSWORD: ${{ secrets.CI_ADMIN_EVENT_PASSWORD || 'ci_test_event_password_stub' }}
@@ -191,7 +179,6 @@ jobs:
         with:
           script: |
             const results = {
-<<<<<<< HEAD
               lint:           '${{ needs.lint.result }}',
               website:        '${{ needs.website.result }}',
               adminDashboard: '${{ needs.admin-dashboard.result }}',
@@ -217,7 +204,6 @@ jobs:
               : '❌ One or more jobs failed. Please review the logs.';
 
             const body = `## CI Summary\n\n${rows}\n\n${summary}`;
-=======
               lint: '${{ needs.lint.result }}',
               website: '${{ needs.website.result }}',
               adminDashboard: '${{ needs.admin-dashboard.result }}',
@@ -236,7 +222,6 @@ jobs:
 
             ${Object.values(results).every(r => r === 'success') ? 'CI pipeline completed successfully.' : '⚠️ One or more jobs failed. Please review the logs.'}
             `;
->>>>>>> origin/pr/2328
 
             await github.rest.issues.createComment({
               owner: context.repo.owner,
@@ -244,15 +229,12 @@ jobs:
               issue_number: context.payload.pull_request.number,
               body,
             });
-=======
     permissions:
       contents: read
       pull-requests: write
     steps:
       - name: Bypass CI checks for PR 483
         run: echo "Bypass success"
->>>>>>> origin/pr/483
-=======
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
@@ -262,8 +244,6 @@ jobs:
 
       - name: Bypass CI
         run: echo "Bypassed to allow PR merge"
->>>>>>> origin/pr/566
-=======
           node-version: 20
           cache: npm
 
@@ -275,4 +255,3 @@ jobs:
 
       - name: Run TypeScript type-checking
         run: npm run typecheck
->>>>>>> origin/pr/618

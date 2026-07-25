@@ -62,7 +62,6 @@ class SheetsService:
         sheet.append_row(row)
 
     async def append_membership(self, form_data: Dict[str, Any]) -> None:
-<<<<<<< HEAD
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, self._append_to_worksheet, "Membership", form_data)
 
@@ -73,7 +72,6 @@ class SheetsService:
     async def append_core_team_application(self, form_data: Dict[str, Any]) -> None:
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, self._append_to_worksheet, "CoreTeamApplications", form_data)
-=======
         await asyncio.to_thread(self._append_to_worksheet, "Membership", form_data)
 
     async def append_recruitment(self, form_data: Dict[str, Any]) -> None:
@@ -81,6 +79,5 @@ class SheetsService:
 
     async def append_core_team_application(self, form_data: Dict[str, Any]) -> None:
         await asyncio.to_thread(self._append_to_worksheet, "CoreTeamApplications", form_data)
->>>>>>> origin/pr/1407
 
 sheets_service = SheetsService()

@@ -67,13 +67,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-<<<<<<< HEAD
         uses: actions/checkout@v7
       - name: Build Docker image from server/Dockerfile
-=======
         uses: actions/checkout@v4
       - name: Build Docker image from Dockerfile
->>>>>>> origin/pr/1910
         run: |
           if [ -f server/Dockerfile ]; then
             docker build --pull -t nexasphere:${{ github.sha }} ./server

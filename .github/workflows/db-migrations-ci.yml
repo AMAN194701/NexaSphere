@@ -22,7 +22,6 @@ jobs:
   validate-nodejs-migrations:
     runs-on: ubuntu-latest
     steps:
-<<<<<<< HEAD
       - uses: actions/checkout@v7
 
       - name: Setup Node.js
@@ -64,13 +63,10 @@ jobs:
           npm run migrate:rollback
           echo "Migration rollback successful"
 
-=======
       - run: echo "Success"
->>>>>>> origin/pr/483
   validate-java-migrations:
     runs-on: ubuntu-latest
     steps:
-<<<<<<< HEAD
       - uses: actions/checkout@v7
 
       - name: Setup Java
@@ -104,13 +100,10 @@ jobs:
         run: |
           grep -A 10 "<artifactId>flyway" server-java/pom.xml
 
-=======
       - run: echo "Success"
->>>>>>> origin/pr/483
   validate-python-migrations:
     runs-on: ubuntu-latest
     steps:
-<<<<<<< HEAD
       - uses: actions/checkout@v7
 
       - name: Setup Python
@@ -150,13 +143,10 @@ jobs:
           python -c "from sqlalchemy import create_engine; create_engine('${{ env.DATABASE_URL }}').connect()"
           echo "Database connection successful"
 
-=======
       - run: echo "Success"
->>>>>>> origin/pr/483
   check-migration-documentation:
     runs-on: ubuntu-latest
     steps:
-<<<<<<< HEAD
       - uses: actions/checkout@v7
 
       - name: Verify DATABASE_MIGRATIONS.md exists
@@ -194,9 +184,7 @@ jobs:
           echo "Checking Python alembic.ini..."
           [ -f "server-python/alembic.ini" ] && echo "✓ Found" || echo "❌ Missing"
 
-=======
       - run: echo "Success"
->>>>>>> origin/pr/483
   summary:
     runs-on: ubuntu-latest
     steps:

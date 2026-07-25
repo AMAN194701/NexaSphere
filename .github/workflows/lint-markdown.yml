@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Markdown Linting Workflow (Issue #832 — Option 1)
 # Automatically checks all .md files for formatting consistency on every PR.
 name: Lint Markdown
@@ -39,7 +38,6 @@ jobs:
             !test-results/**
             !**/test-results/**
           config: '.markdownlint.json'
-=======
 name: Markdown Linter
 
 # 1. WHEN to run: Whenever someone opens a Pull Request to the main branch
@@ -63,4 +61,3 @@ jobs:
         uses: davidanson/markdownlint-cli2-action@v16 # This is the official community tool
         with:
           globs: '**/*.md' # Tell it to scan every single .md file
->>>>>>> origin/pr/1244
