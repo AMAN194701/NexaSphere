@@ -2,6 +2,7 @@
   "name": "NexaSphere GL Bajaj Tech Community",
   "short_name": "NexaSphere",
   "description": "The GL Bajaj Student-Driven Tech Ecosystem and community community platform.",
+  "description": "The GL Bajaj Student-Driven Tech Ecosystem and community platform.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0a0c",
