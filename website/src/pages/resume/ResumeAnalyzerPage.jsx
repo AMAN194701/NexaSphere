@@ -128,6 +128,12 @@ export default function ResumeAnalyzerPage({ onBack }) {
       setResult(MOCK_RESULT);
       setStep('result');
     }, 2500);
+
+    return () => clearTimeout(timer);
+  }, [step]);
+
+  const handleUpload = () => {
+    setStep('analyzing');
   };
 
   return (
