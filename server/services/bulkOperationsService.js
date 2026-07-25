@@ -5,6 +5,7 @@ import { auditLogRepository } from '../repositories/auditLogRepository.js';
 import { parseCSV, generateCSV } from '../utils/csvParser.js';
 import { sendEmail } from './emailService.js';
 import { bulkOperationsQueue as queueServiceQueue } from './queueService.js';
+import { validateTableName } from '../utils/sqlSafety.js';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { Queue } from 'bullmq';
@@ -1055,7 +1056,7 @@ class BulkOperationsService {
 
         if (op.type === 'insert') {
           // A insert rollback deletes the created row
-          await client.query(`DELETE FROM ${op.table} WHERE id = $1`, [op.key]);
+          await client.query(`DELETE FROM ${validateTableName(op.table)} WHERE id = $1`, [op.key]);
           rolledBackOps.push({ type: 'delete', table: op.table, key: op.key });
         } else if (op.type === 'update') {
           // A update rollback restores previous values
@@ -1075,7 +1076,7 @@ class BulkOperationsService {
           });
 
           values.push(op.key);
-          const sql = `UPDATE ${op.table} SET ${fields.join(', ')} WHERE id = $${index}`;
+          const sql = `UPDATE ${validateTableName(op.table)} SET ${fields.join(', ')} WHERE id = $${index}`;
           await client.query(sql, values);
           rolledBackOps.push({ type: 'update', table: op.table, key: op.key });
         }
