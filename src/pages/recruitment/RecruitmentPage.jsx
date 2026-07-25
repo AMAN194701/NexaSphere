@@ -3176,6 +3176,18 @@ export default function RecruitmentPage({ onBack }) {
                   gap: 12,
                 }}
               >
+              <div style={{
+                background: 'rgba(0,212,255,.1)',
+                border: '1px solid var(--c1)',
+                borderRadius: 'var(--r2)',
+                padding: '12px 16px',
+                marginBottom: 20,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 12,
+              }}>
                 <div style={{ fontSize: '.9rem', color: 'var(--t1)' }}>
                   We restored your unsaved progress from earlier.
                 </div>
@@ -3263,6 +3275,11 @@ export default function RecruitmentPage({ onBack }) {
             )}
             {done ? (
               <div style={{ display: "grid", gap: 18 }}>
+                  <button onClick={continueDraft} className="btn btn-primary btn-sm">Continue</button>
+                  <button onClick={startOver} className="btn btn-outline btn-sm">Start Over</button>
+                </div>
+              </div>
+            )}
             {done ? (
               <div style={{ display: 'grid', gap: 18 }}>
                 {/* ── Confirmation banner ── */}
