@@ -27,6 +27,7 @@ function mapRow(row) {
     updatedAt: row.updated_at,
   };
 }
+
 export const eventsRepository = {
   async list({
     page = 1,
@@ -41,6 +42,8 @@ export const eventsRepository = {
   } = {}) {
     return withDb(async (client) => {
       const offset = (page - 1) * limit;
+
+      // Fix: If an empty page is returned (e.g. page out of bounds), fall back to a quick count
       const { rows } = await client.query(
         `select *, count(*) over()::int as total 
          from events 
@@ -48,9 +51,14 @@ export const eventsRepository = {
          limit $1 offset $2`,
         [limit, offset],
       );
-      
-      const total = rows.length > 0 ? rows[0].total : 0;
-      return { rows: rows.map(mapRow), total };
+
+      if (rows.length > 0) {
+        return { rows: rows.map(mapRow), total: rows[0].total };
+      }
+
+      // Fallback only if offset yielded zero rows
+      const { rows: countRows } = await client.query('select count(*)::int as total from events');
+      return { rows: [], total: countRows[0]?.total ?? 0 };
     });
   },
 
@@ -68,7 +76,6 @@ export const eventsRepository = {
            icon=excluded.icon,
            tags=excluded.tags,
            restricted_groups=excluded.restricted_groups,
-
            updated_at=now()
          returning *`,
         [
@@ -81,7 +88,6 @@ export const eventsRepository = {
           event.icon,
           event.tags,
           JSON.stringify(event.restrictedGroups || []),
-
         ]
       );
       const mapped = mapRow(rows[0]);
@@ -95,14 +101,12 @@ export const eventsRepository = {
   async update(id, patch) {
     return withDb(async (client) => {
       const keys = Object.keys(patch);
-      
-      // If no valid update fields are provided, skip the DB call and return the current record
+
       if (keys.length === 0) {
         const { rows } = await client.query('select * from events where id = $1', [id]);
         return rows.length ? mapRow(rows[0]) : null;
       }
 
-      // Map JavaScript camelCase properties back to database snake_case columns
       const fieldMap = {
         name: 'name',
         shortName: 'short_name',
@@ -114,27 +118,18 @@ export const eventsRepository = {
       };
 
       const setClauses = [];
-      const values = [id]; // $1 is always the ID for the WHERE clause
-      let paramIndex = 2;   // Dynamic parameters start at $2
+      const values = [id];
+      let paramIndex = 2;
 
       for (const key of keys) {
         if (fieldMap[key] !== undefined) {
           setClauses.push(`${fieldMap[key]} = $${paramIndex}`);
-          
-          // Ensure arrays are passed in a format pg-driver handles natively or as clean nulls
           let val = patch[key];
-          if (key === 'tags' && Array.isArray(val)) {
-            // Converts JS array directly to PG array format if driver needs it, 
-            // or lets the driver serialize it safely.
-            val = val; 
-          }
-          
           values.push(val);
           paramIndex++;
         }
       }
 
-      // Always append the updated timestamp
       setClauses.push(`updated_at = now()`);
 
       const queryText = `
@@ -145,7 +140,7 @@ export const eventsRepository = {
 
       const { rows } = await client.query(queryText, values);
       if (!rows.length) return null;
-      
+
       return mapRow(rows[0]);
     });
   },
@@ -175,7 +170,8 @@ export const eventsRepository = {
     return withDb(async (client) => {
       const offset = (page - 1) * limit;
 
-      let query = 'select * from events';
+      // Single pass query using count(*) over() window function
+      let selectClause = 'select *, count(*) over()::int as total from events';
       const params = [];
       const conditions = [];
 
@@ -199,7 +195,6 @@ export const eventsRepository = {
           `(LOWER(name) LIKE LOWER($${params.length + 1})
         OR LOWER(description) LIKE LOWER($${params.length + 2}))`
         );
-
         params.push(`%${search}%`);
         params.push(`%${search}%`);
       }
@@ -215,25 +210,32 @@ export const eventsRepository = {
       }
 
       if (conditions.length) {
-        query += ' WHERE ' + conditions.join(' AND ');
+        selectClause += ' WHERE ' + conditions.join(' AND ');
       }
 
-      query += ` ORDER BY created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
-
+      selectClause += ` ORDER BY created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
       params.push(limit, offset);
 
-      const { rows } = await client.query(query, params);
+      const { rows } = await client.query(selectClause, params);
 
+      if (rows.length > 0) {
+        return {
+          rows: rows.map(mapRow),
+          total: rows[0].total,
+        };
+      }
+
+      // Fallback count query only if offset was beyond actual table bounds
       let countQuery = 'select count(*)::int as total from events';
-
+      const countParams = params.slice(0, params.length - 2);
       if (conditions.length) {
         countQuery += ' WHERE ' + conditions.join(' AND ');
       }
 
-      const countResult = await client.query(countQuery, params.slice(0, params.length - 2));
+      const countResult = await client.query(countQuery, countParams);
 
       return {
-        rows: rows.map(mapRow),
+        rows: [],
         total: countResult.rows[0]?.total ?? 0,
       };
     });
