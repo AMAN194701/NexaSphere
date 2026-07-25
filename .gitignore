@@ -124,6 +124,7 @@ scratch/
 image.png
 test_output.txt
 
+<<<<<<< HEAD
 # ── Issue-specific working files (NEVER commit these) ─────────────
 # Files named after specific issue numbers are temporary working docs.
 # They belong in your local editor/notes, not in the repository.
@@ -134,3 +135,6 @@ test_output.txt
 *_ISSUE[0-9]*.md
 PR_CONTENT_ISSUE_*.md
 PR_TEMPLATE_ISSUE_*.md
+=======
+NexaSphere/
+>>>>>>> origin/pr/800

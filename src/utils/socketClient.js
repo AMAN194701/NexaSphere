@@ -87,6 +87,20 @@ export function initializeSocket(serverUrl = getSocketServerUrl()) {
     captureHandledException(error, "Socket.IO error:");
   });
 
+  socket.on("connect", () => {
+    identifyUser(); // try to identify if user info is available locally
+  });
+
+  socket.on("connect_error", (error) => {
+    console.error("[Socket.IO] Connection Error:", error);
+    captureHandledException(error, "Socket.IO connect_error:");
+  });
+
+  socket.on("error", (error) => {
+    console.error("[Socket.IO] Error:", error);
+    captureHandledException(error, "Socket.IO error:");
+  });
+
   socket.on("reconnect_failed", () => {
     console.error("[Socket.IO] Reconnection failed after max attempts");
     captureHandledException(
@@ -94,6 +108,12 @@ export function initializeSocket(serverUrl = getSocketServerUrl()) {
       "Socket.IO reconnect failed:"
     );
   });
+
+  function setupEventListeners() {
+    if (!socket) return;
+  }
+  // Setup custom event listeners
+  setupEventListeners();
 
   socket.on("connect_error", (error) => {
     console.error("[Socket.IO] Connection Error:", error);

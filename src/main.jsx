@@ -5,6 +5,8 @@ import './i18n';
 import { registerSW } from 'virtual:pwa-register';
 import { validateEnvironment } from './utils/env';
 import { HelmetProvider } from 'react-helmet-async'; // <--- 1. ADD THIS
+import { ThemeProvider } from "./context/theme/ThemeProvider";
+import GlobalErrorBoundary from "./components/GlobalErrorBoundary";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.jsx";
@@ -31,16 +33,25 @@ initializeSentry();
 window.addEventListener('unhandledrejection', (event) => {
   Sentry.captureException(event.reason, {
     tags: { type: 'unhandledrejection' },
+import { HelmetProvider } from "react-helmet-async";
+
+initializeSentry();
+
+window.addEventListener("unhandledrejection", (event) => {
+  Sentry.captureException(event.reason, {
+    tags: { type: "unhandledrejection" },
   });
 });
 
-window.addEventListener('error', (event) => {
-  Sentry.captureException(event.error, { tags: { type: 'uncaughterror' } });
+window.addEventListener("error", (event) => {
+  Sentry.captureException(event.error, { tags: { type: "uncaughterror" } });
 });
 
 // Apply saved theme before React renders — prevents flash of wrong theme
 const savedTheme = localStorage.getItem('nexasphere-theme') || 'dark';
 document.documentElement.setAttribute('data-theme', savedTheme);
+const savedTheme = localStorage.getItem("ns-theme") || "dark";
+document.documentElement.setAttribute("data-theme", savedTheme);
 
 // Validate environment configurations
 validateEnvironment();
@@ -156,7 +167,7 @@ document.documentElement.setAttribute("data-theme", savedTheme);
 // Register service worker
 registerSW({ immediate: true });
 
-createRoot(document.getElementById('root')).render(
+createRoot(document.getElementById("root")).render(
   <StrictMode>
     <HelmetProvider>
       <GlobalErrorBoundary>

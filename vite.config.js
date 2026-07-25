@@ -50,6 +50,42 @@ export default defineConfig({
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable',
+  base: process.env.VITE_BASE_PATH || "/",
+  plugins: [
+    react(),
+    sentryVitePlugin({
+      org: process.env.SENTRY_ORG || "nexasphere",
+      project: process.env.SENTRY_PROJECT || "javascript-react",
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+    }),
+    VitePWA({
+      disable: true,
+      registerType: "autoUpdate",
+      includeAssets: ["favicon.ico", "pwa-192x192.png", "pwa-512x512.png"],
+      manifest: {
+        name: "NexaSphere — Connecting GL Bajaj Tech Ecosystem",
+        short_name: "NexaSphere",
+        description:
+          "The premier tech community of GL Bajaj Group of Institutions.",
+        theme_color: "#CC1111",
+        background_color: "#0A0A0A",
+        display: "standalone",
+        icons: [
+          {
+            src: "pwa-192x192.png",
+            sizes: "192x192",
+            type: "image/png",
+          },
+          {
+            src: "pwa-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+          },
+          {
+            src: "pwa-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "any maskable",
           },
         ],
       },
@@ -193,6 +229,11 @@ export default defineConfig({
       },
     }),
   ],
+
+  define: {
+    "process.env": {},
+  },
+
   server: {
     port: 5175,
     proxy: {
