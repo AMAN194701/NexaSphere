@@ -1,6 +1,8 @@
 import React, { Suspense } from 'react';
 import RateLimitMonitor from './pages/dashboard/RateLimitMonitor';
 const AuditLogViewer = React.lazy(() => import('./pages/dashboard/AuditLogViewer'));
+import RateLimitMonitor from './pages/dashboard/RateLimitMonitor';
+import AuditLogViewer from './pages/dashboard/AuditLogViewer';
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import { Sidebar } from './components/Sidebar';

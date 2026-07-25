@@ -3,6 +3,8 @@ import { throttleMiddleware } from '../middleware/throttleMiddleware.js';
 import settingsRouter from './settingsRoutes.js';
 import rateLimitAdminRoutes from './rateLimitAdminRoutes.js';
 import settingsRouter from './settingsRoutes.js';
+import { throttleMiddleware } from '../middleware/throttleMiddleware.js';
+import rateLimitAdminRoutes from './rateLimitAdminRoutes.js';
 import { auditLogController } from '../controllers/auditLogController.js';
 import * as eventsController from '../controllers/eventsController.js';
 import * as activityEventsController from '../controllers/activityEventsController.js';
@@ -106,6 +108,9 @@ const workflowAutomationRoutes = require("./workflowAutomation");
 const router = Router();
 const apiAnalyticsRoutes = require('./apiAnalytics');
 const digitalAssetRoutes = require("./digitalAsset");
+
+router.use(rateLimitAdminRoutes);
+router.use(throttleMiddleware);
 
 router.use(rateLimitAdminRoutes);
 router.use(throttleMiddleware);
