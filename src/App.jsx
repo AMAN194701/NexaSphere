@@ -156,6 +156,37 @@ import Chatbot from "./shared/Chatbot";
 import {
   AmbientOrbs,
   SectionDivider,
+import { useState, useEffect, useRef, useCallback } from "react";
+
+import "./styles/themes.css";
+import "./styles/globals.css";
+import "./styles/animations.css";
+import "./styles/chatbot.css";
+import "./styles/components.css";
+import "./styles/portfolio.css";
+
+import "./styles/aurora.css";
+import "./styles/motion.css";
+import WorkspacePage from "./pages/workspace/WorkspacePage";
+import SearchBar from "./components/SearchBar";
+import FloatingDock from "./components/common/FloatingDock";
+import ParticleBackground from "./shared/ParticleBackground";
+import GeometricGridBackground from "./shared/GeometricGridBackground";
+import ScrollProgress from "./shared/ScrollProgress";
+import Navbar from "./shared/Navbar";
+import HeroSection from "./pages/home/HeroSection";
+import ActivitiesSection from "./pages/activities/ActivitiesSection";
+import EventsSection from "./pages/events/EventsSection";
+import AboutSection from "./pages/about/AboutSection";
+import TeamSection from "./pages/team/TeamSection";
+import Footer from "./shared/Footer";
+import ActivityDetailPage from "./pages/activities/ActivityDetailPage";
+import EventDetailPage from "./pages/events/EventDetailPage";
+import CinematicOpening from "./shared/CinematicOpening";
+import Chatbot from "./shared/Chatbot";
+import {
+  AmbientOrbs,
+  SectionDivider,
   PageFlash,
   BannerOrbs,
   useNsReveal,
@@ -322,6 +353,40 @@ import nexasphereLogo from "./assets/images/logos/nexasphere-logo.png";
 import Terminal from "./components/developer/Terminal";
 import { useDeveloperMode } from "./hooks/useDeveloperMode";
 
+} from "./shared/MotionLayer";
+import ActivitiesPage from "./pages/activities/ActivitiesPage";
+import EventsPage from "./pages/events/EventsPage";
+import AboutPage from "./pages/about/AboutPage";
+import TeamPage from "./pages/team/TeamPage";
+import ContactPage from "./pages/contact/ContactPage";
+import dynamic from "next/dynamic";
+
+const RecruitmentPage = dynamic(
+  () => import("./pages/recruitment/RecruitmentPage"),
+  { ssr: false }
+);
+const MembershipPage = dynamic(
+  () => import("./pages/membership/MembershipPage"),
+  { ssr: false }
+);
+const AdminPage = dynamic(() => import("./pages/admin/AdminPage"), {
+  ssr: false,
+});
+import RoadmapsPage from "./pages/roadmaps/RoadmapsPage";
+import ProjectsPage from "./pages/projects/ProjectsPage";
+import CertificateVerifyPage from "./pages/certificates/CertificateVerifyPage";
+import CollabPage from "./pages/collab/CollabPage";
+import PortfolioBuilder from "./components/portfolio/PortfolioBuilder";
+import PublicPortfolio from "./pages/portfolio/PublicPortfolio";
+import DashboardPage from "./pages/dashboard/DashboardPage";
+
+import { activityPages } from "./data/activities/index";
+import { events as fallbackEvents } from "./data/eventsData";
+import nexasphereLogo from "./assets/images/logos/nexasphere-logo.png";
+
+import Terminal from "./components/developer/Terminal";
+import { useDeveloperMode } from "./hooks/useDeveloperMode";
+
 import { BookmarkProvider } from "./context/BookmarkContext";
 import BookmarksDrawer from "./components/bookmarks/BookmarksDrawer";
 import { useTheme } from "./hooks/useTheme";
@@ -381,6 +446,22 @@ const TABS = [
   'About',
   'Team',
   'Contact',
+import { Toaster } from "sonner";
+
+const MNH = 88,
+  DNH = 86;
+const TABS = [
+  "Home",
+  "Dashboard",
+  "Activities",
+  "Events",
+  "Projects",
+  "Roadmaps",
+  "Portfolio",
+  "Collab",
+  "About",
+  "Team",
+  "Contact",
 ];
 
 const MNH = 88,
@@ -603,6 +684,12 @@ function PageIn({ children, k }) {
     return () => cancelAnimationFrame(raf);
   }, [k]);
   return (
+  const [r, setR] = useState(false);
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setR(true));
+    return () => cancelAnimationFrame(raf);
+  }, [k]);
+  return (
     <div
       style={{
         opacity: r ? 1 : 0,
@@ -689,6 +776,19 @@ function Cursor() {
     hovering: false,
     clicking: false,
     visible: true,
+    mx: 0,
+    my: 0,
+    ox: 0,
+    oy: 0,
+    floatY: 0,
+    floatPhase: 0,
+    hovering: false,
+    clicking: false,
+    visible: true,
+  const orbRef = useRef(null);
+  const trailRef = useRef(null);
+  const glowRef = useRef(null);
+  const stateRef = useRef({
     mx: 0,
     my: 0,
     ox: 0,
@@ -801,6 +901,41 @@ function Cursor() {
       s.ox += (s.mx - s.ox) * 1.0;
       s.oy += (s.my - s.oy) * 1.0;
       s.floatPhase += 0.022;
+    if (window.matchMedia("(hover:none)").matches) return;
+    document.body.style.cursor = "none";
+    const s = stateRef.current;
+    const onMove = (e) => {
+      s.mx = e.clientX;
+      s.my = e.clientY;
+    };
+    const onDown = () => {
+      s.clicking = true;
+    };
+    const onUp = () => {
+      s.clicking = false;
+    };
+    const onOver = (e) => {
+      s.hovering = !!e.target.closest('button,a,[role="button"],[tabindex]');
+    };
+
+    const onMouseLeave = () => {
+      s.visible = false;
+      if (orbRef.current) orbRef.current.style.display = "none";
+      if (trailRef.current) trailRef.current.style.display = "none";
+      if (glowRef.current) glowRef.current.style.display = "none";
+    };
+
+    const onMouseEnter = () => {
+      s.visible = true;
+      if (orbRef.current) orbRef.current.style.display = "block";
+      if (trailRef.current) trailRef.current.style.display = "block";
+      if (glowRef.current) glowRef.current.style.display = "block";
+    };
+
+    const tick = () => {
+      s.ox += (s.mx - s.ox) * 1.0;
+      s.oy += (s.my - s.oy) * 1.0;
+      s.floatPhase += 0.022;
       s.floatY =
         Math.sin(s.floatPhase) * 2 +
         Math.sin(s.floatPhase * 1.7) * 1 +
@@ -873,6 +1008,15 @@ function Cursor() {
       if (glowRef.current) {
         glowRef.current.style.left = s.mx + 'px';
         glowRef.current.style.top = s.my + 'px';
+        trailRef.current.style.left = s.ox + "px";
+        trailRef.current.style.top = s.oy + s.floatY * 0.4 + "px";
+        trailRef.current.style.opacity = s.visible
+          ? s.hovering
+            ? 0
+            : 0.35
+          : 0;
+      }
+      if (glowRef.current) {
         trailRef.current.style.left = s.ox + "px";
         trailRef.current.style.top = s.oy + s.floatY * 0.4 + "px";
         trailRef.current.style.opacity = s.visible
@@ -1158,6 +1302,7 @@ function MainApp() {
   const [mobile, setMobile] = useState(window.innerWidth <= 768);
   const [wipeOn, setWipeOn] = useState(false);
   const [wipePh, setWipePh] = useState('out');
+  const [cinDone, setCinDone] = useState(false);
   const [activeTab, setActiveTab] = useState("Home");
   const [mobile, setMobile] = useState(window.innerWidth <= 768);
   const [wipeOn, setWipeOn] = useState(false);
@@ -1183,6 +1328,14 @@ function MainApp() {
     mobile
   );
   const actions = useAppActions(performTransition, setPage, setActiveTab, mobile);
+  useEffect(() => {
+    const path = window.location.pathname;
+    const match = path.match(/^\/p\/([a-zA-Z0-9_-]+)/);
+    if (match) {
+      const name = match[1];
+      setPage({ type: "portfolio", username: name });
+    }
+  }, []);
 
   useEffect(() => {
     const handleResize = () => setMobile(window.innerWidth <= 768);
@@ -1212,9 +1365,17 @@ function MainApp() {
           const vapidKey =
             import.meta.env.VITE_VAPID_PUBLIC_KEY ||
             'BFG7-T9CszX7v2Xg707l3qTNY2p5N1N4iO3J8t5vJv5O7g7i5r5v5i5v5o5r5i5v5r5e5s5w5s';
+          const { initializePushNotifications } =
+            await import("./utils/pushNotificationClient");
+          const vapidKey =
+            import.meta.env.VITE_VAPID_PUBLIC_KEY ||
+            "BFG7-T9CszX7v2Xg707l3qTNY2p5N1N4iO3J8t5vJv5O7g7i5r5v5i5v5o5r5i5v5r5e5s5w5s";
           await initializePushNotifications(vapidKey);
         } catch (err) {
-          console.warn('Push notification initialization skipped or failed gracefully:', err);
+          console.warn(
+            "Push notification initialization skipped or failed gracefully:",
+            err
+          );
         }
       };
       const timer = setTimeout(initPush, 3500);
@@ -1439,12 +1600,26 @@ export default function App() {
     return () => window.removeEventListener("resize", fn);
     const fn = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    window.addEventListener("scroll", fn, { passive: true });
+    return () => window.removeEventListener("scroll", fn);
+  }, [mobile, page]);
+
+  useEffect(() => {
+    const fn = () => setMobile(window.innerWidth <= 768);
+    window.addEventListener("resize", fn, { passive: true });
+    return () => window.removeEventListener("resize", fn);
+  }, []);
+
+  /* ── Ctrl+K / Cmd+K opens search ── */
+  useEffect(() => {
+    const fn = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
         e.preventDefault();
         setSearchOpen((s) => !s);
       }
     };
-    window.addEventListener('keydown', fn);
-    return () => window.removeEventListener('keydown', fn);
+    window.addEventListener("keydown", fn);
+    return () => window.removeEventListener("keydown", fn);
   }, []);
 
   /* ── Ctrl+K / Cmd+K opens search ── */
@@ -1632,6 +1807,46 @@ export default function App() {
       });
       document.querySelectorAll(".activity-card").forEach((card) => {
       document.querySelectorAll('.activity-card').forEach((card) => {
+  useEffect(() => {
+    if (!cinDone) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting && !e.target.classList.contains("fired")) {
+            e.target.classList.add("fired");
+            e.target.addEventListener(
+              "animationend",
+              () => {
+                e.target.style.opacity = "1";
+                e.target.style.transform = "none";
+              },
+              { once: true }
+            );
+            obs.unobserve(e.target);
+          }
+        });
+      },
+      { threshold: 0.09, rootMargin: "0px 0px -36px 0px" }
+    );
+    document
+      .querySelectorAll(
+        ".pop-in,.pop-left,.pop-right,.pop-scale,.pop-flip,.pop-word,.pop-num"
+      )
+      .forEach((el) => obs.observe(el));
+
+    const btns = document.querySelectorAll(".mag-btn");
+    const onMove = (e) => {
+      btns.forEach((btn) => {
+        const rect = btn.getBoundingClientRect();
+        const dx = e.clientX - (rect.left + rect.width / 2);
+        const dy = e.clientY - (rect.top + rect.height / 2);
+        const d = Math.sqrt(dx * dx + dy * dy);
+        btn.style.transform =
+          d < 88
+            ? `translate(${((dx * (88 - d)) / 88) * 0.32}px,${((dy * (88 - d)) / 88) * 0.32}px)`
+            : "";
+      });
+      document.querySelectorAll(".activity-card").forEach((card) => {
         const rect = card.getBoundingClientRect();
         const cx = rect.left + rect.width / 2;
         const cy = rect.top + rect.height / 2;
@@ -1724,6 +1939,8 @@ export default function App() {
     setWipePh("out");
     setWipeOn(true);
     setWipePh('out');
+    setWipeOn(true);
+    setWipePh("out");
     setTimeout(() => {
       fn();
       window.scrollTo({ top: 0 });
@@ -1880,6 +2097,64 @@ export default function App() {
   const onKSSClick = useCallback(
     (ev) => {
       nav(() => setPage({ type: 'event', activityKey: 'Insight Session', event: ev }));
+  const onTab = useCallback(
+    (tab) => {
+      if (
+        [
+          "Dashboard",
+          "Activities",
+          "Events",
+          "Projects",
+          "Roadmaps",
+          "Portfolio",
+          "Collab",
+          "About",
+          "Team",
+          "Contact",
+        ].includes(tab)
+      ) {
+        nav(() => {
+          setPage({ type: "section", section: tab });
+          setActiveTab(tab);
+        });
+        return;
+      }
+      nav(() => {
+        setPage(null);
+        setActiveTab(tab);
+        setTimeout(() => {
+          const el = document.getElementById(`section-${tab.toLowerCase()}`);
+          if (!el) return;
+          window.scrollTo({
+            top: el.offsetTop - (mobile ? MNH : DNH),
+            behavior: "smooth",
+          });
+        }, 50);
+      });
+    },
+    [nav, mobile]
+  );
+
+  const onNavigate = useCallback(
+    (type, title) => {
+      if (type === "activity")
+        nav(() => setPage({ type: "activity", activityKey: title }));
+    },
+    [nav]
+  );
+
+  const onEvent = useCallback(
+    (ev) => {
+      nav(() => setPage((p) => ({ ...p, type: "event", event: ev })));
+    },
+    [nav]
+  );
+
+  const onKSSClick = useCallback(
+    (ev) => {
+      nav(() =>
+        setPage({ type: "event", activityKey: "Insight Session", event: ev })
+      );
     },
     [nav]
   );
@@ -2076,6 +2351,9 @@ export default function App() {
       setPage((p) => ({ type: "activity", activityKey: p.activityKey }))
     );
     nav(() => setPage((p) => ({ type: 'activity', activityKey: p.activityKey })));
+    nav(() =>
+      setPage((p) => ({ type: "activity", activityKey: p.activityKey }))
+    );
   }, [nav]);
 
   const onBackMain = useCallback(() => {
@@ -2096,6 +2374,7 @@ export default function App() {
   const onBackToSection = useCallback(
     (section) => {
       nav(() => setPage({ type: 'section', section }));
+      nav(() => setPage({ type: "section", section }));
     },
     [nav]
   );
@@ -2147,6 +2426,22 @@ export default function App() {
     });
   }, [nav]);
 
+    nav(() => setPage({ type: "apply" }));
+  }, [nav]);
+
+  const openJoin = useCallback(() => {
+    nav(() => setPage({ type: "join" }));
+  }, [nav]);
+
+  const onBackHome = useCallback(() => {
+    window.history.pushState({}, "", "/");
+    nav(() => {
+      setPage(null);
+      setActiveTab("Home");
+      window.scrollTo({ top: 0 });
+    });
+  }, [nav]);
+
   const nh = mobile ? MNH : DNH;
   const cur = page?.activityKey ? activityPages[page.activityKey] : null;
 
@@ -2178,6 +2473,14 @@ export default function App() {
       <Wipe on={wipeOn} ph={wipePh} />
 
       {!cinDone && <CinematicOpening theme={theme} onDone={() => setCinDone(true)} />}
+
+      {cinDone && <ScrollProgress />}
+      <Cursor />
+      <Wipe on={wipeOn} ph={wipePh} />
+
+      {!cinDone && (
+        <CinematicOpening theme={theme} onDone={() => setCinDone(true)} />
+      )}
 
       {cinDone && <ScrollProgress />}
       <Cursor />
@@ -2336,6 +2639,12 @@ export default function App() {
             {page.section === "Activities" && (
               <ActivitiesPage onNavigate={onNavigate} onBack={onBackHome} />
             )}
+            {page.section === "Dashboard" && (
+              <DashboardPage onBack={onBackHome} />
+            )}
+            {page.section === "Activities" && (
+              <ActivitiesPage onNavigate={onNavigate} onBack={onBackHome} />
+            )}
             {page.section === "Events" && (
               <EventsPage
                 onBack={onBackHome}
@@ -2361,6 +2670,11 @@ export default function App() {
                 activityKey={page.activityKey}
                 onBack={onBackMain}
                 onEventClick={onEvent}
+            {page.type === "activity" && cur && (
+              <ActivityDetailPage
+                activity={cur}
+                onBack={onBackMain}
+                onSelectEvent={onEvent}
               />
             )}
             {page.type === "apply" && <RecruitmentPage onBack={onBackHome} />}
@@ -2496,6 +2810,12 @@ export default function App() {
                 }}
               />
             )}
+            {page.type === "portfolio" && (
+              <PublicPortfolio username={page.username} onBack={onBackHome} />
+            )}
+            {page.type === "workspace" && (
+              <WorkspacePage roomId={page.roomId} onBack={onBackHome} />
+            )}
             {page.type &&
               ![
                 "section",
@@ -2611,6 +2931,29 @@ export default function App() {
             justifyContent: "center",
             boxShadow: "0 4px 20px rgba(204,17,17,0.5)",
             transition: "transform 0.2s, box-shadow 0.2s",
+            position: "fixed",
+            bottom: "80px",
+            left: "24px",
+            zIndex: 8500,
+            width: "46px",
+            height: "46px",
+            borderRadius: "50%",
+            background: "linear-gradient(135deg,#CC1111,#880000)",
+            border: "none",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: "0 4px 20px rgba(204,17,17,0.5)",
+            transition: "transform 0.2s, box-shadow 0.2s",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = "scale(1.12)";
+            e.currentTarget.style.boxShadow = "0 6px 28px rgba(204,17,17,0.75)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = "scale(1)";
+            e.currentTarget.style.boxShadow = "0 4px 20px rgba(204,17,17,0.5)";
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.transform = "scale(1.12)";
@@ -2734,6 +3077,7 @@ export default function App() {
         }}
       />
       {cinDone && <FloatingDock />}
+      <Toaster richColors />
     </BookmarkProvider>
 
           {page?.type === 'apply' && (

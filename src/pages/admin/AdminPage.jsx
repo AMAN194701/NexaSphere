@@ -4,6 +4,13 @@ import UserGrowthChart from '../../components/admin/analytics/UserGrowthChart';
 import EventAttendanceChart from '../../components/admin/analytics/EventAttendanceChart';
 import useLocalStorage from '../../hooks/useLocalStorage';
 import '../../components/admin/analytics/analytics.css';
+import React, { useState, useEffect } from "react";
+import { toast } from "sonner";
+import DashboardStats from "../../components/admin/analytics/DashboardStats";
+import UserGrowthChart from "../../components/admin/analytics/UserGrowthChart";
+import EventAttendanceChart from "../../components/admin/analytics/EventAttendanceChart";
+import "../../components/admin/analytics/analytics.css";
+import socketClient from "../../utils/socketClient";
 
 export default function AdminPage({ onBack }) {
   const [loading, setLoading] = useState(false);
@@ -13,6 +20,10 @@ export default function AdminPage({ onBack }) {
     () => localStorage.getItem('ns_admin_logged_in') === 'true'
   );
   const [loginData, setLoginData] = useState({ username: '', password: '' });
+  const [token, setToken] = useState(() =>
+    localStorage.getItem("ns_admin_token")
+  );
+  const [loginData, setLoginData] = useState({ username: "", password: "" });
   const [data, setData] = useState({
     stats: null,
     growth: [],
@@ -23,6 +34,7 @@ export default function AdminPage({ onBack }) {
     try {
       setLoading(true);
       const base = (import.meta?.env?.VITE_API_BASE || '').replace(/\/+$/, '');
+      const base = (import.meta?.env?.VITE_API_BASE || "").replace(/\/+$/, "");
       const headers = { Authorization: `Bearer ${authToken}` };
 
       const [statsRes, growthRes, eventsRes] = await Promise.all([
@@ -34,10 +46,12 @@ export default function AdminPage({ onBack }) {
       if (statsRes.status === 401) {
         setToken(null);
         throw new Error('Session expired. Please login again.');
+        localStorage.removeItem("ns_admin_token");
+        throw new Error("Session expired. Please login again.");
       }
 
       if (!statsRes.ok || !growthRes.ok || !eventsRes.ok) {
-        throw new Error('Failed to fetch analytics data.');
+        throw new Error("Failed to fetch analytics data.");
       }
 
       const [stats, growth, events] = await Promise.all([
@@ -92,6 +106,8 @@ export default function AdminPage({ onBack }) {
     const base = (import.meta?.env?.VITE_API_BASE || '').replace(/\/+$/, '');
     // Connect to SSE metrics stream endpoint using query token auth
     const eventSource = new EventSource(`${base}/api/admin/metrics/stream?token=${encodeURIComponent(token)}`);
+    const base = (import.meta?.env?.VITE_API_BASE || "").replace(/\/+$/, "");
+    const url = `${base}/api/admin/metrics/stream`;
 
     eventSource.addEventListener('registration', (event) => {
       try {
@@ -113,12 +129,15 @@ export default function AdminPage({ onBack }) {
       try {
         const response = await fetch(url, {
           credentials: 'include',
+          headers: { Authorization: `Bearer ${token}` },
         });
 
         if (!response.ok) {
           if (response.status === 401) {
             setIsLoggedIn(false);
             localStorage.removeItem('ns_admin_logged_in');
+            setToken(null);
+            localStorage.removeItem("ns_admin_token");
             return;
           }
           throw new Error(`SSE connection failed: ${response.status}`);
@@ -126,32 +145,37 @@ export default function AdminPage({ onBack }) {
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
-        let buffer = '';
-        let currentEvent = '';
-        let currentData = '';
+        let buffer = "";
+        let currentEvent = "";
+        let currentData = "";
 
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
           buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || '';
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
 
           for (const line of lines) {
-            if (line.startsWith('event: ')) {
+            if (line.startsWith("event: ")) {
               currentEvent = line.slice(7).trim();
-            } else if (line.startsWith('data: ')) {
+            } else if (line.startsWith("data: ")) {
               currentData = line.slice(6);
-            } else if (line === '' && currentEvent && currentData) {
+            } else if (line === "" && currentEvent && currentData) {
               const event = { data: currentData };
               (listeners[currentEvent] || []).forEach((fn) => fn(event));
               currentEvent = '';
               currentData = '';
+              currentEvent = "";
+              currentData = "";
             }
           }
         }
       } catch (err) {
-        console.warn('Admin SSE metrics stream connection interrupted or reconnecting...', err);
+        console.warn(
+          "Admin SSE metrics stream connection interrupted or reconnecting...",
+          err
+        );
       }
 
       if (!closed) {
@@ -170,7 +194,7 @@ export default function AdminPage({ onBack }) {
       },
     };
 
-    sseClient.addEventListener('registration', (event) => {
+    sseClient.addEventListener("registration", (event) => {
       try {
         const parsed = JSON.parse(event.data);
         const payload = parsed.data;
@@ -187,9 +211,17 @@ export default function AdminPage({ onBack }) {
             totalUsers: currentStats.totalUsers !== null ? currentStats.totalUsers + 1 : 1,
             activeRegistrations:
               currentStats.activeRegistrations !== null ? currentStats.activeRegistrations + 1 : 1,
+            totalUsers:
+              currentStats.totalUsers !== null
+                ? currentStats.totalUsers + 1
+                : 1,
+            activeRegistrations:
+              currentStats.activeRegistrations !== null
+                ? currentStats.activeRegistrations + 1
+                : 1,
           };
 
-          const todayStr = new Date().toISOString().split('T')[0];
+          const todayStr = new Date().toISOString().split("T")[0];
           const updatedGrowth = [...(prev.growth || [])];
           const todayIdx = updatedGrowth.findIndex((g) => g.date === todayStr);
           if (todayIdx >= 0) {
@@ -208,15 +240,16 @@ export default function AdminPage({ onBack }) {
           };
         });
       } catch (err) {
-        console.error('Failed to parse registration SSE message:', err);
+        console.error("Failed to parse registration SSE message:", err);
       }
     });
 
     eventSource.addEventListener('login', (event) => {
+    sseClient.addEventListener("login", (event) => {
       try {
         JSON.parse(event.data);
       } catch (err) {
-        console.error('Failed to parse login SSE message:', err);
+        console.error("Failed to parse login SSE message:", err);
       }
     });
 
@@ -233,7 +266,7 @@ export default function AdminPage({ onBack }) {
     e.preventDefault();
     try {
       setLoading(true);
-      const base = (import.meta?.env?.VITE_API_BASE || '').replace(/\/+$/, '');
+      const base = (import.meta?.env?.VITE_API_BASE || "").replace(/\/+$/, "");
       const res = await fetch(`${base}/api/admin/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -243,15 +276,27 @@ export default function AdminPage({ onBack }) {
 
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || 'Login failed');
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(loginData),
+      });
+
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Login failed");
+
+      localStorage.setItem("ns_admin_token", result.token);
       setToken(result.token);
+      toast.success("Successfully logged in as admin!");
     } catch (err) {
       setError(err.message);
+      toast.error(err.message || "Login failed.");
     } finally {
       setLoading(false);
     }
   };
 
   const handleLogout = () => {
+    localStorage.removeItem("ns_admin_token");
     setToken(null);
   const handleLogout = async () => {
     try {
@@ -279,6 +324,20 @@ export default function AdminPage({ onBack }) {
           <form
             onSubmit={handleLogin}
             style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
+      <div
+        className="analytics-dashboard"
+        style={{ maxWidth: 400, marginTop: "10vh" }}
+      >
+        <button onClick={onBack} className="btn-back">
+          ← Back
+        </button>
+        <div className="chart-container" style={{ padding: "2rem" }}>
+          <h2 style={{ textAlign: "center", marginBottom: "1.5rem" }}>
+            Admin Login
+          </h2>
+          <form
+            onSubmit={handleLogin}
+            style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
           >
             <input
               type="text"
@@ -287,6 +346,11 @@ export default function AdminPage({ onBack }) {
               className="input-field"
               value={loginData.username}
               onChange={(e) => setLoginData({ ...loginData, username: e.target.value })}
+              className="input-field"
+              value={loginData.username}
+              onChange={(e) =>
+                setLoginData({ ...loginData, username: e.target.value })
+              }
               required
             />
             <input
@@ -296,10 +360,19 @@ export default function AdminPage({ onBack }) {
               className="input-field"
               value={loginData.password}
               onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+              className="input-field"
+              value={loginData.password}
+              onChange={(e) =>
+                setLoginData({ ...loginData, password: e.target.value })
+              }
               required
             />
-            <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? 'Authenticating...' : 'Login to Dashboard'}
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={loading}
+            >
+              {loading ? "Authenticating..." : "Login to Dashboard"}
             </button>
           </form>
           {error && (
@@ -309,6 +382,10 @@ export default function AdminPage({ onBack }) {
                 fontSize: '0.9rem',
                 marginTop: '1rem',
                 textAlign: 'center',
+                color: "#f87171",
+                fontSize: "0.9rem",
+                marginTop: "1rem",
+                textAlign: "center",
               }}
             >
               {error}
@@ -327,6 +404,10 @@ export default function AdminPage({ onBack }) {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'flex-start',
+          marginBottom: "2rem",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
         }}
       >
         <div>
@@ -339,6 +420,20 @@ export default function AdminPage({ onBack }) {
           <p style={{ opacity: 0.7 }}>Visualizing platform growth and event performance.</p>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <h1
+            style={{
+              fontSize: "2rem",
+              marginBottom: "0.5rem",
+              marginTop: "0.5rem",
+            }}
+          >
+            Admin Analytics
+          </h1>
+          <p style={{ opacity: 0.7 }}>
+            Visualizing platform growth and event performance.
+          </p>
+        </div>
+        <div style={{ display: "flex", gap: "0.5rem" }}>
           <button
             className="btn btn-outline"
             onClick={() => fetchAnalytics(token)}
@@ -351,6 +446,7 @@ export default function AdminPage({ onBack }) {
             className="btn btn-outline"
             onClick={handleLogout}
             style={{ borderColor: 'rgba(239, 68, 68, 0.5)', color: '#ef4444' }}
+            style={{ borderColor: "rgba(239, 68, 68, 0.5)", color: "#ef4444" }}
           >
             Logout
           </button>
