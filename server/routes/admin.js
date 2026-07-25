@@ -46,7 +46,7 @@ import {
 import { sendSuccess, sendError, sendNoContent } from '../utils/responseHelper.js';
 
 const router = Router();
-const adminAuth = [apiRateLimiter, adminAuthMiddleware.requireAdmin];
+const adminAuth = adminAuthMiddleware.requireAdmin;
 
 /**
  * Raw membership fetch helper, wrapped in a circuit breaker to protect
@@ -123,6 +123,18 @@ router.get('/membership', adminAuth, async (req, res) => {
   try {
     const data = await membershipBreaker.execute(scriptUrl, secret);
     return sendSuccess(res, { responses: data.responses || [] });
+    const response = await tracedFetch(scriptUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'getResponses', token: secret }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Google Apps Script returned ${response.status}`);
+    }
+
+    const data = await response.json();
+    return res.json({ responses: data.responses || [] });
   } catch (err) {
     if (err.code === 'CIRCUIT_OPEN') {
       console.warn(

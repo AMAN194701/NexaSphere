@@ -29,7 +29,11 @@ const slackBreaker = circuitBreakerRegistry.register(
   })
 );
 
-async function dispatchToSlack(payload, alertContext) {
+/**
+ * Send Slack alert
+ * @param {Object} alertData - Alert data
+ */
+async function sendSlackAlert(alertData) {
   const webhookUrl = process.env.SLACK_WEBHOOK_URL;
 
   if (!webhookUrl) {
@@ -62,8 +66,15 @@ async function sendSlackAlert(alertData) {
     } else {
       logger.info(`Slack ${alertContext} sent successfully`);
     }
+    const payload = formatSlackMessage(alertData);
+    await slackBreaker.execute(webhookUrl, payload);
+    logger.info('Slack alert sent successfully', { alertType: alertData.title });
   } catch (error) {
-    logger.error(`Error sending ${alertContext}`, { error: error.message });
+    if (error.code === 'CIRCUIT_OPEN') {
+      logger.warn('Slack circuit breaker is OPEN, skipping alert');
+    } else {
+      logger.error('Error sending Slack alert', { error: error.message });
+    }
   }
 }
 
@@ -296,6 +307,8 @@ async function sendPerformanceAlert(metrics) {
   await dispatchToSlack(payload, 'performance alert');
   const webhookUrl = process.env.SLACK_WEBHOOK_URL;
 
+  const webhookUrl = process.env.SLACK_WEBHOOK_URL;
+
   if (!webhookUrl) {
     return;
   }
@@ -368,6 +381,43 @@ async function sendPerformanceAlert(metrics) {
     const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+          blocks: [
+            {
+              type: 'header',
+              text: {
+                type: 'plain_text',
+                text: '📊 Performance Alert',
+                emoji: true,
+              },
+            },
+            {
+              type: 'section',
+              fields: [
+                { type: 'mrkdwn', text: `*Error Rate:*\n${metrics.errorRate.toFixed(2)}%` },
+                { type: 'mrkdwn', text: `*Threshold:*\n5%` },
+                { type: 'mrkdwn', text: `*Total Requests:*\n${metrics.totalRequests}` },
+                { type: 'mrkdwn', text: `*Total Errors:*\n${metrics.totalErrors}` },
+              ],
+            },
+            {
+              type: 'context',
+              elements: [
+                {
+                  type: 'plain_text',
+                  text: 'NexaSphere Performance Monitoring',
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const response = await tracedFetch(webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify(payload),
     });
 
@@ -382,11 +432,17 @@ async function sendPerformanceAlert(metrics) {
     }
   } catch (error) {
     logger.error('Error sending performance alert', { error: error.message });
+    await slackBreaker.execute(webhookUrl, payload);
+    logger.info('Performance alert sent successfully');
+  } catch (error) {
+    if (error.code !== 'CIRCUIT_OPEN') {
+      logger.error('Error sending performance alert', { error: error.message });
+    }
   }
 }
 
 async function sendErrorRateAlert(errorRate, threshold) {
-  await sendSlackAlert({
+  sendSlackAlert({
     title: `⚠️ Error Rate Alert`,
   sendSlackAlert({
     title: 'Error Rate Alert',

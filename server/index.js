@@ -120,6 +120,7 @@ import { broadcastSSEEvent } from "./services/sseService.js";
 import rateLimit from "express-rate-limit";
 import { formRateLimiter } from "./middleware/rateLimiter.js";
 import 'dotenv/config';
+import { tracedFetch } from './config/appContext.js';
 import { initObservability } from './observability/index.js';
 import { setTraceIdResolver } from './utils/logContext.js';
 import { getActiveTraceId } from './observability/tracing.js';
@@ -157,7 +158,6 @@ import formsRouter from './routes/forms.js';
 import portfolioRouter from './routes/portfolio.js';
 import notificationsRouter from './routes/notifications.js';
 import adminRouter from './routes/admin.js';
-import { validateEnvironment } from './utils/envValidator.js';
 import { performanceMonitor } from './middleware/performanceMonitor.js';
 import { tracingMiddleware } from './middleware/tracingMiddleware.js';
 import { apiRequestLogger } from './middleware/apiRequestLogger.js';
@@ -354,6 +354,18 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const CONTENT_FILE = path.join(__dirname, "data", "content.json");
 const CONTENT_FILE = path.join(__dirname, 'data', 'content.json');
+
+const REQUIRED_ENV_VARS = ['CORS_ORIGIN', 'ADMIN_EVENT_PASSWORD'];
+
+function validateEnvironment() {
+  const missing = REQUIRED_ENV_VARS.filter((env) => !process.env[env]);
+
+  if (missing.length > 0) {
+    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+  }
+
+  console.log('Environment validation passed');
+}
 
 validateEnvironment();
 initializeTypesenseCollections().catch((err) => {
@@ -970,7 +982,6 @@ app.use(csrfProtection);
 
 // Global API rate limiter â€” protects all /api routes from request flooding
 // Global API rate limiter — protects all /api routes from request flooding
-app.use('/api', apiRateLimiter);
 app.use('/api', tierRateLimiter());
 
 // Read-only guard — blocks non-GET requests when system is in maintenance mode
@@ -3784,6 +3795,29 @@ app.post(
 app.get("/api/admin/membership", adminAuth, async (req, res) => {
 // Admin membership responses — reads from Supabase as primary source,
 // falls back to Google Sheets for backwards compatibility
+async function _rawMembershipFetch(scriptUrl, secret) {
+  const response = await tracedFetch(scriptUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'getResponses', token: secret }),
+  });
+  if (!response.ok) {
+    throw new Error(`Google Apps Script returned ${response.status}`);
+  }
+  return response.json();
+}
+
+const membershipBreaker = circuitBreakerRegistry.register(
+  'membership-gas',
+  new CircuitBreaker(_rawMembershipFetch, {
+    name: 'membership-gas',
+    failureThreshold: 3,
+    successThreshold: 2,
+    coolDownPeriod: 15000,
+    maxCoolDownPeriod: 120000,
+  })
+);
+
 app.get('/api/admin/membership', adminAuth, async (req, res) => {
   if (HAS_SUPABASE) {
     try {

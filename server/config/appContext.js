@@ -8,7 +8,6 @@ export const appContext = new AsyncLocalStorage();
 const PG_PATCH_APPLIED = Symbol.for('appContext.pg.patched');
 // Idempotency guards — prevent double-patching if this module is re-imported
 const PG_PATCH_APPLIED = Symbol.for('appContext.pg.patched');
-const FETCH_PATCH_APPLIED = Symbol.for('appContext.fetch.patched');
 
 // Strip */ and newlines from reqId before embedding in a SQL comment
 // to prevent comment-injection attacks
@@ -47,20 +46,12 @@ function isInternalUrl(url)
         } 
           
   }
+}
 
 function getUrlString(input) {
-  if (typeof input === 'string') {
-    return input;
-  }
-
-  if (input instanceof URL) {
-    return input.toString();
-  }
-
-  if (typeof Request !== 'undefined' && input instanceof Request) {
-    return input.url;
-  }
-
+  if (typeof input === 'string') return input;
+  if (input instanceof URL) return input.toString();
+  if (typeof Request !== 'undefined' && input instanceof Request) return input.url;
   return String(input);
 }
 
@@ -77,11 +68,6 @@ if (!pg.Client.prototype.query[PG_PATCH_APPLIED]) {
   if (!pg.Client.prototype.query[PG_PATCH_APPLIED]) {
   const originalClientQuery = pg.Client.prototype.query;
 
-    // TODO:
-    // Replace pg.Client.prototype patching with a
-    // client wrapper/factory (e.g. instrumentClient())
-    // to avoid global prototype mutation.
-    // Prototype patching is retained for compatibility.
   pg.Client.prototype.query = function (...args) {
     const store = appContext.getStore();
 
@@ -199,7 +185,7 @@ global.fetch = function (url, options) {
 
       if (typeof firstArg === 'string') {
         args[0] = `/* reqId: ${safeId} */ ${firstArg}`;
-      } else if (firstArg?.text) {
+      } else if (firstArg?.text && !secondArgIsCallback) {
         args[0] = { ...firstArg, text: `/* reqId: ${safeId} */ ${firstArg.text}` };
       }
     }
@@ -210,11 +196,15 @@ global.fetch = function (url, options) {
   pg.Client.prototype.query[PG_PATCH_APPLIED] = true;
 }
 
-// Patch global.fetch to forward X-Request-ID on all outgoing calls.
-// OTel trace headers are only injected for internal URLs — never for
-// external APIs (Stripe, GitHub, OpenAI, etc.)
-if (!global.fetch?.[FETCH_PATCH_APPLIED]) {
-  const originalFetch = global.fetch;
+// Export a wrapped fetch for call sites to use explicitly, instead of
+// patching global.fetch. This avoids import-order races with OTel/undici
+// patching the global fetch themselves.
+// Forwards X-Request-ID whenever called inside an appContext.run(...) scope
+// (e.g. during request handling, after tracingMiddleware has populated the
+// store).
+export async function tracedFetch(url, options = {}) {
+  const store = appContext.getStore();
+  const headers = new Headers();
 
   // Only inject OpenTelemetry trace propagation headers for internal calls
   if (isInternalUrl(url)) {
@@ -283,24 +273,22 @@ export function internalFetch(url, options = {}) {
   // with existing fetch() call sites.
   global.fetch = function (url, options = {}) {
     const store = appContext.getStore();
+  if (options.headers instanceof Headers) {
+    options.headers.forEach((v, k) => headers.set(k, v));
+  } else if (options.headers) {
+    Object.entries(options.headers).forEach(([k, v]) => headers.set(k, v));
+  }
 
-    const headers = {};
-    if (options.headers instanceof Headers) {
-      options.headers.forEach((v, k) => {
-        headers[k] = v;
-      });
-    } else if (options.headers) {
-      Object.assign(headers, options.headers);
-    }
+  if (store?.reqId) headers.set('X-Request-ID', store.reqId);
 
-    if (store?.reqId) headers['X-Request-ID'] = store.reqId;
+  const urlString = getUrlString(url);
+  if (isInternalUrl(urlString)) {
+    propagation.inject(otelContext.active(), headers, {
+      set(carrier, key, value) {
+        carrier.set(key, value);
+      },
+    });
+  }
 
-   const urlstring =getUrlString(url);
-    if (isInternalUrl(urlstring)) {
-      propagation.inject(otelContext.active(), headers);
-    }
-    return originalFetch.call(this, url, { ...options, headers });
-  };
-
-  global.fetch[FETCH_PATCH_APPLIED] = true;
+  return globalThis.fetch(url, { ...options, headers });
 }
