@@ -1,0 +1,9 @@
+{
+  "admin": {
+    "dashboard": "Tableau de bord",
+    "users": "Utilisateurs",
+    "settings": "Paramètres",
+    "logout": "Se déconnecter",
+    "overview": "Aperçu"
+  }
+}
