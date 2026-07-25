@@ -86,15 +86,25 @@ export const listEvents = wrapAsync(async (req, res) => {
   const { rows, total } = await eventsService.listEvents({
     page,
     limit,
-    status,
-    studentGroups,
-    startDate,
-    endDate,
-    category,
-    location,
-    search,
+    scopeHash
+  )}`;
+
+  const { data, hit } = await getOrSet({
+    key: cacheKey,
+    ttlSeconds: 60 * 15,
+    getValue: async () => {
+      const { rows, total } = await eventsService.listEvents({
+        page,
+        limit,
+        status,
+        studentGroups,
+      });
+      return { events: rows, pagination: buildPaginationMeta(page, limit, total) };
+    },
   });
   return res.json({ events: rows, pagination: buildPaginationMeta(page, limit, total) });
+
+  res.setHeader('X-Cache', hit ? 'HIT' : 'MISS');
   return res.json(data);
 });
 

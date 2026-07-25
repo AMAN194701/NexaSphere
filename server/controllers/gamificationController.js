@@ -22,6 +22,10 @@ export async function getLeaderboard(req, res, next) {
     const { getOrSet, hashKeyParts } = await import('../utils/endpointCache.js');
     const cacheKey = `cache:endpoint:leaderboard:top:${hashKeyParts(filter)}`;
 
+
+    const { getOrSet, hashKeyParts } = await import('../utils/endpointCache.js');
+    const cacheKey = `cache:endpoint:leaderboard:top:${hashKeyParts(filter)}`;
+
     const { data, hit } = await getOrSet({
       key: cacheKey,
       ttlSeconds: 60 * 5,
@@ -66,6 +70,15 @@ export async function awardXP(req, res, next) {
       return sendError(req, res, 'User not found', 404, 'NOT_FOUND');
     }
     return sendSuccess(res, {
+
+    // Invalidate leaderboard cache (XP changed => ranking changed)
+    try {
+      const { invalidateByPrefix } = await import('../utils/endpointCache.js');
+      // Leaderboard cache keys are: cache:endpoint:leaderboard:top:*
+      await invalidateByPrefix('leaderboard:top');
+    } catch {
+      // ignore cache invalidation failures
+    }
 
     // Invalidate leaderboard cache (XP changed => ranking changed)
     try {
