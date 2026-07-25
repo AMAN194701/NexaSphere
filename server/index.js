@@ -61,6 +61,8 @@ import healthDashboardRouter from './routes/healthDashboard.js';
 import complianceRouter from './routes/compliance.js';
 import auditToolsRouter from './routes/auditTools.js';
 import certificatesRouter from './routes/certificates.js';
+import dynamicPricingRouter from './routes/dynamicPricing.js';
+
 import { logEvent } from './controllers/analyticsController.js';
 import { createBullBoard } from '@bull-board/api';
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
@@ -996,6 +998,7 @@ app.use('/api/admin', adminRouter);
 app.use('/api', learningPathRouter);
 app.use('/', syncRouter);
 app.use('/api/feedback', feedbackRouter);
+app.use('/api/pricing', dynamicPricingRouter);
 
 const adminAuth = [apiRateLimiter, adminAuthMiddleware.requireAdmin];
 

@@ -44,6 +44,7 @@ const SkillExchangePage = lazy(() => import('../pages/skills/SkillExchangePage')
 const WebhooksPage = lazy(() => import('../pages/monitoring/WebhooksPage'));
 const AmaListPage = lazy(() => import('../pages/ama/AmaListPage'));
 const AmaThreadPage = lazy(() => import('../pages/ama/AmaThreadPage'));
+const RevenueDashboardPage = lazy(() => import('../pages/monitoring/RevenueDashboardPage'));
 
 // Static/Eager page components
 import HeroSection from '../pages/home/HeroSection';

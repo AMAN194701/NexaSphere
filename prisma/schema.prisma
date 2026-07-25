@@ -232,6 +232,7 @@ model SettingsChangeLog {
   @@index([changedById])
 }
 
+<<<<<<< HEAD
   createdAt   DateTime  @default(now())
 
   user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
@@ -287,6 +288,30 @@ model PriceHistory {
   price     Float
   reason    String       // e.g. "early_bird", "demand_80pct", "admin_override"
   createdAt DateTime     @default(now())
+=======
+model EventPricing {
+  id            String         @id @default(uuid())
+  eventId       String         @unique
+  basePrice     Float
+  currentPrice  Float
+  minPrice      Float
+  maxPrice      Float
+  capacity      Int
+  registrations Int            @default(0)
+  eventDate     DateTime
+  adminOverride Float?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  priceHistory  PriceHistory[]
+}
+
+model PriceHistory {
+  id        String   @id @default(uuid())
+  pricingId String
+  price     Float
+  reason    String
+  createdAt DateTime @default(now())
+>>>>>>> origin/pr/2902
 
   pricing   EventPricing @relation(fields: [pricingId], references: [id], onDelete: Cascade)
 }
