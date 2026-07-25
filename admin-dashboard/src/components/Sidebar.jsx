@@ -155,10 +155,6 @@ const links = [
     to: '/dashboard/reports',
     label: 'Reports',
     icon: 'Target',
-    to: '/dashboard/settings',
-    label: 'Platform Settings',
-    icon: 'Settings',
-    requiredScope: 'settings:admin',
   },
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
@@ -581,3 +577,4 @@ export function Sidebar() {
   );
 }
 
+}
