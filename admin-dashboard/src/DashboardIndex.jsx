@@ -15,6 +15,7 @@ import { BannersManager } from './pages/BannersManager';
 import { useAuth } from './hooks/useAuth';
 import { PermissionGuard } from './components/PermissionGuard';
 import { useAuth } from './hooks/useAuth';
+import { PermissionGuard } from './components/PermissionGuard';
 import './styles/admin.css';
 
 function RequireAuth() {

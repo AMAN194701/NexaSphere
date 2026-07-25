@@ -152,6 +152,7 @@ import { NavLink } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { AdminIcon } from './AdminIcon';
 import { adminPath } from '../utils/adminBasePath';
+import { PermissionGuard } from './PermissionGuard';
 
 const links = [
   { to: '/dashboard', label: 'Dashboard', icon: 'Dashboard' },
@@ -181,13 +182,19 @@ import { adminPath } from '../utils/adminBasePath';
 
 const links = [
   { to: '/dashboard', label: 'Dashboard', icon: 'Dashboard' },
-  { to: '/dashboard/events', label: 'Events', icon: 'Calendar' },
+  { to: '/dashboard/events', label: 'Events', icon: 'Calendar', requiredScope: 'events:read' },
   {
     to: '/dashboard/activity-events',
     label: 'Activity Events',
     icon: 'Target',
+    requiredScope: 'events:read',
   },
-  { to: '/dashboard/core-team', label: 'Core Team', icon: 'Users' },
+  {
+    to: '/dashboard/core-team',
+    label: 'Core Team',
+    icon: 'Users',
+    requiredScope: 'settings:admin',
+  },
   { to: '/dashboard/membership', label: 'Membership', icon: 'FileText' },
   { to: '/dashboard/certificates', label: 'Certificates', icon: 'Award' },
 ];
@@ -371,6 +378,8 @@ export function Sidebar() {
                 />
               </a>
             ) : (
+          {links.map(({ to, label, icon, requiredScope }) => {
+            const LinkElement = (
               <NavLink
                 key={to}
                 to={to}
@@ -379,6 +388,7 @@ export function Sidebar() {
                 aria-current={({ isActive }) => (isActive ? 'page' : undefined)}
                 onClick={close}
                 data-tour={label.toLowerCase()}
+                onClick={close}
               >
                 <AdminIcon name={icon} size={16} aria-hidden="true" />
                 {label}

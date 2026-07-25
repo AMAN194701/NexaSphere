@@ -31,6 +31,8 @@ import { getScopesForRole } from '../config/rbac.js';
 import logger from '../utils/logger.js';
 
 // lgtm[js/weak-cryptographic-algorithm]
+import { getScopesForRole } from '../config/rbac.js';
+
 function safeEqual(a, b) {
   if (!a || !b) return false;
   const hashA = crypto.createHash('sha256').update(String(a)).digest();
@@ -482,6 +484,12 @@ async function login(req, res) {
     if (!matchedUser) {
       await recordLoginAttempt(ip);
       intrusionDetectionService.reportEvent(EVENT_TYPES.AUTH_FAILURE, ip, u).catch(console.error);
+    const matchedUser = adminUsers.find(
+      (user) => safeEqual(u, user.username) && safeEqual(p, user.password)
+    );
+
+    if (!matchedUser) {
+      recordLoginAttempt(ip);
       return res.status(401).json({ error: 'Invalid credentials' });
     if (u !== ADMIN_USERNAME || p !== ADMIN_PASSWORD) {
     let isPasswordValid = false;
@@ -519,6 +527,9 @@ async function login(req, res) {
         secret,
         backupCodes,
     const csrfToken = crypto.randomBytes(32).toString('hex');
+    const role = matchedUser.role || 'SuperAdmin';
+    const scopes = getScopesForRole(role);
+
     const session = await createAdminSession({
       username: u,
       metadata: {
@@ -539,6 +550,8 @@ async function login(req, res) {
       });
     }
         csrfToken,
+        role,
+        scopes,
       },
     });
 
@@ -557,6 +570,9 @@ async function login(req, res) {
       ip,
       userAgent,
       suspicious,
+      expiresAt: session.expiresAt,
+      role,
+      scopes,
     });
 
     return res.status(200).json({

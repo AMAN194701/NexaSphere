@@ -207,6 +207,9 @@ export function useNotifications() {
         await apiClient(base + "/api/notifications/mark-read", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+        await fetch(buildUrl(getApiBase(), '/api/notifications/mark-read'), {
+          method: 'POST',
+          headers: getAuthHeaders(),
           body: JSON.stringify({ id }),
         });
       } catch (e) {}
@@ -220,6 +223,9 @@ export function useNotifications() {
         const base = import.meta?.env?.VITE_API_BASE || "";
         await apiClient(base + "/api/notifications/mark-all-read", {
           method: "POST",
+        await fetch(buildUrl(getApiBase(), '/api/notifications/mark-all-read'), {
+          method: 'POST',
+          headers: getAuthHeaders(),
         });
       } catch (e) {}
     })();
@@ -231,6 +237,10 @@ export function useNotifications() {
       try {
         const base = import.meta?.env?.VITE_API_BASE || "";
         await apiClient(base + "/api/notifications", { method: "DELETE" });
+        await fetch(buildUrl(getApiBase(), '/api/notifications'), {
+          method: 'DELETE',
+          headers: getAuthHeaders(),
+        });
       } catch (e) {}
     })();
   }, []);

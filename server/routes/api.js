@@ -200,6 +200,7 @@ router.post(
   protectedActionRateLimiter,
   adminAuthMiddleware.requireScope('events:write'),
   validate(addActivityEventSchema),
+  adminAuthMiddleware.requireScope('events:write'),
   activityEventsController.addActivityEvent
 );
 router.delete(
@@ -394,6 +395,9 @@ router.post(
   adminAuthMiddleware.requireScope('events:write'),
   adminAuditMiddleware,
   validate(adminCreateEventSchema),
+router.post(
+  '/api/admin/events',
+  adminAuthMiddleware.requireScope('events:write'),
   eventsController.adminCreateEvent
 );
 router.put(
@@ -429,6 +433,19 @@ router.post(
   adminAuditMiddleware,
   validate(createSubscriptionSchema),
   subscriptionsController.createSubscription
+  '/api/admin/core-team/members',
+  adminAuthMiddleware.requireScope('settings:admin'),
+  coreTeamController.adminListCoreTeamMembers
+);
+router.post(
+  '/api/admin/core-team/members',
+  adminAuthMiddleware.requireScope('settings:admin'),
+  coreTeamController.adminAddCoreTeamMember
+);
+router.delete(
+  '/api/admin/core-team/members/:id',
+  adminAuthMiddleware.requireScope('settings:admin'),
+  coreTeamController.adminDeleteCoreTeamMember
 );
 
 // Banners Admin

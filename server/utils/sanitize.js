@@ -84,6 +84,18 @@ function sanitizeText(value, max = 4000) {
 
 function sanitizeNullableText(value, max = 4000) {
   const text = String(value ?? "")
+}
+
+function sanitizeText(value, max = 4000) {
+  return escapeHtml(
+    String(value ?? '')
+      .trim()
+      .slice(0, max)
+  );
+}
+
+function sanitizeNullableText(value, max = 4000) {
+  const text = String(value ?? '')
     .trim()
     .slice(0, max);
   return text ? escapeHtml(text) : null;
@@ -550,7 +562,9 @@ export { escapeHtml, sanitizeNullableText, sanitizeText, sanitizeTextArray };
 =======
 =======
 function toSafeString(value, max = 4000) {
-  return String(value ?? '').trim().slice(0, max);
+  return String(value ?? '')
+    .trim()
+    .slice(0, max);
 }
 
 function normalizePhone(value) {
