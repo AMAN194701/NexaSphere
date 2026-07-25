@@ -1,5 +1,6 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 # EditorConfig helps developers define and maintain consistent coding styles between different editors and IDEs
 >>>>>>> origin/pr/494
@@ -64,3 +65,11 @@ indent_size = 2
 indent_style = space
 indent_size = 2
 >>>>>>> origin/pr/569
+=======
+
+[*.py]
+indent_size = 4
+
+[*.java]
+indent_size = 4
+>>>>>>> origin/pr/597

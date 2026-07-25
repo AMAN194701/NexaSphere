@@ -472,3 +472,11 @@ Reviews are assessed based on:
 
 Thank you again for your incredible support in building NexaSphere! Together, we are creating a fantastic tech community platform. If you have any questions or need guidance, feel free to drop a message on the issue thread or connect with the maintainers. Let's write some great code! 🚀
 Thank you for contributing to NexaSphere and helping make it better for the community! 🚀
+1. Prefer small, readable functions.
+2. Remove dead code and stale config files when they are no longer needed.
+3. Update documentation alongside behavior changes.
+## Code Formatting
+- JavaScript/TypeScript: Prettier (2 spaces)
+- Python: Black (4 spaces)
+- Java: EditorConfig (4 spaces)
+
