@@ -212,6 +212,11 @@ export function setupWorkspaceSocket(io) {
       if (socket.rooms) {
         socket.rooms.forEach((roomId) => {
           // Ignore the socket's private internal room matching its ID
+    // FEATURE #3704: Clean up stale users from active room rosters on unexpected drop
+    socket.on('disconnecting', (reason) => {
+      if (socket.rooms) {
+        for (const roomId of socket.rooms) {
+          // Skip the socket's private room ID
           if (roomId !== socket.id) {
             socket.to(roomId).emit('user_left', {
               socketId: socket.id,
@@ -220,6 +225,16 @@ export function setupWorkspaceSocket(io) {
             logger.info('Broadcasted auto-departure on disconnect', { socketId: socket.id, roomId });
           }
         });
+              reason: reason || 'disconnect',
+            });
+            
+            logger.info('Broadcasted unexpected user_left on disconnect', {
+              socketId: socket.id,
+              roomId,
+              reason,
+            });
+          }
+        }
       }
     });
 
