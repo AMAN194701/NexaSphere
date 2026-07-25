@@ -55,6 +55,20 @@ function sanitizeText(value, max = 4000) {
 }
 
 function sanitizeNullableText(value, max = 4000) {
+  return String(value ?? "")
+    .replace(/[&<>"'`]/g, (character) => HTML_ESCAPE_MAP[character])
+    .trim();
+}
+
+function sanitizeText(value, max = 4000) {
+  return escapeHtml(
+    String(value ?? "")
+      .trim()
+      .slice(0, max)
+  );
+}
+
+function sanitizeNullableText(value, max = 4000) {
   const text = String(value ?? "")
     .trim()
     .slice(0, max);
@@ -487,7 +501,6 @@ export function sanitizePortfolioOutput(record) {
 
 export function isSafePortfolioUrl(value) {
   return isSafeUrl(value);
-=======
 function validateSection(value) {
   // Section codes are typically short alphanumeric identifiers up to 12 chars
   const cleaned = toSafeString(value, 12);
@@ -520,3 +533,5 @@ export {
 =======
 export { escapeHtml, sanitizeNullableText, sanitizeText, sanitizeTextArray };
 =======
+=======
+export { escapeHtml, sanitizeNullableText, sanitizeText, sanitizeTextArray };

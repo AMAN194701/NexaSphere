@@ -2,18 +2,26 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import { Socket } from 'socket.io-client';
 import { initializeSocket, disconnectSocket } from '../services/socket';
 import { getSocketServerUrl } from '../utils/runtimeConfig';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
+import { Socket } from "socket.io-client";
+import { initializeSocket, disconnectSocket } from "../services/socket";
 
 interface SocketContextProps {
   socket: Socket | null;
   isConnected: boolean;
 }
 
-const SocketContext = createContext<SocketContextProps>({
-  socket: null,
-  isConnected: false,
-});
+const SocketContext = createContext<SocketContextProps | undefined>(undefined);
 
-export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const SocketProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
@@ -26,8 +34,8 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     const onConnect = () => setIsConnected(true);
     const onDisconnect = () => setIsConnected(false);
 
-    socketInstance.on('connect', onConnect);
-    socketInstance.on('disconnect', onDisconnect);
+    socketInstance.on("connect", onConnect);
+    socketInstance.on("disconnect", onDisconnect);
 
     // Initial state
     setIsConnected(socketInstance.connected);
@@ -36,6 +44,9 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       socketInstance.off('connect', onConnect);
       socketInstance.off('disconnect', onDisconnect);
       // Removed disconnectSocket() to preserve singleton connection across route changes
+      socketInstance.off("connect", onConnect);
+      socketInstance.off("disconnect", onDisconnect);
+      disconnectSocket();
     };
   }, []);
 
@@ -44,4 +55,10 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   );
 };
 
-export const useSocketContext = () => useContext(SocketContext);
+export const useSocketContext = () => {
+  const context = useContext(SocketContext);
+  if (context === undefined) {
+    throw new Error("useSocketContext must be used within a SocketProvider");
+  }
+  return context;
+};
