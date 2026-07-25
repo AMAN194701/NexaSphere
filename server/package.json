@@ -47,6 +47,7 @@
     "migrate:reset": "node-pg-migrate reset",
     "migrate:create": "node-pg-migrate create"
     "migrate:create": "node-pg-migrate -f .postgres_migrations_config.json create"
+    "dr-drill": "node --loader ts-node/esm scripts/dr-drill.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1090.0",
