@@ -81,6 +81,147 @@ export default function AdminPage({ onBack }) {
       fetchAnalytics(token);
     }
   }, [token]);
+  }, [isLoggedIn]);
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    const base = getApiBase();
+    const url = `${base}/api/admin/metrics/stream`;
+
+    const listeners = {};
+    let closed = false;
+    let reconnectTimeout = undefined;
+
+    async function connect() {
+      // Re-check closed after any await — component may have unmounted
+      // while fetch() was in flight, making the earlier clearTimeout
+      // in sseClient.close() a no-op since reconnectTimeout was not
+      // yet assigned at that point.
+      if (closed) return;
+      try {
+        const response = await fetch(url, {
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            setIsLoggedIn(false);
+            return;
+          }
+          throw new Error(`SSE connection failed: ${response.status}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let currentEvent = '';
+        let currentData = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.startsWith('event: ')) {
+              currentEvent = line.slice(7).trim();
+            } else if (line.startsWith('data: ')) {
+              currentData = line.slice(6);
+            } else if (line === '' && currentEvent && currentData) {
+              const event = { data: currentData };
+              (listeners[currentEvent] || []).forEach((fn) => fn(event));
+              currentEvent = '';
+              currentData = '';
+            }
+          }
+        }
+      } catch (err) {
+        if (import.meta.env.DEV) {
+          console.warn('[AdminPage] SSE metrics stream interrupted or reconnecting:', err.message);
+        }
+      }
+
+      // Re-check closed after await — if component unmounted while fetch
+      // was in flight, closed is now true and we must not schedule a reconnect.
+      if (!closed) {
+        reconnectTimeout = setTimeout(connect, 3000);
+      }
+    }
+
+    const sseClient = {
+      addEventListener(event, fn) {
+        if (!listeners[event]) listeners[event] = [];
+        listeners[event].push(fn);
+      },
+      close() {
+        closed = true;
+        clearTimeout(reconnectTimeout);
+      },
+    };
+
+    sseClient.addEventListener('registration', (event) => {
+      try {
+        const parsed = JSON.parse(event.data);
+        const payload = parsed.data;
+
+        setData((prev) => {
+          const currentStats = prev.stats || {
+            totalUsers: null,
+            activeRegistrations: null,
+            upcomingEvents: null,
+            conversionRate: null,
+          };
+          const nextStats = {
+            ...currentStats,
+            totalUsers: currentStats.totalUsers !== null ? currentStats.totalUsers + 1 : 1,
+            activeRegistrations:
+              currentStats.activeRegistrations !== null ? currentStats.activeRegistrations + 1 : 1,
+          };
+
+          const todayStr = new Date().toISOString().split('T')[0];
+          const updatedGrowth = [...(prev.growth || [])];
+          const todayIdx = updatedGrowth.findIndex((g) => g.date === todayStr);
+          if (todayIdx >= 0) {
+            updatedGrowth[todayIdx] = {
+              ...updatedGrowth[todayIdx],
+              registrations: (updatedGrowth[todayIdx].registrations || 0) + 1,
+            };
+          } else {
+            updatedGrowth.push({ date: todayStr, registrations: 1 });
+          }
+
+          return {
+            ...prev,
+            stats: nextStats,
+            growth: updatedGrowth,
+          };
+        });
+      } catch (err) {
+        if (import.meta.env.DEV) {
+          console.error('[AdminPage] Failed to parse registration SSE message:', err.message);
+        }
+      }
+    });
+
+    sseClient.addEventListener('login', (event) => {
+      try {
+        JSON.parse(event.data);
+      } catch (err) {
+        if (import.meta.env.DEV) {
+          console.error('[AdminPage] Failed to parse login SSE message:', err.message);
+        }
+      }
+    });
+
+    connect();
+
+    return () => {
+      sseClient.close();
+    };
+  }, [isLoggedIn]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -105,6 +246,19 @@ export default function AdminPage({ onBack }) {
 
   const handleLogout = () => {
     setToken(null);
+  const handleLogout = async () => {
+    try {
+      const base = getApiBase();
+      await fetch(`${base}/api/admin/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch (err) {
+      if (import.meta.env.DEV) {
+        console.error('[AdminPage] Logout error:', err.message);
+      }
+    }
+    setIsLoggedIn(false);
     setData({ stats: null, growth: [], events: [] });
   };
 
