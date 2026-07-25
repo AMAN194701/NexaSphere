@@ -1,6 +1,9 @@
 # Observability stack overlay for NexaSphere (#1817)
 # Usage: docker compose -f docker-compose.yml -f observability/docker-compose.observability.yml up -d
+<<<<<<< HEAD
 # Security Note: Ensure GRAFANA_ADMIN_PASSWORD is set in your environment.
+=======
+>>>>>>> origin/pr/1822
 
 services:
   api:
@@ -51,7 +54,11 @@ services:
       - '3000:3000'
     environment:
       GF_SECURITY_ADMIN_USER: admin
+<<<<<<< HEAD
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+=======
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-nexasphere}
+>>>>>>> origin/pr/1822
       GF_USERS_ALLOW_SIGN_UP: 'false'
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
@@ -108,7 +115,10 @@ services:
       - '9600:9600'
     volumes:
       - ./logstash/pipeline/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+<<<<<<< HEAD
       - ../server/logs:/var/log/nexasphere:ro
+=======
+>>>>>>> origin/pr/1822
     environment:
       LS_JAVA_OPTS: '-Xms256m -Xmx256m'
     depends_on:
@@ -195,6 +205,7 @@ services:
       - observability
       - default
 
+<<<<<<< HEAD
   elastalert:
     build: ./elastalert
     container_name: nexasphere-elastalert
@@ -205,6 +216,8 @@ services:
     networks:
       - observability
 
+=======
+>>>>>>> origin/pr/1822
 volumes:
   prometheus_data:
   grafana_data:

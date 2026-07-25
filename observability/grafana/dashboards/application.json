@@ -19,6 +19,11 @@
           "refId": "A"
         }
       ]
+      "targets": [{
+        "expr": "sum(rate(http_requests_total{job=\"nexasphere-api\"}[5m])) by (status)",
+        "legendFormat": "{{status}}",
+        "refId": "A"
+      }]
     },
     {
       "id": 2,
@@ -32,6 +37,11 @@
           "refId": "A"
         }
       ]
+      "targets": [{
+        "expr": "sum(rate(http_requests_total{job=\"nexasphere-api\"}[5m])) by (method)",
+        "legendFormat": "{{method}}",
+        "refId": "A"
+      }]
     },
     {
       "id": 3,
@@ -45,6 +55,11 @@
           "refId": "A"
         }
       ]
+      "targets": [{
+        "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"nexasphere-api\"}[5m])) by (le, route))",
+        "legendFormat": "{{route}}",
+        "refId": "A"
+      }]
     },
     {
       "id": 4,
@@ -58,6 +73,11 @@
           "refId": "A"
         }
       ]
+      "targets": [{
+        "expr": "sum(rate(http_errors_total{job=\"nexasphere-api\"}[5m])) by (route)",
+        "legendFormat": "{{route}}",
+        "refId": "A"
+      }]
     }
   ]
 }

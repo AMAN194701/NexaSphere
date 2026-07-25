@@ -1,4 +1,7 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> origin/pr/1822
 import json
 import logging
 import os
@@ -6,8 +9,11 @@ import uuid
 import contextvars
 
 import google.generativeai as genai
+<<<<<<< HEAD
 import asyncio
 from contextlib import asynccontextmanager
+=======
+>>>>>>> origin/pr/1822
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,6 +21,15 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+<<<<<<< HEAD
+=======
+
+from observability.metrics import collect_celery_queue_depth
+from observability.tracing import init_tracing
+from prompts.system_prompt import SYSTEM_PROMPT
+from routers import certificates, forms, health, notifications, portfolio, recommend
+from utils.security import limiter
+>>>>>>> origin/pr/1822
 
 from observability.metrics import collect_celery_queue_depth
 from observability.tracing import init_tracing
@@ -87,6 +102,7 @@ else:
     genai.configure(api_key=API_KEY)
     model = genai.GenerativeModel(model_name="gemini-3.1-flash-lite-preview")
 
+<<<<<<< HEAD
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Start the periodic background worker task
@@ -111,9 +127,31 @@ if os.getenv("METRICS_ENABLED", "true").lower() != "false":
     )
     instrumentator.add(lambda info: collect_celery_queue_depth())
     instrumentator.instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
+=======
+app = FastAPI(title="NexaSphere AI Core")
+>>>>>>> origin/pr/1822
+
+init_tracing(app)
+
+if os.getenv("METRICS_ENABLED", "true").lower() != "false":
+    instrumentator = Instrumentator(
+        should_group_status_codes=True,
+        should_ignore_untemplated=True,
+    )
+    instrumentator.add(lambda info: collect_celery_queue_depth())
+    instrumentator.instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # pyright: ignore[reportArgumentType]
+<<<<<<< HEAD
+
+origins = os.getenv(
+    "CORS_ORIGIN",
+    "http://localhost:5173,http://localhost:5174,https://nexasphere-glbajaj.vercel.app,"
+    "https://admin-nexasphere.vercel.app,https://nexa-sphere-sigma.vercel.app,"
+    "https://admin-dashboard-navy-pi-22.vercel.app",
+).split(",")
+=======
 
 origins = os.getenv(
     "CORS_ORIGIN",
@@ -129,6 +167,33 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def request_id_middleware(request: Request, call_next):
+    req_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+    token = request_id_context.set(req_id)
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = req_id
+    request_id_context.reset(token)
+    return response
+
+
+@app.get("/")
+async def root():
+    return {
+        "message": "NexaSphere AI Core API is running. Visit /docs for Swagger API documentation."
+    }
+
+
+app.include_router(forms.router)
+app.include_router(recommend.router)
+app.include_router(certificates.router)
+app.include_router(notifications.router)
+app.include_router(health.router)
+app.include_router(portfolio.router)
+>>>>>>> origin/pr/1822
+
 
 
 @app.middleware("http")
@@ -199,6 +264,7 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(app, host="0.0.0.0", port=8000)
+<<<<<<< HEAD
 =======
 app = FastAPI()
 
@@ -207,3 +273,5 @@ app.add_middleware(SlowAPIMiddleware)
 
 app.include_router(router)
 >>>>>>> origin/pr/116
+=======
+>>>>>>> origin/pr/1822

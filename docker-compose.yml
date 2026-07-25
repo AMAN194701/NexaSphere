@@ -22,11 +22,18 @@ services:
       NODE_ENV: development
       PORT: 8787
       REDIS_URL: redis://redis:6379
+<<<<<<< HEAD
       ELASTICSEARCH_URL: http://elasticsearch:9200
+=======
+>>>>>>> origin/pr/1822
       LOG_FORMAT: json
       METRICS_ENABLED: 'true'
       OTEL_SERVICE_NAME: nexasphere-api
       OTEL_ENABLED: 'false'
+<<<<<<< HEAD
+=======
+      # Allow requests from the Vite dev servers
+>>>>>>> origin/pr/1822
       CORS_ORIGIN: 'http://localhost:5175,http://localhost:5001'
     networks:
       - default
@@ -113,6 +120,32 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
+
+networks:
+  observability:
+    name: nexasphere-observability
+    driver: bridge
+
+  # ── Python AI API (optional, for observability scraping) ────────────────────
+  python-api:
+    profiles: ['python', 'observability']
+    build:
+      context: ./server-python
+      dockerfile: Dockerfile
+    expose:
+      - '8000'
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      OTEL_SERVICE_NAME: nexasphere-python
+      OTEL_ENABLED: 'false'
+      LOG_FORMAT: json
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - default
+      - observability
 
 networks:
   observability:

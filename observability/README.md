@@ -44,6 +44,14 @@ cd server-python
 | Kibana        | <http://localhost:5601>  | —                                                  |
 | Jaeger        | <http://localhost:16686> | —                                                  |
 | Elasticsearch | <http://localhost:9200>  | security disabled (dev only)                       |
+| Service | URL | Credentials |
+|---------|-----|-------------|
+| Grafana | http://localhost:3000 | admin / `nexasphere` (or `GRAFANA_ADMIN_PASSWORD`) |
+| Prometheus | http://localhost:9090 | — |
+| Alertmanager | http://localhost:9093 | — |
+| Kibana | http://localhost:5601 | — |
+| Jaeger | http://localhost:16686 | — |
+| Elasticsearch | http://localhost:9200 | security disabled (dev only) |
 
 ## Application configuration
 
@@ -60,6 +68,17 @@ Copy variables from [`server/.env.example.monitoring`](../server/.env.example.mo
 | `PAGERDUTY_ROUTING_KEY`       | Critical alerts                                   |
 | `ERROR_RATE_THRESHOLD`        | Slack alert threshold (default 1%)                |
 | `SLOW_REQUEST_THRESHOLD`      | Slow request log threshold (ms)                   |
+| Variable | Purpose |
+|----------|---------|
+| `LOG_FORMAT=json` | Structured logs for ELK parsing |
+| `METRICS_ENABLED=true` | Expose `/metrics` |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | Jaeger OTLP collector (e.g. `http://jaeger:4318`) |
+| `OTEL_SERVICE_NAME` | Service label in traces/logs |
+| `MONITORING_API_TOKEN` | Auth for `/api/monitoring/*` |
+| `SLACK_WEBHOOK_URL` | Warning alerts |
+| `PAGERDUTY_ROUTING_KEY` | Critical alerts |
+| `ERROR_RATE_THRESHOLD` | Slack alert threshold (default 1%) |
+| `SLOW_REQUEST_THRESHOLD` | Slow request log threshold (ms) |
 
 ## Log retention
 
@@ -84,6 +103,11 @@ userId:"<user-id>"
 | critical | PagerDuty (if `PAGERDUTY_ROUTING_KEY` set) + Slack |
 | warning  | Slack                                              |
 | info     | suppressed (null receiver)                         |
+| Severity | Receiver |
+|----------|----------|
+| critical | PagerDuty (if `PAGERDUTY_ROUTING_KEY` set) + Slack |
+| warning | Slack |
+| info | suppressed (null receiver) |
 
 Configure `SLACK_WEBHOOK_URL` and `PAGERDUTY_ROUTING_KEY` in the environment before starting Alertmanager. For local dev, export them in your shell or use a `.env` file loaded by Docker Compose.
 
@@ -128,6 +152,11 @@ Feeds `nexasphere_page_load_seconds` histogram.
 4. **Kibana** — <http://localhost:5601> → Discover → index `nexasphere-logs-*` → filter `level:error`
 5. **Jaeger** — <http://localhost:16686> → search service `nexasphere-api` → find slow traces
 6. **Alerts** — <http://localhost:9090/alerts> and <http://localhost:9093> (Alertmanager UI)
+2. **Grafana** — open http://localhost:3000 → folder **NexaSphere** → **System Overview**
+3. **Prometheus** — http://localhost:9090 → query `rate(http_requests_total[5m])`
+4. **Kibana** — http://localhost:5601 → Discover → index `nexasphere-logs-*` → filter `level:error`
+5. **Jaeger** — http://localhost:16686 → search service `nexasphere-api` → find slow traces
+6. **Alerts** — http://localhost:9090/alerts and http://localhost:9093 (Alertmanager UI)
 
 For production alerting, copy `alertmanager/alertmanager.prod.yml.example` → `alertmanager.local.yml`, fill in Slack/PagerDuty keys, and mount it in compose.
 
@@ -142,3 +171,12 @@ For production alerting, copy `alertmanager/alertmanager.prod.yml.example` → `
 | Dashboards               | Grafana NexaSphere folder (5 dashboards)              |
 | Log retention            | `curl localhost:9200/_ilm/policy/nexasphere-logs-30d` |
 | Error tracking wired     | `cd server && npm test` (62 tests pass)               |
+| Criterion | How to verify |
+|-----------|---------------|
+| Metrics for all services | Prometheus targets UP at :9090/targets |
+| Alerts configured | Prometheus → Alerts tab shows rules |
+| Logs centralized | Kibana Discover shows `nexasphere-logs-*` |
+| Traces available | Jaeger UI shows `nexasphere-api` spans |
+| Dashboards | Grafana NexaSphere folder (5 dashboards) |
+| Log retention | `curl localhost:9200/_ilm/policy/nexasphere-logs-30d` |
+| Error tracking wired | `cd server && npm test` (62 tests pass) |

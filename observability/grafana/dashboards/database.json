@@ -20,6 +20,7 @@
           ]
         }
       }
+      "fieldConfig": { "defaults": { "mappings": [{ "type": "value", "options": { "0": { "text": "DOWN" }, "1": { "text": "UP" } } }] } }
     },
     {
       "id": 2,
@@ -33,6 +34,11 @@
           "refId": "A"
         }
       ]
+      "targets": [{
+        "expr": "pg_pool_connections",
+        "legendFormat": "{{state}}",
+        "refId": "A"
+      }]
     },
     {
       "id": 3,
@@ -46,6 +52,11 @@
           "refId": "A"
         }
       ]
+      "targets": [{
+        "expr": "pg_pool_connections{state=\"waiting\"}",
+        "legendFormat": "waiting",
+        "refId": "A"
+      }]
     },
     {
       "id": 4,
