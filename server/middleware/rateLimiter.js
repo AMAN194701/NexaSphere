@@ -240,6 +240,12 @@ export const subscriptionRateLimiter = rateLimit({
   },
 });
 // Portfolio update rate limiter — 10 requests per IP per 15 minutes
+  message: {
+    error:
+      "Too many activity auth attempts from this IP, please try again after 15 minutes.",
+  },
+});
+
 export const portfolioRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
@@ -251,6 +257,7 @@ export const portfolioRateLimiter = rateLimit({
   }),
   handler: (req, res, next, options) => {
     logger.warn('Sync batch rate limit exceeded', {
+    logger.warn("Portfolio update rate limit exceeded", {
       ip: req.ip,
       path: req.originalUrl || req.path,
       method: req.method,
@@ -337,6 +344,10 @@ export const searchRateLimiter = rateLimit({
     });
   message: {
     error: 'Too many portfolio update attempts from this IP, please try again after 15 minutes.',
+  },
+});
+      error: "Too many portfolio update attempts from this IP, please try again after 15 minutes.",
+    });
   },
 });
 

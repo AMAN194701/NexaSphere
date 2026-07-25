@@ -141,6 +141,11 @@ import { broadcastSSEEvent } from './services/sseService.js';
 import documentationRouter from './routes/documentation.js';
 import monitoringRouter from './routes/monitoring.js';
 import { broadcastSSEEvent } from "./services/sseService.js";
+import documentationRouter from "./routes/documentation.js";
+import monitoringRouter from "./routes/monitoring.js";
+import { performanceMonitor } from "./middleware/performanceMonitor.js";
+import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
+import { initializeSentry, addSentryErrorHandler } from "./utils/sentry.js";
 import {
   apiRateLimiter,
   formRateLimiter,
@@ -167,6 +172,9 @@ import { formRateLimiter } from './middleware/rateLimiter.js';
 import { apiRateLimiter, authRateLimiter } from './middleware/rateLimiter.js';
 import { performanceMonitor } from './middleware/performanceMonitor.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+} from "./middleware/rateLimiter.js";
+import { portfolioRepository } from "./repositories/portfolioRepository.js";
+import { Mutex } from "async-mutex";
 import { getPublicAppUrl } from './utils/publicAppUrl.js';
 import { Mutex } from 'async-mutex';
 
@@ -288,6 +296,7 @@ import notificationsService from './services/notificationsService.js';
 import { portfolioRepository } from './repositories/portfolioRepository.js';
 import { getWorkspaceDocument, saveWorkspaceDocument } from './repositories/workspaceRepository.js';
 
+// Fail fast on startup if any rate limiter failed to export correctly.
 validateLimiters();
 import adminStreamRouter from './routes/adminStream.js';
 import { portfolioRepository } from './repositories/portfolioRepository.js';
@@ -554,6 +563,9 @@ app.use((req, res, next) => {
     }
     return originalEnd.apply(this, arguments);
   };
+function requestLogger(req, res, next) {
+  const start = process.hrtime.bigint();
+  const { method, path } = req;
 
   res.on('finish', () => {
     const contentEncoding = res.get('Content-Encoding');
@@ -1999,7 +2011,10 @@ function normalizePhone(value) {
 
 async function canManageActivityEvent({ name, email, phone, password }) {
   const expectedPassword = process.env.ADMIN_EVENT_PASSWORD;
-  if (String(password || "") !== expectedPassword) return false;
+  // Use constant-time comparison to prevent timing-based password recovery.
+  if (!timingSafeStringEqual(String(password ?? ""), expectedPassword)) {
+    return false;
+  }
   const n = String(name || "")
     .trim()
     .toLowerCase();
@@ -3046,6 +3061,67 @@ async function deleteCoreTeamStore(id) {
 
 async function appendToSupabaseForms(formType, payload) {
   if (!HAS_SUPABASE) return false;
+// Constant-time string comparison that does not short-circuit on the first
+// mismatched character. Both operands are encoded to UTF-8 Buffers of equal
+// length before the comparison so response time is independent of how many
+// leading characters match. Returns false immediately if either value is empty,
+// so callers cannot exploit a zero-length buffer edge case.
+function timingSafeStringEqual(a, b) {
+  const sa = String(a ?? "");
+  const sb = String(b ?? "");
+  if (!sa.length || !sb.length) return sa === sb;
+  const ba = Buffer.from(sa, "utf8");
+  const bb = Buffer.from(sb, "utf8");
+  // Buffers must be the same byte length for timingSafeEqual. Pad the shorter
+  // one so the comparison always runs the full loop.
+  if (ba.length !== bb.length) {
+    const maxLen = Math.max(ba.length, bb.length);
+    const paddedA = Buffer.alloc(maxLen);
+    const paddedB = Buffer.alloc(maxLen);
+    ba.copy(paddedA);
+    bb.copy(paddedB);
+    // The length mismatch already means they cannot be equal, but we still run
+    // the full comparison so the execution time is data-independent.
+    crypto.timingSafeEqual(paddedA, paddedB);
+    return false;
+  }
+  return crypto.timingSafeEqual(ba, bb);
+}
+
+// Per-IP failed-attempt tracking for the activity-event auth endpoints.
+// Mirrors the passkey lockout pattern used for portfolio mutations below.
+const failedActivityAuthAttempts = new Map();
+const ACTIVITY_AUTH_MAX_ATTEMPTS = 5;
+const ACTIVITY_AUTH_LOCKOUT_MS = 15 * 60 * 1000;
+
+function checkActivityAuthLockout(ip) {
+  const entry = failedActivityAuthAttempts.get(ip);
+  if (!entry) return null;
+  if (Date.now() > entry.lockoutUntil) {
+    failedActivityAuthAttempts.delete(ip);
+    return null;
+  }
+  return entry;
+}
+
+function recordFailedActivityAuth(ip) {
+  const entry = failedActivityAuthAttempts.get(ip) || {
+    count: 0,
+    lockoutUntil: 0,
+  };
+  entry.count += 1;
+  if (entry.count >= ACTIVITY_AUTH_MAX_ATTEMPTS) {
+    entry.lockoutUntil = Date.now() + ACTIVITY_AUTH_LOCKOUT_MS;
+    entry.count = 0;
+  }
+  failedActivityAuthAttempts.set(ip, entry);
+  return entry;
+}
+
+function clearActivityAuthAttempts(ip) {
+  failedActivityAuthAttempts.delete(ip);
+}
+
 // REST Endpoints
 app.get("/healthz", async (req, res) => {
   try {
@@ -3394,6 +3470,12 @@ app.get("/api/content/core-team", async (req, res) => {
     const members = (rawMembers || []).map((m) => {
       let email = m.email || null;
       if (email && !email.toLowerCase().endsWith("@glbajajgroup.org")) {
+app.get('/api/content/core-team', async (req, res) => {
+  try {
+    const rawMembers = await coreTeamService.listMembers();
+    const members = (rawMembers || []).map(m => {
+      let email = m.email || null;
+      if (email && !email.toLowerCase().endsWith('@glbajajgroup.org')) {
         email = null; // hide personal emails entirely
       }
       return {
@@ -3401,6 +3483,7 @@ app.get("/api/content/core-team", async (req, res) => {
         email,
         whatsapp: 'https://chat.whatsapp.com/FhpJEaod2g419jFMfqrhGZ', // official community link
         whatsapp: "https://chat.whatsapp.com/FhpJEaod2g419jFMfqrhGZ", // official community link
+        whatsapp: 'https://chat.whatsapp.com/FhpJEaod2g419jFMfqrhGZ' // official community link
       };
     });
     return res.json({ members });
@@ -3461,6 +3544,10 @@ app.post("/api/content/activity-events/:activityKey", async (req, res) => {
     return activityEventsController.addActivityEvent(req, res);
   } catch (err) {
     return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: e?.message || 'Failed to load core team' });
+  }
+});
+
 // Admin Team Management
 app.get(
   "/api/admin/core-team",
@@ -3855,6 +3942,13 @@ async function fetchMembershipData(scriptUrl, secret, timeoutMs = 5000) {
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
+    const scriptUrl = process.env.MEMBERSHIP_SCRIPT_URL;
+    const secret = process.env.MEMBERSHIP_SECRET;
+
+    if (!scriptUrl || !secret) {
+      return res.json({ responses: [] });
+    }
+
     const response = await fetch(scriptUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
