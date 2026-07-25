@@ -1256,6 +1256,14 @@ export default function MembershipPage({ onBack }) {
                       </span>
                     </button>
                   ) : (
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', width: '100%' }}>
+                    <Turnstile
+                      siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
+                      onSuccess={(token) => {
+                        setCaptchaToken(token);
+                      }}
+                    />
                     <button
                       className="btn btn-primary btn-ripple"
                       type="button"
