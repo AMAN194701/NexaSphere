@@ -117,7 +117,7 @@ async function logError(error, context = {}) {
     ...errorData, 
     userId: context.userId,
     requestPath: context.url,
-    tags: { status: errorData.status, endpoint } 
+    tags: { status: errorData.status, endpoint },
   });
 
   // Add breadcrumb

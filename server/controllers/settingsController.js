@@ -11,7 +11,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import redis from '../config/redis.js';
+import { getRedisClient } from '../utils/redis.js';
 import crypto from 'crypto';
 import { sendSuccess, sendError, sendNoContent } from '../utils/responseHelper.js';
 
@@ -32,7 +32,8 @@ const CACHE_TTL = 300; // 5 minutes
 
 async function getCached(key) {
   try {
-    const val = await redis.get(key);
+    const client = getRedisClient();
+    const val = client && (await client.get(key));
     return val ? JSON.parse(val) : null;
   } catch {
     return null;
@@ -41,7 +42,8 @@ async function getCached(key) {
 
 async function setCache(key, value) {
   try {
-    await redis.set(key, JSON.stringify(value), 'EX', CACHE_TTL);
+    const client = getRedisClient();
+    if (client) await client.set(key, JSON.stringify(value), 'EX', CACHE_TTL);
   } catch {
     // Redis unavailable — continue without cache
   }
@@ -49,7 +51,8 @@ async function setCache(key, value) {
 
 async function invalidateCache(env) {
   try {
-    await redis.del(`settings:${env}`);
+    const client = getRedisClient();
+    if (client) await client.del(`settings:${env}`);
   } catch {
     // ignore
   }

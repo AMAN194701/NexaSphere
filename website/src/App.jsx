@@ -36,8 +36,6 @@ import './i18n';
 
 // Core structural elements
 import AppProviders from './providers/AppProviders';
-import AppRoutes, { Wipe } from './router/routes';
-import Cursor from './components/Cursor';
 import useAppBootstrap from './hooks/useAppBootstrap';
 import { useTheme } from './hooks/useTheme';
 import { useDeveloperMode } from './hooks/useDeveloperMode';
@@ -87,10 +85,12 @@ import { useBackToTop } from './hooks/useScrollLogic';
 const MNH = 88;
 const DNH = 64;
 
+import ErrorBoundary from './components/common/ErrorBoundary';
+
 // Lazy-loaded heavy pages
 const RecruitmentPage = lazy(() => import('./pages/recruitment/RecruitmentPage'));
 const MembershipPage = lazy(() => import('./pages/membership/MembershipPage'));
-const AdminPage = lazy(() => import('./pages/admin/AdminPage'));
+// const AdminPage = lazy(() => import('./pages/admin/AdminPage')); // TODO: page missing from repo, see issue tracker
 const ActivitiesPage = lazy(() => import('./pages/activities/ActivitiesPage'));
 const ActivityDetailPage = lazy(() => import('./pages/activities/ActivityDetailPage'));
 const EventsPage = lazy(() => import('./pages/events/EventsPage'));
@@ -102,7 +102,7 @@ const ResourcesPage = lazy(() => import('./pages/resources/ResourcesPage'));
 const RoadmapsPage = lazy(() => import('./pages/roadmaps/RoadmapsPage'));
 const ProjectsPage = lazy(() => import('./pages/projects/ProjectsPage'));
 const CertificateVerifyPage = lazy(() => import('./pages/certificates/CertificateVerifyPage'));
-const CollabPage = lazy(() => import('./pages/collab/CollabPage'));
+// const CollabPage = lazy(() => import('./pages/collab/CollabPage')); // TODO: page missing from repo, see issue tracker
 const PortfolioBuilder = lazy(() => import('./components/portfolio/PortfolioBuilder'));
 const PublicPortfolio = lazy(() => import('./pages/portfolio/PublicPortfolio'));
 const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage'));
@@ -1032,6 +1032,20 @@ function MainRouter({
               }
             />
 
+            {/* â”€â”€ Collab â”€â”€ (disabled: CollabPage missing from repo) */}
+            {false && (
+              <Route
+                path="/collab"
+                element={
+                  <ErrorBoundary>
+                    <PageIn k="collab">
+                      <CollabPage onBack={onBackHome} />
+                    </PageIn>
+                  </ErrorBoundary>
+                }
+              />
+            )}
+
             {/* â”€â”€ About â”€â”€ */}
             <Route
               path="/about"
@@ -1226,6 +1240,20 @@ function MainRouter({
                 </ErrorBoundary>
               }
             />
+
+            {/* â”€â”€ Admin (disabled: AdminPage missing from repo) â”€â”€ */}
+            {false && (
+              <Route
+                path="/admin"
+                element={
+                  <ErrorBoundary>
+                    <PageIn k="admin">
+                      <AdminPage onBack={onBackHome} />
+                    </PageIn>
+                  </ErrorBoundary>
+                }
+              />
+            )}
 
             {/* â”€â”€ Resources / Library â”€â”€ */}
             <Route

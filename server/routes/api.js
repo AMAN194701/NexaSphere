@@ -1,4 +1,8 @@
 import { Router } from 'express';
+import { throttleMiddleware } from '../middleware/throttleMiddleware.js';
+import settingsRouter from './settingsRoutes.js';
+import rateLimitAdminRoutes from './rateLimitAdminRoutes.js';
+import { auditLogController } from '../controllers/auditLogController.js';
 import * as eventsController from '../controllers/eventsController.js';
 import * as activityEventsController from '../controllers/activityEventsController.js';
 import { adminAuthMiddleware } from '../middleware/adminAuthMiddleware.js';
@@ -45,6 +49,15 @@ import { studentAuthService } from '../services/studentAuthService.js';
 import multer from 'multer';
 
 const router = Router();
+import multer from 'multer';
+
+const router = Router();
+router.use(rateLimitAdminRoutes);
+router.use(throttleMiddleware);
+
+const upload = multer({
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+});
 
 // Public
 router.get('/api/dashboard/leaderboard', gamificationController.getLeaderboard);

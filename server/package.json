@@ -173,6 +173,7 @@
     "redis": "^5.12.1",
     "qrcode": "^1.5.4",
     "rate-limit-redis": "^5.0.0",
+    "redis": "^6.1.0",
     "redoc-express": "^1.0.0",
     "rrule": "^2.8.1",
     "socket.io": "^4.7.2",

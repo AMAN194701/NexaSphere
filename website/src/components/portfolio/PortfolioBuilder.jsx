@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import apiClient from '../../utils/apiClient.js';
 import { getApiBase } from '../../utils/runtimeConfig';
 import { projectsData } from '../../data/projectsData';
@@ -89,6 +90,15 @@ export default function PortfolioBuilder() {
     id: p.id,
     title: p.title,
   }));
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const githubParam = params.get('github');
+    if (githubParam) {
+      setGhUsername(githubParam);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
 
   const loadControllerRef = useRef(null);
   const loadGenRef = useRef(0);
@@ -282,6 +292,10 @@ export default function PortfolioBuilder() {
       const top5 = [...data].sort((a, b) => b.stargazers_count - a.stargazers_count).slice(0, 5);
       setGhRepos(top5);
       setGhFetchAttempted(true);
+      const top5 = [...data]
+        .sort((a, b) => b.stargazers_count - a.stargazers_count)
+        .slice(0, 5);
+      setGhRepos(top5);
     } catch (err) {
       if (err.name === 'AbortError') return;
       setGhError('Failed to fetch repositories. Please check your connection and try again.');
@@ -886,6 +900,9 @@ export default function PortfolioBuilder() {
                                 {repo.stargazers_count > 0 && (
                                   <span>★ {repo.stargazers_count}</span>
                                 )}
+                                style={{ marginLeft: 'auto', fontSize: '0.75rem', opacity: 0.8, display: 'flex', gap: '8px' }}
+                              >
+                                {repo.stargazers_count > 0 && <span>★ {repo.stargazers_count}</span>}
                                 {repo.forks_count > 0 && <span>⑂ {repo.forks_count}</span>}
                               </span>
                             )}
