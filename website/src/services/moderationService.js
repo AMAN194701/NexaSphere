@@ -188,6 +188,7 @@ class ModerationService {
     }
 
     // Determine reputation level based on current score to update user profile
+    // Determine reputation level
     let level;
     if (newScore >= 80) level = REPUTATION.TRUSTED;
     else if (newScore >= 60) level = REPUTATION.NORMAL;
