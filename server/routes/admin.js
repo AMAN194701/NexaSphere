@@ -45,6 +45,7 @@ import {
   detectConflicts,
   generateIntegrityReport,
   getConsistencyAlerts,
+  triggerForceSync,
 } from '../utils/consistencyVerifier.js';
 import { sendSuccess, sendError, sendNoContent } from '../utils/responseHelper.js';
 
@@ -300,6 +301,11 @@ router.get('/api/admin/sync-status', adminAuth, (req, res) => {
   sendSuccess(res, getSynchronizationStatus());
 });
 
+router.post('/api/admin/sync/force', adminAuth, (req, res) => {
+  sendSuccess(res, triggerForceSync());
+});
+
+
 router.get('/api/admin/conflicts', adminAuth, (req, res) => {
   sendSuccess(res, detectConflicts());
 });
@@ -359,33 +365,51 @@ router.get('/api/admin/reports/revenue', adminAuth, async (req, res) => {
     const report = await financialService.getRevenueReport(user);
     sendSuccess(res, report);
   } catch (error) {
-    sendError(req, res, error.message || 'Failed to generate revenue report', 500, 'INTERNAL_ERROR');
+    sendError(
+      req,
+      res,
+      error.message || 'Failed to generate revenue report',
+      500,
+      'INTERNAL_ERROR'
+    );
   }
 });
 
 import jwt from 'jsonwebtoken';
 
-router.post('/api/admin/sso-invite', apiRateLimiter, validate(ssoInviteSchema), adminAuth, (req, res) => {
-  const { email } = req.body;
-  if (!email || typeof email !== 'string' || !email.includes('@')) {
-    return sendError(req, res, 'Valid email address is required', 400, 'VALIDATION_ERROR');
+router.post(
+  '/api/admin/sso-invite',
+  apiRateLimiter,
+  validate(ssoInviteSchema),
+  adminAuth,
+  (req, res) => {
+    const { email } = req.body;
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
+      return sendError(req, res, 'Valid email address is required', 400, 'VALIDATION_ERROR');
+    }
+
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      return sendError(
+        req,
+        res,
+        'JWT_SECRET is not configured on the server',
+        500,
+        'INTERNAL_ERROR'
+      );
+    }
+
+    // Generate a token valid for 24 hours
+    const token = jwt.sign({ email: email.toLowerCase(), bypassSso: true }, jwtSecret, {
+      expiresIn: '24h',
+    });
+
+    const baseUrl = process.env.BASE_URL || 'http://localhost:8080';
+    const inviteUrl = `${baseUrl}/api/auth/google?token=${token}`;
+
+    return sendSuccess(res, { token, inviteUrl });
   }
-
-  const jwtSecret = process.env.JWT_SECRET;
-  if (!jwtSecret) {
-    return sendError(req, res, 'JWT_SECRET is not configured on the server', 500, 'INTERNAL_ERROR');
-  }
-
-  // Generate a token valid for 24 hours
-  const token = jwt.sign({ email: email.toLowerCase(), bypassSso: true }, jwtSecret, {
-    expiresIn: '24h',
-  });
-
-  const baseUrl = process.env.BASE_URL || 'http://localhost:8080';
-  const inviteUrl = `${baseUrl}/api/auth/google?token=${token}`;
-
-  return sendSuccess(res, { token, inviteUrl });
-});
+);
 router.get('/sessions', adminAuth, adminAuthMiddleware.getSecurityOverview);
 router.post('/sessions/extend', adminAuth, adminAuthMiddleware.extendSession);
 router.delete('/sessions/:sessionId', adminAuth, adminAuthMiddleware.revokeSession);
