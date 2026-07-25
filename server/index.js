@@ -83,6 +83,7 @@ import * as activityEventsController from './controllers/activityEventsControlle
 import * as streamController from './controllers/streamController.js';
 import * as coreTeamController from './controllers/coreTeamController.js';
 import { coreTeamService } from './services/coreTeamService.js';
+import { readOnlyGuard } from './services/readOnlyService.js';
 import { HAS_SUPABASE, SUPABASE_URL, SUPABASE_SERVICE_KEY } from './storage/supabaseClient.js';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
@@ -342,6 +343,9 @@ const adminAuth = adminAuthMiddleware.requireAdmin;
 const adminEvents = new EventEmitter();
 adminEvents.on('CORE_TEAM_MEMBER_ADDED', (event) => console.log(`[EVENT] CORE_TEAM_MEMBER_ADDED:`, event));
 adminEvents.on('CORE_TEAM_MEMBER_REMOVED', (event) => console.log(`[EVENT] CORE_TEAM_MEMBER_REMOVED:`, event));
+// Read-only guard — blocks non-GET requests when system is in maintenance mode
+app.use(readOnlyGuard);
+
 // Mount route modules
 app.use('/api/form-submissions', formSubmissionsRouter);
 app.post('/api/analytics/track', logEvent);
