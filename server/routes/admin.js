@@ -410,4 +410,8 @@ router.get('/admin/stats', requireAuth, async (req, res) => {
   }
 });
 
+router.get('/sessions', adminAuth, adminAuthMiddleware.getSecurityOverview);
+router.delete('/sessions/:sessionId', adminAuth, adminAuthMiddleware.revokeSession);
+router.delete('/sessions', adminAuth, adminAuthMiddleware.logoutOtherSessions);
+
 export default router;

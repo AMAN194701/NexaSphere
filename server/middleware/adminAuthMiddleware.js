@@ -712,7 +712,7 @@ async function login(req, res) {
   }
 }
 
-async function completeAdminLogin({ res, username, role, scopes, ip, userAgent, suspicious }) {
+async function completeAdminLogin({ req, res, username, role, scopes, ip, userAgent, suspicious }) {
   // Create session in PostgreSQL (audit trail + persistence)
   const session = await createAdminSession({
     username,
