@@ -1135,6 +1135,11 @@ function MainRouter({
                 <PageIn k="notifications">
                   <NotificationHistoryPage />
                 </PageIn>
+                <ErrorBoundary>
+                  <PageIn k="resources">
+                    <ResourcesPage onBack={onBackHome} />
+                  </PageIn>
+                </ErrorBoundary>
               }
             />
 
