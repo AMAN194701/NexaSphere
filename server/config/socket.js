@@ -267,6 +267,18 @@ export function stopSocketValidation() {
  * Parse Bearer token from auth header
  */
 =======
+// ── Heartbeat / stale-connection detection ──────────────────────────────────
+// Sockets that drop without a clean close (e.g. network failure, mobile sleep)
+// leave their entries in connectedUsers and workspaceRoomMembers forever.
+// A periodic ping-pong cycle marks each socket as "awaiting pong" and forcibly
+// disconnects any that have not responded by the next tick, preventing the
+// unbounded memory growth described in issue #3845.
+const HEARTBEAT_INTERVAL_MS = 30_000; // emit ping every 30 s
+const HEARTBEAT_TIMEOUT_MS = 10_000; // allow 10 s for pong before evicting
+const MAX_CONNECTED_USERS = 10_000; // safety cap on the connectedUsers map
+
+let heartbeatInterval = null;
+
 function parseBearer(authHeader) {
   if (!authHeader || !authHeader.startsWith("Bearer ")) return "";
   return authHeader.slice(7).trim();
@@ -389,6 +401,9 @@ export function initializeSocketIO(httpServer) {
   // Start distributed revocation checks for admin WebSocket clients
   startSocketValidation();
 
+  // Start the server-driven heartbeat so stale sockets are evicted promptly.
+  startHeartbeat();
+
   return io;
 }
 
@@ -498,6 +513,15 @@ export function _onConnection(socket) {
     // 4. Safe Deep Copy (Persist sanitized primitives)
     if (userId.length > 128 || email.length > 256) {
       logger.warn('Oversized user identification payload values rejected', { socketId: socket.id });
+      return;
+    }
+
+    if (connectedUsers.size >= MAX_CONNECTED_USERS) {
+      logger.warn('Max connected users cap reached, rejecting identification', {
+        socketId: socket.id,
+        cap: MAX_CONNECTED_USERS,
+      });
+      socket.emit('error', { message: 'Server at capacity, please retry later.' });
       return;
     }
 
@@ -1333,9 +1357,22 @@ export function _onConnection(socket) {
     waitingRoomService.sendMessage(eventId, message);
   });
 
+  // ── Heartbeat pong handler ─────────────────────────────────────────────────
+  // The server sends a 'ping' event periodically (see startHeartbeat).
+  // Clients must respond with 'pong'.  If no pong arrives before the next
+  // heartbeat tick the socket is forcibly disconnected, releasing all memory.
+  socket.on('pong', () => {
+    socket._heartbeatAlive = true;
+  });
+
+  // Mark the socket as alive on initial connection so the first heartbeat
+  // cycle does not immediately evict it.
+  socket._heartbeatAlive = true;
+
   // Handle disconnection
   socket.on("disconnect", () => {
   socket.on('disconnect', () => {
+  socket.on('disconnect', (reason) => {
     connectedUsers.delete(socket.id);
     logger.info("User disconnected", { socketId: socket.id });
   });
@@ -1360,7 +1397,7 @@ export function _onConnection(socket) {
     logger.error("Socket error", { error: error.message, socketId: socket.id });
     _cleanupWorkspaceMembership(socket.id);
     joinRoomAttempts.delete(socket.id);
-    logger.info('User disconnected', { socketId: socket.id });
+    logger.info('User disconnected', { socketId: socket.id, reason });
   });
 
   socket.on('error', (error) => {
@@ -1505,6 +1542,61 @@ export function _setIOForTests(mockIo) {
  * @param {string} eventName - Event name
  * @param {Object} data - Payload
  */
+ * Starts (or restarts) the server-side heartbeat that detects stale sockets.
+ *
+ * Every HEARTBEAT_INTERVAL_MS milliseconds the server:
+ *   1. Emits a 'ping' event to every connected socket.
+ *   2. Marks each socket as NOT alive (_heartbeatAlive = false).
+ *   3. After HEARTBEAT_TIMEOUT_MS, any socket still marked NOT alive has not
+ *      responded with 'pong' and is forcibly disconnected.
+ *
+ * On disconnect the existing handler removes the socket from connectedUsers,
+ * workspaceRoomMembers, and joinRoomAttempts, so no manual cleanup is needed
+ * here — the disconnect event does all the work.
+ */
+export function startHeartbeat() {
+  if (heartbeatInterval) clearInterval(heartbeatInterval);
+
+  heartbeatInterval = setInterval(() => {
+    if (!io) return;
+
+    io.sockets.sockets.forEach((socket) => {
+      if (!socket._heartbeatAlive) {
+        // Did not respond to last ping — evict immediately.
+        logger.warn('Evicting unresponsive socket (missed heartbeat pong)', {
+          socketId: socket.id,
+        });
+        socket.disconnect(true);
+        return;
+      }
+
+      // Mark as NOT alive; the 'pong' handler will flip it back to true.
+      socket._heartbeatAlive = false;
+      socket.emit('ping');
+    });
+  }, HEARTBEAT_INTERVAL_MS);
+
+  // Avoid keeping the process alive solely for the heartbeat in test/CLI envs.
+  if (heartbeatInterval.unref) heartbeatInterval.unref();
+
+  logger.info('Socket heartbeat started', {
+    intervalMs: HEARTBEAT_INTERVAL_MS,
+    timeoutMs: HEARTBEAT_TIMEOUT_MS,
+  });
+}
+
+/**
+ * Stops the heartbeat interval.  Call this during graceful server shutdown
+ * or in test teardown to prevent open handle warnings.
+ */
+export function stopHeartbeat() {
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval);
+    heartbeatInterval = null;
+    logger.info('Socket heartbeat stopped.');
+  }
+}
+
 export function emitToRole(roles, eventName, data) {
   if (!io) return;
   const list = Array.isArray(roles) ? roles : [roles];
@@ -1532,6 +1624,8 @@ export default {
   emitToUser,
   emitToUserByEmail,
   emitToRole,
+  startHeartbeat,
+  stopHeartbeat,
   _clearConnectedUsers,
   _clearWorkspaceRoomMembers,
   _clearJoinRoomAttempts,
