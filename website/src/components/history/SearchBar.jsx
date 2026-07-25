@@ -8,6 +8,8 @@ const SearchBar = ({ onSelectPrompt, workspace = 'default' }) => {
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [searchError, setSearchError] = useState(null);
+  const resultsPanelId = 'chat-history-search-results';
+  const isResultsExpanded = showResults && Boolean(query);
 
   const handleSearch = useCallback(
     async (searchQuery) => {
@@ -60,11 +62,17 @@ const SearchBar = ({ onSelectPrompt, workspace = 'default' }) => {
           value={query}
           onChange={(e) => handleSearch(e.target.value)}
           onFocus={() => query && setShowResults(true)}
+          role="combobox"
+          aria-label="Search conversation history"
+          aria-expanded={isResultsExpanded}
+          aria-controls={resultsPanelId}
+          aria-autocomplete="list"
         />
         {isSearching && <span className="search-spinner">⟳</span>}
         {query && (
           <button
             className="clear-search"
+            aria-label="Clear conversation search"
             onClick={() => {
               setQuery('');
               setResults([]);
@@ -77,9 +85,16 @@ const SearchBar = ({ onSelectPrompt, workspace = 'default' }) => {
       </div>
 
       {showResults && results.length > 0 && (
-        <div className="search-results">
+        <div id={resultsPanelId} className="search-results" role="listbox">
           {results.slice(0, 5).map((prompt) => (
             <div key={prompt.id} className="result-item" onClick={() => handleSelectResult(prompt)}>
+            <div
+              key={prompt.id}
+              className="result-item"
+              onClick={() => handleSelectResult(prompt)}
+              role="option"
+              aria-selected="false"
+            >
               <div className="result-content">
                 <p className="result-query">{formatPreview(prompt.userPrompt)}</p>
                 <p className="result-response">{formatPreview(prompt.botResponse)}</p>
@@ -99,6 +114,8 @@ const SearchBar = ({ onSelectPrompt, workspace = 'default' }) => {
           ) : (
             <p>No results found</p>
           )}
+        <div id={resultsPanelId} className="search-empty" role="status">
+          <p>No results found</p>
         </div>
       )}
     </div>

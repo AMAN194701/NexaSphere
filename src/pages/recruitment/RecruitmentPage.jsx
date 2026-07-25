@@ -11,6 +11,8 @@ import {
 } from '../../shared/Icons';
 import Footer from '../../shared/Footer';
 
+const ROLES_GUIDE_MODAL_ID = 'roles-guide-modal';
+
 /* ── Roles & Responsibilities slide-over modal ───────────────────────────── */
 function RolesGuideModal({ onClose }) {
   useEffect(() => {
@@ -111,6 +113,10 @@ function RolesGuideModal({ onClose }) {
       />
 
       <div
+        id={ROLES_GUIDE_MODAL_ID}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="roles-guide-title"
         style={{
           position: 'fixed',
           top: 0,
@@ -146,6 +152,7 @@ function RolesGuideModal({ onClose }) {
         >
           <div>
             <div
+              id="roles-guide-title"
               style={{
                 fontFamily: 'Orbitron,monospace',
                 fontSize: '.95rem',
@@ -320,6 +327,8 @@ function RolesGuideModal({ onClose }) {
 const WHATSAPP_SCREENING = 'https://chat.whatsapp.com/EFbDGo6awGP2L0laESg3lq';
 const WHATSAPP_COMMUNITY = 'https://chat.whatsapp.com/FhpJEaod2g419jFMfqrhGZ';
 const LINKEDIN_PAGE = 'https://www.linkedin.com/showcase/glbajaj-nexasphere/';
+const RECRUITMENT_SCRIPT_URL =
+  'https://script.google.com/macros/s/AKfycbzo1g6WNiO-f8kySE4Mqbdlh3VxZx9pRGLcjt7qyzRCNB1TMK0kRwjZbDD2UsaJFQ0q/exec';
 
 const ROLE_OPTIONS = [
   'Technical Lead',
@@ -383,6 +392,9 @@ function Input({
   onPaste,
   'aria-label': ariaLabel,
 }) {
+  ...rest
+}) {
+  const isInvalid = rest['aria-invalid'] === 'true';
   return (
     <input
       value={value}
@@ -411,6 +423,12 @@ function Input({
       onBlur={(e) => {
         e.target.style.borderColor = 'var(--bdr2)';
         e.target.style.boxShadow = 'none';
+        e.target.style.borderColor = isInvalid ? '#ef4444' : 'var(--c1b)';
+        e.target.style.boxShadow = isInvalid ? '0 0 12px rgba(239, 68, 68, 0.3)' : 'var(--sh1)';
+      }}
+      onBlur={(e) => {
+        e.target.style.borderColor = isInvalid ? '#ef4444' : 'var(--bdr2)';
+        e.target.style.boxShadow = isInvalid ? '0 0 10px rgba(239, 68, 68, 0.15)' : 'none';
       }}
     />
   );
@@ -442,6 +460,12 @@ function TextArea({ value, onChange, placeholder, rows = 5 }) {
       onBlur={(e) => {
         e.target.style.borderColor = 'var(--bdr2)';
         e.target.style.boxShadow = 'none';
+        e.target.style.borderColor = isInvalid ? '#ef4444' : 'var(--c1b)';
+        e.target.style.boxShadow = isInvalid ? '0 0 12px rgba(239, 68, 68, 0.3)' : 'var(--sh1)';
+      }}
+      onBlur={(e) => {
+        e.target.style.borderColor = isInvalid ? '#ef4444' : 'var(--bdr2)';
+        e.target.style.boxShadow = isInvalid ? '0 0 10px rgba(239, 68, 68, 0.15)' : 'none';
       }}
     />
   );
@@ -450,6 +474,53 @@ function TextArea({ value, onChange, placeholder, rows = 5 }) {
 function PillRadio({ options, value, onChange }) {
   return (
     <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+    <div style={{ position: 'relative' }}>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        style={{
+          width: '100%',
+          padding: '12px 14px',
+          background: 'var(--card2)',
+          border: `1px solid ${isInvalid ? '#ef4444' : 'var(--bdr2)'}`,
+          boxShadow: isInvalid ? '0 0 10px rgba(239, 68, 68, 0.15)' : undefined,
+          borderRadius: 'var(--r2)',
+          color: value ? 'var(--t1)' : 'var(--t3)',
+          fontFamily: 'Rajdhani,sans-serif',
+          fontSize: '.98rem',
+          outline: 'none',
+          cursor: 'pointer',
+          appearance: 'none',
+          WebkitAppearance: 'none',
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23CC1111' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
+          backgroundRepeat: 'no-repeat',
+          backgroundPosition: 'right 14px center',
+          paddingRight: '36px',
+        }}
+        onFocus={(e) => {
+          e.target.style.borderColor = isInvalid ? '#ef4444' : 'var(--c1b)';
+          e.target.style.boxShadow = isInvalid ? '0 0 12px rgba(239, 68, 68, 0.3)' : 'var(--sh1)';
+        }}
+        onBlur={(e) => {
+          e.target.style.borderColor = isInvalid ? '#ef4444' : 'var(--bdr2)';
+          e.target.style.boxShadow = isInvalid ? '0 0 10px rgba(239, 68, 68, 0.15)' : 'none';
+        }}
+        {...rest}
+      >
+        {placeholder ? (
+          <option value="" disabled>
+            {placeholder}
+          </option>
+        ) : null}
+        {children}
+      </select>
+    </div>
+  );
+}
+
+function PillRadio({ options, value, onChange, ...rest }) {
+  return (
+    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }} {...rest}>
       {options.map((opt) => {
         const active = value === opt;
         return (
@@ -476,6 +547,7 @@ function PillRadio({ options, value, onChange }) {
 function MultiSelectChips({ options, values, onToggle }) {
   return (
     <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }} {...rest}>
       {options.map((opt) => {
         const active = values.includes(opt);
         return (
@@ -568,6 +640,159 @@ export default function RecruitmentPage({ onBack }) {
     setStep,
     INITIAL_FORM
   );
+
+  const [showRoles, setShowRoles] = useState(false);
+  const topRef = useRef(null);
+
+  useEffect(() => {
+    try {
+      const submitted = JSON.parse(localStorage.getItem('ns_submitted_emails') || '[]');
+      if (submitted.length > 0) setAlreadySubmitted(true);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const {
+    values: form,
+    errors,
+    touched,
+    handleChange,
+    handleBlur,
+    validateForm,
+    resetForm,
+    setValues,
+    setErrors,
+  } = useFormValidation(
+    {
+      fullName: '',
+      collegeEmail: '',
+      whatsapp: '',
+      year: '',
+      branch: '',
+      branchOther: '',
+      section: '',
+      sectionOther: '',
+      role: '',
+      interests: [],
+      skills: '',
+      comms: '',
+      campusExp: '',
+      campusExpDetails: '',
+      links: '',
+      commitHours: '',
+      attendCampus: '',
+      assessmentOk: '',
+      whyJoin: '',
+      anythingElse: '',
+      declarations: {
+        truth: false,
+        time: false,
+        participate: false,
+        disagree: false,
+      },
+    },
+    {
+      fullName: { required: true, requiredMessage: 'Full name is required' },
+      collegeEmail: {
+        required: true,
+        requiredMessage: 'College email is required',
+        email: true,
+        emailMessage: 'Please enter a valid email address',
+        custom: (val) => {
+          if (val && !val.endsWith('@glbajajgroup.org')) {
+            return 'Please use your official GL Bajaj email (@glbajajgroup.org)';
+          }
+        },
+      },
+      whatsapp: {
+        required: true,
+        requiredMessage: 'WhatsApp number is required',
+        phone: true,
+        phoneMessage: 'WhatsApp number must be exactly 10 digits',
+      },
+      year: { required: true, requiredMessage: 'Year of study is required' },
+      branch: { required: true, requiredMessage: 'Branch/Department is required' },
+      branchOther: {
+        custom: (val, values) => {
+          if (values.branch === 'Other' && !String(val || '').trim()) {
+            return 'Branch specification is required';
+          }
+        },
+      },
+      section: { required: true, requiredMessage: 'Section is required' },
+      sectionOther: {
+        custom: (val, values) => {
+          if (values.section === 'Other' && !String(val || '').trim()) {
+            return 'Section specification is required';
+          }
+        },
+      },
+      role: { required: true, requiredMessage: 'Role selection is required' },
+      interests: {
+        custom: (val) => {
+          if (!val || val.length === 0) {
+            return 'Please select at least one area of interest';
+          }
+        },
+      },
+      skills: { required: true, requiredMessage: 'Skills description is required' },
+      comms: { required: true, requiredMessage: 'Communication details are required' },
+      campusExp: { required: true, requiredMessage: 'Campus experience selection is required' },
+      links: {
+        custom: (val) => {
+          if (val && !/^https:\/\/github\.com\/[a-zA-Z0-9][a-zA-Z0-9\-]{0,37}\/?$/.test(val)) {
+            return 'Please enter a valid GitHub profile URL (e.g. https://github.com/YourUsername)';
+          }
+        },
+      },
+      commitHours: {
+        required: true,
+        requiredMessage: 'Please confirm weekly commitment availability',
+      },
+      attendCampus: {
+        required: true,
+        requiredMessage: 'Please confirm campus attendance availability',
+      },
+      assessmentOk: {
+        required: true,
+        requiredMessage: 'Please confirm agreement to trials/assessments',
+      },
+      whyJoin: {
+        required: true,
+        requiredMessage: 'Please explain why you want to join the Core Team',
+      },
+      declarations: {
+        custom: (val) => {
+          const d = val || {};
+          if (d.disagree) {
+            return 'You must agree to the declarations to apply';
+          }
+          if (!d.truth || !d.time || !d.participate) {
+            return 'Please confirm all three declaration checkboxes to submit';
+          }
+        },
+      },
+    }
+  );
+
+  const stepFields = {
+    1: [
+      'fullName',
+      'collegeEmail',
+      'whatsapp',
+      'year',
+      'branch',
+      'branchOther',
+      'section',
+      'sectionOther',
+    ],
+    2: ['role', 'interests'],
+    3: ['skills', 'comms', 'campusExp', 'links'],
+    4: ['commitHours', 'attendCampus', 'assessmentOk'],
+    5: ['whyJoin'],
+    6: ['declarations'],
+  };
 
   const steps = useMemo(
     () => [
@@ -747,6 +972,70 @@ export default function RecruitmentPage({ onBack }) {
                   e.preventDefault();
                   const pasted = e.clipboardData.getData('text').replace(/[^\d]/g, '').slice(0, 10);
                   setForm((f) => ({ ...f, whatsapp: pasted }));
+        render: () => (
+          <div style={{ display: 'grid', gap: 18 }}>
+            <Field
+              label="Full Name"
+              required
+              error={touched.fullName && errors.fullName}
+              errorId="error-fullName"
+            >
+              <Input
+                id="input-fullName"
+                value={form.fullName}
+                onChange={(v) => handleChange('fullName', v.replace(/[^a-zA-Z\s.\-']/g, ''))}
+                onBlur={() => handleBlur('fullName')}
+                placeholder="Your full name"
+                maxLength={60}
+                aria-invalid={touched.fullName && errors.fullName ? 'true' : 'false'}
+                aria-describedby={
+                  touched.fullName && errors.fullName ? 'error-fullName' : undefined
+                }
+              />
+            </Field>
+            <Field
+              label="College Email ID"
+              required
+              hint="Must end with @glbajajgroup.org"
+              error={touched.collegeEmail && errors.collegeEmail}
+              errorId="error-collegeEmail"
+            >
+              <Input
+                id="input-collegeEmail"
+                value={form.collegeEmail}
+                onChange={(v) => handleChange('collegeEmail', v.trim().toLowerCase())}
+                onBlur={() => handleBlur('collegeEmail')}
+                placeholder="name@glbajajgroup.org"
+                type="email"
+                maxLength={80}
+                aria-invalid={touched.collegeEmail && errors.collegeEmail ? 'true' : 'false'}
+                aria-describedby={
+                  touched.collegeEmail && errors.collegeEmail ? 'error-collegeEmail' : undefined
+                }
+              />
+            </Field>
+            <Field
+              label="WhatsApp Number"
+              required
+              error={touched.whatsapp && errors.whatsapp}
+              errorId="error-whatsapp"
+            >
+              <Input
+                id="input-whatsapp"
+                value={form.whatsapp}
+                onChange={(v) =>
+                  handleChange(
+                    'whatsapp',
+                    String(v || '')
+                      .replace(/[^\d]/g, '')
+                      .slice(0, 10)
+                  )
+                }
+                onBlur={() => handleBlur('whatsapp')}
+                onPaste={(e) => {
+                  e.preventDefault();
+                  const pasted = e.clipboardData.getData('text').replace(/[^\d]/g, '').slice(0, 10);
+                  handleChange('whatsapp', pasted);
                 }}
                 placeholder="10-digit mobile number"
                 type="tel"
@@ -759,6 +1048,25 @@ export default function RecruitmentPage({ onBack }) {
                 options={YEAR_OPTIONS}
                 value={form.year}
                 onChange={(v) => setForm((f) => ({ ...f, year: v }))}
+                aria-invalid={touched.whatsapp && errors.whatsapp ? 'true' : 'false'}
+                aria-describedby={
+                  touched.whatsapp && errors.whatsapp ? 'error-whatsapp' : undefined
+                }
+              />
+            </Field>
+            <Field
+              label="Year of Study"
+              required
+              error={touched.year && errors.year}
+              errorId="error-year"
+            >
+              <PillRadio
+                id="input-year"
+                options={YEAR_OPTIONS}
+                value={form.year}
+                onChange={(v) => handleChange('year', v)}
+                aria-invalid={touched.year && errors.year ? 'true' : 'false'}
+                aria-describedby={touched.year && errors.year ? 'error-year' : undefined}
               />
             </Field>
             <div
@@ -805,6 +1113,24 @@ export default function RecruitmentPage({ onBack }) {
                     <option value="" disabled>
                       Select your department
                     </option>
+              <Field
+                label="Branch / Department"
+                required
+                error={
+                  (touched.branch && errors.branch) || (touched.branchOther && errors.branchOther)
+                }
+                errorId="error-branch"
+              >
+                <div style={{ display: 'grid', gap: 8 }}>
+                  <StyledSelect
+                    id="input-branch"
+                    value={form.branch}
+                    onChange={(v) => handleChange('branch', v)}
+                    onBlur={() => handleBlur('branch')}
+                    placeholder="Select your department"
+                    aria-invalid={touched.branch && errors.branch ? 'true' : 'false'}
+                    aria-describedby={touched.branch && errors.branch ? 'error-branch' : undefined}
+                  >
                     {BRANCH_OPTIONS.map((b) => (
                       <option key={b} value={b}>
                         {b}
@@ -820,6 +1146,21 @@ export default function RecruitmentPage({ onBack }) {
                       }}
                       placeholder="Please specify your department"
                       maxLength={60}
+                  </StyledSelect>
+                  {form.branch === 'Other' && (
+                    <Input
+                      id="input-branchOther"
+                      value={form.branchOther}
+                      onChange={(v) =>
+                        handleChange('branchOther', v.replace(/[^a-zA-Z0-9\s\/\-&().]/g, ''))
+                      }
+                      onBlur={() => handleBlur('branchOther')}
+                      placeholder="Please specify your department"
+                      maxLength={60}
+                      aria-invalid={touched.branchOther && errors.branchOther ? 'true' : 'false'}
+                      aria-describedby={
+                        touched.branchOther && errors.branchOther ? 'error-branch' : undefined
+                      }
                     />
                   )}
                 </div>
@@ -861,6 +1202,28 @@ export default function RecruitmentPage({ onBack }) {
                     <option value="" disabled>
                       Select section
                     </option>
+              <Field
+                label="Section"
+                required
+                hint="Academic Section (A/B/C/...)"
+                error={
+                  (touched.section && errors.section) ||
+                  (touched.sectionOther && errors.sectionOther)
+                }
+                errorId="error-section"
+              >
+                <div style={{ display: 'grid', gap: 8 }}>
+                  <StyledSelect
+                    id="input-section"
+                    value={form.section}
+                    onChange={(v) => handleChange('section', v)}
+                    onBlur={() => handleBlur('section')}
+                    placeholder="Select section"
+                    aria-invalid={touched.section && errors.section ? 'true' : 'false'}
+                    aria-describedby={
+                      touched.section && errors.section ? 'error-section' : undefined
+                    }
+                  >
                     {SECTION_OPTIONS.map((opt) => (
                       <option key={opt} value={opt}>
                         {opt}
@@ -873,6 +1236,19 @@ export default function RecruitmentPage({ onBack }) {
                       onChange={(v) => setForm((f) => ({ ...f, sectionOther: v.toUpperCase() }))}
                       placeholder="Type your section (e.g. J)"
                       maxLength={10}
+                  </StyledSelect>
+                  {form.section === 'Other' && (
+                    <Input
+                      id="input-sectionOther"
+                      value={form.sectionOther}
+                      onChange={(v) => handleChange('sectionOther', v.toUpperCase())}
+                      onBlur={() => handleBlur('sectionOther')}
+                      placeholder="Type your section (e.g. J)"
+                      maxLength={10}
+                      aria-invalid={touched.sectionOther && errors.sectionOther ? 'true' : 'false'}
+                      aria-describedby={
+                        touched.sectionOther && errors.sectionOther ? 'error-section' : undefined
+                      }
                     />
                   )}
                 </div>
@@ -906,6 +1282,8 @@ export default function RecruitmentPage({ onBack }) {
                     type="button"
                     onClick={() => setShowRoles(true)}
                     className="btn btn-outline btn-sm"
+                    aria-expanded={showRoles}
+                    aria-controls={ROLES_GUIDE_MODAL_ID}
                     style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
                   >
                     <DynamicIcon name="Search" size={14} /> View Roles & Responsibilities
@@ -933,6 +1311,42 @@ export default function RecruitmentPage({ onBack }) {
                       ? f.interests.filter((x) => x !== opt)
                       : [...f.interests, opt],
                   }))
+            <Field
+              label="Which role do you wish to apply for?"
+              required
+              error={touched.role && errors.role}
+              errorId="error-role"
+            >
+              <PillRadio
+                id="input-role"
+                options={ROLE_OPTIONS}
+                value={form.role}
+                onChange={(v) => handleChange('role', v)}
+                aria-invalid={touched.role && errors.role ? 'true' : 'false'}
+                aria-describedby={touched.role && errors.role ? 'error-role' : undefined}
+              />
+            </Field>
+
+            <Field
+              label="Areas of Interest"
+              required
+              hint="Select one or more."
+              error={touched.interests && errors.interests}
+              errorId="error-interests"
+            >
+              <MultiSelectChips
+                id="input-interests"
+                options={INTEREST_OPTIONS}
+                values={form.interests}
+                onToggle={(opt) => {
+                  const next = form.interests.includes(opt)
+                    ? form.interests.filter((x) => x !== opt)
+                    : [...form.interests, opt];
+                  handleChange('interests', next);
+                }}
+                aria-invalid={touched.interests && errors.interests ? 'true' : 'false'}
+                aria-describedby={
+                  touched.interests && errors.interests ? 'error-interests' : undefined
                 }
               />
             </Field>
@@ -954,10 +1368,20 @@ export default function RecruitmentPage({ onBack }) {
               <TextArea
                 value={form.skills}
                 onChange={(v) => setForm((f) => ({ ...f, skills: v }))}
+              error={touched.skills && errors.skills}
+              errorId="error-skills"
+            >
+              <TextArea
+                id="input-skills"
+                value={form.skills}
+                onChange={(v) => handleChange('skills', v)}
+                onBlur={() => handleBlur('skills')}
                 placeholder={
                   'Example:\nPython – Intermediate\nJava – Beginner\nHTML – Advanced\nKotlin – Beginner'
                 }
                 rows={6}
+                aria-invalid={touched.skills && errors.skills ? 'true' : 'false'}
+                aria-describedby={touched.skills && errors.skills ? 'error-skills' : undefined}
               />
             </Field>
 
@@ -971,6 +1395,18 @@ export default function RecruitmentPage({ onBack }) {
                 onChange={(v) => setForm((f) => ({ ...f, comms: v }))}
                 placeholder={'Example:\nEnglish – Basic\nHindi – Fluent\nBoth – Moderate'}
                 rows={4}
+              error={touched.comms && errors.comms}
+              errorId="error-comms"
+            >
+              <TextArea
+                id="input-comms"
+                value={form.comms}
+                onChange={(v) => handleChange('comms', v)}
+                onBlur={() => handleBlur('comms')}
+                placeholder={'Example:\nEnglish – Basic\nHindi – Fluent\nBoth – Moderate'}
+                rows={4}
+                aria-invalid={touched.comms && errors.comms ? 'true' : 'false'}
+                aria-describedby={touched.comms && errors.comms ? 'error-comms' : undefined}
               />
             </Field>
 
@@ -982,6 +1418,18 @@ export default function RecruitmentPage({ onBack }) {
                 options={['Yes', 'No']}
                 value={form.campusExp}
                 onChange={(v) => setForm((f) => ({ ...f, campusExp: v }))}
+              error={touched.campusExp && errors.campusExp}
+              errorId="error-campusExp"
+            >
+              <PillRadio
+                id="input-campusExp"
+                options={['Yes', 'No']}
+                value={form.campusExp}
+                onChange={(v) => handleChange('campusExp', v)}
+                aria-invalid={touched.campusExp && errors.campusExp ? 'true' : 'false'}
+                aria-describedby={
+                  touched.campusExp && errors.campusExp ? 'error-campusExp' : undefined
+                }
               />
             </Field>
 
@@ -992,6 +1440,26 @@ export default function RecruitmentPage({ onBack }) {
                   onChange={(v) => setForm((f) => ({ ...f, campusExpDetails: v }))}
                   placeholder="e.g. Leo Club – Event Coordinator"
                   maxLength={100}
+              <Field
+                label="If yes, mention the community / role"
+                error={touched.campusExpDetails && errors.campusExpDetails}
+                errorId="error-campusExpDetails"
+              >
+                <Input
+                  id="input-campusExpDetails"
+                  value={form.campusExpDetails}
+                  onChange={(v) => handleChange('campusExpDetails', v)}
+                  onBlur={() => handleBlur('campusExpDetails')}
+                  placeholder="e.g. Leo Club – Event Coordinator"
+                  maxLength={100}
+                  aria-invalid={
+                    touched.campusExpDetails && errors.campusExpDetails ? 'true' : 'false'
+                  }
+                  aria-describedby={
+                    touched.campusExpDetails && errors.campusExpDetails
+                      ? 'error-campusExpDetails'
+                      : undefined
+                  }
                 />
               </Field>
             ) : null}
@@ -1002,10 +1470,23 @@ export default function RecruitmentPage({ onBack }) {
                 onChange={(v) => {
                   setForm((f) => ({ ...f, links: v.replace(/\s/g, '') }));
                 }}
+            <Field
+              label="GitHub Profile URL"
+              hint="Optional"
+              error={touched.links && errors.links}
+              errorId="error-links"
+            >
+              <Input
+                id="input-links"
+                value={form.links}
+                onChange={(v) => handleChange('links', v.replace(/\s/g, ''))}
+                onBlur={() => handleBlur('links')}
                 placeholder="https://github.com/YourUsername"
                 type="url"
                 inputMode="url"
                 maxLength={120}
+                aria-invalid={touched.links && errors.links ? 'true' : 'false'}
+                aria-describedby={touched.links && errors.links ? 'error-links' : undefined}
               />
               <div style={{ color: 'var(--t3)', fontSize: '.8rem', marginTop: 4 }}>
                 Format:{' '}
@@ -1030,6 +1511,23 @@ export default function RecruitmentPage({ onBack }) {
                 options={COMMIT_OPTIONS}
                 value={form.commitHours}
                 onChange={(v) => setForm((f) => ({ ...f, commitHours: v }))}
+        render: () => (
+          <div style={{ display: 'grid', gap: 18 }}>
+            <Field
+              label="Are you willing to commit 4–6 hours per week consistently?"
+              required
+              error={touched.commitHours && errors.commitHours}
+              errorId="error-commitHours"
+            >
+              <PillRadio
+                id="input-commitHours"
+                options={COMMIT_OPTIONS}
+                value={form.commitHours}
+                onChange={(v) => handleChange('commitHours', v)}
+                aria-invalid={touched.commitHours && errors.commitHours ? 'true' : 'false'}
+                aria-describedby={
+                  touched.commitHours && errors.commitHours ? 'error-commitHours' : undefined
+                }
               />
             </Field>
             <Field
@@ -1047,6 +1545,35 @@ export default function RecruitmentPage({ onBack }) {
                 options={COMMIT_OPTIONS}
                 value={form.assessmentOk}
                 onChange={(v) => setForm((f) => ({ ...f, assessmentOk: v }))}
+              error={touched.attendCampus && errors.attendCampus}
+              errorId="error-attendCampus"
+            >
+              <PillRadio
+                id="input-attendCampus"
+                options={COMMIT_OPTIONS}
+                value={form.attendCampus}
+                onChange={(v) => handleChange('attendCampus', v)}
+                aria-invalid={touched.attendCampus && errors.attendCampus ? 'true' : 'false'}
+                aria-describedby={
+                  touched.attendCampus && errors.attendCampus ? 'error-attendCampus' : undefined
+                }
+              />
+            </Field>
+            <Field
+              label="Do you understand that short assessment may be conducted?"
+              required
+              error={touched.assessmentOk && errors.assessmentOk}
+              errorId="error-assessmentOk"
+            >
+              <PillRadio
+                id="input-assessmentOk"
+                options={COMMIT_OPTIONS}
+                value={form.assessmentOk}
+                onChange={(v) => handleChange('assessmentOk', v)}
+                aria-invalid={touched.assessmentOk && errors.assessmentOk ? 'true' : 'false'}
+                aria-describedby={
+                  touched.assessmentOk && errors.assessmentOk ? 'error-assessmentOk' : undefined
+                }
               />
             </Field>
           </div>
@@ -1065,12 +1592,32 @@ export default function RecruitmentPage({ onBack }) {
                 onChange={(v) => setForm((f) => ({ ...f, whyJoin: v }))}
                 placeholder="Share your motivation, what you'll bring, and what you want to learn."
                 rows={6}
+        render: () => (
+          <div style={{ display: 'grid', gap: 18 }}>
+            <Field
+              label="Why do you want to be part of NexaSphere Core Team?"
+              required
+              error={touched.whyJoin && errors.whyJoin}
+              errorId="error-whyJoin"
+            >
+              <TextArea
+                id="input-whyJoin"
+                value={form.whyJoin}
+                onChange={(v) => handleChange('whyJoin', v)}
+                onBlur={() => handleBlur('whyJoin')}
+                placeholder="Share your motivation, what you'll bring, and what you want to learn."
+                rows={6}
+                aria-invalid={touched.whyJoin && errors.whyJoin ? 'true' : 'false'}
+                aria-describedby={touched.whyJoin && errors.whyJoin ? 'error-whyJoin' : undefined}
               />
             </Field>
             <Field label="Anything else you want us to know?">
               <TextArea
                 value={form.anythingElse}
                 onChange={(v) => setForm((f) => ({ ...f, anythingElse: v }))}
+                id="input-anythingElse"
+                value={form.anythingElse}
+                onChange={(v) => handleChange('anythingElse', v)}
                 placeholder="Optional"
                 rows={4}
               />
@@ -1086,6 +1633,14 @@ export default function RecruitmentPage({ onBack }) {
         render: () => (
           <div style={{ display: 'grid', gap: 18 }}>
             <Field label="Declaration" required>
+        render: () => (
+          <div style={{ display: 'grid', gap: 18 }}>
+            <Field
+              label="Declaration"
+              required
+              error={touched.declarations && errors.declarations}
+              errorId="error-declarations"
+            >
               <div style={{ display: 'grid', gap: 10 }}>
                 {[
                   { k: 'truth', label: 'I confirm that all details provided are true.' },
@@ -1117,6 +1672,20 @@ export default function RecruitmentPage({ onBack }) {
                               },
                             };
                           }
+                      id={`input-declaration-${opt.k}`}
+                      type="button"
+                      onClick={() => {
+                        const next = { ...(form.declarations || {}) };
+                        const nextVal = !next[opt.k];
+                        let nextDeclarations;
+                        if (isDisagree && nextVal) {
+                          nextDeclarations = {
+                            truth: false,
+                            time: false,
+                            participate: false,
+                            disagree: true,
+                          };
+                        } else {
                           if (!isDisagree && nextVal) {
                             next.disagree = false;
                           }
@@ -1132,6 +1701,15 @@ export default function RecruitmentPage({ onBack }) {
                           };
                         })
                       }
+                          nextDeclarations = {
+                            truth: !!next.truth,
+                            time: !!next.time,
+                            participate: !!next.participate,
+                            disagree: !!next.disagree,
+                          };
+                        }
+                        handleChange('declarations', nextDeclarations);
+                      }}
                       style={{
                         textAlign: 'left',
                         background: active ? 'rgba(0,212,255,.10)' : 'var(--card)',
@@ -1145,6 +1723,12 @@ export default function RecruitmentPage({ onBack }) {
                         boxShadow: active ? '0 0 16px var(--c1g)' : 'none',
                       }}
                       className="shimmer"
+                      aria-invalid={touched.declarations && errors.declarations ? 'true' : 'false'}
+                      aria-describedby={
+                        touched.declarations && errors.declarations
+                          ? 'error-declarations'
+                          : undefined
+                      }
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <span
@@ -1174,6 +1758,7 @@ export default function RecruitmentPage({ onBack }) {
       },
     ],
     [form]
+    [form, touched, errors]
   );
 
   const progress = useMemo(() => step / (steps.length - 1), [step, steps.length]);
@@ -1193,6 +1778,32 @@ export default function RecruitmentPage({ onBack }) {
         if (v.length === 0) missing.push(k);
       } else if (!String(v || '').trim()) {
         missing.push(k);
+        if (!d.truth || !d.time || !d.participate || d.disagree) missing.push(f);
+      } else if (f === 'interests') {
+        if (!v || v.length === 0) missing.push(f);
+      } else if (f === 'branchOther') {
+        if (form.branch === 'Other' && !String(v || '').trim()) missing.push(f);
+      } else if (f === 'sectionOther') {
+        if (form.section === 'Other' && !String(v || '').trim()) missing.push(f);
+      } else if (f === 'collegeEmail') {
+        const email = String(v || '').trim();
+        if (
+          !email ||
+          !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
+          !email.endsWith('@glbajajgroup.org')
+        ) {
+          missing.push(f);
+        }
+      } else if (f === 'whatsapp') {
+        const phone = String(v || '').trim();
+        if (!phone || !/^\d{10}$/.test(phone)) missing.push(f);
+      } else if (f === 'links') {
+        const url = String(v || '').trim();
+        if (url && !/^https:\/\/github\.com\/[a-zA-Z0-9][a-zA-Z0-9\-]{0,37}\/?$/.test(url)) {
+          missing.push(f);
+        }
+      } else {
+        if (!String(v || '').trim()) missing.push(f);
       }
     }
 
@@ -1243,6 +1854,39 @@ export default function RecruitmentPage({ onBack }) {
 
       const base = (import.meta?.env?.VITE_API_BASE || '').replace(/\/+$/, '');
       const url = base ? `${base}/api/submissions/recruitment` : '/api/submissions/recruitment';
+        ...form,
+
+        branch: form.branch === 'Other' ? form.branchOther || 'Other' : form.branch,
+        section: form.section === 'Other' ? form.sectionOther || 'Other' : form.section,
+        interests: Array.isArray(form.interests) ? form.interests.join(', ') : '',
+        declarationAccepted:
+          !!form.declarations?.truth &&
+          !!form.declarations?.time &&
+          !!form.declarations?.participate &&
+          !form.declarations?.disagree,
+        declarationSelected: Object.entries(form.declarations || {})
+          .filter(([, v]) => !!v)
+          .map(([k]) => k)
+          .join(', '),
+        submittedAt: new Date().toISOString(),
+        userAgent: navigator.userAgent,
+      };
+
+      const emailKey = String(form.collegeEmail || '')
+        .trim()
+        .toLowerCase();
+      try {
+        const existing = JSON.parse(localStorage.getItem('ns_submitted_emails') || '[]');
+        if (existing.includes(emailKey)) {
+          setErr(
+            'This email address has already been used to submit an application. Each applicant may submit only once.'
+          );
+          setBusy(false);
+          return;
+        }
+      } catch {
+        /* ignore */
+      }
 
       const res = await fetch(url, {
         method: 'POST',
@@ -1261,6 +1905,13 @@ export default function RecruitmentPage({ onBack }) {
 
       setSubmittedEmail(payload.collegeEmail);
       clearDraft();
+      try {
+        const existing = JSON.parse(localStorage.getItem('ns_submitted_emails') || '[]');
+        existing.push(emailKey);
+        localStorage.setItem('ns_submitted_emails', JSON.stringify(existing));
+      } catch {
+        /* ignore */
+      }
       setDone(true);
       scrollTop();
     } catch (e) {
@@ -1543,6 +2194,78 @@ export default function RecruitmentPage({ onBack }) {
                   <button onClick={startOver} className="btn btn-outline btn-sm">
                     Start Over
                   </button>
+            {alreadySubmitted && !done ? (
+              <div
+                style={{
+                  background: 'rgba(255,45,120,.08)',
+                  border: '1px solid rgba(255,45,120,.22)',
+                  borderRadius: 'var(--r3)',
+                  padding: '20px 22px',
+                  textAlign: 'center',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    color: '#ff2d78',
+                    marginBottom: 10,
+                  }}
+                >
+                  <DynamicIcon name="AlertTriangle" size={22} />
+                </div>
+                <div
+                  style={{
+                    color: 'var(--t1)',
+                    fontWeight: 700,
+                    fontSize: '1rem',
+                    marginBottom: 12,
+                  }}
+                >
+                  Application Already Submitted
+                </div>
+                <div
+                  style={{
+                    color: 'var(--t2)',
+                    fontSize: '.88rem',
+                    lineHeight: 1.65,
+                    marginBottom: 24,
+                  }}
+                >
+                  An application form has already been submitted from this device.
+                  <br />
+                  If you need to update your application, please contact us at{' '}
+                  <a
+                    href="mailto:nexasphere@glbajajgroup.org"
+                    style={{ color: 'var(--c1)', fontWeight: 600 }}
+                  >
+                    nexasphere@glbajajgroup.org
+                  </a>
+                </div>
+
+                <div
+                  style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}
+                >
+                  <a
+                    href={WHATSAPP_SCREENING}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-whatsapp"
+                    style={{ flex: 1, minWidth: 0, justifyContent: 'center' }}
+                  >
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                      Core Team Screening <IconArrowRight />
+                    </span>
+                  </a>
+                  <a
+                    href={LINKEDIN_PAGE || 'https://www.linkedin.com/showcase/glbajaj-nexasphere/'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-outline"
+                    style={{ flex: 1, minWidth: 0, justifyContent: 'center' }}
+                  >
+                    NexaSphere LinkedIn
+                  </a>
                 </div>
               </div>
             )}
@@ -1677,6 +2400,20 @@ export default function RecruitmentPage({ onBack }) {
                 </div>
 
                 {/* ── CTA buttons ── */}
+                    Thank you for applying to the NexaSphere Core Team - GL Bajaj Group of
+                    Institutions.
+                    <br />
+                    <br />
+                    Your application has been recorded. Shortlisted candidates will be contacted
+                    regarding the next steps, which may include a short assessment or trial session.
+                    <br />
+                    <br />
+                    <b style={{ color: 'var(--t1)' }}>
+                      Stay consistent. Stay curious. Keep building.
+                    </b>
+                  </p>
+                </div>
+
                 <div
                   style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}
                 >
@@ -1784,6 +2521,25 @@ export default function RecruitmentPage({ onBack }) {
                       onClick={() => {
                         if (!canNext) {
                           setErr('Please complete the required fields (*) to proceed.');
+                        const fields = stepFields[step] || [];
+                        const ok = validateForm(fields);
+                        if (!ok) {
+                          setErr('Please complete the required fields (*) correctly to proceed.');
+
+                          const errorsList = (stepFields[step] || []).filter((f) => {
+                            if (f === 'branchOther') return form.branch === 'Other';
+                            if (f === 'sectionOther') return form.section === 'Other';
+                            return true;
+                          });
+
+                          for (const f of errorsList) {
+                            if (f === 'declarations') continue;
+                            const el = document.getElementById(`input-${f}`);
+                            if (el) {
+                              el.focus();
+                              break;
+                            }
+                          }
                           return;
                         }
                         setErr('');
@@ -1808,6 +2564,32 @@ export default function RecruitmentPage({ onBack }) {
                         }
                         if (!canNext) {
                           setErr('Please complete the required fields (*) to submit.');
+                        const fields = stepFields[step] || [];
+                        const ok = validateForm(fields);
+                        if (!ok) {
+                          if (form.declarations?.disagree) {
+                            setErr(
+                              'You must agree to the declarations to apply. Disagreeing prevents application submission.'
+                            );
+                          } else {
+                            setErr('Please complete the required fields (*) to submit.');
+                          }
+
+                          for (const f of fields) {
+                            if (f === 'declarations') {
+                              const el = document.getElementById('input-declaration-truth');
+                              if (el) {
+                                el.focus();
+                                break;
+                              }
+                            } else {
+                              const el = document.getElementById(`input-${f}`);
+                              if (el) {
+                                el.focus();
+                                break;
+                              }
+                            }
+                          }
                           return;
                         }
                         submit();

@@ -27,6 +27,8 @@ const DOMAIN_ICONS = {
   cybersecurity: Shield,
 };
 
+const LEARNING_DETAILS_PANEL_ID = 'roadmap-learning-details-panel';
+
 export default function RoadmapsPage({ onBack }) {
   const innerScrollRef = useRef(null);
   const [isBuilderActive, setIsBuilderActive] = useState(false);
@@ -215,6 +217,7 @@ export default function RoadmapsPage({ onBack }) {
                     className={`roadmap-node-capsule ${isSelected ? 'selected' : ''}`}
                     aria-label={`Step ${index + 1}: ${node.label}. Click to toggle learning details panel.`}
                     aria-expanded={isSelected}
+                    aria-controls={LEARNING_DETAILS_PANEL_ID}
                   >
                     <div className="node-capsule-glow" />
                     <div className="node-capsule-content">
@@ -239,6 +242,7 @@ export default function RoadmapsPage({ onBack }) {
             exit={{ x: '100%', opacity: 0 }}
             transition={{ type: 'spring', damping: 25, stiffness: 220 }}
             className="learning-details-panel"
+            id={LEARNING_DETAILS_PANEL_ID}
             role="dialog"
             aria-modal="true"
             aria-labelledby="panel-title"
@@ -283,6 +287,7 @@ export default function RoadmapsPage({ onBack }) {
                       key={`concept-${selectedNode.id}-${concept}`}
                       className="concept-badge-pill"
                     >
+                    <li key={idx} className="concept-badge-pill">
                       {concept}
                     </li>
                   ))}
@@ -319,6 +324,7 @@ export default function RoadmapsPage({ onBack }) {
                   {selectedNode.tutorials.map((tutorial, idx) => (
                     <a
                       key={`tutorial-${selectedNode.id}-${tutorial.url}`}
+                      key={idx}
                       href={tutorial.url}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -343,6 +349,7 @@ export default function RoadmapsPage({ onBack }) {
                   {selectedNode.practice.map((item, idx) => (
                     <a
                       key={`practice-${selectedNode.id}-${item.url}`}
+                      key={idx}
                       href={item.url}
                       target="_blank"
                       rel="noopener noreferrer"

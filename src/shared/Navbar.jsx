@@ -14,6 +14,13 @@ const TABS = [
   'Gamification',
 ];
 const TABS = ['Home', 'Activities', 'Events', 'Projects', 'Roadmaps', 'Portfolio', 'About', 'Team', 'Contact'];
+  'Projects',
+  'Roadmaps',
+  'Portfolio',
+  'About',
+  'Team',
+  'Contact',
+];
 
 function ThemeToggle({ theme, onToggle }) {
   const { t } = useTranslation();
@@ -67,6 +74,45 @@ function ThemeToggle({ theme, onToggle }) {
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
         </svg>
       )}
+const BOOKMARKS_DRAWER_ID = 'bookmarks-drawer';
+const DESKTOP_NAV_ACTIONS_ID = 'desktop-navigation-actions';
+
+function BookmarkToggle({ isOpen = false, onToggle, controlsId = BOOKMARKS_DRAWER_ID }) {
+  return (
+    <button
+      className="ns-bookmark-toggle"
+      onClick={onToggle}
+      aria-label={isOpen ? 'Close Bookmarks' : 'Open Bookmarks'}
+      aria-expanded={isOpen}
+      aria-controls={controlsId}
+      title="Saved Bookmarks"
+      style={{
+        background: 'none',
+        border: 'none',
+        color: 'var(--t1)',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '6px',
+        borderRadius: '50%',
+        transition: 'background 0.2s',
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+      onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+    >
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+      </svg>
     </button>
   );
 }
@@ -119,6 +165,14 @@ function LanguageToggle() {
 
 export default function Navbar({ activeTab, onTabChange, onToggleTheme, theme, onApply, onJoin }) {
   const { t } = useTranslation();
+export default function Navbar({
+  activeTab,
+  onTabChange,
+  onApply,
+  onJoin,
+  bookmarksOpen = false,
+  onToggleBookmarks,
+}) {
   const [scrolled, setScrolled] = useState(false);
   const [mobile, setMobile] = useState(window.innerWidth <= 768);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -320,6 +374,125 @@ export default function Navbar({ activeTab, onTabChange, onToggleTheme, theme, o
           </div>
           <LanguageToggle />
           <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+  const handleTab = (tab) => {
+    setMenuOpen(false);
+    onTabChange(tab);
+  };
+
+  if (compact)
+    return (
+      <nav className="ns-navbar-mobile">
+        <div
+          className="ns-mobile-top"
+          onClick={() => handleTab('Home')}
+          style={{ cursor: 'pointer' }}
+          aria-label="Go to homepage"
+        >
+          <img src={BRAND_LOGO_ICON} alt="NexaSphere" className="ns-mobile-logo-ns" />
+
+          <span className="ns-mobile-brand">
+            <span>NexaSphere</span>
+          </span>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <NotificationBell />
+            <BookmarkToggle isOpen={bookmarksOpen} onToggle={onToggleBookmarks} />
+            <ThemeToggle />
+          </div>
+        </div>
+
+        <div className="ns-mobile-tabs">
+          {TABS.map((t) => (
+            <button
+              key={t}
+              className={`ns-mobile-tab${
+                activeTab === t ? ' active' : ''
+              }${t === 'Contact' ? ' contact-tab' : ''}`}
+              onClick={() => handleTab(t)}
+            >
+              {t}
+            </button>
+          ))}
+
+          <button
+            className="ns-mobile-tab ns-mobile-cta"
+            onClick={onJoin}
+            aria-label="Join as Member"
+          >
+            Join
+          </button>
+
+          <button
+            className="ns-mobile-tab ns-mobile-cta ns-mobile-cta-apply"
+            onClick={onApply}
+            aria-label="Apply for Core Team"
+          >
+            Apply
+          </button>
+        </div>
+      </nav>
+    );
+  return (
+    <nav className={`ns-navbar${scrolled ? ' scrolled' : ''}`}>
+      <div className="container">
+        <div className="ns-nav-top">
+          <div
+            className="ns-nav-logos"
+            onClick={() => handleTab('Home')}
+            style={{ cursor: 'pointer' }}
+            aria-label="Go to homepage"
+          >
+            <img
+              src={BRAND_LOGO_FULL}
+              alt="NexaSphere"
+              className="ns-nav-logo-ns ns-nav-logo-icon"
+            />
+            <div className="ns-nav-divider" />
+            <span className="ns-nav-brand">NexaSphere</span>
+          </div>
+        </div>
+
+        <div className="ns-nav-actions">
+          <NotificationBell />
+          <BookmarkToggle isOpen={bookmarksOpen} onToggle={onToggleBookmarks} />
+
+          <div className="ns-nav-actions" id={DESKTOP_NAV_ACTIONS_ID}>
+            <NotificationBell />
+
+            <BookmarkToggle isOpen={bookmarksOpen} onToggle={onToggleBookmarks} />
+
+            <div className="ns-nav-ctas">
+              <button
+                className="btn btn-sm btn-outline ns-nav-cta-btn"
+                onClick={onJoin}
+                aria-label="Join as Member"
+              >
+                Join
+              </button>
+
+              <button
+                className="btn btn-sm btn-primary ns-nav-cta-btn"
+                onClick={onApply}
+                aria-label="Apply for Core Team"
+              >
+                Apply
+              </button>
+            </div>
+
+            <ThemeToggle />
+
+            <button
+              className={`ns-nav-menu-toggle${menuOpen ? ' open' : ''}`}
+              onClick={() => compact && setMenuOpen((open) => !open)}
+              aria-label="Toggle navigation menu"
+              aria-expanded={menuOpen}
+              aria-controls={DESKTOP_NAV_ACTIONS_ID}
+            >
+              <span />
+              <span />
+              <span />
+            </button>
+          </div>
         </div>
       </div>
     </nav>

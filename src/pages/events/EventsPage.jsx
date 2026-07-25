@@ -31,6 +31,28 @@ export default function EventsPage({ onBack, onEventClick, events = fallbackEven
 
   useEffect(() => {
     window.scrollTo({ top: 0 });
+function EventsPageContent({ onBack, onEventClick, events = fallbackEvents }) {
+  const safeEvents = Array.isArray(events) ? events : [];
+  const [viewMode, setViewMode] = useState('list');
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+    const obs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            e.target.classList.add('fired');
+            obs.unobserve(e.target);
+          }
+        });
+      },
+      { threshold: 0, rootMargin: '0px 0px -10px 0px' }
+    );
+    document
+      .querySelectorAll(
+        '#events-page .pop-in, #events-page .pop-left, #events-page .pop-right, #events-page .pop-word'
+      )
+      .forEach((el) => obs.observe(el));
+    return () => obs.disconnect();
   }, []);
 
   return (
@@ -179,6 +201,62 @@ export default function EventsPage({ onBack, onEventClick, events = fallbackEven
             }}
           >
             <DynamicIcon name="Calendar" size={16} />
+      <div
+        className="container"
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          marginBottom: '30px',
+          position: 'relative',
+          zIndex: 10,
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            background: 'var(--card)',
+            borderRadius: '30px',
+            padding: '4px',
+            border: '1px solid var(--bdr)',
+            backdropFilter: 'blur(10px)',
+          }}
+          role="tablist"
+          aria-label="Event view mode"
+        >
+          <button
+            role="tab"
+            aria-selected={viewMode === 'list'}
+            aria-controls="events-view-panel"
+            onClick={() => setViewMode('list')}
+            style={{
+              padding: '8px 24px',
+              borderRadius: '26px',
+              border: 'none',
+              background: viewMode === 'list' ? 'var(--c1a)' : 'transparent',
+              color: viewMode === 'list' ? 'var(--c1)' : 'var(--t2)',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all .2s',
+            }}
+          >
+            List View
+          </button>
+          <button
+            role="tab"
+            aria-selected={viewMode === 'calendar'}
+            aria-controls="events-view-panel"
+            onClick={() => setViewMode('calendar')}
+            style={{
+              padding: '8px 24px',
+              borderRadius: '26px',
+              border: 'none',
+              background: viewMode === 'calendar' ? 'var(--c1a)' : 'transparent',
+              color: viewMode === 'calendar' ? 'var(--c1)' : 'var(--t2)',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all .2s',
+            }}
+          >
             Calendar View
           </button>
           <button
@@ -250,6 +328,188 @@ export default function EventsPage({ onBack, onEventClick, events = fallbackEven
                       <Skeleton height={14} width="35%" borderRadius={6} />
                       <Skeleton height={48} width="100%" borderRadius={8} />
                       <Skeleton height={24} width="40%" borderRadius={20} />
+        <div
+          id="events-view-panel"
+          className="events-timeline ns-reveal"
+          role="tabpanel"
+          aria-label={`${viewMode} events`}
+        >
+          {safeEvents.length === 0 ? (
+            <div
+              style={{
+                textAlign: 'center',
+                padding: '80px 24px',
+                margin: '40px auto',
+                maxWidth: '500px',
+                background: 'var(--card)',
+                borderRadius: '16px',
+                border: '1px solid var(--bdr)',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+              }}
+            >
+              <div style={{ color: 'var(--c1)', marginBottom: '20px', opacity: 0.8 }}>
+                <DynamicIcon name="Calendar" size={56} />
+              </div>
+              <h3
+                style={{
+                  fontSize: '1.4rem',
+                  marginBottom: '12px',
+                  color: 'var(--t1)',
+                  fontWeight: 600,
+                }}
+              >
+                No upcoming events found
+              </h3>
+              <p
+                style={{
+                  color: 'var(--t2)',
+                  fontSize: '0.95rem',
+                  lineHeight: 1.6,
+                  marginBottom: '24px',
+                }}
+              >
+                We currently don't have any events to show. Please check back later for new updates
+                and exciting activities!
+              </p>
+              <button
+                onClick={() => window.location.reload()}
+                className="btn btn-primary"
+                style={{
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                <DynamicIcon name="RefreshCw" size={16} /> Refresh
+              </button>
+            </div>
+          ) : (
+            safeEvents.map((ev, i) => {
+              const isKSS =
+                ev.id === 1 ||
+                ev.id === 'kss-153' ||
+                String(ev.shortName || '')
+                  .toLowerCase()
+                  .includes('kss');
+              return (
+                <div className="timeline-item" key={ev.id}>
+                  <div className={`timeline-dot${ev.status === 'upcoming' ? ' upcoming' : ''}`} />
+                  <div
+                    className={`timeline-card shimmer ${i % 2 === 0 ? 'pop-left' : 'pop-right'} fired`}
+                    style={{
+                      animationDelay: `${i * 0.11}s`,
+                      cursor: isKSS ? 'none' : 'default',
+                      transition: 'all .28s ease',
+                      position: 'relative',
+                    }}
+                    onClick={isKSS ? () => onEventClick(ev) : undefined}
+                    onMouseEnter={
+                      isKSS
+                        ? (e) => {
+                            e.currentTarget.style.borderColor = 'rgba(168,85,247,.45)';
+                            e.currentTarget.style.boxShadow = '0 8px 32px rgba(168,85,247,.15)';
+                            e.currentTarget.style.transform = 'translateY(-4px)';
+                          }
+                        : undefined
+                    }
+                    onMouseLeave={
+                      isKSS
+                        ? (e) => {
+                            e.currentTarget.style.borderColor = '';
+                            e.currentTarget.style.boxShadow = '';
+                            e.currentTarget.style.transform = '';
+                          }
+                        : undefined
+                    }
+                  >
+                    <BookmarkButton
+                      item={{ id: `event-${ev.id}`, type: 'Event', title: ev.name, date: ev.date }}
+                      style={{ position: 'absolute', top: '12px', right: '12px', zIndex: 20 }}
+                    />
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        marginBottom: '7px',
+                      }}
+                    >
+                      <span style={{ display: 'flex', color: 'var(--c1)' }}>
+                        <DynamicIcon name={ev.icon || 'Calendar'} size={24} />
+                      </span>
+                      <div
+                        className="timeline-event-name"
+                        style={isKSS ? { color: '#a855f7' } : {}}
+                      >
+                        {ev.name}
+                      </div>
+                      {isKSS && (
+                        <span
+                          style={{
+                            marginLeft: 'auto',
+                            fontSize: '.6rem',
+                            padding: '2px 8px',
+                            borderRadius: '10px',
+                            background: 'rgba(168,85,247,.12)',
+                            color: '#a855f7',
+                            border: '1px solid rgba(168,85,247,.3)',
+                            fontFamily: "'Space Mono', monospace",
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          View Details →
+                        </span>
+                      )}
+                    </div>
+                    <div
+                      className="timeline-event-date"
+                      style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      <DynamicIcon name="Calendar" size={14} /> {ev.date}
+                    </div>
+                    <p className="timeline-event-desc">{ev.description}</p>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '7px',
+                        flexWrap: 'wrap',
+                      }}
+                    >
+                      <span className={`timeline-badge ${ev.status}`}>
+                        {ev.status === 'completed' ? (
+                          <>
+                            <DynamicIcon
+                              name="CheckCircle"
+                              size={14}
+                              style={{ marginRight: '4px' }}
+                            />{' '}
+                            Completed
+                          </>
+                        ) : (
+                          <>
+                            <DynamicIcon name="Calendar" size={14} style={{ marginRight: '4px' }} />{' '}
+                            Upcoming
+                          </>
+                        )}
+                      </span>
+                      {ev.tags?.map((t) => (
+                        <span
+                          key={t}
+                          style={{
+                            fontSize: '.68rem',
+                            padding: '2px 8px',
+                            borderRadius: '10px',
+                            background: 'var(--c2a)',
+                            color: 'var(--c2)',
+                            border: '1px solid var(--c2b)',
+                            fontWeight: 600,
+                          }}
+                        >
+                          {t}
+                        </span>
+                      ))}
                     </div>
                   </div>
                 ))
@@ -389,6 +649,11 @@ export default function EventsPage({ onBack, onEventClick, events = fallbackEven
                   textAlign: 'center',
                   color: 'var(--t3)',
                   animationDelay: `${sortedEvents.length * 0.11}s`,
+                className="timeline-card pop-in fired"
+                style={{
+                  textAlign: 'center',
+                  color: 'var(--t3)',
+                  animationDelay: `${safeEvents.length * 0.11}s`,
                 }}
               >
                 <DynamicIcon

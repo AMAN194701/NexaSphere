@@ -3,7 +3,7 @@ import { getAllPrompts, deletePrompt, togglePinPrompt } from '../../lib/promptSt
 import { getWorkspaces } from '../../lib/workspaceService';
 import './PromptHistorySidebar.css';
 
-const PromptHistorySidebar = ({ isOpen, onSelectPrompt, currentWorkspace = 'default' }) => {
+const PromptHistorySidebar = ({ id, isOpen, onSelectPrompt, currentWorkspace = 'default' }) => {
   const [prompts, setPrompts] = useState([]);
   const [workspaces, setWorkspaces] = useState([]);
   const [selectedWorkspace, setSelectedWorkspace] = useState(currentWorkspace);
@@ -74,6 +74,7 @@ const PromptHistorySidebar = ({ isOpen, onSelectPrompt, currentWorkspace = 'defa
 
   return (
     <div id="prompt-history-sidebar" className={`history-sidebar ${isOpen ? 'open' : 'closed'}`}>
+    <div id={id} className={`history-sidebar ${isOpen ? 'open' : 'closed'}`} aria-hidden={!isOpen}>
       <div className="sidebar-header">
         <h3>History</h3>
         <span className="workspace-badge">{getCurrentWorkspaceName()}</span>

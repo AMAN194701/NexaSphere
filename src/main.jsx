@@ -44,6 +44,12 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     </BrowserRouter>
   </React.StrictMode>
 );
+import GlobalErrorBoundary from './components/GlobalErrorBoundary.jsx';
+import { ThemeProvider } from './context/theme/ThemeProvider.tsx';
+import { HelmetProvider } from 'react-helmet-async';
+
+createRoot(document.getElementById('root')).render(
+  <StrictMode>
     <HelmetProvider>
       <GlobalErrorBoundary>
         <ThemeProvider>
