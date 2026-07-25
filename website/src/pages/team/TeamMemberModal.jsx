@@ -22,6 +22,9 @@ function CopyPopup({ value, onClose }) {
         copiedTimeoutRef.current = setTimeout(() => {
           setCopied(false);
           setCopyError(false);
+        if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
+        copiedTimeoutRef.current = setTimeout(() => {
+          setCopied(false);
           copiedTimeoutRef.current = null;
         }, 2000);
       })
