@@ -22,6 +22,10 @@ import { google } from 'googleapis';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
+import rateLimit from 'express-rate-limit';
+import { sendWelcomeVerificationEmail } from './services/emailService.js';
+import { ZodError } from 'zod';
+import { normalizeFormSubmission } from './validators/formSchemas.js';
 import { adminAuthMiddleware } from './middleware/adminAuthMiddleware.js';
 import analyticsRouter from './routes/analytics.js';
 import customEventsRouter from './routes/customEvents.js';
@@ -1707,6 +1711,17 @@ function checkPasskeyLockout(username, ip) {
 function recordFailedPasskeyAttempt(username, ip) {
   const ipKey = String(ip || 'unknown');
   const userKey = String(username || '').toLowerCase();
+const formLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { error: 'Too many submissions. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.post('/api/forms/membership', formLimiter, (req, res) => handleForm('membership', req, res));
+app.post('/api/forms/recruitment', formLimiter, (req, res) => handleForm('recruitment', req, res));
+app.post('/api/core-team/apply', formLimiter, (req, res) => handleForm('core_team', req, res));
 
   // IP tracking
   if (
