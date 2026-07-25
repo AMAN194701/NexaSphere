@@ -1,4 +1,5 @@
 import { moderationService } from '../services/moderationService.js';
+import { portfolioRepository } from '../repositories/portfolioRepository.js';
 import { sendSuccess, sendError, sendNoContent } from '../utils/responseHelper.js';
 
 function wrapAsync(fn) {
@@ -246,4 +247,24 @@ export const bulkResolve = wrapAsync(async (req, res) => {
     note
   );
   return sendSuccess(res, { results });
+});
+
+export const getFlaggedPortfolios = wrapAsync(async (req, res) => {
+  const portfolios = await portfolioRepository.getFlaggedPortfolios();
+  return sendSuccess(res, { portfolios });
+});
+
+export const approvePortfolio = wrapAsync(async (req, res) => {
+  const { username } = req.params;
+  await portfolioRepository.updatePortfolioModerationStatus(username, 'approved');
+  // Send notification to user
+  return sendSuccess(res, { message: 'Portfolio approved' });
+});
+
+export const rejectPortfolio = wrapAsync(async (req, res) => {
+  const { username } = req.params;
+  const { reason } = req.body;
+  await portfolioRepository.updatePortfolioModerationStatus(username, 'rejected', reason);
+  // Send notification to user
+  return sendSuccess(res, { message: 'Portfolio rejected' });
 });
