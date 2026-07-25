@@ -37,6 +37,7 @@
     "db:validate": "node scripts/validate-database.js",
     "audit:sql": "node scripts/audit-sql.js",
     "postinstall": "node ./node_modules/prisma/build/index.js generate --schema=../prisma/schema.prisma --no-engine",
+    "postinstall": "npx prisma generate --schema=../prisma/schema.prisma",
     "dr-drill": "node --loader ts-node/esm scripts/dr-drill.ts"
     "test:cleanup": "node --test test/adminSessionCleanup.test.js",
     "test:membership": "node --test test/membershipProxy.test.js",
