@@ -10,6 +10,7 @@ export default function ShareHub({ isOpen, onClose, data }) {
   const [showQR, setShowQR] = useState(false);
   const copiedTimeoutRef = useRef(null);
   const copyResetRef = useRef(null);
+  const copyTimeoutRef = useRef(null);
 
   useEffect(() => {
     return () => {
@@ -28,6 +29,15 @@ export default function ShareHub({ isOpen, onClose, data }) {
     };
   }, [isOpen]);
 
+  useEffect(
+    () => () => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+    },
+    []
+  );
+
   const shareUrl = isOpen && data ? addUtmParams(data.url || window.location.href, 'direct') : '';
   const shareTitle = data?.title || 'Check this out on NexaSphere!';
 
@@ -43,6 +53,8 @@ export default function ShareHub({ isOpen, onClose, data }) {
         setCopied(false);
         copyResetRef.current = null;
       }, 2000);
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+      copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
     }
   }, [shareUrl]);
 
