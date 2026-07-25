@@ -35,6 +35,12 @@ export async function sendWebPush(subscription, payload) {
     if (err.code === 'CIRCUIT_OPEN') {
       return null;
     }
+export async function sendWebPush(subscription, payload) {
+  if (!hasVapid) return null;
+  try {
+    const result = await webpush.sendNotification(subscription, JSON.stringify(payload));
+    return result;
+  } catch (err) {
     if (err.statusCode === 410 || err.statusCode === 404) {
       return { expired: true };
     }

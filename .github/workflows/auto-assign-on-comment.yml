@@ -34,6 +34,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Assign commenter (first come, first served)
+      - name: Check if already assigned
+        id: check
         uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -73,6 +75,11 @@ jobs:
             }
 
             // ── Assign the commenter ─────────────────────────────────────────
+      - name: Assign Premshaw23 to issue
+        if: steps.check.outputs.already_assigned == 'false'
+        uses: actions/github-script@v9
+        with:
+          script: |
             await github.rest.issues.addAssignees({
               owner, repo,
               issue_number: issueNumber,
@@ -91,6 +98,11 @@ jobs:
             }
 
             // ── Post a welcome confirmation comment ──────────────────────────
+      - name: Post confirmation comment
+        if: steps.check.outputs.already_assigned == 'false'
+        uses: actions/github-script@v9
+        with:
+          script: |
             await github.rest.issues.createComment({
               owner, repo, issue_number: issueNumber,
               body: [

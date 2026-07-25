@@ -29,6 +29,9 @@ async function writeLocalSlackSettings(data) {
   await fs.writeFile(SLACK_STUDENTS_FILE, JSON.stringify(data, null, 2), 'utf8');
 }
 
+import { withDb } from './db.js';
+import { HAS_SUPABASE } from '../storage/supabaseClient.js';
+
 export const studentUsersRepository = {
   async ensureSchema() {
     if (!HAS_SUPABASE) return;
@@ -99,6 +102,7 @@ export const studentUsersRepository = {
         slack_dm_reminders: settings.slackDmReminders || false,
       };
     }
+    if (!HAS_SUPABASE) return null;
     return withDb(async (client) => {
       const { rows } = await client.query('SELECT * FROM student_users WHERE email = $1 LIMIT 1', [
         email,
@@ -138,6 +142,18 @@ export const studentUsersRepository = {
         }
       }
 
+      const { rows } = await client.query(
+        `INSERT INTO student_users (provider, provider_id, email, full_name, avatar_url, last_login_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+         ON CONFLICT (provider, provider_id) DO UPDATE SET
+           email = EXCLUDED.email,
+           full_name = COALESCE(NULLIF(EXCLUDED.full_name, ''), student_users.full_name),
+           avatar_url = COALESCE(NULLIF(EXCLUDED.avatar_url, ''), student_users.avatar_url),
+           last_login_at = NOW(),
+           updated_at = NOW()
+         RETURNING *`,
+        [provider, providerId, email, fullName || null, avatarUrl || null]
+      );
       return rows[0];
     });
   },

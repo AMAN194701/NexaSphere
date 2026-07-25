@@ -1,5 +1,24 @@
 import { useState, useEffect, useCallback, lazy, memo, useLayoutEffect, useRef } from 'react';
 import { BrowserRouter, useLocation, useNavigate } from 'react-router-dom';
+import {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useLayoutEffect,
+  lazy,
+  Suspense,
+  memo,
+} from 'react';
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  useNavigate,
+  useLocation,
+  useParams,
+  Navigate,
+} from 'react-router-dom';
 
 // Style overrides and design system stylesheets
 import ResourcesPage from './pages/resources/ResourcesPage.jsx';
@@ -60,6 +79,10 @@ import { WalkthroughOverlay } from './components/walkthrough/WalkthroughOverlay'
 import { useWalkthroughStore } from './store/useWalkthroughStore';
 import { useAnalytics } from './hooks/useAnalytics';
 import { SessionRecordingProvider } from './context/SessionRecordingProvider';
+import BookmarksDrawer from './components/bookmarks/BookmarksDrawer';
+import { useTheme } from './hooks/useTheme';
+import { useInteractionEffects } from './hooks/useInteractionEffects';
+import { useBackToTop } from './hooks/useScrollLogic';
 
 const MNH = 88;
 const DNH = 64;
@@ -569,6 +592,19 @@ function AppShell() {
   );
 }
 
+/* ─────────────────────────────────────────────────────
+   RequireAuth Wrapper
+───────────────────────────────────────────────────── */
+function RequireAuth({ children }) {
+  const { isAuthenticated, loading } = useStudentAuth();
+  if (loading) return <PageLoadingSpinner />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  return children;
+}
+
+/* ─────────────────────────────────────────────────────
+   MainRouter — renders the Navbar + Routes
+───────────────────────────────────────────────────── */
 function MainRouter({
   cinDone,
   theme,
@@ -608,6 +644,9 @@ function MainRouter({
       '/contact': 'Contact',
       '/dashboard': 'Dashboard',
       '/analytics': 'Analytics',
+      '/gamification': 'Gamification',
+      '/apply': 'Apply',
+      '/join': 'Join',
       '/explore': 'Explore',
       '/forum': 'Forum',
       '/mentorship': 'Mentorship',
@@ -678,6 +717,9 @@ function MainRouter({
         Roadmaps: '/roadmaps',
         Explore: '/explore',
         Resources: '/resources',
+        Portfolio: '/portfolio',
+        Collab: '/collab',
+        Explore: '/explore',
         About: '/about',
         'Core Team': '/team',
         Contact: '/contact',
@@ -885,6 +927,15 @@ function MainRouter({
                     </PageIn>
                   </RequireAuth>
                 </ErrorBoundary>
+            {/* ── Dashboard (requires auth) ── */}
+            <Route
+              path="/dashboard"
+              element={
+                <RequireAuth>
+                  <PageIn k="dashboard">
+                    <DashboardPage onBack={onBackHome} />
+                  </PageIn>
+                </RequireAuth>
               }
             />
 
@@ -948,6 +999,14 @@ function MainRouter({
               }
             />
             {/* â”€â”€ Public Portfolio â”€â”€ */}
+            {/* ── Public Portfolio ── */}
+            <Route path="/p/:username" element={<PublicPortfolioWrapper onBack={onBackHome} />} />
+            <Route
+              path="/profile/:username"
+              element={<PublicPortfolioWrapper onBack={onBackHome} />}
+            />
+
+            {/* ── Collab ── */}
             <Route
               path="/p/:username"
               element={
@@ -1086,6 +1145,57 @@ function MainRouter({
             />
 
             {/* â”€â”€ Mentorship â”€â”€ */}
+            {/* ── Certificate Verify ── */}
+            <Route path="/verify/:certId" element={<CertVerifyWrapper onGoHome={onBackHome} />} />
+
+            {/* ── Workspace (collaborative room) ── */}
+            <Route path="/workspace/:roomId" element={<WorkspaceWrapper onBack={onBackHome} />} />
+
+            {/* ── Forum ── */}
+            <Route
+              path="/forum"
+              element={
+                <PageIn k="forum">
+                  <ForumPage onBack={onBackHome} />
+                </PageIn>
+              }
+            />
+            <Route
+              path="/forum/:id"
+              element={
+                <PageIn k="forum-thread">
+                  <ForumThreadPage onBack={() => nav('/forum')} />
+                </PageIn>
+              }
+            />
+
+            {/* ── Mentorship ── */}
+            <Route
+              path="/mentorship"
+              element={
+                <PageIn k="mentorship">
+                  <MentorsPage />
+                </PageIn>
+              }
+            />
+            <Route
+              path="/mentorship/mentors"
+              element={
+                <PageIn k="mentorship-mentors">
+                  <MentorsPage />
+                </PageIn>
+              }
+            />
+            <Route
+              path="/mentorship/dashboard"
+              element={
+                <PageIn k="mentorship-dashboard">
+                  <MentorshipDashboard />
+                </PageIn>
+              }
+            />
+
+            {/* ── Admin (embedded, for quick access) ── */}
             <Route
               path="/mentorship"
               element={
@@ -1214,6 +1324,16 @@ function MainRouter({
               element={
                 <PageIn k="skill-exchange">
                   <SkillExchangePage />
+                </PageIn>
+              }
+            />
+
+            {/* ── Login / SSO ── */}
+            <Route
+              path="/login"
+              element={
+                <PageIn k="login">
+                  <LoginPage />
                 </PageIn>
               }
             />

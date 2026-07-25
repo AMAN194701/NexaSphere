@@ -1171,3 +1171,4 @@ export {
   requireScope,
 };
 export default adminAuthMiddleware;
+export { login, logout, requireAdmin, requireRole, requireScope };

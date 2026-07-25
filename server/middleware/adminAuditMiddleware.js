@@ -115,11 +115,21 @@ export function adminAuditMiddleware(req, res, next) {
       }
 
       const ipAddress = req.ip || req.connection?.remoteAddress || 'unknown';
+    // Determine if it was a successful request (2xx)
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      const adminId = req.adminSession?.username || 'unknown';
+      const action = `${req.method} ${req.originalUrl}`;
+      const ipAddress = req.ip || req.connection.remoteAddress;
       const userAgent = req.get('user-agent');
       const timestamp = new Date().toISOString();
 
       const riskLevel =
         req.method === 'DELETE' ? 'HIGH' : req.method === 'PATCH' ? 'MEDIUM' : 'LOW';
+        req.method === 'DELETE'
+          ? 'HIGH'
+          : req.method === 'PATCH'
+            ? 'MEDIUM'
+            : 'LOW';
 
       const oldState = req.oldState || null;
 

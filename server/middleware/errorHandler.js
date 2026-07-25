@@ -140,6 +140,8 @@ const errorHandler = (err, req, res, next) => {
 
   // ---- Standardized error response ----
   res.status(status).json({
+    success: false,
+    recoveryRequired: status >= 500,
     error: {
       code,
       message,

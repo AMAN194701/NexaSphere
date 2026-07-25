@@ -17,6 +17,10 @@ import {
 // TODO: useSearch hook not implemented yet
 // import { useSearch } from '../hooks/useSearch';
 
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Search, X, ArrowRight, Calendar, Zap, Users, BookOpen } from 'lucide-react';
+import { useSearch } from '../hooks/useSearch';
 
 function Highlight({ text, query }) {
   if (!text) return null;
@@ -162,6 +166,19 @@ export default function SearchBar({ open, onClose, activities, events, onNavigat
   useEffect(() => {
     setLocalQuery(query);
   }, [query]);
+  },
+};
+
+export default function SearchBar({ open, onClose, activities, events, onNavigate, onEventClick }) {
+  const inputRef = useRef(null);
+  const listRef = useRef(null);
+  const [focusIdx, setFocusIdx] = useState(-1);
+  const apiBase = import.meta?.env?.VITE_API_BASE || '';
+  const { query, setQuery, filter, setFilter, results, loading, clearSearch } = useSearch(
+    activities,
+    events,
+    apiBase
+  );
 
   useEffect(() => {
     if (open) {
@@ -187,6 +204,14 @@ export default function SearchBar({ open, onClose, activities, events, onNavigat
       clearSearch();
     },
     [onNavigate, onEventClick, onClose, clearSearch, navigate]
+      if (result.type === 'activity') onNavigate('activity', result.key || result.id);
+      else if (result.type === 'event')
+        onEventClick(result.event || { id: result.id, name: result.title });
+      else if (result.type === 'member') window.location.href = result.url || '/team';
+      onClose();
+      clearSearch();
+    },
+    [onNavigate, onEventClick, onClose, clearSearch]
   );
 
   useEffect(() => {
@@ -204,6 +229,7 @@ export default function SearchBar({ open, onClose, activities, events, onNavigat
         }
         return;
       }
+      if (!results.length) return;
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         setFocusIdx((prev) => (prev < results.length - 1 ? prev + 1 : 0));
@@ -224,6 +250,9 @@ export default function SearchBar({ open, onClose, activities, events, onNavigat
           onClose();
           clearSearch();
         }
+      if (e.key === 'Enter' && focusIdx >= 0 && focusIdx < results.length) {
+        e.preventDefault();
+        handleClick(results[focusIdx]);
       }
     };
     if (open) window.addEventListener('keydown', fn);
@@ -247,6 +276,12 @@ export default function SearchBar({ open, onClose, activities, events, onNavigat
       if (activeElement) {
         activeElement.scrollIntoView?.({ block: 'nearest' });
       }
+  }, [open, results, focusIdx]);
+
+  useEffect(() => {
+    if (focusIdx >= 0 && listRef.current) {
+      const el = listRef.current.children[focusIdx];
+      if (el) el.scrollIntoView?.({ block: 'nearest' });
     }
   }, [focusIdx]);
 
@@ -306,6 +341,7 @@ export default function SearchBar({ open, onClose, activities, events, onNavigat
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search events, posts, users, resources…"
+                placeholder="Search events, members, activities…"
                 aria-label="Search"
                 style={{
                   flex: 1,
@@ -369,6 +405,8 @@ export default function SearchBar({ open, onClose, activities, events, onNavigat
                 { key: 'members', label: 'Core Team' },
                 { key: 'users', label: 'Users' },
                 { key: 'activities', label: 'Activities' },
+                { key: 'activities', label: 'Activities' },
+                { key: 'members', label: 'Members' },
               ].map((f) => (
                 <button
                   key={f.key}
@@ -494,6 +532,11 @@ export default function SearchBar({ open, onClose, activities, events, onNavigat
                   <Search size={34} color="rgba(204,17,17,0.35)" style={{ marginBottom: '12px' }} />
                   <div style={{ fontSize: '0.95rem', marginBottom: '8px' }}>
                     Type to search events, posts, users &amp; resources
+              {!query && (
+                <div style={{ padding: '44px 20px', textAlign: 'center', color: 'var(--t2)' }}>
+                  <Search size={34} color="rgba(204,17,17,0.35)" style={{ marginBottom: '12px' }} />
+                  <div style={{ fontSize: '0.95rem', marginBottom: '8px' }}>
+                    Type to search events, members &amp; activities
                   </div>
                   <div style={{ fontSize: '0.78rem', opacity: 0.6 }}>
                     Press{' '}
@@ -515,6 +558,7 @@ export default function SearchBar({ open, onClose, activities, events, onNavigat
                 <div
                   style={{
                     padding: '32px 20px',
+                    padding: '24px 20px',
                     textAlign: 'center',
                     color: 'var(--t2)',
                     fontSize: '0.9rem',
@@ -532,6 +576,7 @@ export default function SearchBar({ open, onClose, activities, events, onNavigat
                     }}
                   />
                   Searching platform…
+                  Searching across events, members, and activities…
                 </div>
               )}
 
@@ -561,6 +606,55 @@ export default function SearchBar({ open, onClose, activities, events, onNavigat
                     if (!items || items.length === 0) return null;
                     return (
                       <div key={type} style={{ marginTop: '8px' }}>
+              {results.map((result, idx) => {
+                const tc = TYPE_CONFIG[result.type] || TYPE_CONFIG.event;
+                return (
+                  <button
+                    key={`${result.id}-${result.type}`}
+                    onClick={() => handleClick(result)}
+                    role="option"
+                    aria-selected={focusIdx === idx}
+                    style={{
+                      width: '100%',
+                      textAlign: 'left',
+                      background: focusIdx === idx ? 'rgba(204,17,17,0.12)' : 'none',
+                      border: 'none',
+                      borderBottom: '1px solid rgba(255,255,255,0.05)',
+                      padding: '14px 20px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '14px',
+                      transition: 'background 0.15s',
+                      color: 'var(--t1)',
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background = 'rgba(204,17,17,0.07)')
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background =
+                        focusIdx === idx ? 'rgba(204,17,17,0.12)' : 'none')
+                    }
+                  >
+                    <div
+                      style={{
+                        width: '38px',
+                        height: '38px',
+                        borderRadius: '11px',
+                        flexShrink: 0,
+                        background: tc.bg,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      {tc.icon}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: '0.95rem', marginBottom: '3px' }}>
+                        <Highlight text={result.title} query={query} />
+                      </div>
+                      {result.description && (
                         <div
                           style={{
                             padding: '8px 20px 4px',
@@ -669,6 +763,26 @@ export default function SearchBar({ open, onClose, activities, events, onNavigat
                   })}
                 </div>
               )}
+                      )}
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          marginTop: '5px',
+                          fontSize: '0.7rem',
+                          padding: '1px 9px',
+                          borderRadius: '10px',
+                          background: tc.bg,
+                          color: tc.color,
+                          textTransform: 'capitalize',
+                        }}
+                      >
+                        {tc.label}
+                      </span>
+                    </div>
+                    <ArrowRight size={15} color="var(--t2)" style={{ flexShrink: 0 }} />
+                  </button>
+                );
+              })}
             </div>
 
             {query && results.length > 0 && (

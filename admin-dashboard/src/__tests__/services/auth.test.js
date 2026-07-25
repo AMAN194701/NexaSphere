@@ -30,6 +30,7 @@ describe('auth.login', () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: 'test@example.com', password: 'secret123' }),
+      body: JSON.stringify({ email: 'test@example.com', password: 'secret123' }),
       credentials: 'include',
     });
     expect(result.username).toBe('test@example.com');
@@ -56,9 +57,7 @@ describe('auth.login', () => {
   test('throws "Invalid credentials" when response json() fails', async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: false,
-      json: async () => {
-        throw new Error('parse fail');
-      },
+      json: async () => { throw new Error('parse fail'); },
     });
 
     await expect(auth.login('a@b.com', 'x')).rejects.toThrow('Invalid credentials');
@@ -102,6 +101,7 @@ describe('auth.logout', () => {
       'events:read',
       'events:write',
     ]);
+    expect(auth.getScopes()).toEqual(['users:read', 'users:write', 'settings:admin', 'events:read', 'events:write']);
   });
 });
 

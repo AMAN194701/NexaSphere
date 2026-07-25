@@ -32,6 +32,8 @@
     "test": "node --test test/sanitize.test.js test/formSchemas.test.js test/adminSessions.test.js test/notificationsService.test.js test/notificationSubscription.test.js test/sql-injection.test.js test/xss.test.js test/cors.test.js test/tierRateLimiter.test.js test/sync.test.js test/activityEventsService.test.js test/metrics.test.js test/logger.test.js test/observabilityInit.test.js test/tracing.test.js test/performanceMonitor.test.js test/errorTracking.test.js test/adminAuth.test.js test/announcements.test.js test/bulkOperations.test.js test/theme.test.js test/slack.test.js test/backup.test.js test/api-contract-search.test.js test/api-contract-webhooks.test.js test/api-contract-middleware.test.js test/api-contract-utils.test.js",
     "test:watch": "node --test --watch test/sanitize.test.js test/formSchemas.test.js test/adminSessions.test.js test/notificationsService.test.js test/notificationSubscription.test.js test/sql-injection.test.js test/xss.test.js test/cors.test.js test/tierRateLimiter.test.js test/sync.test.js test/activityEventsService.test.js test/metrics.test.js test/logger.test.js test/observabilityInit.test.js test/tracing.test.js test/performanceMonitor.test.js test/errorTracking.test.js test/adminAuth.test.js test/announcements.test.js test/bulkOperations.test.js test/theme.test.js test/slack.test.js test/backup.test.js test/api-contract-search.test.js test/api-contract-webhooks.test.js test/api-contract-middleware.test.js test/api-contract-utils.test.js",
     "test:coverage": "node --test --experimental-test-coverage --test-reporter=lcov --test-reporter-destination=coverage.lcov test/sanitize.test.js test/formSchemas.test.js test/adminSessions.test.js test/notificationsService.test.js test/notificationSubscription.test.js test/sql-injection.test.js test/xss.test.js test/cors.test.js test/tierRateLimiter.test.js test/sync.test.js test/activityEventsService.test.js test/metrics.test.js test/logger.test.js test/observabilityInit.test.js test/tracing.test.js test/performanceMonitor.test.js test/errorTracking.test.js test/adminAuth.test.js test/announcements.test.js test/bulkOperations.test.js test/theme.test.js test/slack.test.js test/backup.test.js test/api-contract-search.test.js test/api-contract-webhooks.test.js test/api-contract-middleware.test.js test/api-contract-utils.test.js",
+    "test": "node --test test/sanitize.test.js test/formSchemas.test.js test/adminSessions.test.js test/notificationsService.test.js test/notificationSubscription.test.js test/sql-injection.test.js test/xss.test.js test/cors.test.js test/tierRateLimiter.test.js test/sync.test.js test/activityEventsService.test.js",
+    "test:watch": "node --test --watch test/sanitize.test.js test/formSchemas.test.js test/adminSessions.test.js test/notificationsService.test.js test/notificationSubscription.test.js test/sql-injection.test.js test/xss.test.js test/cors.test.js test/tierRateLimiter.test.js test/sync.test.js test/activityEventsService.test.js",
     "migrate": "node-pg-migrate -f .postgres_migrations_config.json",
     "migrate:latest": "node-pg-migrate -f .postgres_migrations_config.json up",
     "migrate:rollback": "node-pg-migrate -f .postgres_migrations_config.json down",
@@ -51,6 +53,7 @@
     "migrate:create": "node-pg-migrate create"
     "migrate:create": "node-pg-migrate -f .postgres_migrations_config.json create"
     "dr-drill": "node --loader ts-node/esm scripts/dr-drill.ts"
+    "audit:sql": "node scripts/audit-sql.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1090.0",
@@ -111,6 +114,8 @@
     "compression": "^1.8.1",
     "async-mutex": "^0.5.0",
     "bcryptjs": "^3.0.3",
+    "compression": "^1.7.5",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "csurf": "^1.11.0",
     "dotenv": "^16.6.1",
@@ -130,6 +135,8 @@
     "jsonwebtoken": "^9.0.3",
     "morgan": "^1.11.0",
     "multer": "^1.4.5-lts.1",
+    "isomorphic-dompurify": "3.16.0",
+    "jsonwebtoken": "^9.0.3",
     "morgan": "^1.10.0",
     "node-pg-migrate": "^8.0.4",
     "nodemailer": "^9.0.3",
@@ -151,8 +158,13 @@
     "node-cron": "^4.2.1",
     "node-pg-migrate": "^6.2.2",
     "nodemailer": "^8.0.7",
+    "passport": "^0.7.0",
+    "passport-github2": "^0.1.12",
+    "passport-google-oauth20": "^2.0.0",
     "pg": "^8.21.0",
     "redis": "^5.12.1",
+    "qrcode": "^1.5.4",
+    "rate-limit-redis": "^5.0.0",
     "redoc-express": "^1.0.0",
     "rrule": "^2.8.1",
     "socket.io": "^4.7.2",

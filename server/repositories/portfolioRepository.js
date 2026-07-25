@@ -550,8 +550,8 @@ export const portfolioRepository = {
               theme = EXCLUDED.theme,
               customization = EXCLUDED.customization,
               username, passkey_hash, theme, visible_sections, social_links,
-              custom_domain, seo_metadata, skills, badges, projects, roadmaps, bio, title, updated_at
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW())
+              custom_domain, seo_metadata, skills, badges, projects, roadmaps, bio, title, avatar_url, education, work_experience, updated_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW())
             ON CONFLICT (username) DO UPDATE SET
               passkey_hash = EXCLUDED.passkey_hash,
               theme = EXCLUDED.theme,
@@ -665,6 +665,10 @@ export const portfolioRepository = {
   },
 
   async listAll({ includeDeleted = false } = {}) {
+    });
+  },
+
+  async listAll() {
     const isDbAvailable = await ensureReady();
     if (isDbAvailable) {
       try {
@@ -675,6 +679,7 @@ export const portfolioRepository = {
           }
           query += ' ORDER BY updated_at DESC';
           const { rows } = await client.query(query);
+          const { rows } = await client.query('SELECT * FROM portfolios ORDER BY updated_at DESC');
           return rows.map(mapRow);
         });
       } catch (err) {
@@ -717,6 +722,10 @@ export const portfolioRepository = {
       await writeLocalPortfolios(portfolios);
     }
     throw new Error('Portfolio storage is unavailable. Please try again later.');
+        await client.query('DELETE FROM portfolios WHERE username = $1', [username]);
+      });
+    }
+    throw new Error('Portfolio storage is unavailable');
   },
 };
 

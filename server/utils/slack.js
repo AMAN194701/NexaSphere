@@ -320,15 +320,24 @@ async function sendPerformanceAlert(metrics) {
           color: metrics.errorRate > 5 ? 'danger' : 'warning',
           title: 'Performance Alert',
           fields: [
+          color: metrics.errorRate > 5 ? "danger" : "warning",
+          blocks: [
             {
-              title: 'Error Rate',
-              value: `${metrics.errorRate.toFixed(2)}%`,
-              short: true,
+              type: "header",
+              text: {
+                type: "plain_text",
+                text: "📊 Performance Alert",
+                emoji: true
+              }
             },
             {
-              title: 'Total Requests',
-              value: metrics.totalRequests.toString(),
-              short: true,
+              type: "section",
+              fields: [
+                { type: "mrkdwn", text: `*Error Rate:*\n${metrics.errorRate.toFixed(2)}%` },
+                { type: "mrkdwn", text: `*Threshold:*\n5%` },
+                { type: "mrkdwn", text: `*Total Requests:*\n${metrics.totalRequests}` },
+                { type: "mrkdwn", text: `*Total Errors:*\n${metrics.totalErrors}` }
+              ]
             },
             {
               title: 'Total Errors',
@@ -424,11 +433,14 @@ async function sendPerformanceAlert(metrics) {
     if (!response.ok) {
       logger.error('Failed to send performance alert');
       logger.error('Failed to send performance alert', {
+   if (!response.ok) {
+      logger.error("Failed to send performance alert", {
         status: response.status,
         statusText: response.statusText,
       });
     } else {
       logger.info('Performance alert sent successfully');
+      logger.info("Performance alert sent successfully");
     }
   } catch (error) {
     logger.error('Error sending performance alert', { error: error.message });

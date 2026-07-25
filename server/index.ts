@@ -215,6 +215,7 @@ import { portfolioContentSchema, portfolioPutSchema } from './validators/portfol
 import { searchController } from './controllers/searchController.js';
 import { Mutex } from 'async-mutex';
 import { CircuitBreaker, circuitBreakerRegistry } from './utils/circuitBreaker.js';
+import { pushSubscriptionsRepository } from './repositories/pushSubscriptionsRepository.js';
 import { getPublicAppUrl } from './utils/publicAppUrl.js';
 import * as eventsController from './controllers/eventsController.js';
 import './workers/bulkWorker.js';
@@ -353,6 +354,9 @@ import { notificationPreferencesRepository } from './repositories/notificationPr
 import { HAS_SUPABASE } from './storage/supabaseClient.js';
 import cookieParser from 'cookie-parser';
 import csurf from 'csurf';
+import { notificationPreferencesRepository } from './repositories/notificationPreferencesRepository.js';
+import { supabaseRequest, HAS_SUPABASE } from './storage/supabaseClient.js';
+import cookieParser from 'cookie-parser';
 import passport from './config/studentOAuth.js';
 import { studentUsersRepository } from './repositories/studentUsersRepository.js';
 import * as studentAuthController from './controllers/studentAuthController.js';
@@ -647,26 +651,140 @@ app.use(
     },
 app.use(
   helmet({
+    // Prevent MIME sniffing
+    noSniff: true,
+
+    // Prevent clickjacking
+    frameguard: {
+      action: 'deny',
+    },
+
+    // Hide X-Powered-By
+    hidePoweredBy: true,
+
+    // Disable old IE XSS filter
+    xssFilter: false,
+
+    // Restrict referrer leakage
+    referrerPolicy: {
+      policy: 'strict-origin-when-cross-origin',
+    },
+
+    // Enforce HTTPS in production
+    hsts:
+      process.env.NODE_ENV === 'production'
+        ? {
+            maxAge: 31536000,
+            includeSubDomains: true,
+            preload: true,
+          }
+        : false,
+
+    // Strict Content Security Policy
     contentSecurityPolicy: {
+      useDefaults: false,
+
       directives: {
+        // Default restriction
         defaultSrc: ["'self'"],
+
+        // Prevent inline scripts + third-party execution
         scriptSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-        fontSrc: ["'self'", 'https://fonts.gstatic.com'],
-        imgSrc: ["'self'", 'data:', 'https:'],
-        connectSrc: [
-          "'self'",
-          process.env.FRONTEND_URL || 'http://localhost:5173',
-          `wss://${process.env.DOMAIN || 'localhost'}`,
-        ],
+
+        // Allow styles from self only
+        styleSrc: ["'self'", "'unsafe-inline'"],
+
+        // Images
+        imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
+
+        // Fonts
+        fontSrc: ["'self'", 'https:', 'data:'],
+
+        // API/WebSocket connections
+        connectSrc: ["'self'", 'https:', 'wss:'],
+
+        // Block Flash/object/embed
         objectSrc: ["'none'"],
+
+        // Prevent <base> hijacking
+        baseUri: ["'self'"],
+
+        // Prevent iframe embedding
+        frameAncestors: ["'none'"],
+
+        // Restrict forms
+        formAction: ["'self'"],
+
+        // Prevent mixed content
         upgradeInsecureRequests: [],
+
+        // Restrict workers
+        workerSrc: ["'self'", 'blob:'],
+
+        // Restrict manifests
+        manifestSrc: ["'self'"],
+
+        // Restrict media
+        mediaSrc: ["'self'"],
+
+        // Restrict frames
+        frameSrc: ["'none'"],
+
+        // Restrict child browsing contexts
+        childSrc: ["'none'"],
       },
     },
+
+    // Safer cross-origin behavior
     crossOriginEmbedderPolicy: false,
+
+    crossOriginOpenerPolicy: {
+      policy: 'same-origin',
+    },
+
+    crossOriginResourcePolicy: {
+      policy: 'same-origin',
+    },
+
+    // Disable DNS prefetching
+    dnsPrefetchControl: {
+      allow: false,
+    },
+
+    // Prevent browser feature abuse
+    permissionsPolicy: {
+      features: {
+        geolocation: [],
+        microphone: [],
+        camera: [],
+        payment: [],
+        usb: [],
+        magnetometer: [],
+        gyroscope: [],
+      },
+    },
   })
 );
-app.use(cors({ origin: allowedOrigins, credentials: true }));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) {
+        return callback(null, true);
+      }
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error('CORS Policy: Origin not allowed.'));
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
+    maxAge: 86400, // Cache preflight requests for 24 hours
+  })
+);
+app.options('*', cors());
 
 app.use(tracingMiddleware);
 
@@ -677,6 +795,15 @@ app.use(express.json({ limit: "512kb" }));
 function redactUrl(url) {
   return url.replace(/[?&]token=[^&\s]+/gi, "$1token=REDACTED");
 }
+app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+app.use(xssSanitizer);
+app.use(morgan('combined'));
+app.use(performanceMonitor);
+app.use(cookieParser());
+
+// Global API rate limiter — protects all /api routes from request flooding
+app.use('/api', tierRateLimiter());
 
 app.get('/api-docs.json', (req, res) => {
   res.setHeader('Content-Type', 'application/json');
@@ -981,6 +1108,11 @@ app.use(
 app.use("/api", apiRateLimiter);
 app.use("/api/mentorship", mentorshipRouter);
 app.use("/api/adaptive-roadmap", adaptiveRoadmapRouter);
+// Mount monitoring + API documentation routes
+app.use('/api/monitoring', monitoringRouter);
+app.use('/api', documentationRouter);
+app.use('/', apiRouter);
+app.use('/', syncRouter);
 
 const adminAuth = adminAuthMiddleware.requireAdmin;
 const adminEvents = new EventEmitter();
@@ -3768,6 +3900,9 @@ app.get('/api/admin/me', adminAuth, (req, res) => {
 app.use('/api/admin/analytics', adminAuth, analyticsRouter);
 app.use('/api/admin/metrics', adminAuth, adminStreamRouter);
 
+app.get('/api/auth/me', requireStudentAuth, studentAuthController.getMe);
+app.post('/api/auth/logout', studentAuthController.logout);
+
 // Event Admin Management
 app.get('/api/admin/events', adminAuth, eventsController.adminListEvents);
 app.post('/api/admin/events', adminAuth, eventsController.adminCreateEvent);
@@ -4101,6 +4236,10 @@ app.delete(
   adminAuth,
   coreTeamController.adminDeleteCoreTeamMember
 );
+app.get('/api/admin/core-team', adminAuthMiddleware.requireScope('settings:admin'), coreTeamController.adminListCoreTeamMembers);
+app.post('/api/admin/core-team', adminAuthMiddleware.requireScope('settings:admin'), coreTeamController.adminAddCoreTeamMember);
+app.put('/api/admin/core-team/:id', adminAuthMiddleware.requireScope('settings:admin'), coreTeamController.adminUpdateCoreTeamMember);
+app.delete('/api/admin/core-team/:id', adminAuthMiddleware.requireScope('settings:admin'), coreTeamController.adminDeleteCoreTeamMember);
 
 // Dynamic forms
 app.post(
@@ -4261,11 +4400,136 @@ app.post(
       }
       const ok = await notificationsService.markAsRead(uid, id);
       return res.json({ success: ok });
+// Real-time Push Subscriber channels.
+// The in-memory Set is a fast local mirror. When a PostgreSQL database is
+// configured (DATABASE_URL present), subscriptions are also persisted to the
+// push_subscriptions table so they survive server restarts, deploys, and
+// crashes. When no database is configured the store degrades to memory-only,
+// preserving the previous behavior for local development.
+const pushSubscriptions = new Set();
+
+const PUSH_PERSISTENCE_ENABLED = Boolean(process.env.DATABASE_URL);
+
+// Load any previously persisted subscriptions into the in-memory mirror at
+// startup so a restart does not silently drop registered subscribers.
+async function loadPersistedPushSubscriptions() {
+  if (!PUSH_PERSISTENCE_ENABLED) return;
+  try {
+    const rows = await pushSubscriptionsRepository.list({ limit: 10000 });
+    for (const sub of rows) {
+      pushSubscriptions.add(JSON.stringify(sub));
+    }
+    console.log(`Loaded ${rows.length} persisted push subscription(s).`);
+  } catch (err) {
+    console.error('Failed to load persisted push subscriptions:', err.message);
+  }
+}
+
+async function persistPushSubscription(subscription) {
+  if (!PUSH_PERSISTENCE_ENABLED) return;
+  try {
+    await pushSubscriptionsRepository.add(subscription);
+  } catch (err) {
+    console.error('Failed to persist push subscription:', err.message);
+  }
+}
+
+async function removePersistedPushSubscription(subscription) {
+  if (!PUSH_PERSISTENCE_ENABLED) return;
+  try {
+    await pushSubscriptionsRepository.remove(subscription.endpoint);
+  } catch (err) {
+    console.error('Failed to remove persisted push subscription:', err.message);
+  }
+}
+
+const validatePushSubscription = [
+  body('subscription').isObject().withMessage('subscription must be an object'),
+  body('subscription.endpoint')
+    .isURL()
+    .withMessage('endpoint must be a valid URL')
+    .isLength({ max: 2048 }),
+  body('subscription.keys').isObject().withMessage('keys must be an object'),
+  body('subscription.keys.p256dh')
+    .isString()
+    .isLength({ max: 256 })
+    .withMessage('p256dh must be a string up to 256 chars'),
+  body('subscription.keys.auth')
+    .isString()
+    .isLength({ max: 128 })
+    .withMessage('auth must be a string up to 128 chars'),
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res
+        .status(400)
+        .json({ error: 'Invalid subscription payload', details: errors.array() });
+    }
+
+    // Strict sanitization: reconstruct object to drop malicious properties and limit memory size
+    const {
+      endpoint,
+      keys: { p256dh, auth },
+    } = req.body.subscription;
+    req.body.subscription = { endpoint, keys: { p256dh, auth } };
+
+    next();
+  },
+];
+
+app.post(
+  '/api/notifications/subscribe',
+  adminAuth,
+  notificationRateLimiter,
+  validatePushSubscription,
+  async (req, res) => {
+    try {
+      const { subscription } = req.body;
+      if (subscription) {
+        pushSubscriptions.add(JSON.stringify(subscription));
+        if (pushSubscriptions.size > 10000) {
+          const oldest = pushSubscriptions.values().next().value;
+          pushSubscriptions.delete(oldest);
+        }
+        await persistPushSubscription(subscription);
+      }
+      return res.json({ success: true });
     } catch (err) {
       return res.status(500).json({ error: err.message });
     }
   }
 );
+
+app.post(
+  '/api/notifications/unsubscribe',
+  adminAuth,
+  notificationRateLimiter,
+  validatePushSubscription,
+  async (req, res) => {
+    try {
+      const { subscription } = req.body;
+      if (subscription) {
+        pushSubscriptions.delete(JSON.stringify(subscription));
+        await removePersistedPushSubscription(subscription);
+      }
+      return res.json({ success: true });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+app.post('/api/notifications/mark-read', adminAuth, notificationRateLimiter, async (req, res) => {
+  try {
+    const { id, userId } = req.body || {};
+    if (!id) return res.status(400).json({ error: 'id required' });
+    const uid = userId || 'global';
+    const ok = await notificationsService.markAsRead(uid, id);
+    return res.json({ success: ok });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
 
 app.post(
   '/api/notifications/mark-all-read',
@@ -5370,6 +5634,47 @@ app.get('/api/notifications', async (req, res) => {
 
 // Notification Preferences
 app.get('/api/notifications/preferences', requireNotificationPrefAuth, async (req, res) => {
+app.get('/api/notifications/preferences', async (req, res) => {
+  try {
+    const userId = req.query.userId || 'global';
+    const prefs = await notificationPreferencesRepository.list(userId);
+    return res.json({ preferences: prefs });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/notifications/preferences', async (req, res) => {
+  try {
+    const userId = req.body.userId || 'global';
+    const { category, email, push, in_app } = req.body;
+    if (!category) return res.status(400).json({ error: 'category is required' });
+    const pref = await notificationPreferencesRepository.set(userId, category, {
+      email,
+      push,
+      in_app,
+    });
+    return res.json({ preference: pref });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/notifications/preferences/bulk', async (req, res) => {
+  try {
+    const userId = req.body.userId || 'global';
+    const { preferences } = req.body;
+    if (!Array.isArray(preferences) || !preferences.length) {
+      return res.status(400).json({ error: 'preferences array is required' });
+    }
+    const results = await notificationPreferencesRepository.setBulk(userId, preferences);
+    return res.json({ preferences: results });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/portfolio', protectedActionRateLimiter, async (req, res) => {
   try {
     const userId = req.query.userId || 'global';
     const prefs = await notificationPreferencesRepository.list(userId);
@@ -5707,6 +6012,16 @@ app.delete('/api/forum/replies/:replyId', requireStudentAuth, forumController.de
 app.post('/api/forum/threads/:id/vote', requireStudentAuth, forumController.voteThread);
 app.post('/api/forum/replies/:replyId/vote', requireStudentAuth, forumController.voteReply);
 app.post('/api/forum/threads/:id/accept/:replyId', requireStudentAuth, forumController.acceptReply);
+app.post('/api/forum/threads', forumController.createThread);
+app.put('/api/forum/threads/:id', forumController.updateThread);
+app.delete('/api/forum/threads/:id', forumController.deleteThread);
+app.get('/api/forum/threads/:id/replies', forumController.listReplies);
+app.post('/api/forum/threads/:id/replies', forumController.createReply);
+app.put('/api/forum/replies/:replyId', forumController.updateReply);
+app.delete('/api/forum/replies/:replyId', forumController.deleteReply);
+app.post('/api/forum/threads/:id/vote', forumController.voteThread);
+app.post('/api/forum/replies/:replyId/vote', forumController.voteReply);
+app.post('/api/forum/threads/:id/accept/:replyId', forumController.acceptReply);
 app.patch('/api/admin/forum/threads/:id/moderate', adminAuth, forumController.moderateThread);
 app.patch('/api/admin/forum/replies/:replyId/moderate', adminAuth, forumController.moderateReply);
 app.get('/api/admin/forum/threads', adminAuth, forumController.adminListThreads);
@@ -6813,6 +7128,27 @@ app.patch(
 app.get('/api/search', searchRateLimiter, searchController.search);
 app.get('/api/search/trending', searchRateLimiter, searchController.trending);
 app.get('/api/recommendations', searchRateLimiter, searchController.recommendations);
+// ── Mentorship & Buddy System ──
+app.get('/api/mentorship/mentors', mentorshipController.listMentors);
+app.get('/api/mentorship/mentors/:id', mentorshipController.getMentor);
+app.post('/api/mentorship/mentors', mentorshipController.registerMentor);
+app.put('/api/mentorship/mentors/:id', mentorshipController.updateMentor);
+app.post('/api/mentorship/requests', mentorshipController.requestMentorship);
+app.get('/api/mentorship/requests', mentorshipController.listMentorships);
+app.get('/api/mentorship/requests/:id', mentorshipController.getMentorship);
+app.put('/api/mentorship/requests/:id/status', mentorshipController.updateMentorshipStatus);
+app.post('/api/mentorship/requests/:id/sessions', mentorshipController.logSession);
+app.get('/api/mentorship/requests/:id/sessions', mentorshipController.listSessions);
+app.post('/api/mentorship/buddy-pairs', mentorshipController.createBuddyPair);
+app.get('/api/mentorship/buddy-pairs', mentorshipController.listBuddyPairs);
+app.get('/api/admin/mentorships', adminAuth, mentorshipController.adminListAll);
+app.get('/api/admin/mentors', adminAuth, mentorshipController.adminListMentors);
+
+// ── Search, Discovery & Recommendation Engine ──
+app.get('/api/search', searchController.search);
+app.get('/api/search/trending', searchController.trending);
+app.get('/api/recommendations', searchController.recommendations);
+
 // Must be registered after all routes.
 app.use(notFoundHandler);
 addSentryErrorHandler(app);
@@ -6853,6 +7189,8 @@ if (process.env.NODE_ENV !== 'test' || process.env.START_SERVER === 'true') {
         console.error('[streamingWorkers] failed to start', err?.message || err);
       }
       slackIntegrationService.init();
+    const boot = HAS_SUPABASE ? studentUsersRepository.ensureSchema() : ensureContentFile();
+    boot.then(() => {
       server = app.listen(port, () => {
         console.log(`NexaSphere server listening on http://localhost:${port}`);
         schedulerService.init();
@@ -6866,7 +7204,6 @@ if (process.env.NODE_ENV !== 'test' || process.env.START_SERVER === 'true') {
       server.on('error', (err) => {
         console.error('SERVER LISTEN ERROR:', err.code, err.message);
       });
-      initializeSocketIO(server);
     });
     const boot = HAS_SUPABASE ? studentUsersRepository.ensureSchema() : ensureContentFile();
     boot

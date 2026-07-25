@@ -51,6 +51,11 @@ export default function GamificationDashboard() {
   };
 
   const handleAction = async (action) => {
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const handleAction = (action) => {
     const result = gamificationService.trackAction(action);
     const stats = gamificationService.getUserStats();
     setUserStats(stats);

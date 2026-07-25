@@ -19,6 +19,9 @@ const TABS = [
   'Blog',
   'Resources',
   'Forum',
+  'Gamification',
+  'Forum',
+  'Mentorship',
   'About',
   'Core Team',
   'Contact',
@@ -211,6 +214,34 @@ export default function Navbar({
                   👤
                 </button>
               </div>
+            <BookmarkToggle onToggle={onToggleBookmarks} />
+            <ThemeToggle />
+            {isAuthenticated ? (
+              <span
+                className="ns-nav-user-badge"
+                onClick={() => navigate('/dashboard')}
+                style={{ cursor: 'pointer', fontSize: '0.8rem', color: 'var(--t1)' }}
+                title={user?.name || user?.email}
+              >
+                👤
+              </span>
+            ) : (
+              <button
+                className="ns-nav-login-btn"
+                onClick={() => login('google')}
+                aria-label="Sign in"
+                style={{
+                  background: 'none',
+                  border: '1px solid var(--border)',
+                  color: 'var(--t1)',
+                  borderRadius: '6px',
+                  padding: '2px 8px',
+                  fontSize: '0.75rem',
+                  cursor: 'pointer',
+                }}
+              >
+                Login
+              </button>
             )}
           </div>
         </button>
@@ -274,6 +305,7 @@ export default function Navbar({
             <WalkthroughWrapper stepId="notifications" style={{ display: 'flex' }}>
               <NotificationBell />
             </WalkthroughWrapper>
+            <NotificationBell />
             <button
               onClick={() => navigate('/notifications')}
               aria-label="Notification history"
@@ -385,6 +417,26 @@ export default function Navbar({
                   👤
                 </button>
               </div>
+            )}
+
+            {isAuthenticated ? (
+              <span
+                className="ns-nav-user-badge"
+                onClick={() => navigate('/dashboard')}
+                style={{ cursor: 'pointer', fontSize: '0.9rem', color: 'var(--t1)' }}
+                title={user?.name || user?.email}
+              >
+                👤
+              </span>
+            ) : (
+              <button
+                className="btn btn-sm btn-outline"
+                onClick={() => login('google')}
+                aria-label="Sign in"
+                style={{ marginLeft: '4px' }}
+              >
+                Login
+              </button>
             )}
 
             <button

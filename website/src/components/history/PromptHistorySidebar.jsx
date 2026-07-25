@@ -45,6 +45,9 @@ const PromptHistorySidebar = ({
   useEffect(() => {
     loadData();
   }, [selectedWorkspace, isOpen, historyVersion]);
+  useEffect(() => {
+    loadData();
+  }, [selectedWorkspace]);
 
   const handleDeletePrompt = async (e, id) => {
     e.stopPropagation();

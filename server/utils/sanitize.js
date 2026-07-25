@@ -253,6 +253,16 @@ function toSafeString(value, max = 4000) {
     .slice(0, max);
 }
 
+function normalizePhone(value) {
+  return String(value || '').replace(/[^\d]/g, '');
+}
+
+function validateWhatsApp(value) {
+  return String(value ?? '')
+    .replace(/\D/g, '')
+    .slice(0, 30);
+}
+
 const SAFE_URL_PROTOCOLS = /^(https?:\/\/|\/[^\/])/i;
 const URL_MAX_LENGTH = 2048;
 
@@ -487,8 +497,7 @@ function validateWhatsApp(value) {
     .replace(/\D/g, '')
     .slice(0, 30);
 }
-// ============================================================
-
+// =====================================================
 const SAFE_URL_PROTOCOLS = /^(https?:\/\/|\/[^\/])/i;
 const URL_MAX_LENGTH = 2048;
 
@@ -508,6 +517,8 @@ function stripHtml(value) {
   text = text.replace(STYLE_PATTERN, '');
   text = text.replace(HTML_COMMENT_PATTERN, '');
   text = text.replace(HTML_TAG_PATTERN, '');
+  // Clean using DOMPurify with no tags/attributes allowed (plain text output)
+  text = DOMPurify.sanitize(text, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
   text = text.replace(CONTROL_CHAR_PATTERN, '');
   text = text.replace(NULL_BYTE_PATTERN, '');
   return text;
@@ -810,11 +821,8 @@ export {
 };
 export { escapeHtml, sanitizeNullableText, sanitizeText, sanitizeTextArray };
 export { escapeHtml, sanitizeNullableText, sanitizeText, sanitizeTextArray };
-=======
-=======
 function toSafeString(value, max = 4000) {
   return String(value ?? '')
-=======
 }
 
 function toSafeString(value, max = 4000) {
@@ -1047,6 +1055,5 @@ export {
   toSafeString,
   normalizePhone,
   validateWhatsApp,
-  validateSection,
 };
 export { escapeHtml, sanitizeNullableText, sanitizeText, sanitizeTextArray, toSafeString };

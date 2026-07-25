@@ -131,8 +131,12 @@ async function logError(error, context = {}) {
  */
 function getErrorStats() {
   const total = errorStore.errors.length;
-  const lastHour = errorStore.errors.filter((e) => new Date() - e.timestamp < 3600000).length;
-  const last24Hours = errorStore.errors.filter((e) => new Date() - e.timestamp < 86400000).length;
+  const lastHour = errorStore.errors.filter(
+    (e) => new Date() - e.timestamp < 3600000
+  ).length;
+  const last24Hours = errorStore.errors.filter(
+    (e) => new Date() - e.timestamp < 86400000
+  ).length;
 
   const errorsByStatusMap = {};
   const errorsByEndpointMap = {};
@@ -149,6 +153,7 @@ function getErrorStats() {
     status: parseInt(status),
     count,
     percentage: total > 0 ? ((count / total) * 100).toFixed(2) : '0.00',
+    percentage: total > 0 ? ((count / total) * 100).toFixed(2) : "0.00",
   }));
 
   const topEndpoints = Object.entries(errorsByEndpointMap)
@@ -250,6 +255,11 @@ function truncateData(data, maxBytes) {
     return obj;
   }
   return truncateStrings(data, maxBytes);
+  try {
+    return JSON.parse(str.slice(0, maxBytes));
+  } catch {
+    return null;
+  }
 }
 
 /**

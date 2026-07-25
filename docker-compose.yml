@@ -49,12 +49,14 @@ services:
       retries: 3
 
   # ── Redis ────────────────────────────────────────────────────────────────────
+  # ── Redis Server ────────────────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
     command: redis-server --save "" --appendonly no
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -64,6 +66,7 @@ services:
   # Handles: SSL termination, rate limiting, request logging, routing to backend.
   # Port 80  → HTTP (redirects to HTTPS)
   # Port 443 → HTTPS (proxies to api:8787)
+  # ── API Gateway (Nginx Proxy) ───────────────────────────────────────────────
   gateway:
     image: nginx:1.25-alpine
     container_name: nexasphere-gateway
@@ -79,6 +82,8 @@ services:
       - ./gateway/errors:/etc/nginx/errors:ro
       # Persist access and error logs to the host for debugging/monitoring
       - ./logs/nginx:/var/log/nginx
+      - ./gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./gateway/certs:/etc/nginx/certs:ro
     depends_on:
       api:
         condition: service_healthy
@@ -195,3 +200,5 @@ networks:
       interval: 30s
       timeout: 5s
       retries: 3
+
+# Redis is used for rate limiting and Socket.IO session sharing.

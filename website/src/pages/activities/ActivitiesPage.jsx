@@ -410,6 +410,7 @@ export default function ActivitiesPage({ onNavigate, onBack }) {
       .querySelectorAll('#activities-page .pop-in, #activities-page .pop-word')
       .forEach((el) => {
         if (!el.classList.contains('fired') && !el.classList.contains('no-animation')) {
+        if (!el.classList.contains('fired')) {
           obs.observe(el);
         }
       });

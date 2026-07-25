@@ -342,12 +342,30 @@ export async function markAsRead(userId = 'global', id) {
 export function markAllAsRead(userId = "global") {
   const list = _ensureList(userId);
   list.forEach((n) => (n.isRead = true));
+const MAX_PER_USER = 10000;
+
+export async function getNotifications(userId = 'global', offset = 0, limit = 100) {
+  return notificationsRepository.list({ userId, limit, offset });
+}
+
+export async function addNotification(userId = 'global', payload = {}) {
+  return notificationsRepository.create({
+    id: generateUUID(),
+    userId,
+    type: payload.type || 'system',
+    title: payload.title || 'Notification',
+    message: payload.message || '',
+    link: payload.link || null,
+    isRead: !!(payload.isRead ?? payload.is_read),
+  });
+}
+
+export async function markAsRead(userId = 'global', id) {
+  return notificationsRepository.markAsRead(userId, id);
+}
+
 export async function markAllAsRead(userId = 'global') {
-  await notificationsRepository.markAllAsRead(userId);
-  const list = _ensureCache(userId);
-  if (list) {
-    list.forEach((n) => (n.isRead = true));
-  }
+  return notificationsRepository.markAllAsRead(userId);
 }
 
 export const addNotification = notificationsService.addNotification.bind(notificationsService);
@@ -387,6 +405,12 @@ export async function removeNotification(userId = 'global', id) {
     }
   }
   return false;
+export async function clearAll(userId = 'global') {
+  return notificationsRepository.clearAll(userId);
+}
+
+export async function removeNotification(userId = 'global', id) {
+  return notificationsRepository.remove(userId, id);
 }
 
 export default {

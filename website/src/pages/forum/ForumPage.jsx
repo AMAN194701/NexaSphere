@@ -15,6 +15,10 @@ import { fallbackCategories, fallbackThreads } from '../../data/forumData.js';
 import Footer from '../../shared/Footer';
 import { EmptyState } from '../../components/EmptyState';
 import { ForumPostSkeleton } from '../../components/ui/skeleton/ForumPostSkeleton';
+import { useNavigate } from 'react-router-dom';
+import { apiClient } from '../../utils/apiClient';
+import { fallbackCategories, fallbackThreads } from '../../data/forumData.js';
+import Footer from '../../shared/Footer';
 
 export default function ForumPage({ onBack }) {
   const navigate = useNavigate();
@@ -38,12 +42,14 @@ export default function ForumPage({ onBack }) {
 
   useEffect(() => {
     const base = getApiBase();
+    const base = import.meta.env.VITE_API_BASE || '';
     if (!base) {
       setThreads(fallbackThreads);
       setLoading(false);
       return;
     }
     Promise.allSettled([
+    Promise.all([
       apiClient(`${base}/api/forum/categories`),
       apiClient(
         `${base}/api/forum/threads?sort=${sort}${activeCategory ? `&category=${activeCategory}` : ''}`
@@ -100,6 +106,7 @@ export default function ForumPage({ onBack }) {
     setError('');
     setSubmitting(true);
     const base = getApiBase();
+    const base = import.meta.env.VITE_API_BASE || '';
     if (!base) {
       setError('Forum is in offline mode. Please try again later.');
       setSubmitting(false);
@@ -263,6 +270,13 @@ export default function ForumPage({ onBack }) {
               </button>
             }
           />
+          <div style={{ textAlign: 'center', padding: 60, color: 'var(--text-secondary)' }}>
+            Loading discussions...
+          </div>
+        ) : filteredThreads.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: 60, color: 'var(--text-secondary)' }}>
+            No threads found. Start a new discussion!
+          </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {filteredThreads.map((thread) => (
@@ -358,6 +372,7 @@ export default function ForumPage({ onBack }) {
                       style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: 8 }}
                     >
                       by {thread.authorName} · {formatThreadDate(thread.createdAt)}
+                      by {thread.authorName} · {new Date(thread.createdAt).toLocaleDateString()}
                     </div>
                   </div>
                 </div>

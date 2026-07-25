@@ -15,6 +15,11 @@ import { usersRepository } from '../repositories/usersRepository.js';
 import * as attendanceController from '../controllers/attendanceController.js';
 import * as eventAnalyticsController from '../controllers/eventAnalyticsController.js';
 import * as bannersController from '../controllers/bannersController.js';
+import * as coreTeamController from '../controllers/coreTeamController.js';
+import * as eventRegistrationController from '../controllers/eventRegistrationController.js';
+import * as usersController from '../controllers/usersController.js';
+import * as attendanceController from '../controllers/attendanceController.js';
+import * as eventAnalyticsController from '../controllers/eventAnalyticsController.js';
 import { adminAuditMiddleware, attachOldState } from '../middleware/adminAuditMiddleware.js';
 import { healthRepository } from '../repositories/healthRepository.js';
 import eventCollaboratorRoutes from './eventCollaboratorRoutes.js';
@@ -151,6 +156,10 @@ router.post(
   upload.single('file'),
   recommendationsController.getProjectRecommendations
 );
+import { coreTeamService } from '../services/coreTeamService.js';
+import { portfolioRepository } from '../repositories/portfolioRepository.js';
+import { achievementsRepository } from '../repositories/achievementsRepository.js';
+import { portfolioService } from '../services/portfolioService.js';
 
 const router = Router();
 
@@ -221,6 +230,8 @@ router.delete(
   validate(emailSchema),
   eventRegistrationController.leaveWaitlist
 );
+router.post('/api/content/events/:eventId/register', eventRegistrationController.registerForEvent);
+router.get('/api/content/events/:eventId/calendar', eventRegistrationController.getEventCalendar);
 router.get(
   '/api/content/activity-events/:activityKey',
   activityEventsController.listActivityEvents
@@ -581,6 +592,7 @@ router.get(
       if (username) {
         const portfolio = await portfolioService.getByUsername(username);
         return sendSuccess(res, portfolio ? { portfolios: [portfolio] } : { portfolios: [] });
+        return res.json(portfolio ? { portfolios: [portfolio] } : { portfolios: [] });
       }
       const portfolios = (await portfolioRepository.listAll)
         ? await portfolioRepository.listAll()
@@ -588,6 +600,9 @@ router.get(
       return sendSuccess(res, { portfolios });
     } catch (err) {
       return sendError(req, res, err.message, 500, 'INTERNAL_ERROR');
+      return res.json({ portfolios });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
     }
   }
 );
@@ -605,6 +620,11 @@ router.delete(
       return sendSuccess(res, { ok: true });
     } catch (err) {
       return sendError(req, res, err.message, 500, 'INTERNAL_ERROR');
+      if (!username) return res.status(400).json({ error: 'Username required' });
+      await portfolioRepository.delete(username);
+      return res.json({ ok: true });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
     }
   }
 );
@@ -688,6 +708,32 @@ router.post(
       return res.status(201).json({ achievement });
     } catch (err) {
       return sendError(req, res, err.message, 500, 'INTERNAL_ERROR');
+      return res.json({ achievements });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+);
+router.post(
+  '/api/admin/portfolios/:username/achievements',
+  adminAuthMiddleware.requireScope('events:write'),
+  async (req, res) => {
+    try {
+      const username = String(req.params.username || '')
+        .trim()
+        .toLowerCase();
+      const { name, description, tier, iconUrl, source } = req.body;
+      if (!name) return res.status(400).json({ error: 'Achievement name is required' });
+      const achievement = await portfolioService.awardAchievement(username, {
+        name: String(name).trim().slice(0, 120),
+        description: description ? String(description).trim().slice(0, 1000) : null,
+        tier: tier ? String(tier).trim().slice(0, 40) : 'bronze',
+        iconUrl: iconUrl ? String(iconUrl).trim().slice(0, 500) : null,
+        source: source ? String(source).trim().slice(0, 60) : 'admin',
+      });
+      return res.status(201).json({ achievement });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
     }
   }
 );
@@ -865,4 +911,11 @@ router.use('/api/analytics', platformAnalyticsRoutes);
 
 router.use('/api-analytics', apiAnalyticsRoutes);
 router.use("/notification-campaigns", notificationCampaignRoutes);
+      return res.json({ ok: true });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+);
+
 export default router;

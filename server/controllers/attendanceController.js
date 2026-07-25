@@ -8,6 +8,7 @@ function wrapAsync(fn) {
     Promise.resolve(fn(req, res)).catch((e) => {
       const status = e.status || 500;
       sendError(req, res, e?.message || 'Internal server error', status, 'INTERNAL_ERROR');
+      res.status(status).json({ error: e?.message || 'Internal server error' });
     });
 }
 
@@ -15,6 +16,7 @@ export const markAttendance = wrapAsync(async (req, res) => {
   const { eventId, token, email } = req.body;
   if (!eventId && !token && !email) {
     return sendError(req, res, 'Provide eventId and either token or email', 400, 'VALIDATION_ERROR');
+    return res.status(400).json({ error: 'Provide eventId and either token or email' });
   }
 
   let registration;
@@ -30,11 +32,17 @@ export const markAttendance = wrapAsync(async (req, res) => {
 
   if (registration.attended) {
     return sendSuccess(res, { ...registration, already_attended: true });
+    return res.status(404).json({ error: 'Registration not found' });
+  }
+
+  if (registration.attended) {
+    return res.status(200).json({ ...registration, already_attended: true });
   }
 
   const updated = await registrationsRepository.markAttendance(registration.id);
   if (!updated) {
     return sendError(req, res, 'Failed to mark attendance', 500, 'INTERNAL_ERROR');
+    return res.status(500).json({ error: 'Failed to mark attendance' });
   }
 
   try {
@@ -58,4 +66,14 @@ export const getAttendanceList = wrapAsync(async (req, res) => {
   }
   const registrations = await registrationsRepository.findByEventId(eventId);
   return sendSuccess(res, { registrations });
+  return res.status(200).json({ ...updated, already_attended: false });
+});
+
+export const getAttendanceList = wrapAsync(async (req, res) => {
+  const eventId = String(req.params.eventId || '').trim();
+  if (!eventId) {
+    return res.status(400).json({ error: 'Event ID required' });
+  }
+  const registrations = await registrationsRepository.findByEventId(eventId);
+  return res.json({ registrations });
 });

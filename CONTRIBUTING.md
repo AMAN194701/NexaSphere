@@ -34,6 +34,12 @@ Under no circumstances should any credentials be committed to this repository. T
 - **OAuth tokens** or refresh tokens
 - **SSH keys** or private certificates
 - **Email addresses linked to real accounts** (use placeholder test emails like `test@example.com`)
+*   **Passwords** for admin accounts, test accounts, or service accounts
+*   **API Keys** for third-party services (SendGrid, Stripe, AWS, etc.)
+*   **Database connection strings** with embedded passwords
+*   **OAuth tokens** or refresh tokens
+*   **SSH keys** or private certificates
+*   **Email addresses linked to real accounts** (use placeholder test emails like `test@example.com`)
 
 **Credential exposure is a critical security vulnerability** that puts the entire platform at risk. Even "test" or "demo" credentials must never be hardcoded in public repositories.
 
@@ -111,6 +117,11 @@ For clarity and to prevent accidental exposure, follow this naming convention:
 
 Example:
 
+*   **Public configuration**: `VITE_*` (safe to be visible in client bundles)
+*   **Server secrets**: `*_SECRET`, `*_KEY`, `*_PASSWORD`, `*_TOKEN` (strictly server-side only)
+*   **Database credentials**: `DB_HOST`, `DB_USER`, `DB_PASSWORD` (keep private)
+
+Example:
 ```env
 # Safe for frontend
 VITE_API_URL=https://api.example.com

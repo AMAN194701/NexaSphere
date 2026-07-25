@@ -24,7 +24,6 @@ jobs:
         with:
           script: |
             const daysLeft = parseInt(process.env.days_left);
-<<<<<<< HEAD
             const existing = await github.rest.search.issuesAndPullRequests({
               q: `repo:${context.repo.owner}/${context.repo.repo} is:issue is:open in:title "SSL Certificate Expiring in"`,
             });
@@ -34,8 +33,6 @@ jobs:
               return;
             }
 
-=======
->>>>>>> origin/pr/2584
             await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,

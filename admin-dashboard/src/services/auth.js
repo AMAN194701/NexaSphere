@@ -1,6 +1,13 @@
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8787';
 const TOKEN_KEY = 'ns_admin_token';
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
+
+let _email = null;
+let _role = null;
+let _scopes = [];
+
+let refreshPromise = null;
 
 let _email = null;
 let _role = null;
@@ -14,6 +21,8 @@ export const adminLogin = async (email, password) => {
 export const auth = {
   async login(username, password) {
     const cleanUsername = username.trim();
+  async login(email, password) {
+    const cleanEmail = email.trim().toLowerCase();
     const cleanPassword = password.trim();
 
     const res = await fetch(`${API_BASE}/api/admin/login`, {
@@ -22,6 +31,7 @@ export const auth = {
       body: JSON.stringify({ username: cleanEmail, password: cleanPassword }),
       body: JSON.stringify({ username: cleanUsername, password: cleanPassword }),
       body: JSON.stringify({ username: cleanEmail, email: cleanEmail, password: cleanPassword }),
+      body: JSON.stringify({ email: cleanEmail, password: cleanPassword }),
       credentials: 'include',
     });
 
@@ -53,6 +63,9 @@ export const auth = {
     if (data.scopes) {
       localStorage.setItem('ns_admin_scopes', JSON.stringify(data.scopes));
     }
+    _email = cleanEmail;
+    _role = data.role || null;
+    _scopes = data.scopes || [];
 
     _email = cleanEmail;
     _role = data.role || null;
@@ -245,6 +258,47 @@ export const auth = {
     if (!token) return false;
     // Offline sessions are always considered valid locally.
     if (this.isOfflineMode()) return true;
+    fetch(`${API_BASE}/api/admin/logout`, {
+      method: 'POST',
+      credentials: 'include',
+    }).catch(() => {});
+
+    _email = null;
+    _role = null;
+    _scopes = [];
+  },
+
+  async refreshSession() {
+    if (refreshPromise) return refreshPromise;
+
+    refreshPromise = (async () => {
+      const res = await fetch(`${API_BASE}/api/admin/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      if (!res.ok) {
+        this.logout();
+        throw new Error('Session refresh failed');
+      }
+
+      const data = await res.json();
+
+      if (data.email) _email = data.email;
+      if (data.role) _role = data.role;
+      if (data.scopes) _scopes = data.scopes;
+
+      return data;
+    })();
+
+    try {
+      return await refreshPromise;
+    } finally {
+      refreshPromise = null;
+    }
+  },
+
+  async verifySession() {
     try {
       const res = await fetch(`${API_BASE}/api/admin/me`, {
         credentials: 'include',
@@ -288,18 +342,13 @@ export const auth = {
   },
 
   getRole() {
-    return localStorage.getItem('ns_admin_role') || 'SuperAdmin';
+    return _role || 'SuperAdmin';
   },
 
   getScopes() {
-    try {
-      const scopes = localStorage.getItem('ns_admin_scopes');
-      return scopes
-        ? JSON.parse(scopes)
-        : ['users:read', 'users:write', 'settings:admin', 'events:read', 'events:write'];
-    } catch {
-      return [];
-    }
+    return _scopes.length > 0
+      ? _scopes
+      : ['users:read', 'users:write', 'settings:admin', 'events:read', 'events:write'];
   },
 
   isOffline() {

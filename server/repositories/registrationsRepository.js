@@ -94,6 +94,7 @@ export const registrationsRepository = {
     return withDb(async (client) => {
       const { rows } = await client.query(
         `UPDATE event_registrations SET status = 'pending_confirmation', waitlist = false, waitlist_status = 'pending'
+        `UPDATE event_registrations SET status = 'confirmed', waitlist = false
          WHERE id = (
            SELECT id FROM event_registrations
            WHERE event_id = $1 AND waitlist = true AND status = 'waitlisted'

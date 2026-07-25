@@ -83,12 +83,16 @@ class AuditLogRepository {
 
     const delays = [100, 500, 1000];
 
+    const delays = [100, 500, 1000];
+
     for (let attempt = 0; attempt <= delays.length; attempt++) {
       try {
         await withDb(async (client) => {
           await client.query(
             `INSERT INTO audit_logs (id, admin_id, action, ip_address, user_agent, old_state, new_state, resource_type, resource_id, session_id, hash_checksum, timestamp)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())`,
+            `INSERT INTO audit_logs (id, admin_id, action, ip_address, user_agent, old_state, new_state, timestamp)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
             [
               id,
               adminId,
@@ -109,6 +113,14 @@ class AuditLogRepository {
         if (attempt === delays.length) {
           logger.error('Failed to insert audit log', { error: err.message, logEntry });
           return null;
+            ]
+          );
+        });
+        return;
+      } catch (err) {
+        if (attempt === delays.length) {
+          logger.error('Failed to insert audit log', { error: err.message, logEntry });
+          return;
         }
         await new Promise((resolve) => setTimeout(resolve, delays[attempt]));
       }

@@ -7,6 +7,16 @@ process.env.ADMIN_EVENT_PASSWORD = 'StrongEventPassword123!';
 
 const { logError, getErrorStats, getRecentErrors, getEndpointErrors, getUserErrors, clearErrors } =
   await import('../services/errorTrackingService.js');
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import {
+  logError,
+  getErrorStats,
+  getRecentErrors,
+  getEndpointErrors,
+  getUserErrors,
+  clearErrors,
+} from '../services/errorTrackingService.js';
 
 test.beforeEach(() => {
   clearErrors();
@@ -109,6 +119,8 @@ test('dynamic stats percentage calculations are correct', async () => {
 
   const status500 = stats.errorsByStatus.find((s) => s.status === 500);
   const status400 = stats.errorsByStatus.find((s) => s.status === 400);
+  const status500 = stats.errorsByStatus.find(s => s.status === 500);
+  const status400 = stats.errorsByStatus.find(s => s.status === 400);
 
   assert.strictEqual(status500.count, 5);
   assert.strictEqual(status500.percentage, '50.00');

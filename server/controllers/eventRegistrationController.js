@@ -58,6 +58,7 @@ export const registerForEvent = wrapAsync(async (req, res) => {
   const event = await eventsRepository.getById(eventId);
   if (!event) {
     return sendError(req, res, 'Event not found', 404, 'NOT_FOUND');
+    return res.status(404).json({ error: 'Event not found' });
   }
 
   try {
@@ -111,6 +112,23 @@ export const registerForEvent = wrapAsync(async (req, res) => {
         );
       }
       throw pgErr;
+    await registrationsRepository.create({
+      eventId,
+      fullName: sanitizedFullName,
+      email: sanitizedEmail,
+      department,
+      year,
+      teamName,
+      teamSize,
+      customFields,
+      waitlist: false,
+    });
+
+    if (ticket.token) {
+      await registrationsRepository.updateTicketToken(
+        result.id || result.registration_id,
+        ticket.token
+      );
     }
 
     try {
@@ -172,6 +190,11 @@ export const getEventCalendar = wrapAsync(async (req, res) => {
   const event = await eventsRepository.getById(eventId);
   if (!event) {
     return sendError(req, res, 'Event not found', 404, 'NOT_FOUND');
+    return res.status(400).json({ error: 'Invalid event ID' });
+  }
+  const event = await eventsRepository.getById(eventId);
+  if (!event) {
+    return res.status(404).json({ error: 'Event not found' });
   }
   const ics = calendarService.generateIcsEvent({
     name: event.name,

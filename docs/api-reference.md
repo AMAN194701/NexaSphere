@@ -37,6 +37,10 @@ List all public events.
 | ------- | ------ | ------- | ---------------- |
 | `page`  | number | `1`     | Page number      |
 | `limit` | number | `20`    | Results per page |
+| Param    | Type   | Default | Description            |
+| -------- | ------ | ------- | ---------------------- |
+| `page`   | number | `1`     | Page number            |
+| `limit`  | number | `20`    | Results per page       |
 
 **Response `200`:** paginated array of event objects.
 
@@ -141,3 +145,17 @@ Success responses return the data directly (no wrapper):
 ```json
 { "id": 1, "name": "Example" }
 ```
+All errors return a JSON object with a `message` field:
+
+```json
+{ "message": "Unauthorized. Core team details or password did not match." }
+```
+
+| HTTP Status | Meaning                         |
+| ----------- | ------------------------------- |
+| `400`       | Validation error (bad input)    |
+| `401`       | Authentication required         |
+| `403`       | Forbidden (insufficient access) |
+| `404`       | Resource not found              |
+| `429`       | Rate limit exceeded             |
+| `500`       | Internal server error           |

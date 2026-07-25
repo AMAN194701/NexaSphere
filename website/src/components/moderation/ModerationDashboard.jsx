@@ -89,6 +89,11 @@ const MODAL_STYLE = {
   overflow: 'auto',
   border: '1px solid #2A2A2A',
 };
+import { useState, useEffect } from 'react';
+import {
+  moderationService,
+  REPUTATION,
+} from '../../services/moderationService';
 
 export default function ModerationDashboard() {
   const [flags, setFlags] = useState([]);
@@ -234,6 +239,24 @@ export default function ModerationDashboard() {
     } catch (err) {
       setError(err.message);
     }
+  const loadData = () => {
+    const flagged = moderationService.getFlaggedContent();
+    setFlaggedContent(flagged.filter((f) => f.status === selectedTab));
+    setStats({
+      pending: flagged.filter((f) => f.status === 'pending').length,
+      reviewed: flagged.filter((f) => f.status === 'reviewed').length,
+      blocked: flagged.filter((f) => f.resolution === 'block').length,
+    });
+    setUserReputations(moderationService.getUserReputationSummary());
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const handleResolve = (flagId, action) => {
+    moderationService.resolveFlag(flagId, action);
+    loadData();
   };
 
   const getSeverityColor = (severity) => {

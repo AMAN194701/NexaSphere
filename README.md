@@ -361,6 +361,11 @@ If you have NVM installed, running `nvm use` in the repository root will automat
   # For Windows (cmd)
   nvm node_mirror https://npmmirror.com/mirrors/node/
   ```
+---
+
+## 🚀 Quick Start
+
+> **3 steps to get NexaSphere running locally.**
 
 ### 1. Clone & Install
 
@@ -403,6 +408,12 @@ Or start services individually:
 | `npm run dev:admin`   | Admin Dashboard  | <http://localhost:5001>        |
 | `npm run dev:server`  | Backend API      | <http://localhost:8787>        |
 | —                     | API Health Check | <http://localhost:8787/health> |
+| Command                 | Service          | URL                          |
+| ----------------------- | ---------------- | ---------------------------- |
+| `npm run dev:website`   | Website          | http://localhost:5175        |
+| `npm run dev:admin`     | Admin Dashboard  | http://localhost:5001        |
+| `npm run dev:server`    | Backend API      | http://localhost:8787        |
+| —                       | API Health Check | http://localhost:8787/health |
 
 > **Tip:** The website works in **offline mode** when `VITE_API_BASE` is empty.
 > All data comes from localStorage / static JSON files — no backend needed.
@@ -628,6 +639,8 @@ npm run lint
 npm run lint:fix
 ```
 
+```
+
 ---
 
 ## 🚢 Deployment
@@ -638,6 +651,12 @@ npm run lint:fix
 | Render (backend)  | `render.yaml`        | Set `sync: false` env vars in Render dashboard |
 | Docker (backend)  | `server/Dockerfile`  | `docker build -t nexasphere-api ./server`      |
 | Docker Compose    | `docker-compose.yml` | `docker-compose up --build`                    |
+| Target              | Config File       | Notes                                              |
+| ------------------- | ----------------- | -------------------------------------------------- |
+| Vercel (frontend)   | `vercel.json`     | Connect repo, set `VITE_API_BASE` env var          |
+| Render (backend)    | `render.yaml`     | Set `sync: false` env vars in Render dashboard     |
+| Docker (backend)    | `server/Dockerfile` | `docker build -t nexasphere-api ./server`        |
+| Docker Compose      | `docker-compose.yml` | `docker-compose up --build`                     |
 
 For full deployment instructions see [docs/deployment.md](docs/deployment.md).
 
@@ -675,6 +694,13 @@ Deep-dive references live in the [`/docs`](docs/) directory:
 Thanks to all contributors ❤️
 
 [![Contributors](https://contrib.rocks/image?repo=Ayushh-Sharmaa/NexaSphere)](https://github.com/Ayushh-Sharmaa/NexaSphere/graphs/contributors)
+| Document                                            | Description                              |
+| --------------------------------------------------- | ---------------------------------------- |
+| [docs/architecture.md](docs/architecture.md)        | System architecture & component overview |
+| [docs/api-reference.md](docs/api-reference.md)      | REST API endpoint reference              |
+| [docs/deployment.md](docs/deployment.md)            | Full deployment guide (Vercel / Render / Docker) |
+| [docs/database-backups.md](docs/database-backups.md) | Database backup & restore procedures    |
+| [docs/DATABASE_MIGRATIONS.md](docs/DATABASE_MIGRATIONS.md) | Running & writing DB migrations   |
 
 ---
 

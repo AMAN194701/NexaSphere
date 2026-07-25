@@ -16,6 +16,7 @@ setWithDbOverride(async (fn) => {
       executedQueries.push({ sql: sql.trim().replace(/\s+/g, ' '), params });
       return { rows: [], rowCount: 0 };
     },
+    }
   };
   return fn(mockClient);
 });
@@ -52,6 +53,9 @@ test('SQL Injection Prevention - Parameterization checks', async (t) => {
         payload,
         'Payload must be passed as parameterized query parameter'
       );
+      assert.ok(!query.sql.includes(payload), 'Payload should not be concatenated into SQL query string');
+      // Assert that the payload is safely bound inside parameters
+      assert.equal(query.params[0], payload, 'Payload must be passed as parameterized query parameter');
     });
   }
 });

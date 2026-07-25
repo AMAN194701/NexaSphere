@@ -4,6 +4,10 @@ import { AdminIcon } from '../components/AdminIcon';
 import { Skeleton } from '../components/Skeleton';
 import { OfflineStatusIndicator } from '../components/OfflineStatusIndicator';
 import { eventEmitter, EVENTS } from '../services/eventEmitter';
+import { useState, useRef, useCallback } from 'react';
+import { api } from '../services/api';
+import { AdminIcon } from '../components/AdminIcon';
+import { Skeleton } from '../components/Skeleton';
 
 export function EventScanner() {
   const [events, setEvents] = useState([]);
@@ -97,6 +101,17 @@ export function EventScanner() {
       setIsSyncing(false);
     }
   };
+  const [loading, setLoading] = useState(false);
+
+  if (!eventsLoaded) {
+    api.events
+      .getAll()
+      .then((data) => {
+        if (data?.events) setEvents(data.events);
+        setEventsLoaded(true);
+      })
+      .catch(() => setEventsLoaded(true));
+  }
 
   const markAttendance = useCallback(
     async (payload) => {
@@ -117,6 +132,12 @@ export function EventScanner() {
 
         setScanResult(result);
         if (!result.error && !result.already_attended) {
+        const result = await api.eventRegistrations.markAttendance(selectedEventId, {
+          ...payload,
+          eventId: selectedEventId,
+        });
+        setScanResult(result);
+        if (!result.already_attended) {
           setAttendanceLog((prev) => [result, ...prev]);
         }
       } catch (e) {
@@ -126,6 +147,7 @@ export function EventScanner() {
       }
     },
     [selectedEventId, isOfflineMode, loadOfflineState]
+    [selectedEventId]
   );
 
   const handleManualSubmit = (e) => {
@@ -192,6 +214,15 @@ export function EventScanner() {
             />
           </div>
         </div>
+    if (!manualEmail.trim()) return;
+    markAttendance({ email: manualEmail.trim().toLowerCase() });
+    setManualEmail('');
+  };
+
+  return (
+    <div className="page">
+      <div className="page-header">
+        <h2 className="page-title">Event Scanner</h2>
       </div>
 
       <div style={{ marginBottom: 20 }}>
@@ -352,6 +383,25 @@ export function EventScanner() {
                 disabled={scanning || (isOfflineMode && !manualEmail && !searchTerm)}
                 className="btn-primary"
               >
+              Manual Entry
+            </h3>
+            <form onSubmit={handleManualSubmit} style={{ display: 'flex', gap: 10 }}>
+              <input
+                type="email"
+                placeholder="Enter attendee email…"
+                value={manualEmail}
+                onChange={(e) => setManualEmail(e.target.value)}
+                required
+                style={{
+                  flex: 1,
+                  padding: '10px 14px',
+                  borderRadius: 8,
+                  border: '1px solid var(--admin-border, #333)',
+                  background: 'var(--admin-bg, #111)',
+                  color: 'var(--admin-text, #eee)',
+                }}
+              />
+              <button type="submit" disabled={scanning} className="btn-primary">
                 {scanning ? 'Marking…' : 'Mark Present'}
               </button>
             </form>

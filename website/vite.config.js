@@ -22,6 +22,8 @@ export default defineConfig({
 
   base: process.env.VITE_CDN_URL || process.env.VITE_BASE_PATH || '/',
 
+  // Supports Vercel (/) and GitHub Pages (/NexaSphere/) via env var
+  base: process.env.VITE_CDN_URL || process.env.VITE_BASE_PATH || '/',
   plugins: [
     react(),
 

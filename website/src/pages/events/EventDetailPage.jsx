@@ -3,6 +3,8 @@ import { DynamicIcon } from '../../shared/Icons';
 import { getApiBase } from '../../utils/runtimeConfig';
 import apiClient from '../../utils/apiClient';
 import { downloadICS } from '../../utils/icsExport';
+import { API_BASE } from '../../data/config';
+import apiClient from '../../utils/apiClient';
 
 function hexToRgb(hex) {
   if (!hex || !hex.startsWith('#')) return '0,212,255';
@@ -918,6 +920,7 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
   const eventEnd = event.endDate ?? event.startDate ?? event.date;
   const isInFuture = eventEnd ? new Date(eventEnd) > new Date() : isUpcoming;
   const canRegister = isUpcoming && isInFuture && event.capacity > 0;
+  const canRegister = isUpcoming && event.capacity > 0;
 
   const handleRegField = (field) => (e) => setRegForm((f) => ({ ...f, [field]: e.target.value }));
   const handleRegistration = async (e) => {
@@ -927,6 +930,7 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
     setRegSubmitting(true);
     try {
       const base = getApiBase();
+      const base = API_BASE || '';
       const url = `${base}/api/content/events/${event.id}/register`;
       const data = await apiClient(url, {
         method: 'POST',
@@ -968,6 +972,9 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
     const base = getApiBase();
     const url = `${base}/api/content/events/${event.id}/calendar`;
     window.open(url, '_blank', 'noopener,noreferrer');
+    const base = API_BASE || '';
+    const url = `${base}/api/content/events/${event.id}/calendar`;
+    window.open(url, '_blank');
   };
 
   const color = activityColor || '#a855f7';
@@ -1504,6 +1511,64 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
                   rgb={rgb}
                   onCalendarDownload={handleCalendarDownload}
                 />
+                <div
+                  style={{
+                    textAlign: 'center',
+                    background: 'var(--bg-card)',
+                    border: `1px solid rgba(${rgb},0.25)`,
+                    borderRadius: 16,
+                    padding: 32,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontFamily: 'Orbitron,monospace',
+                      fontSize: '1.2rem',
+                      fontWeight: 700,
+                      color: '#22c55e',
+                      marginBottom: 8,
+                    }}
+                  >
+                    ✓ Registered!
+                  </div>
+                  <p style={{ color: 'var(--text-secondary)', marginBottom: 16 }}>
+                    {regTicket.ticketData.fullName} · {regTicket.ticketData.email}
+                  </p>
+                  {regTicket.qrDataUrl && (
+                    <img
+                      src={regTicket.qrDataUrl}
+                      alt="Entry QR Code"
+                      style={{
+                        width: 180,
+                        height: 180,
+                        borderRadius: 12,
+                        border: `2px solid rgba(${rgb},0.3)`,
+                        marginBottom: 16,
+                      }}
+                    />
+                  )}
+                  <div
+                    style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 16 }}
+                  >
+                    Show this QR code at the event entrance.
+                  </div>
+                  <button
+                    onClick={handleCalendarDownload}
+                    style={{
+                      padding: '8px 20px',
+                      borderRadius: 999,
+                      border: `1px solid ${color}`,
+                      background: `rgba(${rgb},0.12)`,
+                      color,
+                      cursor: 'pointer',
+                      fontFamily: 'Rajdhani,sans-serif',
+                      fontWeight: 700,
+                    }}
+                  >
+                    <DynamicIcon name="Calendar" size={12} style={{ marginRight: 6 }} />
+                    Add to Calendar
+                  </button>
+                </div>
               ) : regStatus === 'waitlisted' ? (
                 <div
                   style={{

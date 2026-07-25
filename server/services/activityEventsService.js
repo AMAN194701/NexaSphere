@@ -49,18 +49,34 @@ export const activityEventsService = {
 import { activityEventsRepository } from '../repositories/activityEventsRepository.js';
 import { coreTeamService } from './coreTeamService.js';
 import { activityEventSchema } from '../validators/activityEventSchemas.js';
+import { sanitizeActivityEventRecord } from '../utils/sanitize.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const CONTENT_FILE = path.join(__dirname, '..', 'data', 'content.json');
 
 export const activityEventsService = {
-  async listActivityEvents(activityKey, { page = 1, limit = 20 } = {}) {
-    return activityEventsRepository.listByActivityKey(activityKey, { page, limit });
+  async listAllActivities() {
+    try {
+      const raw = await fs.readFile(CONTENT_FILE, 'utf8');
+      const data = JSON.parse(raw);
+      return data.activityEvents || {};
+    } catch {
+      return {};
+    }
   },
 
-  async assertCanManage(body) {
-    await coreTeamService.assertCanManageActivityEvent(body);
+  async listActivityEvents(activityKey, { page = 1, limit = 20 } = {}) {
+    const { rows, total } = await activityEventsRepository.listByActivityKey(activityKey, { page, limit });
+    return {
+      rows: rows.map(row => sanitizeActivityEventRecord(row)),
+      total,
+    };
   },
 
   async addActivityEvent(activityKey, input) {
     await this.assertCanManage(input);
+    await coreTeamService.assertCanManageActivityEvent(input);
 
     const payload = {
       id: input.id,
@@ -99,9 +115,10 @@ export const activityEventsService = {
     return activityEventsRepository.create(activityKey, parsed);
   },
 
-  async deleteActivityEvent(activityKey, eventId) {
-    // Authorization is handled upstream by the requireAdmin middleware
-    // via req.adminSession. No request body is needed for deletion.
+  async deleteActivityEvent(activityKey, eventId, input) {
+    if (input) {
+      await coreTeamService.assertCanManageActivityEvent(input);
+    }
     return activityEventsRepository.delete(activityKey, eventId);
   },
 

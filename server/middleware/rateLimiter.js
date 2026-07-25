@@ -2,6 +2,9 @@ import rateLimit from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
 import redisClient from '../utils/redis.js'; // Adjust path if your redis utility is elsewhere
 import logger from '../utils/logger.js';
+import { createRateLimitStore } from '../services/rateLimitService.js';
+
+const suspiciousIPs = new Map();
 
 import logger from '../utils/logger.js';
 import { createRateLimitStore } from '../services/rateLimitService.js';
@@ -107,6 +110,7 @@ export const apiRateLimiter = rateLimit({
   max: API_MAX_REQUESTS,
   standardHeaders: true,
   legacyHeaders: false,
+  store: createRateLimitStore('rate-limit:api:'),
   handler: (req, res, _next, options) => {
     logger.warn('Global API rate limit exceeded', {
       ip: req.ip,
@@ -424,6 +428,7 @@ export const searchRateLimiter = rateLimit({
     res.status(options.statusCode).json({
       error: 'Too many search requests. Please slow down.',
     });
+  store: createRateLimitStore('rate-limit:portfolio:'),
   message: {
     error: 'Too many portfolio update attempts from this IP, please try again after 15 minutes.',
   },

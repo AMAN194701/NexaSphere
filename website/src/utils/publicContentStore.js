@@ -180,6 +180,8 @@ export function initStorageSyncBridge() {
   // Falls back to http://localhost:5001 only when running locally.
   const configuredAdminOrigin =
     import.meta.env?.VITE_ADMIN_DASHBOARD_URL || 'http://localhost:5001';
+    (typeof import.meta !== 'undefined' && import.meta.env?.VITE_ADMIN_DASHBOARD_URL) ||
+    'http://localhost:5001';
   const adminOrigin = normalizeOrigin(configuredAdminOrigin) || 'http://localhost:5001';
   const bridgeUrl = `${adminOrigin}/sync-bridge.html`;
 
@@ -198,6 +200,7 @@ export function initStorageSyncBridge() {
     if (import.meta.env.DEV) {
       console.log('[StorageSync] Bridge iframe loaded from', adminOrigin);
     }
+    console.log('[StorageSync] Bridge iframe loaded from', adminOrigin);
     ALLOWED_BRIDGE_KEYS.forEach((key) => {
       iframe.contentWindow?.postMessage({ type: 'ns-sync', key }, adminOrigin);
     });
@@ -212,6 +215,7 @@ export function initStorageSyncBridge() {
 
   // Listen for messages relayed through the bridge
   bridgeMessageHandler = (event) => {
+  window.addEventListener('message', (event) => {
     if (event.origin !== adminOrigin || event.source !== iframe.contentWindow) return;
 
     if (

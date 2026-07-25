@@ -157,6 +157,40 @@ export default function ProjectsPage({ onBack, loading = false }) {
             {filteredProjects.length === 0 && (
               <div className="no-projects-msg">
                 <p>No projects found in this category.</p>
+        <AnimatePresence>
+          {filteredProjects.map((project) => (
+            <motion.div
+              layout
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.3 }}
+              key={project.id}
+              className="project-card"
+              onClick={(e) => {
+                triggerRef.current = e.currentTarget;
+                setSelectedProject(project);
+              }}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  triggerRef.current = e.currentTarget;
+                  setSelectedProject(project);
+                }
+              }}
+              aria-label={`View details for ${project.title}`}
+            >
+              <div className="project-card-image">
+                <SafeImage
+                  src={project.image}
+                  alt={project.title}
+                  loading="lazy"
+                  fallbackType="project"
+                />
+                <div className="project-card-overlay">
+                  <span className="view-details-text">View Details</span>
+                </div>
               </div>
             )}
           </>

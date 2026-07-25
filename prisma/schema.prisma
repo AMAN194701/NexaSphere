@@ -63,6 +63,18 @@ model Workspace {
   webhookEndpoints WebhookEndpoint[]
 }
 
+model Workspace {
+  id          String            @id @default(uuid())
+  name        String
+  slug        String            @unique
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  members     WorkspaceMember[]
+  roles       Role[]
+  posts       Post[]
+  logs        Log[]
+}
+
 model WorkspaceMember {
   id          String    @id @default(uuid())
   workspaceId String
@@ -232,7 +244,6 @@ model SettingsChangeLog {
   @@index([changedById])
 }
 
-<<<<<<< HEAD
   createdAt   DateTime  @default(now())
 
   user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
@@ -288,7 +299,6 @@ model PriceHistory {
   price     Float
   reason    String       // e.g. "early_bird", "demand_80pct", "admin_override"
   createdAt DateTime     @default(now())
-=======
 model EventPricing {
   id            String         @id @default(uuid())
   eventId       String         @unique
@@ -311,7 +321,6 @@ model PriceHistory {
   price     Float
   reason    String
   createdAt DateTime @default(now())
->>>>>>> origin/pr/2902
 
   pricing   EventPricing @relation(fields: [pricingId], references: [id], onDelete: Cascade)
 }

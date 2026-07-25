@@ -41,6 +41,14 @@ const processQueue = (error, token = null) => {
 /**
  * Initialise the 401 interceptor.
  * Call this once during app bootstrap, passing your router's `navigate` function.
+/**
+ * Initialise the 401 interceptor.
+ * Call this once during app bootstrap, passing your router's `navigate` function.
+ *
+ * Example (React Router v6):
+ *   import { useNavigate } from 'react-router-dom';
+ *   const navigate = useNavigate();
+ *   setupAxiosInterceptors(navigate);
  */
 export function setupAxiosInterceptors(navigate) {
   axiosInstance.interceptors.response.use(
@@ -102,6 +110,17 @@ export function setupAxiosInterceptors(navigate) {
             .finally(() => {
               isRefreshing = false;
             });
+      if (error.response?.status === 401) {
+        // Stop the proactive timer — we're already logging out reactively.
+        clearAutoLogoutTimer();
+
+        // Clean up stored credentials.
+        removeToken();
+
+        // Redirect to login with a user-friendly message.
+        navigate('/login', {
+          replace: true,
+          state: { message: 'Your session has expired. Please log in again.' },
         });
       }
 

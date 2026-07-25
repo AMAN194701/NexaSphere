@@ -114,6 +114,28 @@ origins = os.getenv(
     "https://admin-nexasphere.vercel.app,https://nexa-sphere-sigma.vercel.app,"
     "https://admin-dashboard-navy-pi-22.vercel.app",
 ).split(",")
+@app.middleware("http")
+async def request_id_middleware(request: Request, call_next):
+    req_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+    token = request_id_context.set(req_id)
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = req_id
+    request_id_context.reset(token)
+    return response
+
+@app.get("/")
+async def root():
+    return {"message": "NexaSphere AI Core API is running. Visit /docs for Swagger API documentation."}
+
+from routers import forms, recommend, certificates, notifications, portfolio, health
+app.include_router(forms.router)
+app.include_router(recommend.router)
+app.include_router(certificates.router)
+app.include_router(notifications.router)
+app.include_router(health.router)
+app.include_router(portfolio.router)
+# 3. CORS Configuration
+origins = os.getenv("CORS_ORIGIN", "http://localhost:5173,http://localhost:5174,https://nexasphere-glbajaj.vercel.app,https://admin-nexasphere.vercel.app,https://nexa-sphere-sigma.vercel.app,https://admin-dashboard-navy-pi-22.vercel.app").split(",")
 
 app.add_middleware(
     CORSMiddleware,

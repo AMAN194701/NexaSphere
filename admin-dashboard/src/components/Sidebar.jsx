@@ -190,8 +190,36 @@ import { AdminIcon } from './AdminIcon';
 import { adminPath } from '../utils/adminBasePath';
 
 const links = [
+  {
+    to: '/dashboard',
+    label: 'Dashboard',
+    icon: 'Dashboard',
+  },
+  {
+    to: '/dashboard/events',
+    label: 'Events',
+    icon: 'Calendar',
+  },
   { to: '/dashboard', label: 'Dashboard', icon: 'Dashboard' },
   { to: '/dashboard/events', label: 'Events', icon: 'Calendar', requiredScope: 'events:read' },
+  {
+    to: '/dashboard/event-registrations',
+    label: 'Registrations',
+    icon: 'FileText',
+    requiredScope: 'events:read',
+  },
+  {
+    to: '/dashboard/event-scanner',
+    label: 'Scanner',
+    icon: 'Camera',
+    requiredScope: 'events:write',
+  },
+  {
+    to: '/dashboard/event-analytics',
+    label: 'Analytics',
+    icon: 'BarChart',
+    requiredScope: 'events:read',
+  },
   {
     to: '/dashboard/activity-events',
     label: 'Activity Events',
@@ -204,6 +232,31 @@ const links = [
     icon: 'Users',
     requiredScope: 'settings:admin',
   },
+  {
+    to: '/dashboard/core-team',
+    label: 'Core Team',
+    icon: 'Users',
+  },
+  {
+    to: '/dashboard/membership',
+    label: 'Membership',
+    icon: 'FileText',
+  },
+  {
+    to: '/dashboard/recruitment',
+    label: 'Recruitment',
+    icon: 'UserPlus',
+  },
+  {
+    to: '/dashboard/certificates',
+    label: 'Certificates',
+    icon: 'Award',
+  },
+  {
+    to: '/dashboard/announcements',
+    label: 'Announcements',
+    icon: 'Megaphone',
+  },
   { to: '/dashboard/membership', label: 'Membership', icon: 'FileText' },
   { to: '/dashboard/certificates', label: 'Certificates', icon: 'Award' },
     to: '/dashboard/security',
@@ -213,11 +266,31 @@ const links = [
     to: '/dashboard/reports',
     label: 'Reports',
     icon: 'Target',
+  { to: '/dashboard/announcements', label: 'Announcements', icon: 'Megaphone' },
+  {
+    to: '/dashboard/portfolios',
+    label: 'Portfolios',
+    icon: 'FileText',
+    requiredScope: 'events:read',
+  },
+  {
+    to: '/dashboard/forum',
+    label: 'Forum',
+    icon: 'FileText',
+    requiredScope: 'events:read',
+  },
+  {
+    to: '/dashboard/mentorship',
+    label: 'Mentorship',
+    icon: 'Users',
   },
 ];
 
 export function Sidebar() {
   const { email, logout } = useAuth();
+
+  const location = useLocation();
+
   const [open, setOpen] = useState(false);
 
   const location = useLocation();
@@ -490,6 +563,12 @@ export function Sidebar() {
         <div className="sidebar-footer">
           <span className="sidebar-email">{email}</span>
           <button className="btn-logout" onClick={logout}>
+        <div className="sidebar-footer">
+          <span className="sidebar-email" aria-label={`Logged in as ${email}`}>
+            {email}
+          </span>
+
+          <button className="btn-logout" onClick={logout} aria-label={`Logout ${email}`}>
             Logout
           </button>
         </div>

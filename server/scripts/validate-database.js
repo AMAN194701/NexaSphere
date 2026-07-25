@@ -523,6 +523,11 @@ async function validateSchema() {
     console.error('\n✗ Validation script error:', err.message);
   console.log('[Database Validation] Starting schema and data integrity checks...');
 
+import { withDb } from '../repositories/db.js';
+
+async function validateSchema() {
+  console.log('[Database Validation] Starting schema and data integrity checks...');
+  
   const expectedTables = [
     'admin_sessions',
     'users',
@@ -530,6 +535,7 @@ async function validateSchema() {
     'notifications',
     'push_subscriptions',
     'notification_preferences',
+    'notification_preferences'
   ];
 
   try {
@@ -545,6 +551,11 @@ async function validateSchema() {
       console.log(`[Database Validation] Found existing tables: ${existingTables.join(', ')}`);
 
       const missingTables = expectedTables.filter((t) => !existingTables.includes(t));
+      
+      const existingTables = tablesRes.rows.map(r => r.tablename);
+      console.log(`[Database Validation] Found existing tables: ${existingTables.join(', ')}`);
+
+      const missingTables = expectedTables.filter(t => !existingTables.includes(t));
       if (missingTables.length > 0) {
         throw new Error(`Missing expected tables: ${missingTables.join(', ')}`);
       }
@@ -559,6 +570,8 @@ async function validateSchema() {
       `);
 
       const tokenHashCol = adminSessionsCols.rows.find((r) => r.column_name === 'token_hash');
+      
+      const tokenHashCol = adminSessionsCols.rows.find(r => r.column_name === 'token_hash');
       if (!tokenHashCol) {
         throw new Error("Missing critical column 'token_hash' in table 'admin_sessions'");
       }
@@ -571,6 +584,7 @@ async function validateSchema() {
         WHERE table_name = 'users' AND table_schema = 'public'
       `);
       const usernameCol = usersCols.rows.find((r) => r.column_name === 'username');
+      const usernameCol = usersCols.rows.find(r => r.column_name === 'username');
       if (!usernameCol) {
         throw new Error("Missing critical column 'username' in table 'users'");
       }

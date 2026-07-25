@@ -7,6 +7,7 @@ export default function LoginPage() {
   if (user) {
     return (
       <main className={styles.container} role="main" aria-label="Account management">
+      <div className={styles.container}>
         <div className={styles.card}>
           <h1 className={styles.heading}>Welcome, {user.name || user.email}</h1>
           <p className={styles.text}>
@@ -22,6 +23,11 @@ export default function LoginPage() {
           </button>
         </div>
       </main>
+          <button className={styles.btnDanger} onClick={logout}>
+            Sign Out
+          </button>
+        </div>
+      </div>
     );
   }
 
@@ -51,10 +57,22 @@ export default function LoginPage() {
             <span className={styles.btnIcon} aria-hidden="true">
               &#xf09b;
             </span>
+    <div className={styles.container}>
+      <div className={styles.card}>
+        <h1 className={styles.heading}>Sign In to NexaSphere</h1>
+        <p className={styles.text}>Choose your preferred sign-in method</p>
+        <div className={styles.buttons}>
+          <button className={styles.btnGoogle} onClick={() => login('google')}>
+            <span className={styles.btnIcon}>G</span>
+            Sign in with Google
+          </button>
+          <button className={styles.btnGitHub} onClick={() => login('github')}>
+            <span className={styles.btnIcon}>&#xf09b;</span>
             Sign in with GitHub
           </button>
         </div>
       </div>
     </main>
+    </div>
   );
 }

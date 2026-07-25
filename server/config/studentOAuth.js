@@ -50,6 +50,11 @@ if (hasGoogleOAuth) {
             DOMAIN_RESTRICTION &&
             !email.toLowerCase().endsWith(`@${DOMAIN_RESTRICTION.toLowerCase()}`)
           ) {
+      },
+      async (accessToken, refreshToken, profile, done) => {
+        try {
+          const email = profile.emails?.[0]?.value || '';
+          if (DOMAIN_RESTRICTION && !email.endsWith(`@${DOMAIN_RESTRICTION}`)) {
             return done(null, false, { message: `Only @${DOMAIN_RESTRICTION} emails allowed` });
           }
           const user = await studentAuthService.findOrCreateFromOAuth(profile);
@@ -87,6 +92,10 @@ if (hasGitHubOAuth) {
           ) {
             return done(null, false, { message: `Only @${DOMAIN_RESTRICTION} emails allowed` });
           }
+      },
+      async (accessToken, refreshToken, profile, done) => {
+        try {
+          const email = profile.emails?.[0]?.value || `${profile.username}@github.oauth`;
           const user = await studentAuthService.findOrCreateFromOAuth(profile);
           const token = studentAuthService.generateToken(user);
           return done(null, { user, token });

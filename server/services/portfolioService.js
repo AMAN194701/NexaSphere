@@ -13,6 +13,7 @@ const ACHIEVEMENT_DEFS = {
   'skills-master': {
     name: 'Skills Master',
     description: 'Added 5 skills to your portfolio',
+    description: 'Added 5+ skills to your portfolio',
     tier: 'silver',
     source: 'system',
   },
@@ -26,6 +27,10 @@ const ACHIEVEMENT_DEFS = {
     name: 'Portfolio Veteran',
     description: 'Showcased 5+ projects',
     tier: 'gold',
+    source: 'system',
+  },
+    description: 'Added your first project',
+    tier: 'bronze',
     source: 'system',
   },
   'social-butterfly': {
@@ -92,6 +97,15 @@ export const portfolioService = {
       badges.push(ACHIEVEMENT_DEFS['profile-complete']);
     }
     // TODO: Instead of directly awarding badges here, trigger a gamification service action
+
+    if (skillsCount >= 5) badges.push(ACHIEVEMENT_DEFS['skills-master']);
+    if (projectsCount >= 1) badges.push(ACHIEVEMENT_DEFS['project-starter']);
+    if (socialCount >= 3) badges.push(ACHIEVEMENT_DEFS['social-butterfly']);
+    if (roadmapsCount >= 1) badges.push(ACHIEVEMENT_DEFS['roadmap-explorer']);
+    if (hasBio && hasTitle && skillsCount > 0 && projectsCount > 0) {
+      badges.push(ACHIEVEMENT_DEFS['profile-complete']);
+    }
+
     for (const badge of badges) {
       try {
         await achievementsRepository.award(username, badge);

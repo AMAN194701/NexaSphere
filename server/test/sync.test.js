@@ -29,11 +29,14 @@ setWithDbOverride(async (fn) => {
       if (sqlLower.includes('select count')) {
         return { rows: [{ count: mockDbResult.select.length }], rowCount: 1 };
       }
+      
+      const sqlLower = sql.toLowerCase();
       if (sqlLower.includes('select updated_at') || sqlLower.includes('select id, name')) {
         return { rows: mockDbResult.select, rowCount: mockDbResult.select.length };
       }
       return { rows: [], rowCount: 1 };
     },
+    }
   };
   return fn(mockClient);
 });
@@ -157,6 +160,12 @@ test('Offline-First Sync and Compression Verification', async (t) => {
       const res = await sendRequest('POST', '/api/sync/batch', batchPayload, {
         Authorization: `Bearer ${testToken}`,
       });
+            }
+          }
+        ]
+      };
+
+      const res = await sendRequest('POST', '/api/sync/batch', batchPayload);
       assert.equal(res.status, 409); // Conflict status
       assert.equal(res.body.results[0].status, 'conflict');
       assert.ok(res.body.results[0].serverVersion);
@@ -199,6 +208,12 @@ test('Offline-First Sync and Compression Verification', async (t) => {
       const res = await sendRequest('POST', '/api/sync/batch', batchPayload, {
         Authorization: `Bearer ${testToken}`,
       });
+            }
+          }
+        ]
+      };
+
+      const res = await sendRequest('POST', '/api/sync/batch', batchPayload);
       assert.equal(res.status, 200);
       assert.equal(res.body.results[0].status, 'success');
     });

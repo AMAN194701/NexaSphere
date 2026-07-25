@@ -23,6 +23,19 @@ export const googleCallback = (req, res, next) => {
         .catch(console.error);
       return res.redirect(
         `${frontendUrl}/login?error=${encodeURIComponent(info?.message || 'Authentication failed')}`
+import passport from 'passport';
+
+export const googleAuth = passport.authenticate('google', {
+  session: false,
+  scope: ['profile', 'email'],
+});
+
+export const googleCallback = (req, res, next) => {
+  passport.authenticate('google', { session: false }, (err, data, info) => {
+    if (err) return next(err);
+    if (!data) {
+      return res.redirect(
+        `/login?error=${encodeURIComponent(info?.message || 'Authentication failed')}`
       );
     }
     res.cookie('ns_student_token', data.token, {
@@ -57,6 +70,21 @@ export const githubCallback = (req, res, next) => {
         .catch(console.error);
       return res.redirect(
         `${frontendUrl}/login?error=${encodeURIComponent(info?.message || 'Authentication failed')}`
+    return res.redirect(`${frontendUrl}/dashboard?token=${data.token}`);
+  })(req, res, next);
+};
+
+export const githubAuth = passport.authenticate('github', {
+  session: false,
+  scope: ['user:email'],
+});
+
+export const githubCallback = (req, res, next) => {
+  passport.authenticate('github', { session: false }, (err, data, info) => {
+    if (err) return next(err);
+    if (!data) {
+      return res.redirect(
+        `/login?error=${encodeURIComponent(info?.message || 'Authentication failed')}`
       );
     }
     res.cookie('ns_student_token', data.token, {
@@ -358,4 +386,18 @@ export const exportData = async (req, res) => {
     console.error('exportData error:', err);
     return sendError(req, res, 'Server error', 500, 'INTERNAL_ERROR', { detail: err.message });
   }
+    return res.redirect(`${frontendUrl}/dashboard?token=${data.token}`);
+  })(req, res, next);
+};
+
+export const getMe = (req, res) => {
+  if (!req.studentUser) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+  return res.json({ user: req.studentUser });
+};
+
+export const logout = (req, res) => {
+  res.clearCookie('ns_student_token');
+  return res.json({ ok: true });
 };

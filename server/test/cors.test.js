@@ -24,6 +24,7 @@ test('CORS Policy Configuration Verification', async (t) => {
         path: path,
         method: method,
         headers: originHeader ? { Origin: originHeader } : {},
+        headers: originHeader ? { 'Origin': originHeader } : {},
       };
 
       const req = http.request(options, (res) => {

@@ -31,6 +31,7 @@ const PinnedChats = ({
   useEffect(() => {
     loadPinnedPrompts();
   }, [workspace, historyVersion]);
+  }, [workspace]);
 
   const handleUnpin = async (e, id) => {
     e.stopPropagation();

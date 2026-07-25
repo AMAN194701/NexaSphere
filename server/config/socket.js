@@ -12,6 +12,7 @@ import { liveQaService } from '../services/liveQaService.js';
 import { validationMiddleware } from '../sockets/validationMiddleware.js';
 import { handleYjsUpdate, getOrCreateDoc } from '../utils/yjsSyncHandler.js';
 import * as Y from 'yjs';
+import { createAdapter } from '@socket.io/redis-adapter';
 import { getRedisClient } from '../utils/redis.js';
 import { waitingRoomService } from '../services/waitingRoomService.js';
 import { Server } from "socket.io";
@@ -44,8 +45,7 @@ const JOIN_ROOM_WINDOW_MS = 60000;
 // ===================================// WEBSOCKET BACKPRESSURE & THROTTLING CONFIG
 const MAX_CURSOR_X = 5000;
 const MAX_CURSOR_Y = 5000;
-// ==========================================
-// WEBSOCKET BACKPRESSURE & THROTTLING CONFIG
+// ===================================// WEBSOCKET BACKPRESSURE & THROTTLING CONFIG
 // ==========================================
 const MAX_PENDING_PACKETS = parseInt(process.env.WS_MAX_PENDING_PACKETS) || 100;
 const SLOW_CONSUMER_TIMEOUT_MS = parseInt(process.env.WS_SLOW_CONSUMER_TIMEOUT_MS) || 5000;
@@ -213,7 +213,6 @@ export function getQueuePressureMetrics() {
   return metrics;
 }
 
-=======
 let socketValidationTimer = null;
 
 /**
@@ -298,6 +297,7 @@ export function initializeSocketIO(httpServer) {
         .filter(Boolean)
     : [process.env.FRONTEND_URL || "http://localhost:5173"];
 
+export function initializeSocketIO(httpServer) {
   io = new Server(httpServer, {
     cors: {
       origin: resolveSocketCorsOrigin(),
@@ -372,7 +372,6 @@ export function initializeSocketIO(httpServer) {
           socket.adminSession = session;
           socket.adminSessionToken = token;
           socket.adminAuthenticated = true;
-          socket.adminPermissions = resolveAdminPermissions(session);
         }
       } catch (err) {
         logger.warn('Socket auth middleware error:', err.message);
@@ -399,9 +398,14 @@ export function _onConnection(socket) {
     admin: !!socket.adminAuthenticated,
   });
 
+  logger.info('User connected', { socketId: socket.id, admin: !!socket.adminAuthenticated });
+
+  // Auto-join authenticated admin sockets to admin room
   if (socket.adminAuthenticated) {
-    if (!socket.adminPermissions) {
-      socket.adminPermissions = resolveAdminPermissions(socket.adminSession);
+    socket.join('admin-room');
+    const role = socket.adminSession?.metadata?.role;
+    if (role && typeof role === 'string') {
+      socket.join(`admin-room:${role}`);
     }
     const adminRooms = getRoomsForPermissions(socket.adminPermissions);
     for (const room of adminRooms) {
@@ -485,6 +489,7 @@ export function _onConnection(socket) {
 
   // Store connected user
   socket.on("user:identify", (userData) => {
+    // 4. Safe Deep Copy (Persist sanitized primitives)
     connectedUsers.set(socket.id, {
       id: String(userId),
       email: String(email),
@@ -687,6 +692,7 @@ export function _onConnection(socket) {
     const sanitizedUser =
       user && typeof user === 'object'
         ? {
+            id: typeof user.id === 'string' ? user.id.slice(0, 100) : undefined,
             name: typeof user.name === 'string' ? user.name.slice(0, 100) : 'Anonymous',
             email: typeof user.email === 'string' ? user.email.slice(0, 150) : '',
 
@@ -700,8 +706,10 @@ export function _onConnection(socket) {
                 : "Anonymous",
             email:
               typeof user.email === "string" ? user.email.slice(0, 150) : "",
+            color: typeof user.color === 'string' ? user.color.slice(0, 50) : '#888',
+            initials: typeof user.initials === 'string' ? user.initials.slice(0, 2) : 'U',
           }
-        : {};
+        : { name: 'Anonymous', color: '#888', initials: 'U' };
 
             id: typeof user.id === 'string' ? user.id.slice(0, 100) : undefined,
             name: typeof user.name === 'string' ? user.name.slice(0, 100) : 'Anonymous',
@@ -1129,6 +1137,7 @@ export function _onConnection(socket) {
 
   // Authenticate socket for admin rooms using admin token
   socket.on("admin:authenticate", async ({ token } = {}) => {
+  socket.on('admin:authenticate', async ({ token } = {}) => {
     if (!token) {
       return socket.emit("admin:authenticated", {
         success: false,
@@ -1153,6 +1162,10 @@ export function _onConnection(socket) {
       const authRooms = getRoomsForPermissions(socket.adminPermissions);
       for (const room of authRooms) {
         socket.join(room);
+      socket.join('admin-room');
+      const role = session.metadata?.role;
+      if (role && typeof role === 'string') {
+        socket.join(`admin-room:${role}`);
       }
       logger.info('Admin authenticated via socket event', {
         socketId: socket.id,
@@ -1344,6 +1357,14 @@ export function _onConnection(socket) {
   // Error handling
   socket.on("error", (error) => {
     logger.error("Socket error", { error: error.message, socketId: socket.id });
+    _cleanupWorkspaceMembership(socket.id);
+    joinRoomAttempts.delete(socket.id);
+    logger.info('User disconnected', { socketId: socket.id });
+  });
+
+  // Error handling
+  socket.on('error', (error) => {
+    logger.error('Socket error', { error: error.message, socketId: socket.id });
   });
 }
 
@@ -1482,6 +1503,9 @@ export function _setIOForTests(mockIo) {
  * Emit an event to the admin role-scoped room(s) that have permission
  * to receive it.  Falls back to the legacy shared `admin-room` for
  * `super_admin` so single-admin deployments continue working.
+/**
+ * Emit an event to the admin role-scoped room(s) that have permission
+ * to receive it.
  *
  * @param {string|string[]} roles - Role name(s) (e.g. 'membership_admin')
  * @param {string} eventName - Event name

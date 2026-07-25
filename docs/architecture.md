@@ -36,6 +36,13 @@ plus supporting services.
 | `server/`          | Node.js + Express | Render       |
 | `server-python/`   | FastAPI           | Optional     |
 | `server-java/`     | Spring Boot       | Experimental |
+| Component            | Technology        | Deployed To |
+| -------------------- | ----------------- | ----------- |
+| `website/`           | React 18 + Vite 5 | Vercel      |
+| `admin-dashboard/`   | React 18 + Vite 5 | Vercel      |
+| `server/`            | Node.js + Express | Render      |
+| `server-python/`     | FastAPI           | Optional    |
+| `server-java/`       | Spring Boot       | Experimental |
 
 ## Data Flow
 

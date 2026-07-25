@@ -7,14 +7,6 @@ import { getLogContext } from './logContext.js';
 let nodeProfilingIntegration = null;
 
 let nodeProfilingIntegration = null;
-try {
-  // Optional dependency: native bindings may be unavailable on some platforms.
-  // If profiling cannot be loaded, fall back to Sentry without profiling.
-  const profiling = await import('@sentry/profiling-node');
-  nodeProfilingIntegration = profiling.nodeProfilingIntegration;
-} catch (error) {
-  nodeProfilingIntegration = null;
-}
 
 /**
  * Initialize Sentry for backend monitoring
@@ -56,6 +48,7 @@ function initializeSentry(app) {
         serverName: true,
       }),
       nodeProfilingIntegration(),
+      ...(nodeProfilingIntegration ? [nodeProfilingIntegration()] : []),
     ],
     tracesSampleRate: isDevelopment ? 1.0 : 0.1,
     profilesSampleRate: isDevelopment ? 1.0 : 0.1,
@@ -96,7 +89,7 @@ function initializeSentry(app) {
   app.use(Sentry.Handlers.tracingHandler());
 
   return Sentry;
-}
+};
 
 function addSentryErrorHandler(app) {
   // The error handler must be the last middleware on the app
@@ -105,6 +98,7 @@ function addSentryErrorHandler(app) {
   } else if (Sentry.Handlers && typeof Sentry.Handlers.errorHandler === 'function') {
     app.use(Sentry.Handlers.errorHandler());
   }
+  Sentry.setupExpressErrorHandler(app);
 }
 
 /**
@@ -165,6 +159,9 @@ function registerSentryShutdown(timeout = 2000) {
       console.log(`[Sentry] Received ${signal}. Flushing pending events...`);
 
       try {
+      
+      try {
+        // close() flushes queued events and disables the SDK from accepting new events
         const cleanClose = await Sentry.close(timeout);
         if (cleanClose) {
           console.log('[Sentry] Successfully flushed buffered telemetry and closed.');

@@ -40,6 +40,7 @@ export const up = (pgm) => {
       references: 'mentorships(id)',
       onDelete: 'CASCADE',
     },
+    mentorship_id: { type: 'integer', notNull: true, references: 'mentorships(id)', onDelete: 'CASCADE' },
     title: { type: 'varchar(255)', notNull: true },
     notes: { type: 'text', notNull: false },
     duration_minutes: { type: 'integer', notNull: false },

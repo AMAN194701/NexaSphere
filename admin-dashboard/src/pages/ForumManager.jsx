@@ -16,6 +16,7 @@ export function ForumManager() {
   const [moderating, setModerating] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteError, setDeleteError] = useState(null);
 
   const loadThreads = async () => {
@@ -160,6 +161,11 @@ export function ForumManager() {
                     }}
                   >
                     {moderating === thread.id ? '…' : 'Approve'}
+                      cursor: 'pointer',
+                      fontSize: '0.8rem',
+                    }}
+                  >
+                    Approve
                   </button>
                 )}
                 {thread.status !== 'flagged' && (
@@ -179,6 +185,11 @@ export function ForumManager() {
                     }}
                   >
                     {moderating === thread.id ? '…' : 'Flag'}
+                      cursor: 'pointer',
+                      fontSize: '0.8rem',
+                    }}
+                  >
+                    Flag
                   </button>
                 )}
                 {thread.status !== 'rejected' && (
@@ -198,6 +209,11 @@ export function ForumManager() {
                     }}
                   >
                     {moderating === thread.id ? '…' : 'Reject'}
+                      cursor: 'pointer',
+                      fontSize: '0.8rem',
+                    }}
+                  >
+                    Reject
                   </button>
                 )}
                 <button
@@ -213,6 +229,8 @@ export function ForumManager() {
                     cursor: moderating === thread.id ? 'not-allowed' : 'pointer',
                     fontSize: '0.8rem',
                     opacity: moderating === thread.id ? 0.6 : 1,
+                    cursor: 'pointer',
+                    fontSize: '0.8rem',
                   }}
                 >
                   Delete
@@ -242,6 +260,7 @@ export function ForumManager() {
                   background: '#fff',
                   cursor: deleting ? 'not-allowed' : 'pointer',
                   opacity: deleting ? 0.6 : 1,
+                  cursor: 'pointer',
                 }}
               >
                 Cancel
@@ -260,6 +279,10 @@ export function ForumManager() {
                 }}
               >
                 {deleting ? 'Deleting…' : 'Delete'}
+                  cursor: 'pointer',
+                }}
+              >
+                Delete
               </button>
             </div>
           </div>

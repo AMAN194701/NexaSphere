@@ -78,6 +78,18 @@ So that [benefit]
 
 ## Definition of Done
 
+- [ ]
+
+### Integration Tests
+- [ ]
+
+### E2E Tests
+- [ ]
+
+### Manual Testing
+- [ ]
+
+## Definition of Done
 - [ ] Implementation completed
 - [ ] Acceptance criteria met
 - [ ] Tests passing

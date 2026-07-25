@@ -557,6 +557,7 @@ async function fetchWithAuth(url, options = {}) {
           "Content-Type": "application/json",
           Authorization: `Bearer ${auth.getToken()}`,
           ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
+          'Content-Type': 'application/json',
           ...options.headers,
         },
       });
@@ -1086,6 +1087,32 @@ async function fetchWithAuth(url, options = {}) {
         }
       }
 
+      // /api/admin/portfolios
+      else if (url.startsWith('/api/admin/portfolios')) {
+        let portfolios = getDb('portfolios', []);
+        if (method === 'GET') {
+          const queryParams = new URLSearchParams(url.split('?')[1] || '');
+          const username = queryParams.get('username');
+          if (username) {
+            const found = portfolios.find((p) => p.username === username);
+            resolve({ portfolios: found ? [found] : [] });
+          } else {
+            resolve({ portfolios });
+          }
+        }
+        if (method === 'DELETE' && url.includes('/achievements/')) {
+          resolve({ ok: true });
+        }
+        if (method === 'POST' && url.includes('/achievements')) {
+          const newAch = {
+            ...body,
+            id: Date.now().toString(),
+            awarded_at: new Date().toISOString(),
+          };
+          resolve({ achievement: newAch });
+        }
+      }
+
       // /api/admin/announcements
       else if (url.startsWith('/api/admin/announcements')) {
         let announcements = getDb('announcements', []);
@@ -1479,6 +1506,8 @@ async function fetchWithAuth(url, options = {}) {
         }
       }
     }
+        });
+      }
     }, 300); // simulate slight network delay
     }, 300);
   });
@@ -1543,6 +1572,7 @@ export const api = {
       const query = new URLSearchParams(params).toString();
       return fetchWithAuth(`/api/admin/events/${eventId}/registrations${query ? `?${query}` : ''}`);
     },
+    list: (eventId) => fetchWithAuth(`/api/admin/events/${eventId}/registrations`),
     markAttendance: (eventId, payload) =>
       fetchWithAuth(`/api/admin/events/${eventId}/attendance`, {
         method: 'POST',
