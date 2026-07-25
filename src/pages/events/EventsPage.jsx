@@ -4,6 +4,8 @@ import { events as fallbackEvents } from '../../data/eventsData';
 import { BannerOrbs } from '../../shared/MotionLayer';
 import Footer from '../../shared/Footer';
 import { DynamicIcon } from '../../shared/Icons';
+import BookmarkButton from '../../components/common/BookmarkButton';
+import ErrorBoundary from '../../components/ErrorBoundary';
 import PersonalizedFeed from '../../components/recommendation/PersonalizedFeed';
 import EventCalendarView from '../../components/calendar/EventCalendarView';
 import SchedulingAssistant from '../../components/scheduling/SchedulingAssistant';

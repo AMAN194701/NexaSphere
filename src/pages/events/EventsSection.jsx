@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { DynamicIcon } from '../../shared/Icons';
 import SkeletonCard from '../../components/SkeletonCard';
+import BookmarkButton from '../../components/common/BookmarkButton';
+import ErrorBoundary from '../../components/ErrorBoundary';
 
 export default function EventsSection({ onEventClick, events = [] }) {
   const [loading, setLoading] = useState(true);
