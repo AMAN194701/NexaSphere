@@ -33,6 +33,7 @@ export default function BlogCard({ post, onClick }) {
             </span>
           </div>
           <button className="read-more-btn" aria-label={`Read more: ${title}`}>
+          <button className="read-more-btn">
             <DynamicIcon name="ArrowRight" size={16} />
           </button>
         </div>

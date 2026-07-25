@@ -14,6 +14,8 @@ const TABS = [
   'Events',
   'Projects',
   'Roadmaps',
+  'Portfolio',
+  'Blog',
   'Resources',
   'Forum',
   'About',
