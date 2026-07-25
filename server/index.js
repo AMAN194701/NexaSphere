@@ -246,33 +246,33 @@ app.use(
     // Strict Content Security Policy
     contentSecurityPolicy: {
       useDefaults: false,
-
       directives: {
         defaultSrc: ["'self'"],
-
-        scriptSrc: ["'self'", 'https://challenges.cloudflare.com'],
-
+        scriptSrc: [
+          "'self'", 
+          'https://challenges.cloudflare.com',
+          'https://www.googletagmanager.com',
+          'https://www.google-analytics.com'
+        ],
         styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-
         imgSrc: [
           "'self'",
           'data:',
           'blob:',
           'https://api.dicebear.com',
           'https://images.unsplash.com',
+          'https://www.google-analytics.com',
         ],
-
         fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
-
         connectSrc: [
           "'self'",
           'https://challenges.cloudflare.com',
           'https://*.ingest.sentry.io',
           'https://*.ingest.us.sentry.io',
+          'https://www.google-analytics.com',
           process.env.FRONTEND_URL || 'http://localhost:5173',
           `wss://${process.env.DOMAIN || 'localhost'}`,
         ],
-
         objectSrc: ["'none'"],
 
 //  feat/i18n-localization-1397
@@ -383,6 +383,7 @@ app.use(
     preflightContinue: false,
     optionsSuccessStatus: 204,
     maxAge: 86400,
+  })
   })
 );
 app.options('*', cors());
