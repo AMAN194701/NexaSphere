@@ -89,3 +89,24 @@ export async function adminRevokeCertificate(req, res) {
     return sendError(req, res, 'Failed to revoke certificate', 500, 'REVOCATION_ERROR');
   }
 }
+
+import * as certTemplatesRepo from '../repositories/certificateTemplatesRepository.js';
+
+export async function adminGetTemplates(req, res) {
+  try {
+    const templates = await certTemplatesRepo.getTemplates();
+    return sendSuccess(res, { templates });
+  } catch (error) {
+    return sendError(res, 500, 'Failed to fetch templates');
+  }
+}
+
+export async function adminSaveTemplate(req, res) {
+  try {
+    const template = await certTemplatesRepo.saveTemplate(req.body);
+    return sendSuccess(res, { template });
+  } catch (error) {
+    return sendError(res, 500, 'Failed to save template');
+  }
+}
+

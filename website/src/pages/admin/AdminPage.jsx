@@ -9,6 +9,9 @@ import HeatmapView from './analytics/HeatmapView';
 import SessionPlayer from './analytics/SessionPlayer';
 import SegmentationDashboard from './analytics/SegmentationDashboard';
 import SyncDashboard from './SyncDashboard';
+import SegmentationDashboard from './analytics/SegmentationDashboard';
+import CertificateTemplateEditor from './CertificateTemplateEditor';
+import CertificateTemplateEditor from './CertificateTemplateEditor';
 
 export default function AdminPage({ onBack }) {
   const [loading, setLoading] = useState(false);
@@ -465,6 +468,7 @@ export default function AdminPage({ onBack }) {
       >
         {['overview', 'heatmaps', 'recordings', 'segments', 'security'].map((tab) => (
         {['overview', 'heatmaps', 'recordings', 'segments', 'sync'].map((tab) => (
+        {['overview', 'heatmaps', 'recordings', 'segments', 'certificates'].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -665,6 +669,7 @@ function AdminSecuritySettings({ token }) {
         )}
       </div>
       {activeTab === 'sync' && <SyncDashboard token={token} />}
+      {activeTab === 'certificates' && <CertificateTemplateEditor token={token} />}
     </div>
   );
 }
