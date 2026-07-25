@@ -192,6 +192,8 @@ import apiKeysRouter from './routes/apiKeys.js';
 import { apiKeysRepository } from './repositories/apiKeysRepository.js';
 
 validateLimiters();
+import { portfolioRepository } from './repositories/portfolioRepository.js';
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1945,6 +1947,63 @@ function requireMentorshipAuth(req, res, next) {
         return next();
       }
       return sendError(req, res, 'Unauthorized: Authentication required', 401, 'UNAUTHORIZED');
+// Portfolio System API Endpoints
+app.get('/api/portfolio/:username', async (req, res) => {
+  try {
+    const username = String(req.params.username || '').trim();
+    if (!username) {
+      return res.status(400).json({ error: 'Username is required' });
+    }
+    const portfolio = await portfolioRepository.getByUsername(username);
+    if (!portfolio) {
+      return res.status(404).json({ error: 'Portfolio not found' });
+    }
+    return res.json(portfolio);
+  } catch (err) {
+    console.error('Error fetching portfolio:', err);
+    return res.status(500).json({ error: err.message || 'Internal server error' });
+  }
+});
+
+app.put('/api/portfolio', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const username = String(body.username || '').trim();
+    const passkey = String(body.passkey || '').trim();
+
+    if (!username || username.length < 3) {
+      return res.status(400).json({ error: 'Username must be at least 3 characters long' });
+    }
+    if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+      return res.status(400).json({ error: 'Username can only contain alphanumeric characters, underscores, and hyphens' });
+    }
+    if (!passkey || passkey.length < 4) {
+      return res.status(400).json({ error: 'Passkey must be at least 4 characters long' });
+    }
+
+    // Verify ownership/passkey
+    const isAuthorized = await portfolioRepository.verifyPasskey(username, passkey);
+    if (!isAuthorized) {
+      return res.status(401).json({ error: 'Incorrect passkey for this username' });
+    }
+
+    // Save portfolio configuration
+    const saved = await portfolioRepository.createOrUpdate(body);
+    return res.json({ ok: true, portfolio: saved });
+  } catch (err) {
+    console.error('Error saving portfolio:', err);
+    return res.status(500).json({ error: err.message || 'Internal server error' });
+  }
+});
+
+
+const port = Number(process.env.PORT || 8787);
+if (!process.env.VERCEL) {
+  const boot = HAS_SUPABASE ? Promise.resolve() : ensureContentFile();
+  boot.then(() => {
+    app.listen(port, () => {
+      // eslint-disable-next-line no-console
+      console.log(`NexaSphere server listening on http://localhost:${port}`);
     });
   });
 }

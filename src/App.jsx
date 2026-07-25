@@ -6,6 +6,8 @@ import './styles/globals.css';
 import './styles/animations.css';
 import './styles/chatbot.css';
 import './styles/components.css';
+import './styles/portfolio.css';
+
 import './styles/aurora.css';
 import './styles/motion.css';
 import SearchBar from './components/SearchBar';
@@ -437,6 +439,8 @@ function Cursor() {
       window.removeEventListener('mouseover', onOver);
       document.documentElement.removeEventListener('mouseleave', onLeave);
       document.documentElement.removeEventListener('mouseenter', onEnter);
+      document.documentElement.removeEventListener('mouseleave', onMouseLeave);
+      document.documentElement.removeEventListener('mouseenter', onMouseEnter);
     };
   }, []);
 
@@ -625,6 +629,15 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('ns-theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    const path = window.location.pathname;
+    const match = path.match(/^\/p\/([a-zA-Z0-9_-]+)/);
+    if (match) {
+      const name = match[1];
+      setPage({ type: 'portfolio', username: name });
+    }
+  }, []);
 
   const toggleTheme = useCallback(() => {
     setTheme(t => t === 'dark' ? 'light' : 'dark');
@@ -896,6 +909,7 @@ export default function App() {
   const onBackHome = useCallback(() => {
     window.history.pushState({}, '', '/');
     nav(() => { setPage(null); setActiveTab('Home'); window.scrollTo({ top: 0 }); });
+    nav(() => { setPage(null); setActiveTab('Home'); window.scrollTo({ top:0 }); });
   }, [nav]);
 
   const openApply = useCallback(() => nav(() => setPage({ type: 'apply' })), [nav]);

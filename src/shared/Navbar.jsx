@@ -13,6 +13,7 @@ const TABS = [
   'Dashboard',
   'Gamification',
 ];
+const TABS = ['Home', 'Activities', 'Events', 'Projects', 'Roadmaps', 'Portfolio', 'About', 'Team', 'Contact'];
 
 function ThemeToggle({ theme, onToggle }) {
   const { t } = useTranslation();
