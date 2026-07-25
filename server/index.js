@@ -132,6 +132,49 @@ import activityTimelineRoutes from './routes/activityTimeline.js';
 
 import { portfolioRepository } from './repositories/portfolioRepository.js';
 
+import moderationRouter from './routes/moderation.js';
+import rbacRouter from './routes/rbac.js';
+import { startStreamingWorkers } from './streaming/startStreamingWorkers.js';
+import {
+  listEventsStore,
+  createEventStore,
+  updateEventStore,
+  deleteEventStore,
+  listActivityEventsStore,
+  createActivityEventStore,
+  deleteActivityEventStore,
+  listCoreTeamStore,
+  createCoreTeamStore,
+  deleteCoreTeamStore,
+  appendToSupabaseForms,
+  timingSafeStringEqual,
+  toSafeString,
+  validateWhatsApp,
+  validateSection,
+  sanitizeEvent,
+  normalizePhone,
+} from './repositories/contentStore.js';
+  import {
+  checkPasskeyLockout,
+  recordFailedPasskeyAttempt,
+  clearPasskeyAttempts,
+} from './middleware/auth/passkeyLockout.js';
+import {
+  checkActivityAuthLockout,
+  recordFailedActivityAuth,
+  clearActivityAuthAttempts,
+  canManageActivityEvent,
+} from './middleware/auth/activityAuth.js';
+import {
+  requireNotificationPrefAuth,
+  requireMentorshipAuth,
+} from './middleware/auth/customAuth.js';
+import circuitBreakerRouter from './routes/circuitBreaker.js';
+import { validate } from './middleware/validate.js';
+import * as indexSchemas from './validators/routes/indexSchemas.js';
+import { sendSuccess, sendError, sendNoContent } from './utils/responseHelper.js';
+import apiKeysRouter from './routes/apiKeys.js';
+import { apiKeysRepository } from './repositories/apiKeysRepository.js';
 
 import { initializeSocketIO, emitToRoom, getRoom } from './config/socket.js';
 import adminStreamRouter from './routes/adminStream.js';
@@ -454,6 +497,10 @@ app.use('/api', documentationRouter);
 app.use('/', apiRouter);
 app.use('/', healthRouter);
 app.use('/', coreTeamRouter);
+// Compliance & Legal Documents (handles both public and admin routes internally)
+// Mounted early to prevent wildcard root routes ('/') from stealing the requests
+app.use('/api/compliance', complianceRouter);
+
 app.use('/api', formsRouter);
 app.use('/api', portfolioRouter);
 app.use('/api', userGroupsRouter);
@@ -462,9 +509,9 @@ app.use('/api', recoveryRouter);
 app.use('/api', notificationsRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api', learningPathRouter);
-app.use('/', syncRouter);
 app.use('/api/feedback', feedbackRouter);
 
+// Admin Specific Routes
 const adminAuth = [apiRateLimiter, adminAuthMiddleware.requireAdmin];
 
 // Scheduled Tasks Management
@@ -530,6 +577,30 @@ const ADMIN_EVENT_PASSWORD = requiredStrongPassword('ADMIN_EVENT_PASSWORD');
 function normalizePrivateKey(k) {
   return k.includes('\\n') ? k.replace(/\\n/g, '\n') : k;
 // â”€â”€ File Upload Configuration â”€â”€
+import webhooksRouter from './routes/webhooks.js';
+app.use('/api/webhooks', webhooksRouter);
+app.use('/api/admin/scheduled-tasks', adminAuth, scheduledTasksRouter);
+app.use('/api/admin/segments', adminAuth, segmentsRouter);
+app.use('/api/moderation', adminAuth, moderationRouter);
+app.use('/api/admin/rbac', adminAuth, rbacRouter);
+
+app.get('/api/admin/backups', adminAuth, backupController.getBackups);
+app.post('/api/admin/backups/manual', validate(indexSchemas.manualBackupSchema), adminAuth, backupController.runManualBackup);
+app.post('/api/admin/backups/restore', validate(indexSchemas.restoreBackupSchema), adminAuth, backupController.runRestore);
+app.get('/api/admin/backups/restore-test-history', adminAuth, backupController.getRestoreHistory);
+app.delete('/api/admin/backups', validate(indexSchemas.deleteBackupSchema), adminAuth, backupController.deleteBackup);
+app.use(apiKeysRouter);
+
+// Root Level Routers (Keep at the bottom of route stack)
+app.use('/', dashboardRouter);
+app.use('/', apiRouter);
+app.use('/', healthRouter);
+app.use('/', coreTeamRouter);
+app.use('/', announcementsRouter);
+app.use('/', notificationsRouter);
+app.use('/', syncRouter);
+
+// ── File Upload Configuration ──
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
 try {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
@@ -586,6 +657,13 @@ async function ensureContentFile() {
   } catch {
     await fs.writeFile(CONTENT_FILE, JSON.stringify(defaultContent, null, 2), 'utf8');
   }
+app.use('/uploads', express.static(UPLOADS_DIR));
+
+// Compliance & Accessibility Audit Tools (#1801)
+app.use('/api', auditToolsRouter);
+
+export async function runWithFileLock(callback) {
+  return await fileMutex.runExclusive(callback);
 }
 
 async function readContent() {
