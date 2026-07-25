@@ -428,15 +428,15 @@ export const syncRateLimiter = rateLimit({
   handler: createLimiterHandler('Sync rate limit exceeded', 'Too many sync requests.'),
 });
 
-// Event registration rate limiter — 10 requests per IP per hour
-export const eventRegistrationLimiter = rateLimit({
+// Event registration rate limiter — 100 requests per IP per hour
+export const eventRegistrationIpLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
-  max: 10,
+  max: 100,
   standardHeaders: true,
   legacyHeaders: true,
-  store: createRateLimitStore('rate-limit:event-reg:'),
+  store: createRateLimitStore('rate-limit:event-reg-ip:'),
   handler: (req, res, _next, options) => {
-    logger.warn('Event registration rate limit exceeded', {
+    logger.warn('Event registration IP rate limit exceeded', {
       ip: req.ip,
       path: req.originalUrl || req.path,
       method: req.method,
@@ -444,10 +444,35 @@ export const eventRegistrationLimiter = rateLimit({
     setRetryAfterHeader(res, options.windowMs);
     res.status(options.statusCode).json({
       error: 'Too many registration attempts. Please try again later.',
+    res.status(429).json({
+      error: 'Too many registration attempts from this IP. Please try again later.',
     });
   },
 });
 
+// Event registration rate limiter — 5 requests per User per minute
+export const eventRegistrationUserLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: true,
+  keyGenerator: (req) => {
+    // If user is authenticated, limit by user ID; otherwise fallback to IP
+    return req.user?.id || req.ip;
+  },
+  store: createRateLimitStore('rate-limit:event-reg-user:'),
+  handler: (req, res, _next, options) => {
+    logger.warn('Event registration user rate limit exceeded', {
+      userId: req.user?.id || 'unauthenticated',
+      ip: req.ip,
+      path: req.originalUrl || req.path,
+      method: req.method,
+    });
+    res.status(429).json({
+      error: 'Too many registration attempts. Please try again in a minute.',
+    });
+  },
+});
 
 // Sync rate limiter: 5 requests per minute per IP.
 export const syncRateLimiter = rateLimit({
@@ -595,7 +620,8 @@ export function validateLimiters() {
     eventRegistrationIpLimiter,
     syncRateLimiter,
     portfolioRateLimiter,
-    eventRegistrationLimiter,
+    eventRegistrationIpLimiter,
+    eventRegistrationUserLimiter,
     searchRateLimiter,
   };
 

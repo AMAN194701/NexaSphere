@@ -18,6 +18,7 @@ import { eventsRepository } from '../repositories/eventsRepository.js';
 import { coreTeamService } from '../services/coreTeamService.js';
 import { authRateLimiter, protectedActionRateLimiter } from '../middleware/authRateLimiter.js';
 import { eventRegistrationUserLimiter, eventRegistrationIpLimiter } from '../middleware/rateLimiter.js';
+import { eventRegistrationIpLimiter, eventRegistrationUserLimiter } from '../middleware/rateLimiter.js';
 import { portfolioRepository } from '../repositories/portfolioRepository.js';
 import { achievementsRepository } from '../repositories/achievementsRepository.js';
 import { portfolioService } from '../services/portfolioService.js';
@@ -140,6 +141,36 @@ router.post(
   eventRegistrationController.registerForEvent
 );
 router.get('/api/content/events/:eventId/calendar', eventRegistrationController.getEventCalendar);
+  eventRegistrationIpLimiter,
+  eventRegistrationUserLimiter,
+  validate(eventRegistrationSchema),
+  eventRegistrationController.registerForEvent
+);
+router.get('/api/content/events/:eventId/calendar', eventRegistrationController.getEventCalendar);
+router.post(
+  '/api/content/events/:eventId/cancel',
+  eventRegistrationIpLimiter,
+  eventRegistrationUserLimiter,
+  requireStudentAuth,
+  validate(emailSchema),
+  eventRegistrationController.cancelRegistration
+);
+router.get(
+  '/api/content/events/:eventId/waitlist-position',
+  eventRegistrationController.getWaitlistPosition
+);
+router.post(
+  '/api/content/events/:eventId/waitlist/confirm',
+  validate(emailSchema),
+  eventRegistrationController.confirmWaitlistSpot
+);
+router.delete(
+  '/api/content/events/:eventId/waitlist',
+  eventRegistrationIpLimiter,
+  eventRegistrationUserLimiter,
+  validate(emailSchema),
+  eventRegistrationController.leaveWaitlist
+);
 router.get(
   '/api/content/activity-events/:activityKey',
   activityEventsController.listActivityEvents
