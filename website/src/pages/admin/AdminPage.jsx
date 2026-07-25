@@ -14,6 +14,7 @@ import CertificateTemplateEditor from './CertificateTemplateEditor';
 import CertificateTemplateEditor from './CertificateTemplateEditor';
 import PortfolioModerationQueue from './PortfolioModerationQueue';
 import QRScanner from './QRScanner';
+import WaitlistManager from './WaitlistManager';
 
 export default function AdminPage({ onBack }) {
   const [loading, setLoading] = useState(false);
@@ -473,6 +474,7 @@ export default function AdminPage({ onBack }) {
         {['overview', 'heatmaps', 'recordings', 'segments', 'certificates'].map((tab) => (
         {['overview', 'heatmaps', 'recordings', 'segments', 'moderation'].map((tab) => (
         {['overview', 'heatmaps', 'recordings', 'segments', 'scanner'].map((tab) => (
+        {['overview', 'heatmaps', 'recordings', 'segments', 'waitlist'].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -676,6 +678,7 @@ function AdminSecuritySettings({ token }) {
       {activeTab === 'certificates' && <CertificateTemplateEditor token={token} />}
       {activeTab === 'moderation' && <PortfolioModerationQueue token={token} />}
       {activeTab === 'scanner' && <QRScanner token={token} />}
+      {activeTab === 'waitlist' && <WaitlistManager />}
     </div>
   );
 }

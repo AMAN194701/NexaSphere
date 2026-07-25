@@ -7,7 +7,7 @@ function parsePostgresArray(val) {
     const trimmed = val.trim();
     if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
       const content = trimmed.slice(1, -1).trim();
-      return content ? content.split(',').map(item => item.trim().replace(/^"|"$/g, '')) : [];
+      return content ? content.split(',').map((item) => item.trim().replace(/^"|"$/g, '')) : [];
     }
   }
   return [];
@@ -60,7 +60,7 @@ export const eventsRepository = {
         'select * from events order by created_at desc limit $1 offset $2',
         [limit, offset]
       );
-      
+
       const total = rows.length > 0 ? rows[0].total : 0;
       return { rows: rows.map(mapRow), total };
       const countResult = await client.query('select count(*)::int as total from events');
@@ -169,8 +169,8 @@ export const eventsRepository = {
   async create(event) {
     return withDb(async (client) => {
       const { rows } = await client.query(
-        `insert into events (id, name, short_name, date_text, description, status, icon, tags, restricted_groups)
-         values ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+        `insert into events (id, name, short_name, date_text, description, status, icon, tags, restricted_groups, capacity)
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
          on conflict (id) do update set
            name=excluded.name,
            short_name=excluded.short_name,
@@ -180,6 +180,7 @@ export const eventsRepository = {
            icon=excluded.icon,
            tags=excluded.tags,
            restricted_groups=excluded.restricted_groups,
+           capacity=excluded.capacity,
 
            updated_at=now()
          returning *`,
@@ -193,13 +194,15 @@ export const eventsRepository = {
           event.icon,
           event.tags,
           JSON.stringify(event.restrictedGroups || []),
-
+          event.capacity || null,
         ]
       );
       const mapped = mapRow(rows[0]);
       import('../services/searchIndexer.js')
         .then(({ searchIndexer }) => searchIndexer.indexEvent(mapped))
-        .catch((err) => logger.error('Failed to index event in search', { err, eventId: mapped?.id }));
+        .catch((err) =>
+          logger.error('Failed to index event in search', { err, eventId: mapped?.id })
+        );
       return mapped;
       await invalidateCache('events:list:*');
       return mapRow(rows[0]);
@@ -209,7 +212,7 @@ export const eventsRepository = {
   async update(id, patch) {
     return withDb(async (client) => {
       const keys = Object.keys(patch);
-      
+
       // If no valid update fields are provided, skip the DB call and return the current record
       if (keys.length === 0) {
         const { rows } = await client.query('select * from events where id = $1', [id]);
@@ -224,25 +227,26 @@ export const eventsRepository = {
         description: 'description',
         status: 'status',
         icon: 'icon',
-        tags: 'tags'
+        tags: 'tags',
+        capacity: 'capacity',
       };
 
       const setClauses = [];
       const values = [id]; // $1 is always the ID for the WHERE clause
-      let paramIndex = 2;   // Dynamic parameters start at $2
+      let paramIndex = 2; // Dynamic parameters start at $2
 
       for (const key of keys) {
         if (fieldMap[key] !== undefined) {
           setClauses.push(`${fieldMap[key]} = $${paramIndex}`);
-          
+
           // Ensure arrays are passed in a format pg-driver handles natively or as clean nulls
           let val = patch[key];
           if (key === 'tags' && Array.isArray(val)) {
-            // Converts JS array directly to PG array format if driver needs it, 
+            // Converts JS array directly to PG array format if driver needs it,
             // or lets the driver serialize it safely.
-            val = val; 
+            val = val;
           }
-          
+
           values.push(val);
           paramIndex++;
         }
@@ -298,6 +302,9 @@ export const eventsRepository = {
           .then(({ searchIndexer }) => searchIndexer.deleteDocument('events', id))
           .catch((err) => logger.error('Failed to remove event from search index', { err, eventId: id }));
         await invalidateCache('events:list:*');
+          .catch((err) =>
+            logger.error('Failed to remove event from search index', { err, eventId: id })
+          );
       }
       return rowCount > 0;
     });
