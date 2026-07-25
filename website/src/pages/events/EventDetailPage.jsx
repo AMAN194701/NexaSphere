@@ -55,6 +55,7 @@ function StatCard({ label, value, color }) {
   const ref = useRef(null);
   const started = useRef(false);
   const countIntervalRef = useRef(null);
+  const intervalRef = useRef(null);
   useEffect(() => {
     const obs = new IntersectionObserver(
       ([e]) => {
@@ -72,6 +73,12 @@ function StatCard({ label, value, color }) {
               setCount(num);
               clearInterval(countIntervalRef.current);
               countIntervalRef.current = null;
+          intervalRef.current = setInterval(() => {
+            cur += Math.ceil(num / 40);
+            if (cur >= num) {
+              setCount(num);
+              if (intervalRef.current) clearInterval(intervalRef.current);
+              intervalRef.current = null;
             } else setCount(cur);
           }, 25);
         }
@@ -85,6 +92,8 @@ function StatCard({ label, value, color }) {
         clearInterval(countIntervalRef.current);
         countIntervalRef.current = null;
       }
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      intervalRef.current = null;
     };
   }, [value]);
   const rgb = hexToRgb(color);
