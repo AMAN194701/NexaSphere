@@ -38,7 +38,7 @@ import { useEffect, useId, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, MessageCircle, Users, AtSign, Settings, X, CheckCheck, Trash2 } from 'lucide-react';
 import { useNotifications } from '../hooks/useNotifications';
-
+const formatBadgeCount = (count) => (count > 99 ? '99+' : count);
 const TYPE_CONFIG = {
   message: { icon: <MessageCircle size={16} />, color: 'var(--c1)', bg: 'rgba(204,17,17,0.15)' },
   connection: { icon: <Users size={16} />, color: '#9999ff', bg: 'rgba(90,90,255,0.15)' },
@@ -154,6 +154,7 @@ export default function NotificationBell() {
         aria-expanded={isOpen}
         aria-controls={panelId}
         aria-label={`Notifications${unreadCount ? ` (${unreadCount} unread)` : ""}`}
+        aria-label={`Notifications${unreadCount ? ` (${formatBadgeCount(unreadCount)} unread)` : ''}`}
         style={{
           position: "relative",
           background: isOpen
@@ -234,6 +235,7 @@ export default function NotificationBell() {
               }}
             >
               {unreadCount > 9 ? "9+" : unreadCount}
+              {formatBadgeCount(unreadCount)}
             </motion.span>
           )}
         </AnimatePresence>
