@@ -6,6 +6,16 @@ const STORAGE_KEYS = {
   USER_PREFERENCES: 'user_preferences',
 };
 
+function safeParse(str, fallback) {
+  if (!str) return fallback;
+  try {
+    return JSON.parse(str);
+  } catch (e) {
+    console.error('[UserInterestTracker] Failed to parse localStorage key:', e);
+    return fallback;
+  }
+}
+
 class UserInterestTracker {
   constructor() {
     this.interests = this.loadInterests();
@@ -15,30 +25,26 @@ class UserInterestTracker {
 
   loadInterests() {
     const stored = localStorage.getItem(STORAGE_KEYS.USER_INTERESTS);
-    return stored
-      ? JSON.parse(stored)
-      : {
-          categories: {},
-          tags: {},
-          events: {},
-        };
+    return safeParse(stored, {
+      categories: {},
+      tags: {},
+      events: {},
+    });
   }
 
   loadHistory() {
     const stored = localStorage.getItem(STORAGE_KEYS.USER_HISTORY);
-    return stored ? JSON.parse(stored) : [];
+    return safeParse(stored, []);
   }
 
   loadPreferences() {
     const stored = localStorage.getItem(STORAGE_KEYS.USER_PREFERENCES);
-    return stored
-      ? JSON.parse(stored)
-      : {
-          preferredCategories: [],
-          preferredTags: [],
-          preferredTimeSlots: [],
-          preferredLocations: [],
-        };
+    return safeParse(stored, {
+      preferredCategories: [],
+      preferredTags: [],
+      preferredTimeSlots: [],
+      preferredLocations: [],
+    });
   }
 
   trackEventInteraction(eventId, action, metadata = {}) {
