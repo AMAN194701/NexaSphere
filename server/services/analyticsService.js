@@ -1,14 +1,15 @@
-import { analyticsRepository } from '../repositories/analyticsRepository.js';
-import { query } from '../config/db.js';
-import { withDb } from '../repositories/db.js';
+import { analyticsRepository } from "../repositories/analyticsRepository.js";
+import { query } from "../config/db.js";
+import { withDb } from "../repositories/db.js";
+import logger from "../utils/logger.js";
 
 export const FUNNEL_STEP_TYPES = [
-  'PAGE_VIEW',
-  'EVENT_REGISTER',
-  'EVENT_ATTEND',
-  'PROFILE_COMPLETE',
-  'FORM_SUBMIT',
-  'RESOURCE_VIEW',
+  "PAGE_VIEW",
+  "EVENT_REGISTER",
+  "EVENT_ATTEND",
+  "PROFILE_COMPLETE",
+  "FORM_SUBMIT",
+  "RESOURCE_VIEW",
 ];
 
 export const analyticsService = {
@@ -21,7 +22,13 @@ export const analyticsService = {
         `INSERT INTO analytics_events (id, session_id, user_id, event_type, url, metadata)
          VALUES (gen_random_uuid(), $1, $2, $3, $4, $5)
          RETURNING *`,
-        [sessionId, userId || null, type, path, metadata ? JSON.stringify(metadata) : null]
+        [
+          sessionId,
+          userId || null,
+          type,
+          path,
+          metadata ? JSON.stringify(metadata) : null,
+        ]
       );
       return rows[0];
     });
@@ -33,7 +40,9 @@ export const analyticsService = {
   async getDashboardSummary() {
     return withDb(async (client) => {
       // 1. Unique active users in last 30 days
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const thirtyDaysAgo = new Date(
+        Date.now() - 30 * 24 * 60 * 60 * 1000
+      ).toISOString();
       const { rows: userRows } = await client.query(
         `SELECT COUNT(DISTINCT user_id) as count FROM analytics_events WHERE created_at >= $1 AND user_id IS NOT NULL`,
         [thirtyDaysAgo]
@@ -65,7 +74,9 @@ export const analyticsService = {
         totalRegistrations,
         totalPageViews,
         engagementRate:
-          activeUsers > 0 ? ((totalRegistrations + totalPageViews) / activeUsers).toFixed(2) : 0,
+          activeUsers > 0
+            ? ((totalRegistrations + totalPageViews) / activeUsers).toFixed(2)
+            : 0,
       };
     });
   },
@@ -75,7 +86,9 @@ export const analyticsService = {
    */
   async getUserAnalytics() {
     return withDb(async (client) => {
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const thirtyDaysAgo = new Date(
+        Date.now() - 30 * 24 * 60 * 60 * 1000
+      ).toISOString();
 
       const { rows } = await client.query(
         `SELECT DATE(created_at) AS date, COUNT(*) AS count
@@ -87,8 +100,14 @@ export const analyticsService = {
       );
 
       return {
-        signupsByDay: rows.map((r) => ({ date: r.date, count: parseInt(r.count, 10) })),
-        totalLast30Days: rows.reduce((sum, r) => sum + parseInt(r.count, 10), 0),
+        signupsByDay: rows.map((r) => ({
+          date: r.date,
+          count: parseInt(r.count, 10),
+        })),
+        totalLast30Days: rows.reduce(
+          (sum, r) => sum + parseInt(r.count, 10),
+          0
+        ),
       };
     });
   },
@@ -97,7 +116,11 @@ export const analyticsService = {
    * Default Engagement Funnel (Event Views → Register → Attend)
    */
   async getEngagementFunnel() {
-    return analyticsService.getFunnelAnalysis(['PAGE_VIEW', 'EVENT_REGISTER', 'EVENT_ATTEND']);
+    return analyticsService.getFunnelAnalysis([
+      "PAGE_VIEW",
+      "EVENT_REGISTER",
+      "EVENT_ATTEND",
+    ]);
   },
 
   /**
@@ -138,7 +161,10 @@ export const analyticsService = {
 
         if (prevStep !== null && prevCount !== null) {
           // Drop-off from previous step
-          dropOffPercent = prevCount > 0 ? Math.round(((prevCount - count) / prevCount) * 100) : 0;
+          dropOffPercent =
+            prevCount > 0
+              ? Math.round(((prevCount - count) / prevCount) * 100)
+              : 0;
 
           // Average time between prevStep and this step, for sessions that did both
           const { rows: timeRows } = await client.query(
@@ -176,14 +202,14 @@ export const analyticsService = {
   async executeCustomReport(reportConfig) {
     const { metric, timeRange } = reportConfig;
     const dateFilter =
-      timeRange === '30d'
+      timeRange === "30d"
         ? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
         : new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString();
 
     return withDb(async (client) => {
       let data = [];
 
-      if (metric === 'page_views') {
+      if (metric === "page_views") {
         const { rows } = await client.query(
           `SELECT DATE(created_at) AS date, COUNT(*) AS count
            FROM analytics_events
@@ -192,8 +218,11 @@ export const analyticsService = {
            ORDER BY date ASC`,
           [dateFilter]
         );
-        data = rows.map((r) => ({ date: r.date, count: parseInt(r.count, 10) }));
-      } else if (metric === 'signups') {
+        data = rows.map((r) => ({
+          date: r.date,
+          count: parseInt(r.count, 10),
+        }));
+      } else if (metric === "signups") {
         const { rows } = await client.query(
           `SELECT DATE(created_at) AS date, COUNT(*) AS count
            FROM users
@@ -202,7 +231,10 @@ export const analyticsService = {
            ORDER BY date ASC`,
           [dateFilter]
         );
-        data = rows.map((r) => ({ date: r.date, count: parseInt(r.count, 10) }));
+        data = rows.map((r) => ({
+          date: r.date,
+          count: parseInt(r.count, 10),
+        }));
       }
 
       return { data };
@@ -249,7 +281,7 @@ export const analyticsService = {
     for (const segment of segments) {
       try {
         const rules = segment.rules_json;
-        if (rules.condition === 'events_count') {
+        if (rules.condition === "events_count") {
           const days = rules.days || 30;
           const value = rules.value || 5;
           await withDb(async (client) => {
@@ -265,7 +297,7 @@ export const analyticsService = {
             `;
             await client.query(q, [segment.id, value]);
           });
-        } else if (rules.condition === 'inactivity') {
+        } else if (rules.condition === "inactivity") {
           const days = rules.days || 60;
           await withDb(async (client) => {
             const q = `
@@ -280,13 +312,16 @@ export const analyticsService = {
           });
         }
       } catch (err) {
-        console.error(`Error evaluating segment ${segment.name}:`, err);
+        logger.error(
+          { segment: segment.name, err },
+          "Error evaluating segment"
+        );
       }
     }
   },
 
   async performSegmentAction(segmentId, actionData) {
-    if (actionData.action === 'email') {
+    if (actionData.action === "email") {
       const q = `
         SELECT u.email, u.name
         FROM users u
@@ -300,7 +335,7 @@ export const analyticsService = {
       );
       return { success: true, count: users.length };
     }
-    return { success: false, reason: 'Unknown action' };
+    return { success: false, reason: "Unknown action" };
   },
 
   async logEvent({ type, userId, sessionId, path, metadata }) {
@@ -308,7 +343,13 @@ export const analyticsService = {
       await client.query(
         `INSERT INTO analytics_events (session_id, user_id, event_type, path, metadata, created_at)
          VALUES ($1, $2, $3, $4, $5, NOW())`,
-        [sessionId || 'anon', userId || null, type, path || null, JSON.stringify(metadata || {})]
+        [
+          sessionId || "anon",
+          userId || null,
+          type,
+          path || null,
+          JSON.stringify(metadata || {}),
+        ]
       );
     });
   },
@@ -316,7 +357,11 @@ export const analyticsService = {
   async getDashboardSummary() {
     return withDb(async (client) => {
       const now = new Date();
-      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      const firstDayOfMonth = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        1
+      ).toISOString();
 
       const { rows: activeUsersRows } = await client.query(
         `SELECT COUNT(DISTINCT user_id) AS count FROM analytics_events
@@ -347,14 +392,18 @@ export const analyticsService = {
         totalRegistrations,
         totalPageViews,
         engagementRate:
-          activeUsers > 0 ? ((totalRegistrations + totalPageViews) / activeUsers).toFixed(2) : 0,
+          activeUsers > 0
+            ? ((totalRegistrations + totalPageViews) / activeUsers).toFixed(2)
+            : 0,
       };
     });
   },
 
   async getUserAnalytics() {
     return withDb(async (client) => {
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const thirtyDaysAgo = new Date(
+        Date.now() - 30 * 24 * 60 * 60 * 1000
+      ).toISOString();
 
       const { rows } = await client.query(
         `SELECT DATE(created_at) AS date, COUNT(*) AS count
@@ -366,14 +415,24 @@ export const analyticsService = {
       );
 
       return {
-        signupsByDay: rows.map((r) => ({ date: r.date, count: parseInt(r.count, 10) })),
-        totalLast30Days: rows.reduce((sum, r) => sum + parseInt(r.count, 10), 0),
+        signupsByDay: rows.map((r) => ({
+          date: r.date,
+          count: parseInt(r.count, 10),
+        })),
+        totalLast30Days: rows.reduce(
+          (sum, r) => sum + parseInt(r.count, 10),
+          0
+        ),
       };
     });
   },
 
   async getEngagementFunnel() {
-    return analyticsService.getFunnelAnalysis(['PAGE_VIEW', 'EVENT_REGISTER', 'EVENT_ATTEND']);
+    return analyticsService.getFunnelAnalysis([
+      "PAGE_VIEW",
+      "EVENT_REGISTER",
+      "EVENT_ATTEND",
+    ]);
   },
 
   async getFunnelAnalysis(steps) {
@@ -401,7 +460,10 @@ export const analyticsService = {
         let avgSecondsFromPrev = null;
 
         if (prevStep !== null && prevCount !== null) {
-          dropOffPercent = prevCount > 0 ? Math.round(((prevCount - count) / prevCount) * 100) : 0;
+          dropOffPercent =
+            prevCount > 0
+              ? Math.round(((prevCount - count) / prevCount) * 100)
+              : 0;
 
           const { rows: timeRows } = await client.query(
             `SELECT AVG(EXTRACT(EPOCH FROM (curr.created_at - prev.created_at))) AS avg_seconds
@@ -435,14 +497,14 @@ export const analyticsService = {
   async executeCustomReport(reportConfig) {
     const { metric, timeRange } = reportConfig;
     const dateFilter =
-      timeRange === '30d'
+      timeRange === "30d"
         ? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
         : new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString();
 
     return withDb(async (client) => {
       let data = [];
 
-      if (metric === 'page_views') {
+      if (metric === "page_views") {
         const { rows } = await client.query(
           `SELECT DATE(created_at) AS date, COUNT(*) AS count
            FROM analytics_events
@@ -451,8 +513,11 @@ export const analyticsService = {
            ORDER BY date ASC`,
           [dateFilter]
         );
-        data = rows.map((r) => ({ date: r.date, count: parseInt(r.count, 10) }));
-      } else if (metric === 'signups') {
+        data = rows.map((r) => ({
+          date: r.date,
+          count: parseInt(r.count, 10),
+        }));
+      } else if (metric === "signups") {
         const { rows } = await client.query(
           `SELECT DATE(created_at) AS date, COUNT(*) AS count
            FROM users
@@ -461,7 +526,10 @@ export const analyticsService = {
            ORDER BY date ASC`,
           [dateFilter]
         );
-        data = rows.map((r) => ({ date: r.date, count: parseInt(r.count, 10) }));
+        data = rows.map((r) => ({
+          date: r.date,
+          count: parseInt(r.count, 10),
+        }));
       }
 
       return { data };
