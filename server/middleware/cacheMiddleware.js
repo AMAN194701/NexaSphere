@@ -1,23 +1,30 @@
-import { cacheService } from '../services/cacheService.js';
+import { cacheService } from "../services/cacheService.js";
+import logger from "../utils/logger.js";
 
-const ALLOWED_PREFIXES = ['response:', 'query:', 'view:'];
+const ALLOWED_PREFIXES = ["response:", "query:", "view:"];
 
 export function cacheResponse(duration = 3600) {
   return async (req, res, next) => {
-    const cacheKey = cacheService.buildKey('response', req.originalUrl || req.url);
+    const cacheKey = cacheService.buildKey(
+      "response",
+      req.originalUrl || req.url
+    );
     let cached = null;
     try {
       cached = await cacheService.get(cacheKey);
     } catch (error) {
-      console.warn('Cache read failed, continuing without cached response:', error.message);
+      logger.warn(
+        { err: error.message, path: req && req.path },
+        "Cache read failed, continuing without cached response"
+      );
     }
 
     if (cached) {
-      res.setHeader('X-Cache', 'HIT');
+      res.setHeader("X-Cache", "HIT");
       return res.json(cached);
     }
 
-    res.setHeader('X-Cache', 'MISS');
+    res.setHeader("X-Cache", "MISS");
 
     const originalJson = res.json.bind(res);
     res.json = function (data) {
@@ -31,7 +38,7 @@ export function cacheResponse(duration = 3600) {
 
 export function invalidateCache(pattern) {
   return async (req, res, next) => {
-    res.on('finish', async () => {
+    res.on("finish", async () => {
       if (res.statusCode < 400) {
         const sanitized = sanitizeCachePattern(pattern);
         if (sanitized) {
@@ -48,25 +55,30 @@ export function invalidateCache(pattern) {
  * Restricts patterns to allowed prefixes and blocks wildcard-only patterns.
  */
 function sanitizeCachePattern(pattern) {
-  if (!pattern || typeof pattern !== 'string') {
-    console.warn('[Cache] Invalid cache pattern rejected:', pattern);
+  if (!pattern || typeof pattern !== "string") {
+    logger.warn({ pattern }, "Invalid cache pattern rejected");
     return null;
   }
 
   const trimmed = pattern.trim();
-  if (trimmed === '' || trimmed === '*' || trimmed === ':*') {
-    console.warn('[Cache] Wildcard-only cache pattern rejected:', pattern);
+  if (trimmed === "" || trimmed === "*" || trimmed === ":*") {
+    logger.warn({ pattern }, "Wildcard-only cache pattern rejected");
     return null;
   }
 
-  const hasAllowedPrefix = ALLOWED_PREFIXES.some((prefix) => trimmed.startsWith(prefix));
+  const hasAllowedPrefix = ALLOWED_PREFIXES.some((prefix) =>
+    trimmed.startsWith(prefix)
+  );
   if (!hasAllowedPrefix) {
-    console.warn('[Cache] Cache pattern must start with an allowed prefix:', trimmed);
+    logger.warn(
+      { pattern: trimmed },
+      "Cache pattern must start with an allowed prefix"
+    );
     return null;
   }
 
   if (trimmed.length > 256) {
-    console.warn('[Cache] Cache pattern exceeds maximum length');
+    logger.warn("Cache pattern exceeds maximum length");
     return null;
   }
 
