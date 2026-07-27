@@ -1,0 +1,231 @@
+name: Label Sync — Backfill Missing Labels
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Manual workflow to scan ALL open issues and PRs and apply missing labels.
+# Run this to catch anything that wasn't labeled in the past days.
+#
+# Usage:  Actions → Label Sync → Run workflow
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run — only log what would be labeled, don''t actually apply'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+permissions:
+  issues: write
+  pull-requests: write
+  contents: read
+
+jobs:
+  sync-issue-labels:
+    name: Backfill Issue Labels
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Scan and label all open issues
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            const dryRun = '${{ inputs.dry_run }}' === 'true';
+
+            if (dryRun) console.log('🔍 DRY RUN — no labels will be applied\n');
+
+            // ── Helper: ensure label exists ────────────────────────────────
+            async function ensureLabel(name, color, description) {
+              try {
+                await github.rest.issues.getLabel({ owner, repo, name });
+              } catch (e) {
+                if (e.status === 404 && !dryRun) {
+                  await github.rest.issues.createLabel({ owner, repo, name, color, description });
+                }
+              }
+            }
+
+            // ── Label rules ───────────────────────────────────────────────
+            const TYPE_RULES = [
+              { keywords: ['bug', 'error', 'crash', 'broken', 'fix', 'not working', 'fails'], label: 'bug', color: 'd73a4a', desc: 'Something isn\'t working' },
+              { keywords: ['feature', 'enhancement', 'add support', 'new feature', 'implement'], label: 'enhancement', color: 'a2eeef', desc: 'New feature or request' },
+              { keywords: ['docs', 'documentation', 'readme', 'typo'], label: 'documentation', color: '0075ca', desc: 'Documentation' },
+              { keywords: ['performance', 'slow', 'optimize', 'speed'], label: 'performance', color: 'f9d0c4', desc: 'Performance' },
+              { keywords: ['security', 'vulnerability', 'xss', 'sql injection'], label: 'security', color: 'e11d48', desc: 'Security' },
+              { keywords: ['ui', 'ux', 'design', 'layout', 'css', 'responsive'], label: 'UI/UX', color: '7057ff', desc: 'UI/UX' },
+              { keywords: ['test', 'testing', 'unit test', 'e2e'], label: 'testing', color: 'bfd4f2', desc: 'Testing' },
+            ];
+
+            const AREA_RULES = [
+              { keywords: ['frontend', 'website', 'react', 'vite', 'component'], label: 'frontend', color: '61dafb', desc: 'Frontend' },
+              { keywords: ['backend', 'server', 'api', 'express', 'endpoint'], label: 'backend', color: '68a063', desc: 'Backend' },
+              { keywords: ['admin', 'dashboard', 'admin-dashboard'], label: 'admin-dashboard', color: '0052cc', desc: 'Admin dashboard' },
+              { keywords: ['database', 'migration', 'sql', 'postgres', 'prisma'], label: 'database', color: '336791', desc: 'Database' },
+              { keywords: ['android', 'mobile', 'kotlin', 'gradle'], label: 'android', color: '3ddc84', desc: 'Android' },
+              { keywords: ['python', 'fastapi', 'alembic'], label: 'python', color: '3776ab', desc: 'Python' },
+              { keywords: ['java', 'spring', 'maven', 'flyway'], label: 'java', color: 'b07219', desc: 'Java' },
+              { keywords: ['ci', 'cd', 'github actions', 'workflow', 'pipeline'], label: 'CI/CD', color: '000000', desc: 'CI/CD' },
+              { keywords: ['docker', 'terraform', 'infra', 'infrastructure', 'aws'], label: 'infrastructure', color: '2496ed', desc: 'Infrastructure' },
+            ];
+
+            // ── Iterate all open issues ───────────────────────────────────
+            let page = 1;
+            let totalLabeled = 0;
+
+            while (true) {
+              const { data: issues } = await github.rest.issues.listForRepo({
+                owner, repo, state: 'open', per_page: 100, page,
+              });
+
+              if (issues.length === 0) break;
+
+              for (const issue of issues) {
+                // Skip PRs (GitHub API includes them in issues)
+                if (issue.pull_request) continue;
+
+                const title = (issue.title || '').toLowerCase();
+                const body  = (issue.body || '').toLowerCase();
+                const text  = `${title} ${body}`;
+                const existing = issue.labels.map(l => l.name);
+                const newLabels = [];
+
+                const ALL_RULES = [...TYPE_RULES, ...AREA_RULES];
+                for (const rule of ALL_RULES) {
+                  if (!existing.includes(rule.label) && rule.keywords.some(kw => text.includes(kw))) {
+                    await ensureLabel(rule.label, rule.color, rule.desc);
+                    newLabels.push(rule.label);
+                  }
+                }
+
+                if (newLabels.length > 0) {
+                  if (!dryRun) {
+                    await github.rest.issues.addLabels({
+                      owner, repo, issue_number: issue.number, labels: newLabels,
+                    });
+                  }
+                  console.log(`${dryRun ? '[DRY]' : '🏷️'} Issue #${issue.number}: +${newLabels.join(', ')}`);
+                  totalLabeled++;
+                }
+              }
+
+              page++;
+            }
+
+            console.log(`\n✅ Done — ${totalLabeled} issues labeled`);
+
+  sync-pr-labels:
+    name: Backfill PR Labels
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Scan and label all open PRs
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            const dryRun = '${{ inputs.dry_run }}' === 'true';
+
+            if (dryRun) console.log('🔍 DRY RUN — no labels will be applied\n');
+
+            async function ensureLabel(name, color, description) {
+              try {
+                await github.rest.issues.getLabel({ owner, repo, name });
+              } catch (e) {
+                if (e.status === 404 && !dryRun) {
+                  await github.rest.issues.createLabel({ owner, repo, name, color, description });
+                }
+              }
+            }
+
+            const PATH_RULES = [
+              { pattern: /^website\//, label: 'frontend', color: '61dafb', desc: 'Frontend' },
+              { pattern: /^server\//, label: 'backend', color: '68a063', desc: 'Backend' },
+              { pattern: /^admin-dashboard\//, label: 'admin-dashboard', color: '0052cc', desc: 'Admin dashboard' },
+              { pattern: /^server-python\//, label: 'python', color: '3776ab', desc: 'Python' },
+              { pattern: /^server-java\//, label: 'java', color: 'b07219', desc: 'Java' },
+              { pattern: /^android\//, label: 'android', color: '3ddc84', desc: 'Android' },
+              { pattern: /^\.github\//, label: 'CI/CD', color: '000000', desc: 'CI/CD' },
+              { pattern: /^(docs\/|.*\.md$)/, label: 'documentation', color: '0075ca', desc: 'Documentation' },
+              { pattern: /^(prisma\/|.*migrations\/)/, label: 'database', color: '336791', desc: 'Database' },
+              { pattern: /^(infra\/|infrastructure\/|.*\.tf$)/, label: 'infrastructure', color: '2496ed', desc: 'Infrastructure' },
+              { pattern: /^(e2e\/|.*\.test\.|.*\.spec\.)/, label: 'testing', color: 'bfd4f2', desc: 'Testing' },
+            ];
+
+            const SIZE_RULES = [
+              { max: 10,   label: 'size/XS', color: 'c2e0c6', desc: 'Extra small (1-10 lines)' },
+              { max: 50,   label: 'size/S',  color: '77dd77', desc: 'Small (11-50 lines)' },
+              { max: 200,  label: 'size/M',  color: 'fbca04', desc: 'Medium (51-200 lines)' },
+              { max: 500,  label: 'size/L',  color: 'f9a03f', desc: 'Large (201-500 lines)' },
+              { max: Infinity, label: 'size/XL', color: 'e11d48', desc: 'Extra large (500+ lines)' },
+            ];
+
+            let page = 1;
+            let totalLabeled = 0;
+
+            while (true) {
+              const { data: prs } = await github.rest.pulls.list({
+                owner, repo, state: 'open', per_page: 100, page,
+              });
+
+              if (prs.length === 0) break;
+
+              for (const pr of prs) {
+                const existing = pr.labels.map(l => l.name);
+                const newLabels = new Set();
+
+                // Get changed files
+                let files = [];
+                let fPage = 1;
+                while (true) {
+                  const { data } = await github.rest.pulls.listFiles({
+                    owner, repo, pull_number: pr.number, per_page: 100, page: fPage,
+                  });
+                  files.push(...data);
+                  if (data.length < 100) break;
+                  fPage++;
+                }
+
+                const filePaths = files.map(f => f.filename);
+                const totalChanges = files.reduce((sum, f) => sum + f.additions + f.deletions, 0);
+
+                // Path-based labels
+                for (const rule of PATH_RULES) {
+                  if (!existing.includes(rule.label) && filePaths.some(fp => rule.pattern.test(fp))) {
+                    await ensureLabel(rule.label, rule.color, rule.desc);
+                    newLabels.add(rule.label);
+                  }
+                }
+
+                // Size label
+                const sizeLabels = SIZE_RULES.map(r => r.label);
+                const hasSize = existing.some(l => sizeLabels.includes(l));
+                if (!hasSize) {
+                  const sizeRule = SIZE_RULES.find(r => totalChanges <= r.max);
+                  if (sizeRule) {
+                    await ensureLabel(sizeRule.label, sizeRule.color, sizeRule.desc);
+                    newLabels.add(sizeRule.label);
+                  }
+                }
+
+                if (newLabels.size > 0) {
+                  if (!dryRun) {
+                    await github.rest.issues.addLabels({
+                      owner, repo, issue_number: pr.number, labels: [...newLabels],
+                    });
+                  }
+                  console.log(`${dryRun ? '[DRY]' : '🏷️'} PR #${pr.number}: +${[...newLabels].join(', ')}`);
+                  totalLabeled++;
+                }
+              }
+
+              page++;
+            }
+
+            console.log(`\n✅ Done — ${totalLabeled} PRs labeled`);

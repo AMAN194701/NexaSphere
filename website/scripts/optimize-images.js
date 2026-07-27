@@ -12,25 +12,25 @@ const TEMPLATES_ASSETS = path.join(__dirname, '../public/templates');
 const SIZES = {
   '1x': 1,
   '2x': 2,
-  '3x': 3
+  '3x': 3,
 };
 
 async function optimizeImages(dir) {
   const files = await fs.readdir(dir);
-  
+
   for (const file of files) {
     if (file.match(/\.(png|jpe?g)$/i) && !file.includes('@')) {
       const filePath = path.join(dir, file);
       const ext = path.extname(file);
       const basename = path.basename(file, ext);
-      
+
       const metadata = await sharp(filePath).metadata();
       const width = metadata.width;
-      
+
       for (const [suffix, scale] of Object.entries(SIZES)) {
         const scaledWidth = Math.round(width * (scale / 3)); // Assuming original is 3x or max resolution
         const outPath = path.join(dir, `${basename}@${suffix}.webp`);
-        
+
         try {
           await fs.access(outPath);
           // If it exists, skip
@@ -47,6 +47,10 @@ async function optimizeImages(dir) {
 }
 
 async function run() {
+  if (process.env.DISABLE_IMAGE_OPTIMIZE === 'true') {
+    console.log('⏭️  Image optimization disabled (DISABLE_IMAGE_OPTIMIZE=true) — skipping');
+    return;
+  }
   await optimizeImages(PUBLIC_ASSETS);
   await optimizeImages(TEMPLATES_ASSETS);
 }
