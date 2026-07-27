@@ -96,7 +96,7 @@ registerRoute(
 // Falls back to the cached response when offline so the UI still renders.
 // Cached responses expire after 5 minutes to avoid stale data surprises.
 
-// 5. Dashboard, analytics, notifications — longer cache TTL, registered before
+// Dashboard, analytics, notifications — longer cache TTL, registered before
 // the generic API catch-all so Workbox's first-match-wins does not shadow it.
 registerRoute(
   ({ url, request }) =>
@@ -115,7 +115,7 @@ registerRoute(
   })
 );
 
-// 6. Generic API GET requests — NetworkFirst catch-all
+// Generic API GET requests — NetworkFirst catch-all
 // Auth/token endpoints are explicitly EXCLUDED (never cached)
 registerRoute(
   ({ url }) => url.pathname.startsWith('/api/'),
@@ -150,7 +150,6 @@ registerRoute(
 );
 
 // Web app manifests and JSON config files
-// 7. Auth / session — NetworkFirst with short cache, 3s timeout
 registerRoute(
   ({ url }) => url.pathname.endsWith('.webmanifest') || url.pathname.endsWith('manifest.json'),
   new StaleWhileRevalidate({
@@ -180,6 +179,26 @@ registerRoute(
 const bgSyncPlugin = new BackgroundSyncPlugin('nexasphere-offline-queue', {
   maxRetentionTime: 48 * 60, // retain queued requests for up to 48 hours (in minutes)
   onSync: async ({ queue }) => {
+    let error = null;
+    try {
+      await queue.replayRequests();
+    } catch (err) {
+      error = err;
+      throw err;
+    } finally {
+      if (!error && self.registration && self.registration.showNotification) {
+        self.registration.showNotification('Sync Completed', {
+          body: 'Your offline actions have been synced successfully.',
+          icon: '/pwa-192x192.png',
+          badge: '/pwa-192x192.png',
+          tag: 'sync-completed',
+        });
+      }
+    }
+  },
+});
+
+// Register mutating API routes with background sync support
 registerRoute(
   ({ url }) => url.pathname.startsWith('/api/') && !url.pathname.includes('/auth/'),
   new NetworkFirst({
@@ -207,14 +226,23 @@ registerRoute(
   'DELETE'
 );
 
-// ── Background Sync ───────────────────────────────────────────────────────────
+registerRoute(
+  ({ url }) => url.pathname.startsWith('/api/') && !url.pathname.includes('/auth/'),
+  new NetworkFirst({
+    cacheName: 'nexasphere-api-mutations',
+    plugins: [new CacheableResponsePlugin({ statuses: [0, 200] }), bgSyncPlugin],
+  }),
+  'PATCH'
+);
+
+// ── Background Sync event ─────────────────────────────────────────────────────
 
 /**
  * SW Background Sync event — triggered by browser when connectivity returns.
  * Relays to all active app clients so the app-side queue manager can process it.
  */
 self.addEventListener('sync', (event) => {
-  if (event.tag === 'ns-bg-sync') {
+  if (event.tag === 'ns-bg-sync' || event.tag === 'nexasphere-offline-queue') {
     event.waitUntil(
       self.clients.matchAll({ type: 'window', includeUncontrolled: false }).then((clients) => {
         clients.forEach((client) => {
@@ -246,17 +274,10 @@ self.addEventListener('push', (event) => {
 
   if (event.data) {
     try {
-      await queue.replayRequests();
-      // Emptied successfully! Trigger notification if permitted
-      if (self.registration && self.Notification && self.Notification.permission === 'granted') {
-        self.registration.showNotification('Changes Synced', {
-          body: 'Your offline actions have been successfully synchronized with NexaSphere.',
-          icon: '/pwa-192x192.png'
-        });
-      }
-    } catch (error) {
-      console.error('[Service Worker] Sync failed', error);
-      throw error;
+      const payload = event.data.json();
+      notificationData = { ...notificationData, ...payload };
+    } catch (e) {
+      notificationData.body = event.data.text() || notificationData.body;
     }
   }
 
@@ -271,45 +292,10 @@ self.addEventListener('push', (event) => {
       actions: notificationData.actions,
     })
   );
-    let error = null;
-    try {
-      await queue.replayRequests();
-    } catch (err) {
-      error = err;
-      throw err;
-    } finally {
-      if (!error && self.registration && self.registration.showNotification) {
-        self.registration.showNotification('Sync Completed', {
-          body: 'Your offline actions have been synced successfully.',
-          icon: '/pwa-192x192.png',
-          badge: '/pwa-192x192.png',
-          tag: 'sync-completed',
-        });
-      }
-    }
-  },
 });
 
-// Intercept mutating requests to our API — queue them when offline
-registerRoute(
-  ({ url, request }) =>
-    url.pathname.startsWith('/api/') && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(request.method),
-  new NetworkFirst({
-    cacheName: 'nexasphere-api-mutations-v1',
-    plugins: [new CacheableResponsePlugin({ statuses: [200, 201, 204] }), bgSyncPlugin],
-  }),
-  'POST' // Workbox requires explicit method for non-GET routes
-);
+// ── Notification click handler ────────────────────────────────────────────────
 
-// Also register PUT, DELETE, PATCH explicitly
-['PUT', 'DELETE', 'PATCH'].forEach((method) => {
-  registerRoute(
-    ({ url }) => url.pathname.startsWith('/api/'),
-    new NetworkFirst({
-      cacheName: 'nexasphere-api-mutations-v1',
-      plugins: [new CacheableResponsePlugin({ statuses: [200, 201, 204] }), bgSyncPlugin],
-    }),
-    method
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const urlToOpen = event.notification.data?.link || '/';
@@ -330,13 +316,11 @@ self.addEventListener('notificationclick', (event) => {
   );
 
   if (action === 'snooze') {
-    // Logic to notify backend to re-send in 1 hour
     console.log('[SW] Snoozing notification:', notificationId);
     return;
   }
 
   if (action === 'register') {
-    // Specific deep link logic if needed
     const registerUrl = event.notification.data?.registerUrl || urlToOpen;
     event.waitUntil(clients.openWindow(registerUrl));
     return;
@@ -369,23 +353,6 @@ self.addEventListener('message', (event) => {
   }
 });
 
-// ── Background sync event (manual fallback for browsers without BGSync API) ──
-// Some browsers fire 'sync' but don't support the BackgroundSyncPlugin API.
-// This manual handler flushes the queue as a safety net.
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'nexasphere-offline-queue') {
-    console.log('[SW] Background sync triggered for offline queue.');
-  }
-});
-
-// "?"? 5. Offline Fallback "?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?
-// Serve offline.html when a document request fails and there is no cache match.
-setCatchHandler(async ({ request }) => {
-  if (request.destination === 'document') {
-    return (await matchPrecache('offline.html')) || 
-           (await matchPrecache('/offline.html')) || 
-           (await caches.match('/offline.html')) || 
-           Response.error();
 // ── 5. Offline Fallback ───────────────────────────────────────────────────────
 // Provide a fallback response when a navigation request fails because the app
 // is offline and the requested route isn't cached.
