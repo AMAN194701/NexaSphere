@@ -1,4 +1,3 @@
-import sharp from 'sharp';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -16,6 +15,9 @@ const SIZES = {
 };
 
 async function optimizeImages(dir) {
+  // Dynamic import so the script doesn't crash when sharp isn't installed
+  const { default: sharp } = await import('sharp');
+
   const files = await fs.readdir(dir);
 
   for (const file of files) {
