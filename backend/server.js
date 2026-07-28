@@ -19,6 +19,9 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+const dynamicRateLimiter = require('./middleware/rateLimiter');
+app.use(dynamicRateLimiter);
+
 // ─── Routes ───────────────────────────────────────────────
 app.use('/api/interview',  require('./routes/interview'));
 app.use('/api/assessment', require('./routes/assessment'));
