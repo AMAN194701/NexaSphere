@@ -84,7 +84,9 @@ export function useSearch(activities, events) {
     setRecentSearches((prev) => {
       const filtered = prev.filter((s) => s.toLowerCase() !== clean.toLowerCase());
       const next = [clean, ...filtered].slice(0, 10);
-      localStorage.setItem('ns_recent_searches', JSON.stringify(next));
+      try {
+        localStorage.setItem('ns_recent_searches', JSON.stringify(next));
+      } catch {}
       return next;
     });
   }, []);
@@ -92,7 +94,9 @@ export function useSearch(activities, events) {
   const removeRecentSearch = useCallback((searchTerm) => {
     setRecentSearches((prev) => {
       const next = prev.filter((s) => s !== searchTerm);
-      localStorage.setItem('ns_recent_searches', JSON.stringify(next));
+      try {
+        localStorage.setItem('ns_recent_searches', JSON.stringify(next));
+      } catch {}
       return next;
     });
   }, []);
@@ -117,32 +121,6 @@ export function useSearch(activities, events) {
       }
     },
     [apiBase]
-  );
-
-  const persistRecent = useCallback((next) => {
-    setRecentSearches(next);
-    try {
-      localStorage.setItem(RECENT_KEY, JSON.stringify(next));
-    } catch {
-      // ignore
-    }
-  }, []);
-
-  const addRecentSearch = useCallback(
-    (term) => {
-      const t = String(term || '').trim();
-      if (!t) return;
-      persistRecent([t, ...recentSearches.filter((x) => x !== t)].slice(0, 8));
-    },
-    [persistRecent, recentSearches]
-  );
-
-  const removeRecentSearch = useCallback(
-    (term) => {
-      const t = String(term || '').trim();
-      persistRecent(recentSearches.filter((x) => x !== t));
-    },
-    [persistRecent, recentSearches]
   );
 
   useEffect(() => {

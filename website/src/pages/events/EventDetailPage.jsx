@@ -930,15 +930,6 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
     };
   }, []);
 
-  const handleCalendarDownload = () => {
-    const base = getApiBase();
-    const url = `${base}/api/content/events/${event.id}/calendar`;
-    window.open(url, '_blank', 'noopener,noreferrer');
-  };
-
-  const color = activityColor || '#a855f7';
-  const rgb = hexToRgb(color);
-
   const [showReminderMenu, setShowReminderMenu] = useState(false);
   const [reminderSet, setReminderSet] = useState('');
 
@@ -971,7 +962,6 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
   const eventEnd = event.endDate ?? event.startDate ?? event.date;
   const isInFuture = eventEnd ? new Date(eventEnd) > new Date() : isUpcoming;
   const canRegister = isUpcoming && isInFuture && event.capacity > 0;
-  const canRegister = isUpcoming && event.capacity > 0;
 
   const handleRegField = (field) => (e) => setRegForm((f) => ({ ...f, [field]: e.target.value }));
   const handleRegistration = async (e) => {
@@ -986,7 +976,6 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
     setRegSubmitting(true);
     try {
       const base = getApiBase();
-      const base = API_BASE || '';
       const url = `${base}/api/content/events/${event.id}/register`;
       const idempotencyKey =
         typeof crypto !== 'undefined' && crypto.randomUUID
@@ -1053,14 +1042,10 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
     const base = getApiBase();
     const url = `${base}/api/content/events/${event.id}/calendar`;
     window.open(url, '_blank', 'noopener,noreferrer');
-    const base = API_BASE || '';
-    const url = `${base}/api/content/events/${event.id}/calendar`;
-    window.open(url, '_blank');
   };
 
   const color = activityColor || '#a855f7';
   const rgb = hexToRgb(color);
-  const status = event.status === 'upcoming' ? 'upcoming' : 'completed';
   const overview =
     event.overview || event.description || 'More details for this event will be shared soon.';
   const location = event.location || 'GL Bajaj Group of Institutions, Mathura';
