@@ -2,7 +2,6 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { DynamicIcon } from '../../shared/Icons';
 import { getApiBase } from '../../utils/runtimeConfig';
 import apiClient from '../../utils/apiClient';
-import { API_BASE } from '../../data/config';
 import DOMPurify from 'dompurify';
 import {
   downloadICS,

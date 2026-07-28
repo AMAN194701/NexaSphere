@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, Users, AtSign, Settings, X, CheckCheck, Trash2 } from 'lucide-react';
 import { useNotifications } from '../hooks/useNotifications';
 import { formatRelativeTime } from '../utils/formatRelativeTime';

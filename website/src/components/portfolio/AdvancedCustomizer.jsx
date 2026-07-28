@@ -127,11 +127,6 @@ const AdvancedCustomizer = ({ currentConfig, onUpdate }) => {
     reader.readAsText(file);
     // Reset the input so re-selecting the same (still-broken) file re-triggers onChange
     e.target.value = '';
-      } catch (err) {
-        alert('Invalid Theme JSON');
-      }
-    };
-    reader.readAsText(file);
   };
 
   return (

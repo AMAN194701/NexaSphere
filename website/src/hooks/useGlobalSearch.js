@@ -1,6 +1,18 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useState, useEffect, useMemo, useRef } from 'react';
 import { STORAGE_KEYS } from '../utils/storageKeys.js';
+
+// Simple debounce helper
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
 
 /**
  * Hook for managing advanced search state and API interaction
@@ -12,12 +24,7 @@ export const useGlobalSearch = () => {
   const [facets, setFacets] = useState({});
   const [activeFilters, setActiveFilters] = useState({});
   const [suggestions, setSuggestions] = useState([]);
-  const activeRequestRef = useRef(null);
-  const requestIdRef = useRef(0);
 
-  // Track the latest request + allow aborting.
-  // eslint/react-hooks/refs cannot be satisfied if we access .current inside a memoized
-  // callback created during render; so we keep the debounced function out of render-time memo.
   const activeRequestRef = useRef(null);
   const requestIdRef = useRef(0);
 
@@ -36,74 +43,6 @@ export const useGlobalSearch = () => {
   });
 
   const updateRecentSearches = useCallback((q) => {
-  const fetchResults = useMemo(
-    () =>
-      debounce(async (searchQuery, filters) => {
-        activeRequestRef.current?.abort();
-
-        if (searchQuery.length < 2) {
-          setResults([]);
-          setSuggestions([]);
-          setFacets({});
-          setLoading(false);
-          return;
-        }
-
-        const requestId = requestIdRef.current + 1;
-        requestIdRef.current = requestId;
-        const controller = new AbortController();
-        activeRequestRef.current = controller;
-        setLoading(true);
-        try {
-          // Build query string with facets
-          const filterParams = new URLSearchParams({
-            q: searchQuery,
-            ...filters,
-          }).toString();
-
-          const response = await fetch(`/api/search?${filterParams}`, {
-            signal: controller.signal,
-          });
-          const data = await response.json();
-          if (requestId !== requestIdRef.current || controller.signal.aborted) {
-            return;
-          }
-
-          const nextResults = Array.isArray(data.results) ? data.results : [];
-          setResults(nextResults);
-          setFacets(data.facets || {});
-          if (data.suggestions) setSuggestions([data.suggestions]);
-
-          // Update recent searches if results found
-          if (nextResults.length > 0) {
-            updateRecentSearches(searchQuery);
-          }
-        } catch (error) {
-          if (error?.name === 'AbortError') return;
-          console.error('Search API Error:', error);
-        } finally {
-          if (requestId === requestIdRef.current) {
-            activeRequestRef.current = null;
-            setLoading(false);
-          }
-        }
-      }, 300),
-    []
-  );
-
-  useEffect(() => {
-    activeRequestRef.current?.abort();
-    fetchResults(query, activeFilters);
-  }, [query, activeFilters, fetchResults]);
-
-  useEffect(() => {
-    return () => {
-      activeRequestRef.current?.abort();
-    };
-  }, []);
-
-  // Combined tracking tracking mechanism with functional updates and protection
-  const updateRecentSearches = (q) => {
     if (!q || q.trim() === '') return;
 
     setRecentSearches((prev) => {
@@ -179,8 +118,7 @@ export const useGlobalSearch = () => {
     [updateRecentSearches]
   );
 
-  // Debounce outside render-time closures that eslint associates with ref access.
-  // We'll debounce the trigger in the effect that responds to (query, filters).
+  // Debounce search triggers
   useEffect(() => {
     const t = setTimeout(() => {
       fetchResults(query, activeFilters);

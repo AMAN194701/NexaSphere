@@ -1,12 +1,13 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { useAnalyticsData } from './useAnalyticsData';
-import { getApiBase } from '../../../runtimeConfig';
+import { getApiBase } from '../../utils/runtimeConfig';
+import { vi, describe, beforeEach, afterEach, it, expect, Mock } from 'vitest';
 
-jest.mock('../../../runtimeConfig', () => ({
-  getApiBase: jest.fn(),
+vi.mock('../../utils/runtimeConfig', () => ({
+  getApiBase: vi.fn(),
 }));
 
-const mockedGetApiBase = getApiBase as jest.MockedFunction<typeof getApiBase>;
+const mockedGetApiBase = getApiBase as Mock;
 
 const mockAnalyticsData = {
   totalUsers: 1000,
@@ -19,17 +20,17 @@ const mockAnalyticsData = {
 
 describe('useAnalyticsData', () => {
   beforeEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
     mockedGetApiBase.mockReturnValue('https://api.example.com');
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('should use getApiBase from runtimeConfig and not define its own local copy', () => {
     // Verify the hook calls the centralised getApiBase
-    const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValueOnce({
+    const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValueOnce({
       ok: true,
       status: 200,
       statusText: 'OK',
@@ -43,7 +44,7 @@ describe('useAnalyticsData', () => {
   });
 
   it('should return loading state initially', () => {
-    jest.spyOn(global, 'fetch').mockImplementation(() => new Promise(() => {}));
+    vi.spyOn(global, 'fetch').mockImplementation(() => new Promise(() => {}));
 
     const { result } = renderHook(() => useAnalyticsData());
 
@@ -53,7 +54,7 @@ describe('useAnalyticsData', () => {
   });
 
   it('should return data on successful fetch', async () => {
-    jest.spyOn(global, 'fetch').mockResolvedValueOnce({
+    vi.spyOn(global, 'fetch').mockResolvedValueOnce({
       ok: true,
       status: 200,
       statusText: 'OK',
@@ -69,7 +70,7 @@ describe('useAnalyticsData', () => {
   });
 
   it('should return error on failed fetch (non-ok response)', async () => {
-    jest.spyOn(global, 'fetch').mockResolvedValueOnce({
+    vi.spyOn(global, 'fetch').mockResolvedValueOnce({
       ok: false,
       status: 500,
       statusText: 'Internal Server Error',
@@ -85,7 +86,7 @@ describe('useAnalyticsData', () => {
   });
 
   it('should return error when fetch throws a network error', async () => {
-    jest.spyOn(global, 'fetch').mockRejectedValueOnce(new Error('Network failure'));
+    vi.spyOn(global, 'fetch').mockRejectedValueOnce(new Error('Network failure'));
 
     const { result } = renderHook(() => useAnalyticsData());
 
@@ -98,7 +99,7 @@ describe('useAnalyticsData', () => {
   it('should construct the URL using the base returned by getApiBase', async () => {
     mockedGetApiBase.mockReturnValue('https://custom-api.example.com');
 
-    const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValueOnce({
+    const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValueOnce({
       ok: true,
       status: 200,
       statusText: 'OK',
@@ -115,7 +116,7 @@ describe('useAnalyticsData', () => {
   it('should handle empty base URL from getApiBase', async () => {
     mockedGetApiBase.mockReturnValue('');
 
-    const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValueOnce({
+    const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValueOnce({
       ok: true,
       status: 200,
       statusText: 'OK',
@@ -131,8 +132,11 @@ describe('useAnalyticsData', () => {
 
   it('should not update state after component unmounts', async () => {
     let resolveFetch!: (value: Response) => void;
-    jest.spyOn(global, 'fetch').mockImplementationOnce(
-      () => new Promise<Response>((resolve) => { resolveFetch = resolve; })
+    vi.spyOn(global, 'fetch').mockImplementationOnce(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolveFetch = resolve;
+        })
     );
 
     const { result, unmount } = renderHook(() => useAnalyticsData());

@@ -1,8 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useRoadmapBuilder } from '../../hooks/useRoadmapBuilder';
-import { X, Plus, Trash2, Globe, AlertCircle } from 'lucide-react';
-import { X, Plus, Trash2, Globe, Link, CheckSquare, ListPlus } from 'lucide-react';
+import { X, Plus, Trash2, Globe, AlertCircle, Link, CheckSquare, ListPlus } from 'lucide-react';
 
 interface NodeModalProps {
   theme: 'dark' | 'light';
@@ -339,7 +338,6 @@ export const NodeModal: React.FC<NodeModalProps> = ({ theme }) => {
                   No other nodes available to establish connections.
                 </p>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <div
                   style={{
                     display: 'flex',

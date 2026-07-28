@@ -64,32 +64,7 @@ export default function WebhooksPage() {
 
   const handleSelectWebhook = async (webhook) => {
     setSelectedWebhook(webhook);
-    const deliveriesPromise = fetch(buildUrl(`/api/webhooks/${webhook.id}/deliveries`));
-    const statsPromise = fetch(buildUrl(`/api/webhooks/${webhook.id}/stats`));
-
     try {
-      const delRes = await deliveriesPromise;
-      if (delRes.ok) {
-        const delData = await delRes.json();
-        setDeliveries(delData.data || []);
-      }
-    } catch (err) {
-      console.error('Error fetching deliveries:', err);
-    }
-
-    try {
-      const statsRes = await statsPromise;
-      if (statsRes.ok) {
-        const statsData = await statsRes.json();
-      const [delResult, statsResult] = await Promise.allSettled([
-        fetch(buildUrl(`/api/webhooks/${webhook.id}/deliveries`)),
-        fetch(buildUrl(`/api/webhooks/${webhook.id}/stats`)),
-      ]);
-
-      if (delResult.status === 'fulfilled' && delResult.value.ok) {
-        const delData = await delResult.value.json();
-        setDeliveries(delData.data || []);
-      }
       const [delResult, statsResult] = await Promise.allSettled([
         fetch(buildUrl(`/api/webhooks/${webhook.id}/deliveries`)),
         fetch(buildUrl(`/api/webhooks/${webhook.id}/stats`)),

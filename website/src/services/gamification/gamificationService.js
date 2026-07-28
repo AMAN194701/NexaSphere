@@ -208,73 +208,6 @@ export const ACHIEVEMENTS = {
     icon: '💬',
     tier: 'bronze',
     xpReward: 25,
-  FIRST_CONNECTION: {
-    id: 'first_connection',
-    title: 'Networker',
-    description: 'Make your first connection',
-    icon: '🤝',
-    tier: 'bronze',
-    xpReward: 25,
-    requirement: { type: 'connections', count: 1 },
-  },
-  MENTOR: {
-    id: 'mentor',
-    title: 'Guide',
-    description: 'Become a mentor',
-    icon: '🎓',
-    tier: 'silver',
-    xpReward: 500,
-    requirement: { type: 'mentorships_given', count: 1 },
-  },
-
-  // Content
-  FIRST_PROJECT: {
-    id: 'first_project',
-    title: 'Innovator',
-    description: 'Add your first portfolio project',
-    icon: '🚀',
-    tier: 'bronze',
-    xpReward: 100,
-    requirement: { type: 'content_created', count: 1 },
-  },
-  PORTFOLIO_MASTER: {
-    id: 'portfolio_master',
-    title: 'Portfolio Master',
-    description: 'Showcase 5 portfolio projects',
-    icon: '📁',
-    tier: 'silver',
-    xpReward: 500,
-    requirement: { type: 'content_created', count: 5 },
-  },
-
-  // Skills
-  TECH_LEARNER: {
-    id: 'tech_learner',
-    title: 'Always Learning',
-    description: 'Learn a new technology',
-    icon: '🧠',
-    tier: 'bronze',
-    xpReward: 50,
-    requirement: { type: 'tech_learned', count: 1 },
-  },
-
-  // Community
-  ORGANIZER: {
-    id: 'organizer',
-    title: 'Initiator',
-    description: 'Organize your first event',
-    icon: '📣',
-    tier: 'gold',
-    xpReward: 1000,
-    requirement: { type: 'events_organized', count: 1 },
-  },
-  FEEDBACK_GIVER: {
-    id: 'feedback_giver',
-    title: 'Helpful Voice',
-    description: 'Give your first event feedback',
-    icon: '💬',
-    tier: 'bronze',
-    xpReward: 25,
     requirement: { type: 'feedback', count: 1 },
   },
 
@@ -356,15 +289,10 @@ export const ACHIEVEMENTS = {
 // Level thresholds
 export const LEVEL_THRESHOLDS = [
   { level: 1, xpRequired: 0, title: 'Newcomer' },
-  { level: 2, xpRequired: 100, title: 'Learner' },
-  { level: 3, xpRequired: 300, title: 'Explorer' },
-  { level: 4, xpRequired: 600, title: 'Achiever' },
-  { level: 5, xpRequired: 1000, title: 'Expert' },
-  { level: 6, xpRequired: 1500, title: 'Master' },
-  { level: 7, xpRequired: 2200, title: 'Grandmaster' },
-  { level: 8, xpRequired: 3000, title: 'Legend' },
-  { level: 9, xpRequired: 4000, title: 'Hero' },
-  { level: 10, xpRequired: 5500, title: 'Champion' },
+  { level: 2, xpRequired: 500, title: 'Explorer' },
+  { level: 3, xpRequired: 1500, title: 'Expert' },
+  { level: 4, xpRequired: 3000, title: 'Master' },
+  { level: 5, xpRequired: 5000, title: 'Legend' },
 ];
 
 const ANTI_GAMING_COOLDOWN =

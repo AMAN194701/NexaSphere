@@ -166,11 +166,11 @@ function Logo3D({ ready, isLight }) {
       }}
     >
       <OrbitRings isLight={isLight} />
-        <Image
-          src={BRAND_LOGO_ICON}
-          alt="NexaSphere"
-          className="hero-logo-img"
-          priority={true}
+      <Image
+        src={BRAND_LOGO_ICON}
+        alt="NexaSphere"
+        className="hero-logo-img"
+        priority={true}
         width={220}
         height={220}
       />
@@ -422,42 +422,6 @@ export default function HeroSection({ onTabChange, onApply, onJoin, theme = 'dar
       </div>
       <Atmosphere isLight={isLight} />
 
-      <div className="hero-content" style={{ position: 'relative', zIndex: 2, paddingBottom: '80px' }}>
-          {activeBanner ? (
-            <div className="mb-8 w-full max-w-4xl mx-auto cursor-pointer" onClick={() => activeBanner.linkUrl ? window.open(activeBanner.linkUrl, '_blank', 'noopener,noreferrer') : null}>
-            <div className="mb-8 w-full max-w-4xl mx-auto cursor-pointer" onClick={() => activeBanner.linkUrl ? window.open(activeBanner.linkUrl, '_blank') : null}>
-              <img
-                src={activeBanner.imageUrl}
-                alt={activeBanner.title}
-                loading="lazy"
-                decoding="async"
-                fetchPriority="low"
-                style={{
-                  width: '100%',
-                  borderRadius: '16px',
-                  boxShadow: '0 12px 32px rgba(0,0,0,0.4)',
-                  objectFit: 'cover',
-                  maxHeight: '400px',
-                }}
-              />
-            <div
-              className="mb-8 w-full max-w-4xl mx-auto cursor-pointer"
-              role="button"
-              tabIndex={0}
-              aria-label={`Banner: ${activeBanner.title}`}
-              onClick={() => activeBanner.linkUrl ? window.open(activeBanner.linkUrl, '_blank', 'noopener,noreferrer') : null}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  if (activeBanner.linkUrl) window.open(activeBanner.linkUrl, '_blank', 'noopener,noreferrer');
-                }
-              }}
-            >
-              <img src={activeBanner.imageUrl} alt={activeBanner.title} style={{ width: '100%', borderRadius: '16px', boxShadow: '0 12px 32px rgba(0,0,0,0.4)', objectFit: 'cover', maxHeight: '400px' }} />
-            </div>
-          ) : (
-            <Logo3D ready={ready} isLight={isLight} />
-          )}
       <div
         className="hero-content"
         style={{ position: 'relative', zIndex: 2, paddingBottom: '80px' }}
@@ -465,11 +429,21 @@ export default function HeroSection({ onTabChange, onApply, onJoin, theme = 'dar
         {activeBanner ? (
           <div
             className="mb-8 w-full max-w-4xl mx-auto cursor-pointer"
+            role="button"
+            tabIndex={0}
+            aria-label={`Banner: ${activeBanner.title}`}
             onClick={() =>
               activeBanner.linkUrl
                 ? window.open(activeBanner.linkUrl, '_blank', 'noopener,noreferrer')
                 : null
             }
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                if (activeBanner.linkUrl)
+                  window.open(activeBanner.linkUrl, '_blank', 'noopener,noreferrer');
+              }
+            }}
           >
             <img
               src={activeBanner.imageUrl}

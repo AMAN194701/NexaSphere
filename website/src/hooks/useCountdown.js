@@ -3,11 +3,6 @@ import { useEffect, useMemo, useState, useCallback } from 'react';
 const DEFAULT_SOON_THRESHOLD = 60 * 60 * 1000;
 
 export function parseDate(value) {
-import { useEffect, useMemo, useState } from 'react';
-
-const DEFAULT_SOON_THRESHOLD = 60 * 60 * 1000;
-
-function parseDate(value) {
   if (!value) return null;
   const date = value instanceof Date ? value : new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
@@ -19,7 +14,6 @@ export function getEventCountdownStatus({
   soonThreshold = DEFAULT_SOON_THRESHOLD,
   now = Date.now(),
 }) {
-export function getEventCountdownStatus({ startDate, endDate, soonThreshold = DEFAULT_SOON_THRESHOLD, now = Date.now() }) {
   const start = parseDate(startDate);
   const end = parseDate(endDate);
   const startTime = start?.getTime();
@@ -43,17 +37,10 @@ export default function useCountdown({
   const end = useMemo(() => parseDate(endDate), [endDate]);
 
   const computeCountdown = useCallback(() => {
-export default function useCountdown({ startDate, endDate, soonThreshold = DEFAULT_SOON_THRESHOLD }) {
-  const start = useMemo(() => parseDate(startDate), [startDate]);
-  const end = useMemo(() => parseDate(endDate), [endDate]);
-
-  const computeCountdown = () => {
     const now = Date.now();
     const startTime = start?.getTime();
     const endTime = end?.getTime();
 
-    let status;
-    let remaining;
     let status = 'upcoming';
     let remaining = 0;
 
@@ -91,23 +78,18 @@ export default function useCountdown({ startDate, endDate, soonThreshold = DEFAU
       end,
     };
   }, [start, end, soonThreshold]);
-  };
 
   const [countdown, setCountdown] = useState(computeCountdown);
 
   useEffect(() => {
-    // 1. Immediately sync countdown on start/end change
     setCountdown(computeCountdown());
 
-    // 2. Set up interval
     const interval = window.setInterval(() => {
       setCountdown(computeCountdown());
     }, 1000);
 
-    // 3. ✅ Essential cleanup: stops timer on unmount or dependency change
     return () => window.clearInterval(interval);
   }, [computeCountdown]);
-  }, [start, end, soonThreshold]);
 
   return countdown;
 }

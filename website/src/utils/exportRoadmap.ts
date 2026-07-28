@@ -13,24 +13,16 @@ export interface ValidatedRoadmap {
  * Validates a parsed JSON object to ensure it strictly matches the Roadmap schema.
  * Throws a specific descriptive error if anything is malformed.
  */
-export const validateRoadmapJSON = (data: unknown): ValidatedRoadmap => {
-export const validateRoadmapJSON = (
-  data: any
-): { title: string; description: string; nodes: RoadmapNode[] } => {
+export const validateRoadmapJSON = (data: any): ValidatedRoadmap => {
   if (!data || typeof data !== 'object') {
     throw new Error('Import failed: Data is not a valid JSON object.');
   }
 
-  const raw = data as Record<string, unknown>;
   const title = typeof data.title === 'string' ? data.title : 'Imported Custom Path';
   const description =
     typeof data.description === 'string' ? data.description : 'Custom imported path.';
 
-  const title = typeof raw.title === 'string' ? raw.title : 'Imported Custom Path';
-  const description =
-    typeof raw.description === 'string' ? raw.description : 'Custom imported path.';
-
-  if (!raw.nodes || !Array.isArray(raw.nodes)) {
+  if (!data.nodes || !Array.isArray(data.nodes)) {
     throw new Error('Import failed: The file must contain a "nodes" array.');
   }
 
@@ -43,44 +35,29 @@ export const validateRoadmapJSON = (
 
   const validatedNodes: RoadmapNode[] = [];
 
-  raw.nodes.forEach((node: unknown, index: number) => {
+  data.nodes.forEach((node: any, index: number) => {
     if (!node || typeof node !== 'object') {
       throw new Error(`Node at index ${index} is not a valid object.`);
     }
 
-    const n = node as Record<string, unknown>;
-
-    if (!n.id || typeof n.id !== 'string') {
-  data.nodes.forEach((node: any, index: number) => {
     if (!node.id || typeof node.id !== 'string') {
       throw new Error(
         `Node validation failed at index ${index}: "id" is missing or is not a string.`
       );
     }
-    if (!n.title || typeof n.title !== 'string') {
+
     if (!node.title || typeof node.title !== 'string') {
       throw new Error(
-        `Node validation failed (ID: ${n.id || index}): "title" is missing or is not a string.`
+        `Node validation failed (ID: ${node.id || index}): "title" is missing or is not a string.`
       );
     }
-    if (typeof n.x !== 'number' || typeof n.y !== 'number') {
-    if (typeof node.description !== 'string') {
-      node.description = '';
-    }
+
     if (typeof node.x !== 'number' || typeof node.y !== 'number') {
       throw new Error(
-        `Node validation failed (ID: ${n.id}): Coordinates "x" or "y" must be numbers.`
+        `Node validation failed (ID: ${node.id}): Coordinates "x" or "y" must be numbers.`
       );
     }
 
-    const status: RoadmapNode['status'] = validStatuses.includes(n.status as RoadmapNode['status'])
-      ? (n.status as RoadmapNode['status'])
-      : 'Not Started';
-
-    const rawResources = Array.isArray(n.resources) ? n.resources : [];
-    const resources = rawResources.map((r: unknown, rIdx: number) => {
-      if (!r || typeof r !== 'object') {
-    const validStatuses = ['Not Started', 'In Progress', 'Completed', 'Stuck'];
     const status = validStatuses.includes(node.status) ? node.status : 'Not Started';
 
     if (node.resources && !Array.isArray(node.resources)) {
@@ -88,31 +65,21 @@ export const validateRoadmapJSON = (
     }
 
     const resources = (node.resources || []).map((r: any, rIdx: number) => {
-      if (!r.title || typeof r.title !== 'string' || !r.url || typeof r.url !== 'string') {
+      if (
+        !r ||
+        typeof r !== 'object' ||
+        !r.title ||
+        typeof r.title !== 'string' ||
+        !r.url ||
+        typeof r.url !== 'string'
+      ) {
         throw new Error(
-          `Node "${n.title}" resource at index ${rIdx} is malformed. Resources need a "title" and a "url".`
+          `Node "${node.title}" resource at index ${rIdx} is malformed. Resources need a "title" and a "url".`
         );
       }
-      const res = r as Record<string, unknown>;
-      if (!res.title || typeof res.title !== 'string' || !res.url || typeof res.url !== 'string') {
-        throw new Error(
-          `Node "${n.title}" resource at index ${rIdx} is malformed. Resources need a "title" and a "url".`
-        );
-      }
-      return { title: res.title, url: res.url };
+      return { title: r.title, url: r.url };
     });
 
-    const rawPrereqs = Array.isArray(n.prerequisites) ? n.prerequisites : [];
-    const prerequisites = rawPrereqs.filter((p: unknown): p is string => typeof p === 'string');
-
-    validatedNodes.push({
-      id: n.id,
-      title: n.title,
-      description: typeof n.description === 'string' ? n.description : '',
-      x: n.x,
-      y: n.y,
-      status,
-      notes: typeof n.notes === 'string' ? n.notes : '',
     if (node.prerequisites && !Array.isArray(node.prerequisites)) {
       node.prerequisites = [];
     }
@@ -122,7 +89,7 @@ export const validateRoadmapJSON = (
     validatedNodes.push({
       id: node.id,
       title: node.title,
-      description: node.description,
+      description: typeof node.description === 'string' ? node.description : '',
       x: node.x,
       y: node.y,
       status: status as any,
@@ -230,11 +197,6 @@ export const buildStandaloneSVG = (
         return '#4CAF50';
       case 'Stuck':
         return '#E63946';
-        return '#FFC107'; // amber
-      case 'Completed':
-        return '#4CAF50'; // emerald
-      case 'Stuck':
-        return '#E63946'; // ruby
       default:
         return theme === 'dark' ? '#6B6B6B' : '#8A8A8A';
     }

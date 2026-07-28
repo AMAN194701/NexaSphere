@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { getApiBase } from '../utils/runtimeConfig';
 
 function matchesText(value, query) {
@@ -99,9 +98,9 @@ export function useEventSearch(activities, events) {
 
     const doSearch = async () => {
       try {
-        const apiResults = await searchApi(query, filter === 'all' ? 'all' : filter);
         const searchTerm = query.trim();
         const apiResults = await searchApi(searchTerm, filter === 'all' ? 'all' : filter);
+        if (!active) return;
         if (apiResults && apiResults.results) {
           setResults(apiResults.results);
           setLoading(false);
@@ -110,14 +109,9 @@ export function useEventSearch(activities, events) {
       } catch (err) {
         console.error('Search API error:', err);
         setApiError('Unable to connect to search service.');
-      const apiResults = await searchApi(query, filter === 'all' ? 'all' : filter);
-      if (!active) return;
-
-      if (apiResults && apiResults.results) {
-        setResults(apiResults.results);
-        setLoading(false);
-        return;
       }
+
+      if (!active) return;
 
       let all = [];
 

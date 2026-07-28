@@ -73,32 +73,6 @@ export function useNotifications() {
             }
             return res.json();
           })
-        const responses = await Promise.all(
-          fetchUrls.map((url) =>
-            fetch(url, { credentials: 'include' }).then((res) =>
-              res.ok ? res.json() : { notifications: [] }
-            )
-          )
-        );
-
-        if (isMounted) {
-          const allNotifications = responses.flatMap((result) =>
-            result.status === 'fulfilled' ? result.value.notifications || [] : []
-          );
-
-          if (import.meta.env.DEV) {
-            responses
-              .filter((result) => result.status === 'rejected')
-              .forEach((result) => {
-                console.warn(
-                  '[useNotifications] Partial notification fetch failed:',
-                  result.reason?.message || result.reason
-                );
-              });
-          }
-
-            return res.ok ? res.json() : { notifications: [] };
-          })
         );
 
         if (isMounted) {
@@ -118,7 +92,9 @@ export function useNotifications() {
           uniqueNotifications.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
           setNotifications(uniqueNotifications);
           if (import.meta.env.DEV && responses.some((r) => r.status === 'rejected')) {
-            console.warn('[useNotifications] One or more notification fetches failed; using partial results.');
+            console.warn(
+              '[useNotifications] One or more notification fetches failed; using partial results.'
+            );
           }
         }
       } catch (err) {
@@ -291,9 +267,10 @@ export function useNotifications() {
           data.authorName && data.threadTitle
             ? `${data.authorName} replied to "${data.threadTitle}"`
             : 'Someone replied to your thread.',
-        message: data.authorName && data.threadTitle
-          ? `${data.authorName} replied to "${data.threadTitle}"`
-          : 'Someone replied to your thread.',
+        message:
+          data.authorName && data.threadTitle
+            ? `${data.authorName} replied to "${data.threadTitle}"`
+            : 'Someone replied to your thread.',
         isRead: false,
         createdAt: new Date().toISOString(),
         link: data.threadId ? `/forum/thread/${data.threadId}` : '/forum',
@@ -353,9 +330,6 @@ export function useNotifications() {
       } catch (e) {
         console.error('[useNotifications] Failed to mark as read:', e);
       }
-        } catch (e) {
-          console.error('[useNotifications] Failed to mark notification as read:', e);
-        }
     })();
   }, []);
 

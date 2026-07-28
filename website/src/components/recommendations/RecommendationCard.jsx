@@ -16,11 +16,6 @@ export default function RecommendationCard({ project, match }) {
 
         {/* Match Chips */}
         <div className="match-chips">
-          {match.matchChips.map((chip) => (
-            <span key={chip} className="match-chip">
-        
-        {/* Match Chips */}
-        <div className="match-chips">
           {match.matchChips.map((chip, idx) => (
             <span key={idx} className="match-chip">
               ✨ {chip}

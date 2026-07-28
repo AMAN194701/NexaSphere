@@ -113,8 +113,6 @@ export default function PortfolioBuilder() {
 
     try {
       const base = getApiBase();
-      const encodedUsername = encodeURIComponent(username);
-      const url = base ? `${base}/api/portfolio/${encodedUsername}` : `/api/portfolio/${encodedUsername}`;
       const query = passkey ? `?passkey=${encodeURIComponent(passkey)}` : '';
       const url = base
         ? `${base}/api/portfolio/${username}${query}`
@@ -296,10 +294,6 @@ export default function PortfolioBuilder() {
       const top5 = [...data].sort((a, b) => b.stargazers_count - a.stargazers_count).slice(0, 5);
       setGhRepos(top5);
       setGhFetchAttempted(true);
-      const top5 = [...data]
-        .sort((a, b) => b.stargazers_count - a.stargazers_count)
-        .slice(0, 5);
-      setGhRepos(top5);
     } catch (err) {
       if (err.name === 'AbortError') return;
       setGhError('Failed to fetch repositories. Please check your connection and try again.');
@@ -944,7 +938,9 @@ export default function PortfolioBuilder() {
                                   gap: '8px',
                                 }}
                               >
-                                {repo.stargazers_count > 0 && <span>★ {repo.stargazers_count}</span>}
+                                {repo.stargazers_count > 0 && (
+                                  <span>★ {repo.stargazers_count}</span>
+                                )}
                                 {repo.forks_count > 0 && <span>⑂ {repo.forks_count}</span>}
                               </span>
                             )}

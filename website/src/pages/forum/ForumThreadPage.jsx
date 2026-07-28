@@ -77,7 +77,6 @@ export default function ForumThreadPage({ onBack }) {
 
   const handleVote = async (type, threadId, replyId) => {
     const base = getApiBase();
-    const base = import.meta.env.VITE_API_BASE || '';
     const voterEmail = prompt('Enter your email to vote:');
     if (!voterEmail) return;
     try {

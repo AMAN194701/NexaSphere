@@ -49,8 +49,6 @@ function readStorage(key) {
     if (import.meta.env.DEV) {
       console.warn('[useFormMemory] Failed to read from sessionStorage:', err.message);
     }
-  } catch (error) {
-    logStorageWarning('read', error);
     return {};
   }
 }
@@ -62,9 +60,6 @@ function writeStorage(key, data) {
     if (import.meta.env.DEV) {
       console.warn('[useFormMemory] Failed to write to sessionStorage:', err.message);
     }
-  } catch (error) {
-    logStorageWarning('write', error);
-    // sessionStorage unavailable — degrade silently
   }
 }
 
@@ -75,8 +70,6 @@ function clearStorage(key) {
     if (import.meta.env.DEV) {
       console.warn('[useFormMemory] Failed to clear sessionStorage:', err.message);
     }
-  } catch (error) {
-    logStorageWarning('clear', error);
   }
 }
 

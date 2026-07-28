@@ -230,10 +230,7 @@ export const apiClient = async (url, options = {}) => {
   // ── Normal online fetch ────────────────────────────────────────────────────
 
   const callerSignal = fetchOptions.signal;
-  const signal =
-    callerSignal && typeof AbortSignal.any === 'function'
-      ? AbortSignal.any([controller.signal, callerSignal])
-      : controller.signal;
+  const { signal, cleanup } = createAbortSignal(timeout, callerSignal);
 
   try {
     const response = await fetch(url, {

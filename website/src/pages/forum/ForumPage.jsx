@@ -93,7 +93,6 @@ export default function ForumPage({ onBack }) {
     setError('');
     setSubmitting(true);
     const base = getApiBase();
-    const base = import.meta.env.VITE_API_BASE || '';
     if (!base) {
       setError('Forum is in offline mode. Please try again later.');
       setSubmitting(false);

@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import React, { useState } from 'react';
 import ResumeUpload from './ResumeUpload';
 import RecommendationCard from './RecommendationCard';
 import RecommendationSkeleton from './RecommendationSkeleton';
@@ -13,17 +12,14 @@ export default function ProjectRecommendations({ onBack }) {
   const [error, setError] = useState('');
   const isMountedRef = useRef(true);
   const fallbackTimeoutRef = useRef(null);
+
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
-      if (fallbackTimeoutRef.current) clearTimeout(fallbackTimeoutRef.current);
-  const fallbackTimerRef = useRef(null);
-
-  useEffect(() => {
-    return () => {
-      if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
-      fallbackTimerRef.current = null;
+      if (fallbackTimeoutRef.current) {
+        clearTimeout(fallbackTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -62,36 +58,29 @@ export default function ProjectRecommendations({ onBack }) {
     // Backend unavailable, fallback to demo mode
     fallbackTimeoutRef.current = setTimeout(() => {
       if (!isMountedRef.current) return;
-    setTimeout(() => {
-    if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
-    fallbackTimerRef.current = setTimeout(() => {
       setIsDemo(true);
-      // Hardcoded fallback recommendations matching our mock projects list
       setRecommendations([
         {
           projectId: 'nexa-portal',
           matchChips: ['React', 'Node.js', 'Vite'],
           whyItMatches:
             'Your resume shows strong React and frontend experience which aligns perfectly with NexaSphere Portal requirements.',
-          whyItMatches: 'Your resume shows strong React and frontend experience which aligns perfectly with NexaSphere Portal requirements.',
         },
         {
           projectId: 'ui-kit',
           matchChips: ['UI Design', 'Figma', 'CSS Modules'],
           whyItMatches:
             'Your design sensitivity and storybook knowledge makes you an ideal candidate to build custom components for the Nexa UI Kit.',
-          whyItMatches: 'Your design sensitivity and storybook knowledge makes you an ideal candidate to build custom components for the Nexa UI Kit.',
         },
         {
           projectId: 'secure-share',
           matchChips: ['Mobile Dev', 'React Native'],
           whyItMatches:
             'Your experience with cross-platform apps maps well onto the mobile and cloud security requirements of SecureShare.',
-          whyItMatches: 'Your experience with cross-platform apps maps well onto the mobile and cloud security requirements of SecureShare.',
         },
       ]);
       setStep('result');
-      fallbackTimerRef.current = null;
+      fallbackTimeoutRef.current = null;
     }, 2000);
   };
 
@@ -118,7 +107,11 @@ export default function ProjectRecommendations({ onBack }) {
               {error}
             </p>
           )}
-          {error && <p className="upload-error" style={{ textAlign: 'center', marginTop: '10px' }}>{error}</p>}
+          {error && (
+            <p className="upload-error" style={{ textAlign: 'center', marginTop: '10px' }}>
+              {error}
+            </p>
+          )}
         </div>
       )}
 
@@ -130,7 +123,6 @@ export default function ProjectRecommendations({ onBack }) {
             <div className="ra-demo-banner" style={{ marginBottom: '20px' }}>
               ⚠️ Demo mode — resume recommendations API is not configured or backend is running
               offline. Showing sample recommendations.
-              ⚠️ Demo mode — resume recommendations API is not configured or backend is running offline. Showing sample recommendations.
             </div>
           )}
 
@@ -142,15 +134,10 @@ export default function ProjectRecommendations({ onBack }) {
           </div>
 
           <div className="recommendations-grid">
-            {recommendations.map((match, idx) => {
+            {recommendations.map((match) => {
               const matchedProject = projectsData.find((p) => p.id === match.projectId);
               return (
                 <RecommendationCard key={match.projectId} project={matchedProject} match={match} />
-                <RecommendationCard
-                  key={idx}
-                  project={matchedProject}
-                  match={match}
-                />
               );
             })}
           </div>

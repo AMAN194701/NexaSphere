@@ -1,14 +1,4 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import React, { useState, useEffect, useCallback } from 'react';
-
-// Validates a date value before formatting — avoids rendering literal
-// "Invalid Date" text when the API returns a null or malformed timestamp.
-function formatSessionDate(value) {
-  if (!value) return 'Unknown date';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return 'Unknown date';
-  return d.toLocaleDateString();
-}
 import {
   Users,
   BookOpen,
@@ -25,9 +15,8 @@ import {
   mentorships as fallbackMentorships,
   sessions as fallbackSessions,
 } from '../../data/mentorshipData.js';
+import { getApiBase } from '../../utils/runtimeConfig';
 
-// Validates a date value before formatting — avoids rendering literal
-// "Invalid Date" text when the API returns a null or malformed timestamp.
 function formatSessionDate(value) {
   if (!value) return 'Unknown date';
   const d = new Date(value);
@@ -38,14 +27,6 @@ function formatSessionDate(value) {
 async function apiFetch(path, options = {}) {
   const base = getApiBase();
   const res = await fetch(`${base}${path}`, {
-import React, { useState, useEffect, useCallback } from 'react';
-import { Users, BookOpen, Calendar, Clock, CheckCircle, AlertCircle, X, Loader, MessageSquare, UserPlus } from 'lucide-react';
-import { mentorships as fallbackMentorships, sessions as fallbackSessions } from '../../data/mentorshipData.js';
-
-const API_BASE = process.env.REACT_APP_API_URL || '';
-
-async function apiFetch(path, options = {}) {
-  const res = await fetch(`${API_BASE}${path}`, {
     headers: { 'Content-Type': 'application/json', ...options.headers },
     ...options,
   });
@@ -74,17 +55,6 @@ function MentorshipDashboard() {
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState(null);
   const toastTimeoutRef = useRef(null);
-
-  const showToast = useCallback((message, type) => {
-    setToast({ message, type });
-    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-    toastTimeoutRef.current = setTimeout(() => setToast(null), 4000);
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-    };
 
   const showToast = useCallback((message, type) => {
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
@@ -120,7 +90,6 @@ function MentorshipDashboard() {
   useEffect(() => {
     fetchMentorships();
   }, [fetchMentorships]);
-  useEffect(() => { fetchMentorships(); }, [fetchMentorships]);
 
   const fetchSessions = useCallback(async (mentorshipId) => {
     try {
@@ -128,7 +97,6 @@ function MentorshipDashboard() {
       setSessions(data.sessions || []);
     } catch {
       setSessions(fallbackSessions.filter((s) => s.mentorshipId === mentorshipId));
-      setSessions(fallbackSessions.filter(s => s.mentorshipId === mentorshipId));
     }
   }, []);
 
@@ -165,8 +133,6 @@ function MentorshipDashboard() {
   const pastMentorships = mentorships.filter(
     (m) => m.status === 'completed' || m.status === 'rejected'
   );
-  const myMentorships = mentorships.filter(m => m.status === 'active' || m.status === 'pending');
-  const pastMentorships = mentorships.filter(m => m.status === 'completed' || m.status === 'rejected');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white">
@@ -185,7 +151,6 @@ function MentorshipDashboard() {
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Your Email (to find your mentorships)
             </label>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Your Email (to find your mentorships)</label>
             <div className="flex gap-2">
               <input
                 type="email"
@@ -200,11 +165,6 @@ function MentorshipDashboard() {
               >
                 Load
               </button>
-                onChange={e => setEmail(e.target.value)}
-                placeholder="Enter your email"
-                className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-              />
-              <button onClick={fetchMentorships} className="px-4 py-2 bg-purple-600 rounded-lg text-sm hover:bg-purple-700">Load</button>
             </div>
           </div>
         )}
@@ -226,14 +186,6 @@ function MentorshipDashboard() {
               ) : (
                 <div className="space-y-3">
                   {myMentorships.map((m) => (
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2"><UserPlus className="w-5 h-5 text-purple-400" /> Active Mentorships</h2>
-              {loading ? (
-                <div className="flex justify-center py-10"><Loader className="w-6 h-6 animate-spin text-purple-500" /></div>
-              ) : myMentorships.length === 0 ? (
-                <p className="text-gray-500 text-center py-10">No active mentorships. Browse mentors and send a request!</p>
-              ) : (
-                <div className="space-y-3">
-                  {myMentorships.map(m => (
                     <button
                       key={m.id}
                       onClick={() => selectMentorship(m)}
@@ -265,14 +217,22 @@ function MentorshipDashboard() {
                         <span className="flex items-center gap-1">
                           <BookOpen className="w-3 h-3" /> {m.sessionCount || 0} sessions
                         </span>
-                        <span className={`text-xs px-2 py-0.5 rounded-full border ${statusColors[m.status] || 'text-gray-400'}`}>
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded-full border ${statusColors[m.status] || 'text-gray-400'}`}
+                        >
                           {m.status}
                         </span>
                       </div>
-                      {m.menteeDomain && <p className="text-xs text-gray-500 mb-1">Domain: {m.menteeDomain}</p>}
-                      {m.menteeGoals && <p className="text-xs text-gray-500 line-clamp-1">{m.menteeGoals}</p>}
+                      {m.menteeDomain && (
+                        <p className="text-xs text-gray-500 mb-1">Domain: {m.menteeDomain}</p>
+                      )}
+                      {m.menteeGoals && (
+                        <p className="text-xs text-gray-500 line-clamp-1">{m.menteeGoals}</p>
+                      )}
                       <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
-                        <span className="flex items-center gap-1"><BookOpen className="w-3 h-3" /> {m.sessionCount || 0} sessions</span>
+                        <span className="flex items-center gap-1">
+                          <BookOpen className="w-3 h-3" /> {m.sessionCount || 0} sessions
+                        </span>
                       </div>
                     </button>
                   ))}
@@ -287,9 +247,6 @@ function MentorshipDashboard() {
                 </h2>
                 <div className="space-y-2">
                   {pastMentorships.map((m) => (
-                <h2 className="text-xl font-semibold mb-4 mt-8 flex items-center gap-2"><Clock className="w-5 h-5 text-gray-400" /> Past Mentorships</h2>
-                <div className="space-y-2">
-                  {pastMentorships.map(m => (
                     <button
                       key={m.id}
                       onClick={() => selectMentorship(m)}
@@ -304,8 +261,6 @@ function MentorshipDashboard() {
                         >
                           {m.status}
                         </span>
-                        <span className="text-sm">{m.mentorName} ↔ {m.menteeName}</span>
-                        <span className={`text-xs px-2 py-0.5 rounded-full border ${statusColors[m.status] || ''}`}>{m.status}</span>
                       </div>
                     </button>
                   ))}
@@ -320,7 +275,6 @@ function MentorshipDashboard() {
                 <h3 className="font-semibold mb-3">
                   Sessions with {selectedMentorship.mentorName}
                 </h3>
-                <h3 className="font-semibold mb-3">Sessions with {selectedMentorship.mentorName}</h3>
                 <button
                   onClick={() => setShowLogSession(!showLogSession)}
                   className="w-full mb-4 px-3 py-2 bg-purple-600 rounded-lg text-sm hover:bg-purple-700 flex items-center justify-center gap-2"
@@ -334,7 +288,6 @@ function MentorshipDashboard() {
                       placeholder="Session title *"
                       value={sessionForm.title}
                       onChange={(e) => setSessionForm((p) => ({ ...p, title: e.target.value }))}
-                      onChange={e => setSessionForm(p => ({ ...p, title: e.target.value }))}
                       className="w-full px-2 py-1.5 bg-gray-600 border border-gray-500 rounded text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                     />
                     <textarea
@@ -342,7 +295,6 @@ function MentorshipDashboard() {
                       rows={2}
                       value={sessionForm.notes}
                       onChange={(e) => setSessionForm((p) => ({ ...p, notes: e.target.value }))}
-                      onChange={e => setSessionForm(p => ({ ...p, notes: e.target.value }))}
                       className="w-full px-2 py-1.5 bg-gray-600 border border-gray-500 rounded text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
                     />
                     <input
@@ -352,7 +304,6 @@ function MentorshipDashboard() {
                       onChange={(e) =>
                         setSessionForm((p) => ({ ...p, duration_minutes: e.target.value }))
                       }
-                      onChange={e => setSessionForm(p => ({ ...p, duration_minutes: e.target.value }))}
                       className="w-full px-2 py-1.5 bg-gray-600 border border-gray-500 rounded text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                     />
                     <button
@@ -372,9 +323,6 @@ function MentorshipDashboard() {
                     </p>
                   ) : (
                     sessions.map((s) => (
-                    <p className="text-sm text-gray-500 text-center py-4">No sessions logged yet.</p>
-                  ) : (
-                    sessions.map(s => (
                       <div key={s.id} className="p-3 bg-gray-700/50 rounded-lg">
                         <div className="flex items-center justify-between mb-1">
                           <p className="text-sm font-medium">{s.title}</p>
@@ -387,7 +335,6 @@ function MentorshipDashboard() {
                         {s.notes && <p className="text-xs text-gray-400 line-clamp-2">{s.notes}</p>}
                         <p className="text-xs text-gray-500 mt-1">
                           {formatSessionDate(s.sessionDate || s.createdAt)}
-                          {new Date(s.sessionDate || s.createdAt).toLocaleDateString()}
                         </p>
                       </div>
                     ))
@@ -417,10 +364,6 @@ function MentorshipDashboard() {
           <button onClick={() => setToast(null)} className="ml-2">
             <X className="w-4 h-4" />
           </button>
-        <div className={`fixed bottom-6 right-6 px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 text-sm z-50 ${toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'}`}>
-          {toast.type === 'success' ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-          {toast.message}
-          <button onClick={() => setToast(null)} className="ml-2"><X className="w-4 h-4" /></button>
         </div>
       )}
     </div>
