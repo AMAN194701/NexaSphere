@@ -166,8 +166,9 @@ module.exports = {
       };
     }
 
+    const nextId = bookmarks.length > 0 ? Math.max(...bookmarks.map((b) => b.id)) + 1 : 1;
     const bookmark = {
-      id: bookmarks.length + 1,
+      id: nextId,
       userId,
       resourceId,
       bookmarkedAt: new Date().toISOString()
@@ -222,8 +223,9 @@ module.exports = {
     };
   },
     createResource(data) {
+    const nextId = resources.length > 0 ? Math.max(...resources.map((r) => r.id)) + 1 : 1;
     const resource = {
-      id: resources.length + 1,
+      id: nextId,
       title: data.title,
       category: data.category,
       description: data.description,
@@ -277,6 +279,13 @@ module.exports = {
     }
 
     const deleted = resources.splice(index, 1)[0];
+
+    // Cascade clean bookmarks associated with deleted resource
+    for (let i = bookmarks.length - 1; i >= 0; i--) {
+      if (bookmarks[i].resourceId == id) {
+        bookmarks.splice(i, 1);
+      }
+    }
 
     return {
       success: true,
