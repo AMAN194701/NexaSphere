@@ -59,9 +59,6 @@ function MemberCard({ member, idx, onClick, triggerRef }) {
       triggerRef.current = ref.current;
       onClick(member);
       clickTimerRef.current = null;
-    setTimeout(() => {
-      triggerRef.current = ref.current;
-      onClick(member);
     }, 110);
   };
 

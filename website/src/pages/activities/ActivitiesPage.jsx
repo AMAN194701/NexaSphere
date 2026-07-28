@@ -383,8 +383,7 @@ export default function ActivitiesPage({ onNavigate, onBack }) {
       return;
     }
 
-    // Check if user prefers reduced motion
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 
     const obs = new IntersectionObserver(
       (entries) => {
@@ -410,7 +409,6 @@ export default function ActivitiesPage({ onNavigate, onBack }) {
       .querySelectorAll('#activities-page .pop-in, #activities-page .pop-word')
       .forEach((el) => {
         if (!el.classList.contains('fired') && !el.classList.contains('no-animation')) {
-        if (!el.classList.contains('fired')) {
           obs.observe(el);
         }
       });

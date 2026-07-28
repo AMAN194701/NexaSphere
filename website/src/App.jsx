@@ -1,6 +1,3 @@
-import { useState, useEffect, useCallback, lazy, memo, useLayoutEffect, useRef } from 'react';
-import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
-import { BrowserRouter, useLocation, useNavigate } from 'react-router-dom';
 import {
   useState,
   useEffect,
@@ -22,7 +19,6 @@ import {
 } from 'react-router-dom';
 
 // Style overrides and design system stylesheets
-import ResourcesPage from './pages/resources/ResourcesPage.jsx';
 import './styles/themes.css';
 import './styles/globals.css';
 import './styles/animations.css';
@@ -51,7 +47,6 @@ import MoveToTop from './shared/MoveToTop';
 import Chatbot from './shared/Chatbot';
 import ScrollProgress from './shared/ScrollProgress';
 import SearchBar from './components/SearchBar';
-import SkipLink from './components/common/SkipLink';
 import Terminal from './components/developer/Terminal';
 import BookmarksDrawer from './components/bookmarks/BookmarksDrawer';
 import CinematicOpening from './shared/CinematicOpening';
@@ -60,7 +55,6 @@ import InstallPrompt from './components/pwa/InstallPrompt.jsx';
 import UpdatePrompt from './components/pwa/UpdatePrompt.jsx';
 import EnablePushPrompt from './components/pwa/EnablePushPrompt.jsx';
 
-import ResourcesPage from './pages/resources/ResourcesPage';
 import {
   AmbientOrbs,
   useNsReveal,
@@ -81,17 +75,9 @@ import { WalkthroughOverlay } from './components/walkthrough/WalkthroughOverlay'
 import { useWalkthroughStore } from './store/useWalkthroughStore';
 import { useAnalytics } from './hooks/useAnalytics';
 import { SessionRecordingProvider } from './context/SessionRecordingProvider';
-import BookmarksDrawer from './components/bookmarks/BookmarksDrawer';
-import { useTheme } from './hooks/useTheme';
-import { useInteractionEffects } from './hooks/useInteractionEffects';
-import { useBackToTop } from './hooks/useScrollLogic';
 
 const MNH = 88;
 const DNH = 64;
-
-import ErrorBoundary from './components/common/ErrorBoundary';
-import ErrorBoundary from './components/ErrorBoundary';
-import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 // Lazy-loaded heavy pages
 const RecruitmentPage = lazy(() => import('./pages/recruitment/RecruitmentPage'));
@@ -123,22 +109,10 @@ const MentorshipDashboard = lazy(() => import('./pages/mentorship/MentorshipDash
 const StatusPage = lazy(() => import('./pages/StatusPage'));
 const LiveStreamPage = lazy(() => import('./pages/streaming/LiveStreamPage'));
 const SponsorsPage = lazy(() => import('./pages/sponsors/SponsorsPage'));
-const ResourcesPage = lazy(() => import('./pages/resources/ResourcesPage'));
-
-const ResourcesPage = lazy(() => import('./pages/resources/ResourcesPage')); //issue #1861
-const LiveStreamPage = lazy(() => import('./pages/streaming/LiveStreamPage'));
-const ResourcesPage = lazy(() => import('./pages/resources/ResourcesPage'));
 const NotificationHistoryPage = lazy(() => import('./pages/notifications/NotificationHistoryPage'));
-const SponsorsPage = lazy(() => import('./pages/sponsors/SponsorsPage'));
 const RecommendationsPage = lazy(() => import('./pages/resume/RecommendationsPage'));
 
-
-const ResourcesPage = lazy(() => import('./pages/resources/ResourcesPage')); //issue #1861
-const MNH = 88,
-  DNH = 64;
-
 /* ── Page wipe transition ── */
-/* â”€â”€ Page wipe transition â”€â”€ */
 const Wipe = memo(function Wipe({ on: wipeOn, ph }) {
   if (!wipeOn) return null;
   return (
@@ -402,14 +376,9 @@ export default function App() {
 
 function AppShell() {
   const location = useLocation();
-  const [cinDone, setCinDone] = useState(() => isPlaywright);
-  const { resolvedTheme: theme } = useTheme();
-  const [cinDone, setCinDone] = useState(false);
-  // Skip the cinematic intro immediately for E2E test runs (Playwright UA) or deep links
   const isPlaywright =
     typeof navigator !== 'undefined' && navigator.userAgent.includes('Playwright');
   const [cinDone, setCinDone] = useState(isPlaywright || location.pathname !== '/');
-  const [eventsData, setEventsData] = useState(() => getLocalEvents(fallbackEvents));
   const { resolvedTheme: theme, setTheme } = useTheme();
   const { isOpen: isTerminalOpen, closeTerminal } = useDeveloperMode();
 
@@ -432,8 +401,7 @@ function AppShell() {
     if (location.pathname !== '/' || isPlaywright) {
       setCinDone(true);
     }
-  }, [location.pathname]);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [location.pathname, isPlaywright]);
 
   // Socket + cross-origin localStorage sync
   useEffect(() => {
@@ -524,16 +492,6 @@ function AppShell() {
     const timer = setTimeout(initPush, 3500);
     return () => clearTimeout(timer);
   }, [cinDone]);
-
-  /* ── SW update prompt ── */
-  const [swUpdateFn, setSwUpdateFn] = useState(null);
-  useEffect(() => {
-    const handle = (e) => {
-      if (e.detail?.updateSW) setSwUpdateFn(() => e.detail.updateSW);
-    };
-    window.addEventListener('nexasphere:sw-update', handle);
-    return () => window.removeEventListener('nexasphere:sw-update', handle);
-  }, []);
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [bookmarksOpen, setBookmarksOpen] = useState(false);
@@ -799,7 +757,6 @@ function MainRouter({
     <SessionRecordingProvider sessionId={sessionId}>
       {cinDone && <AmbientOrbs theme={theme} />}
       <SkipLink targetId="main-content" label="Skip to main content" />
-      <SkipLink />
       {cinDone && (
         <Navbar
           activeTab={activeTab}
@@ -820,7 +777,6 @@ function MainRouter({
         style={{ paddingTop: nh, position: 'relative', zIndex: 1 }}
         aria-label="Main content"
       >
-      <main id="main-content" style={{ paddingTop: nh, position: 'relative', zIndex: 1 }}>
         <Suspense fallback={<PageLoadingSpinner />}>
           <Routes>
             {/* â”€â”€ Home (scrollable sections) â”€â”€ */}
@@ -926,7 +882,7 @@ function MainRouter({
               }
             />
 
-            {/* â”€â”€ Dashboard (requires auth) â”€â”€ */}
+            {/* ── Dashboard (requires auth) ── */}
             <Route
               path="/dashboard"
               element={
@@ -937,15 +893,6 @@ function MainRouter({
                     </PageIn>
                   </RequireAuth>
                 </ErrorBoundary>
-            {/* ── Dashboard (requires auth) ── */}
-            <Route
-              path="/dashboard"
-              element={
-                <RequireAuth>
-                  <PageIn k="dashboard">
-                    <DashboardPage onBack={onBackHome} />
-                  </PageIn>
-                </RequireAuth>
               }
             />
 
@@ -1295,30 +1242,7 @@ function MainRouter({
                 </PageIn>
               }
             />
-            {/* ── Notification History ── */}
-            <Route
-              path="/notifications"
-              element={
-                <PageIn k="notifications">
-                  <NotificationHistoryPage />
-                </PageIn>
-                <ErrorBoundary>
-                  <PageIn k="resources">
-                    <ResourcesPage onBack={onBackHome} />
-                  </PageIn>
-                </ErrorBoundary>
-              }
-            />
 
-            {/* ── Recommendations ── */}
-            <Route
-              path="/recommendations"
-              element={
-                <PageIn k="recommendations">
-                  <RecommendationsPage onBack={onBackHome} />
-                </PageIn>
-              }
-            />
 
             {/* ── Login / SSO ── */}
             <Route
@@ -1460,6 +1384,5 @@ function MainRouter({
         }}
       />
     </SessionRecordingProvider>
-    </>
   );
 }

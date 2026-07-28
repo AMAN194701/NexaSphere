@@ -10,7 +10,6 @@ const SearchBar = ({ onSelectPrompt, workspace = 'default' }) => {
   const [searchError, setSearchError] = useState(null);
   const resultsPanelId = 'chat-history-search-results';
   const isResultsExpanded = showResults && Boolean(query);
-  const [searchError, setSearchError] = useState('');
 
   const handleSearch = useCallback(
     async (searchQuery) => {
@@ -76,7 +75,6 @@ const SearchBar = ({ onSelectPrompt, workspace = 'default' }) => {
         {isSearching && <span className="search-spinner">⟳</span>}
         {query && (
           <button
-            aria-label="Interactive element"
             className="clear-search"
             aria-label="Clear conversation search"
             onClick={() => {
@@ -94,17 +92,11 @@ const SearchBar = ({ onSelectPrompt, workspace = 'default' }) => {
       {showResults && results.length > 0 && (
         <div id={resultsPanelId} className="search-results" role="listbox">
           {results.slice(0, 5).map((prompt) => (
-            <div key={prompt.id} className="result-item" onClick={() => handleSelectResult(prompt)}>
             <div
               key={prompt.id}
               className="result-item"
-              onClick={() => handleSelectResult(prompt)}
               role="option"
               aria-selected="false"
-            <div
-              key={prompt.id}
-              className="result-item"
-              role="button"
               tabIndex={0}
               onClick={() => handleSelectResult(prompt)}
               onKeyDown={(e) => {
@@ -127,15 +119,12 @@ const SearchBar = ({ onSelectPrompt, workspace = 'default' }) => {
       )}
 
       {showResults && query && results.length === 0 && !isSearching && (
-        <div className="search-empty">
+        <div id={resultsPanelId} className="search-empty" role="status">
           {searchError ? (
             <p className="error-message" style={{ color: '#ef4444' }}>{searchError}</p>
           ) : (
             <p>No results found</p>
           )}
-        <div id={resultsPanelId} className="search-empty" role="status">
-          <p>No results found</p>
-          <p>{searchError || 'No results found'}</p>
         </div>
       )}
     </div>

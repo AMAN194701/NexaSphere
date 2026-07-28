@@ -70,7 +70,6 @@ async function replayRequest(entry) {
   const authHeaders = {};
   try {
     const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
-    const token = sessionStorage.getItem('ns-auth-token') || localStorage.getItem('ns-auth-token');
     if (token) {
       authHeaders['Authorization'] = `Bearer ${token}`;
     }

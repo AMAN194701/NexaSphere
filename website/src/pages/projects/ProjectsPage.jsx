@@ -157,40 +157,6 @@ export default function ProjectsPage({ onBack, loading = false }) {
             {filteredProjects.length === 0 && (
               <div className="no-projects-msg">
                 <p>No projects found in this category.</p>
-        <AnimatePresence>
-          {filteredProjects.map((project) => (
-            <motion.div
-              layout
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.3 }}
-              key={project.id}
-              className="project-card"
-              onClick={(e) => {
-                triggerRef.current = e.currentTarget;
-                setSelectedProject(project);
-              }}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  triggerRef.current = e.currentTarget;
-                  setSelectedProject(project);
-                }
-              }}
-              aria-label={`View details for ${project.title}`}
-            >
-              <div className="project-card-image">
-                <SafeImage
-                  src={project.image}
-                  alt={project.title}
-                  loading="lazy"
-                  fallbackType="project"
-                />
-                <div className="project-card-overlay">
-                  <span className="view-details-text">View Details</span>
-                </div>
               </div>
             )}
           </>
@@ -252,23 +218,6 @@ export default function ProjectsPage({ onBack, loading = false }) {
                             {tech}
                           </span>
                         ))}
-                <div className="project-modal-section">
-                  <h4 className="section-title">
-                    <Users size={16} /> Team
-                  </h4>
-                  <div className="project-team-list">
-                    {selectedProject.team.map((member, idx) => (
-                      <div key={member.name} className="team-member">
-                        <SafeImage
-                          src={member.photo}
-                          alt={member.name}
-                          className="team-member-photo"
-                          fallbackType="avatar"
-                        />
-                        <div className="team-member-info">
-                          <span className="team-member-name">{member.name}</span>
-                          <span className="team-member-role">{member.role}</span>
-                        </div>
                       </div>
                     </div>
 
@@ -277,7 +226,7 @@ export default function ProjectsPage({ onBack, loading = false }) {
                         <Users size={16} /> Team
                       </h4>
                       <div className="project-team-list">
-                        {selectedProject.team.map((member, idx) => (
+                        {selectedProject.team.map((member) => (
                           <div key={member.name} className="team-member">
                             <SafeImage
                               src={member.photo}

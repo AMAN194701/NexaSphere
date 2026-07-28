@@ -70,7 +70,7 @@ import apiClient from '../../utils/apiClient.js';
   const downloadUrl = cert
     ? `${getApiBase()}/api/public/certificates/${encodeURIComponent(cert.certificate_id)}/download`
     : null;
-  };
+
 
   const handleDownload = async (e) => {
     e.preventDefault();

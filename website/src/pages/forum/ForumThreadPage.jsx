@@ -53,7 +53,6 @@ export default function ForumThreadPage({ onBack }) {
         if (data?.replies) setReplies(data.replies);
       })
       .catch(() => {
-        const t = fallbackThreads.find((th) => th.id === threadIdNum);
         const t = fallbackThreads.find((th) => th.id === parseInt(id, 10));
         setThread(t || null);
       })
@@ -66,7 +65,6 @@ export default function ForumThreadPage({ onBack }) {
     setError('');
     setSubmitting(true);
     const base = getApiBase();
-    const base = import.meta.env.VITE_API_BASE || '';
     try {
       const data = await apiClient(`${base}/api/forum/threads/${id}/replies`, {
         method: 'POST',

@@ -15,13 +15,10 @@ function getBrowserHostname() {
 
 function getLocalDefaultUrl(port) {
   return isLocalHostname(getBrowserHostname()) ? `http://localhost:${port}` : '';
-  return String(value || "")
-    .trim()
-    .replace(/\/+$/, "");
 }
 
 export function getApiBase() {
-  return normalizeUrl(import.meta.env.VITE_API_BASE) || "/api";
+  return normalizeUrl(import.meta.env.VITE_API_BASE) || '/api';
 }
 
 export function getAiApiBase() {
@@ -30,15 +27,10 @@ export function getAiApiBase() {
 
 export function getSocketServerUrl() {
   return normalizeUrl(import.meta.env.VITE_SOCKET_URL) || getApiBase() || getLocalDefaultUrl(8787);
-  return normalizeUrl(import.meta.env.VITE_AI_API_BASE) || getApiBase();
-}
-
-export function getSocketServerUrl() {
-  return normalizeUrl(import.meta.env.VITE_SOCKET_URL) || getApiBase();
 }
 
 export function getSocketPath() {
-  return import.meta.env.VITE_SOCKET_PATH || "/socket.io";
+  return import.meta.env.VITE_SOCKET_PATH || '/socket.io';
 }
 
 export function hasSocketServer() {
@@ -47,7 +39,7 @@ export function hasSocketServer() {
 
 export function buildUrl(base, path) {
   const normalizedBase = normalizeUrl(base);
-  if (!normalizedBase) return "";
+  if (!normalizedBase) return '';
   if (!path) return normalizedBase;
-  return `${normalizedBase}${path.startsWith("/") ? path : `/${path}`}`;
+  return `${normalizedBase}${path.startsWith('/') ? path : `/${path}`}`;
 }

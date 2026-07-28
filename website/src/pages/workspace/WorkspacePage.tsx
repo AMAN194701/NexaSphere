@@ -1,21 +1,10 @@
-import React, { useRef, useState, useMemo } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { useSocketSync } from '../../hooks/useSocketSync';
+import { useCollaborativeDoc } from '../../hooks/useCollaborativeDoc';
 import { useWorkspaceStore } from '../../store/workspaceStore';
 import { useStudentAuth } from '../../context/StudentAuthContext';
 import { Users, Wifi, WifiOff, RefreshCw, CheckCircle2, ChevronLeft } from 'lucide-react';
 import './WorkspacePage.css';
-import React, { useRef, useState, useEffect } from "react";
-import { useCollaborativeDoc } from "../../hooks/useCollaborativeDoc";
-import { useWorkspaceStore } from "../../store/workspaceStore";
-import {
-  Users,
-  Wifi,
-  WifiOff,
-  RefreshCw,
-  CheckCircle2,
-  ChevronLeft,
-} from "lucide-react";
-import "./WorkspacePage.css";
 
 interface WorkspacePageProps {
   roomId: string;
@@ -69,13 +58,6 @@ function getOrCreateAnonUser() {
 export default function WorkspacePage({ roomId, onBack }: WorkspacePageProps) {
   // Stable anonymous identity — persisted for the session so hot reloads
   // and re-mounts do not generate a new user name and color each time.
-  const [user, setUser] = useState(getOrCreateAnonUser);
-  // Use a random anonymous user for now, or fetch from context if there's auth
-  const [user] = useState({
-    name: `User-${Math.floor(Math.random() * 1000)}`,
-    color: `hsl(${Math.floor(Math.random() * 360)}, 70%, 50%)`,
-    initials: "U",
-  });
   const { user: authUser } = useStudentAuth();
   const [anonUser] = useState(getOrCreateAnonUser);
 
@@ -102,16 +84,13 @@ export default function WorkspacePage({ roomId, onBack }: WorkspacePageProps) {
     if (user.initials !== initials) {
       setUser((prev) => ({ ...prev, initials }));
     }
-  }, [user.name, user.initials]);
-    // Generate initials safely
-    user.initials = user.name.substring(0, 2).toUpperCase();
     console.log(`Collaborative Workspace joined: ${roomId} as ${user.name}`);
     return () => {
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
     };
-  }, [user, roomId]);
+  }, [user.name, user.initials, roomId]);
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;

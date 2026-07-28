@@ -85,18 +85,10 @@ function StatCard({ label, value, color }) {
             cur += Math.ceil(num / 40);
             if (cur >= num) {
               setCount(num);
-              clearInterval(countIntervalRef.current);
-              countIntervalRef.current = null;
-          intervalRef.current = setInterval(() => {
-            cur += Math.ceil(num / 40);
-            if (cur >= num) {
-              setCount(num);
-          intervalRef.current = setInterval(() => {
-            cur += Math.ceil(num / 40);
-            if (cur >= num) {
-              setCount(num);
-              if (intervalRef.current) clearInterval(intervalRef.current);
-              intervalRef.current = null;
+              if (countIntervalRef.current) {
+                clearInterval(countIntervalRef.current);
+                countIntervalRef.current = null;
+              }
             } else setCount(cur);
           }, 25);
         }
@@ -110,8 +102,6 @@ function StatCard({ label, value, color }) {
         clearInterval(countIntervalRef.current);
         countIntervalRef.current = null;
       }
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      intervalRef.current = null;
     };
   }, [value]);
   const rgb = hexToRgb(color);
@@ -1049,20 +1039,7 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
         } catch (error) {
           if (import.meta.env.DEV) {
             console.warn('[EventDetailPage] Failed to persist local registration:', error);
-        } catch (err) {
-          if (import.meta.env.DEV) {
-            console.warn('Failed to persist event registration ticket locally:', err);
-        } 
-        catch (error) {
-          if (import.meta.env.DEV) {
-            console.warn(
-              "Failed to store event registration in localStorage:",
-              error
-            );
           }
-        } catch (err) {
-          console.error('Failed to save ticket locally:', err);
-          setRegError('Warning: Could not save ticket to your device. Please take a screenshot.');
         }
       }
     } catch (err) {

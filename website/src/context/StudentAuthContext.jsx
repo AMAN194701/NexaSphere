@@ -1,10 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import apiClient from '../utils/apiClient';
-import { useTheme } from '../hooks/useTheme';
 
 export const StudentAuthContext = createContext(null);
-
-const StudentAuthContext = createContext(null);
 
 const TOKEN_KEY = 'ns_student_token';
 
@@ -31,21 +28,6 @@ export function StudentAuthProvider({ children }) {
       }
     } catch {
       localStorage.removeItem('ns_user');
-      const options = token
-        ? { headers: { Authorization: `Bearer ${token}` } }
-        : undefined;
-      const data = await apiClient('/api/auth/me', options);
-      setUser(data.user);
-    } catch {
-  const fetchMe = useCallback(async (token) => {
-    try {
-      const data = await apiClient('/api/auth/me', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setUser(data.user);
-      localStorage.setItem(TOKEN_KEY, token);
-    } catch {
-      localStorage.removeItem(TOKEN_KEY);
       setUser(null);
     }
   }, []);
@@ -62,30 +44,11 @@ export function StudentAuthProvider({ children }) {
         (params.toString() ? '?' + params.toString() : '') +
         window.location.hash;
       window.history.replaceState({}, '', cleanUrl);
-      fetchMe(urlToken).finally(() => setLoading(false));
-      // Server already set the httpOnly cookie during OAuth callback.
       fetchMe().finally(() => setLoading(false));
       return;
     }
 
     // Normal startup: attempt to fetch current user via cookie-based session.
-    fetchMe().finally(() => setLoading(false));
-    const params = new URLSearchParams(window.location.search);
-    const urlToken = params.get('token');
-    if (urlToken) {
-      const cleanUrl = window.location.pathname + window.location.hash;
-      window.history.replaceState({}, '', cleanUrl);
-      fetchMe(urlToken);
-      setLoading(false);
-      return;
-    }
-
-    const storedToken = localStorage.getItem(TOKEN_KEY);
-    if (storedToken) {
-      fetchMe(storedToken).finally(() => setLoading(false));
-    } else {
-      setLoading(false);
-    }
     fetchMe().finally(() => setLoading(false));
   }, [fetchMe]);
 
@@ -100,8 +63,6 @@ export function StudentAuthProvider({ children }) {
     window.addEventListener('session-expired', handleSessionExpired);
     return () => window.removeEventListener('session-expired', handleSessionExpired);
   }, []);
-
-  }, [fetchMe]);
 
   const login = useCallback((provider) => {
     window.location.href = `/api/auth/${provider}`;
@@ -125,13 +86,7 @@ export function StudentAuthProvider({ children }) {
     }
   }, [user, setTheme]);
 
-      await apiClient('/api/auth/logout', { method: 'POST' });
-    } catch {
-      // ignore
-    }
-    localStorage.removeItem(TOKEN_KEY);
-    setUser(null);
-  }, []);
+
 
   const value = { user, loading, login, logout, isAuthenticated: !!user };
 

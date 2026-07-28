@@ -137,11 +137,8 @@ export default function Navbar({
   if (compact)
     return (
       <nav className="ns-navbar-mobile">
-        <button
+        <div
           className="ns-mobile-top"
-          onClick={goHome}
-          style={{ cursor: 'pointer', background: 'none', border: 'none', display: 'flex', alignItems: 'center', width: '100%', padding: 0 }}
-          aria-label="Go to homepage"
           style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 14px 5px', width: '100%' }}
         >
           <div
@@ -256,37 +253,9 @@ export default function Navbar({
                   👤
                 </button>
               </div>
-            <BookmarkToggle onToggle={onToggleBookmarks} />
-            <ThemeToggle />
-            {isAuthenticated ? (
-              <span
-                className="ns-nav-user-badge"
-                onClick={() => navigate('/dashboard')}
-                style={{ cursor: 'pointer', fontSize: '0.8rem', color: 'var(--t1)' }}
-                title={user?.name || user?.email}
-              >
-                👤
-              </span>
-            ) : (
-              <button
-                className="ns-nav-login-btn"
-                onClick={() => login('google')}
-                aria-label="Sign in"
-                style={{
-                  background: 'none',
-                  border: '1px solid var(--border)',
-                  color: 'var(--t1)',
-                  borderRadius: '6px',
-                  padding: '2px 8px',
-                  fontSize: '0.75rem',
-                  cursor: 'pointer',
-                }}
-              >
-                Login
-              </button>
             )}
           </div>
-        </button>
+        </div>
 
         <div className="ns-mobile-tabs">
           {TABS.map((t) => (

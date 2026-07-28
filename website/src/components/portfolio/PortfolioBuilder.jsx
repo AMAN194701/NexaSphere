@@ -1,5 +1,3 @@
-import React, { useState, useRef } from 'react';
-import React, { useState } from 'react';
 import React, { useState, useRef, useEffect } from 'react';
 import apiClient from '../../utils/apiClient.js';
 import { getApiBase } from '../../utils/runtimeConfig';
@@ -945,11 +943,6 @@ export default function PortfolioBuilder() {
                                   display: 'flex',
                                   gap: '8px',
                                 }}
-                              >
-                                {repo.stargazers_count > 0 && (
-                                  <span>★ {repo.stargazers_count}</span>
-                                )}
-                                style={{ marginLeft: 'auto', fontSize: '0.75rem', opacity: 0.8, display: 'flex', gap: '8px' }}
                               >
                                 {repo.stargazers_count > 0 && <span>★ {repo.stargazers_count}</span>}
                                 {repo.forks_count > 0 && <span>⑂ {repo.forks_count}</span>}

@@ -85,9 +85,6 @@ export default function RoadmapsPage({ onBack }) {
       if (innerScroll) {
         innerScroll.scrollTop = 0;
       }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
     }
   }, [selectedNode]);
 
@@ -286,10 +283,9 @@ export default function RoadmapsPage({ onBack }) {
                 <ul className="concepts-pill-list">
                   {selectedNode.concepts.map((concept, idx) => (
                     <li
-                      key={`concept-${selectedNode.id}-${concept}`}
+                      key={`concept-${selectedNode.id}-${idx}`}
                       className="concept-badge-pill"
                     >
-                    <li key={idx} className="concept-badge-pill">
                       {concept}
                     </li>
                   ))}

@@ -20,23 +20,16 @@ import { getApiBase } from '../../utils/runtimeConfig';
 async function apiFetch(path, options = {}) {
   const base = getApiBase();
   const res = await fetch(`${base}${path}`, {
-import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Filter, Award, Clock, Users, BookOpen, Send, X, CheckCircle, AlertCircle, Loader } from 'lucide-react';
-import { mentors as fallbackMentors, mentorDomains } from '../../data/mentorshipData.js';
-
-const API_BASE = process.env.REACT_APP_API_URL || '';
-
-async function apiFetch(path, options = {}) {
-  const res = await fetch(`${API_BASE}${path}`, {
     headers: { 'Content-Type': 'application/json', ...options.headers },
     ...options,
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || `Request failed (${res.status})`);
+    const err = await res.json().catch(() => ({ message: 'Request failed' }));
+    throw new Error(err.message || 'Request failed');
   }
   return res.json();
 }
+
 
 function MentorsPage() {
   const [mentors, setMentors] = useState([]);

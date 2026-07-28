@@ -49,7 +49,6 @@ export default function ForumPage({ onBack }) {
       return;
     }
     Promise.allSettled([
-    Promise.all([
       apiClient(`${base}/api/forum/categories`),
       apiClient(
         `${base}/api/forum/threads?sort=${sort}${activeCategory ? `&category=${activeCategory}` : ''}`
@@ -74,41 +73,8 @@ export default function ForumPage({ onBack }) {
           }
           setThreads(fallbackThreads);
         }
-      .then(([catData, threadData]) => {
-        if (catData?.categories) setCategories(catData.categories);
-        if (threadData?.threads) setThreads(threadData.threads);
       })
-      .catch(() => {
-    let alive = true;
-
-    (async () => {
-      const [catData, threadData] = await Promise.allSettled([
-        apiClient(`${base}/api/forum/categories`),
-        apiClient(
-          `${base}/api/forum/threads?sort=${sort}${activeCategory ? `&category=${activeCategory}` : ''}`
-        ),
-      ]);
-
-      if (!alive) return;
-
-      if (catData.status === 'fulfilled' && catData.value?.categories) {
-        setCategories(catData.value.categories);
-      } else {
-        setCategories(fallbackCategories);
-      }
-
-      if (threadData.status === 'fulfilled' && threadData.value?.threads) {
-        setThreads(threadData.value.threads);
-      } else {
-        setThreads(fallbackThreads);
-      }
-
-      setLoading(false);
-    })();
-
-    return () => {
-      alive = false;
-    };
+      .finally(() => setLoading(false));
   }, [sort, activeCategory]);
 
   const filteredThreads = useMemo(() => {

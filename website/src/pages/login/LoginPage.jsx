@@ -7,7 +7,6 @@ export default function LoginPage() {
   if (user) {
     return (
       <main className={styles.container} role="main" aria-label="Account management">
-      <div className={styles.container}>
         <div className={styles.card}>
           <h1 className={styles.heading}>Welcome, {user.name || user.email}</h1>
           <p className={styles.text}>
@@ -23,11 +22,6 @@ export default function LoginPage() {
           </button>
         </div>
       </main>
-          <button className={styles.btnDanger} onClick={logout}>
-            Sign Out
-          </button>
-        </div>
-      </div>
     );
   }
 

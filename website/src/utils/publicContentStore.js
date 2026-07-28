@@ -81,12 +81,6 @@ export function mergeEvents(fallbackEvents = [], liveEvents = []) {
   }
 
   // Remove tombstoned events from both the cached fallback data and live server data.
-  // This ensures deleted events stay deleted regardless of the data source.
-  const filteredFallback = fallbackEvents.filter((event) => !tombstones.includes(String(event.id)));
-  const filteredLive = liveEvents.filter((event) => !tombstones.includes(String(event.id)));
-
-  // Merge events by ID, with live data taking priority over fallback data.
-  // The spread operator order (...previous, ...event) gives live values precedence.
   const filteredFallback = fallbackEvents.filter((event) => !tombstones.includes(String(event.id)));
   const filteredLive = liveEvents.filter((event) => !tombstones.includes(String(event.id)));
 
@@ -215,7 +209,6 @@ export function initStorageSyncBridge() {
 
   // Listen for messages relayed through the bridge
   bridgeMessageHandler = (event) => {
-  window.addEventListener('message', (event) => {
     if (event.origin !== adminOrigin || event.source !== iframe.contentWindow) return;
 
     if (

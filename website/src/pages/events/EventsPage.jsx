@@ -7,15 +7,6 @@ import PersonalizedFeed from '../../components/recommendations/PersonalizedFeed'
 import EventCountdown from '../../components/events/EventCountdown.jsx';
 import { useRecommendations } from '../../hooks/useRecommendations';
 import { getEventCountdownStatus, parseDate } from '../../hooks/useCountdown.js';
-import PersonalizedFeed from '../../components/recommendation/PersonalizedFeed';
-import EventCountdown from '../../components/events/EventCountdown.jsx';
-import { useRecommendations } from '../../hooks/useRecommendations';
-import { getEventCountdownStatus } from '../../hooks/useCountdown.js';
-import { getEventCountdownStatus,parseDate } from '../../hooks/useCountdown.js';
-import PersonalizedFeed from '../../components/recommendation/PersonalizedFeed';
-import EventCountdown from '../../components/events/EventCountdown.jsx';
-import { useRecommendations } from '../../hooks/useRecommendations';
-import { getEventCountdownStatus } from '../../hooks/useCountdown.js';
 import EventCalendarView from '../../components/calendar/EventCalendarView';
 import { useStudentAuth } from '../../context/StudentAuthContext';
 import { EventCardSkeleton } from '../../components/ui/skeleton/EventCardSkeleton';
@@ -97,14 +88,7 @@ export default function EventsPage({
       .sort((a, b) => {
         const da = parseDate(a.startDate ?? a.date)?.getTime() ?? 0;
         const db = parseDate(b.startDate ?? b.date)?.getTime() ?? 0;
-       const db = parseDate(b.startDate ?? b.date)?.getTime() ?? 0;
-        return aIsUpcoming ? da - db : db - da;
-
-        return da - db;
-      });
-  }, [filteredEvents]);
-
-        return da - db;
+        const aIsUpcoming = a.status === 'UPCOMING' || a.status === 'REGISTRATION_OPEN';
         return aIsUpcoming ? da - db : db - da;
       });
   }, [filteredEvents]);
@@ -125,11 +109,6 @@ export default function EventsPage({
     const start = (currentPage - 1) * EVENTS_PER_PAGE;
     return sortedEvents.slice(start, start + EVENTS_PER_PAGE);
   }, [sortedEvents, currentPage]);
-
-        return da - db;
-      });
-  }, [filteredEvents]);
-  const totalPages = Math.ceil(sortedEvents.length / 10) || 1;
 
 
   const { recommendations, loading: recsLoading } = useRecommendations(user?.sub || user?.id || '');
