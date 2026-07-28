@@ -41,6 +41,9 @@ class EventResourceService {
     if (!resource) return null;
 
     Object.assign(resource, updates);
+    if (typeof updates.quantity === 'number') {
+      resource.availableQuantity = Math.min(resource.availableQuantity, resource.quantity);
+    }
     resource.updatedAt = new Date();
 
     return resource;
@@ -86,6 +89,14 @@ class EventResourceService {
 
     if (!resource) return null;
 
+    if (resource.availableQuantity >= resource.quantity) {
+      return {
+        success: false,
+        message: "Resource available quantity is already at maximum capacity",
+        resource,
+      };
+    }
+
     resource.availableQuantity++;
 
     resource.borrowHistory.push({
@@ -93,7 +104,10 @@ class EventResourceService {
       returnedAt: new Date(),
     });
 
-    return resource;
+    return {
+      success: true,
+      resource,
+    };
   }
 
   assignResource(id, assignee) {
