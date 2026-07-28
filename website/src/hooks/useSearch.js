@@ -8,15 +8,14 @@
  *  - recent searches storage
  */
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { getApiBase } from '../utils/runtimeConfig';
 
 const RECENT_KEY = 'ns_recent_searches';
 
 function safeLower(v) {
   return String(v || '').toLowerCase();
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { getApiBase } from '../utils/runtimeConfig';
+}
 
 function useDebounce(value, delay = 300) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -40,21 +39,6 @@ function uniqBy(arr, keyFn) {
   return out;
 }
 
-export function useSearch(activities = {}, events = []) {
-  const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState('all');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [recentSearches, setRecentSearches] = useState([]);
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(RECENT_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw);
-      setRecentSearches(parsed);
-    } catch {
-      // ignore
 function matchesText(value, query) {
   return typeof value === 'string' && value.toLowerCase().includes(query);
 }
@@ -75,7 +59,6 @@ export function eventMatchesQuery(event, query) {
   );
 }
 
-export function useSearch(activities, events, apiBase = '') {
 export function useSearch(activities, events) {
   const apiBase = getApiBase();
   const [query, setQuery] = useState('');
@@ -131,26 +114,10 @@ export function useSearch(activities, events) {
       } catch (err) {
         if (err.name === 'AbortError') return null;
         return null;
-        if (!res.ok) {
-          throw new Error('Search failed');
-        }
-        return res.json();
-      } catch (err) {
-        if (err.name === 'AbortError') return null;
-        throw err;
       }
     },
     [apiBase]
   );
-
-  useEffect(() => {
-    if (!debouncedQuery.trim()) {
-      setResults([]);
-      setLoading(false);
-      setApiError(null);
-      return;
-    }
-  }, []);
 
   const persistRecent = useCallback((next) => {
     setRecentSearches(next);
@@ -177,15 +144,14 @@ export function useSearch(activities, events) {
     },
     [persistRecent, recentSearches]
   );
-    const q = debouncedQuery.toLowerCase();
-    setLoading(true);
 
-    const doSearch = async () => {
-      const apiResults = await searchApi(debouncedQuery, filter === 'all' ? 'all' : filter);
-      if (apiResults && apiResults.results) {
-        setResults(apiResults.results);
-        setLoading(false);
-        return;
+  useEffect(() => {
+    if (!debouncedQuery.trim()) {
+      setResults([]);
+      setLoading(false);
+      setApiError(null);
+      return;
+    }
 
     const q = debouncedQuery.toLowerCase();
     setLoading(true);
@@ -245,7 +211,6 @@ export function useSearch(activities, events) {
       }
 
       if (filter === 'all' || filter === 'members') {
-        const base = apiBase || '';
         const base = getApiBase();
         try {
           const res = await fetch(`${base}/api/content/team`);
@@ -282,7 +247,8 @@ export function useSearch(activities, events) {
   const clearSearch = useCallback(() => {
     setQuery('');
     setFilter('all');
-    setError(null);
+    setResults([]);
+    setApiError(null);
   }, []);
 
   const baseResults = useMemo(() => {
@@ -370,33 +336,11 @@ export function useSearch(activities, events) {
 
   useEffect(() => {
     if (!query.trim()) {
+      setResults([]);
       setLoading(false);
-      setError(null);
-      return;
+      setApiError(null);
     }
-
-    setLoading(true);
-    const t = setTimeout(() => {
-      setLoading(false);
-    }, 120);
-
-    return () => clearTimeout(t);
-  }, [query, filter]);
-    setResults([]);
-    setApiError(null);
-  }, []);
-
-  const groupedResults = useMemo(() => {
-    const groups = {};
-    results.forEach((item) => {
-      const type = item.type || 'other';
-      if (!groups[type]) {
-        groups[type] = [];
-      }
-      groups[type].push(item);
-    });
-    return groups;
-  }, [results]);
+  }, [query]);
 
   return {
     query,
@@ -406,23 +350,12 @@ export function useSearch(activities, events) {
     results: filteredResults,
     groupedResults,
     loading,
-    error,
-    results,
-    groupedResults,
-    loading,
     error: apiError,
     clearSearch,
     recentSearches,
     addRecentSearch,
     removeRecentSearch,
   };
-    setResults([]);
-    setApiError(null);
-  }, []);
+}
 
-  return { query, setQuery, filter, setFilter, results, loading, apiError, clearSearch };
-}
-return { query, setQuery, filter, setFilter, results, loading, clearSearch, apiError };
-}
-export { useEventSearch as useSearch } from './useEventSearch';
-export { useEventSearch as default } from './useEventSearch';
+export default useSearch;

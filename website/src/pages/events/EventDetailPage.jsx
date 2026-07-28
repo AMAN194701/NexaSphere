@@ -2,20 +2,13 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { DynamicIcon } from '../../shared/Icons';
 import { getApiBase } from '../../utils/runtimeConfig';
 import apiClient from '../../utils/apiClient';
-import { downloadICS } from '../../utils/icsExport';
 import { API_BASE } from '../../data/config';
-import apiClient from '../../utils/apiClient';
 import DOMPurify from 'dompurify';
 import {
   downloadICS,
   generateGoogleCalendarUrl,
   generateOutlookCalendarUrl,
 } from '../../utils/icsExport';
-import {
-  showNotification,
-  requestNotificationPermission,
-} from '../../utils/pushNotificationClient';
-
 import {
   showNotification,
   requestNotificationPermission,
