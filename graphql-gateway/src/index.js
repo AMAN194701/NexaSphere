@@ -1,4 +1,5 @@
-﻿import { ApolloServer } from '@apollo/server';
+import './tracing.js';
+import { ApolloServer } from '@apollo/server';
 import { startStandaloneServer } from '@apollo/server/standalone';
 import { typeDefs } from './schema.js';
 import { resolvers } from './resolvers.js';
