@@ -24,13 +24,17 @@ app.use('/api/interview',  require('./routes/interview'));
 app.use('/api/assessment', require('./routes/assessment'));
 app.use('/api/feedback',   require('./routes/feedback'));
 
-// ─── Health Check ─────────────────────────────────────────
-app.get('/', (req, res) => {
-  res.json({
-    message: '✅ NexaSphere API Running',
-    version: '1.0.0',
-    status:  'OK'
+// ─── Observability & Health ───────────────────────────────
+const { router: healthRouter, httpRequestDurationMicroseconds } = require('./routes/health');
+app.use('/', healthRouter);
+
+// Middleware to track request duration for Prometheus
+app.use((req, res, next) => {
+  const end = httpRequestDurationMicroseconds.startTimer();
+  res.on('finish', () => {
+    end({ method: req.method, route: req.route ? req.route.path : req.path, code: res.statusCode });
   });
+  next();
 });
 
 // ─── 404 Handler ──────────────────────────────────────────
