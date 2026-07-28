@@ -15,10 +15,6 @@ import { fallbackCategories, fallbackThreads } from '../../data/forumData.js';
 import Footer from '../../shared/Footer';
 import { EmptyState } from '../../components/EmptyState';
 import { ForumPostSkeleton } from '../../components/ui/skeleton/ForumPostSkeleton';
-import { useNavigate } from 'react-router-dom';
-import { apiClient } from '../../utils/apiClient';
-import { fallbackCategories, fallbackThreads } from '../../data/forumData.js';
-import Footer from '../../shared/Footer';
 
 export default function ForumPage({ onBack }) {
   const navigate = useNavigate();
@@ -42,7 +38,6 @@ export default function ForumPage({ onBack }) {
 
   useEffect(() => {
     const base = getApiBase();
-    const base = import.meta.env.VITE_API_BASE || '';
     if (!base) {
       setThreads(fallbackThreads);
       setLoading(false);
@@ -262,13 +257,6 @@ export default function ForumPage({ onBack }) {
               </button>
             }
           />
-          <div style={{ textAlign: 'center', padding: 60, color: 'var(--text-secondary)' }}>
-            Loading discussions...
-          </div>
-        ) : filteredThreads.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: 60, color: 'var(--text-secondary)' }}>
-            No threads found. Start a new discussion!
-          </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {filteredThreads.map((thread) => (

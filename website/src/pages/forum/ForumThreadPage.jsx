@@ -17,12 +17,6 @@ function formatThreadDate(value) {
 
 export default function ForumThreadPage({ onBack }) {
   const { id } = useParams();
-  const threadIdNum = parseInt(id, 10);
-  const threadIdNum = threadIdNum;
-import { fallbackThreads, fallbackReplies } from '../../data/forumData.js';
-
-export default function ForumThreadPage({ onBack }) {
-  const { id } = useParams();
   const navigate = useNavigate();
   const [thread, setThread] = useState(null);
   const [replies, setReplies] = useState([]);
@@ -35,11 +29,6 @@ export default function ForumThreadPage({ onBack }) {
 
   useEffect(() => {
     const base = getApiBase();
-    if (!base) {
-      const t = fallbackThreads.find((th) => th.id === threadIdNum);
-      setThread(t || null);
-      setReplies(fallbackReplies.filter((r) => r.threadId === threadIdNum));
-    const base = import.meta.env.VITE_API_BASE || '';
     if (!base) {
       const t = fallbackThreads.find((th) => th.id === parseInt(id, 10));
       setThread(t || null);
@@ -247,8 +236,8 @@ export default function ForumThreadPage({ onBack }) {
             {thread.title}
           </h1>
           <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-            Posted by {thread.authorName} · {formatThreadDate(thread.createdAt)} ·{' '}
-            Posted by {thread.authorName} · {new Date(thread.createdAt).toLocaleDateString()} ·{' '}
+            Posted by {thread.authorName} · {formatThreadDate(thread.createdAt)} · Posted by{' '}
+            {thread.authorName} · {new Date(thread.createdAt).toLocaleDateString()} ·{' '}
             {thread.viewCount || 0} views
           </div>
         </div>
@@ -343,17 +332,6 @@ export default function ForumThreadPage({ onBack }) {
             title="No Replies Yet"
             description="Be the first to respond to this thread and start the conversation!"
           />
-          <div
-            style={{
-              textAlign: 'center',
-              padding: 40,
-              color: 'var(--text-secondary)',
-              border: '1px dashed var(--bdr)',
-              borderRadius: 12,
-            }}
-          >
-            No replies yet. Be the first to respond!
-          </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {replies.map((reply) => (

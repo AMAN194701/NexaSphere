@@ -19,9 +19,6 @@ import { useSearch } from '../hooks/useSearch';
 function Highlight({ text, query }) {
   if (!text) return null;
 
-  // If the text contains Typesense highlight <mark> tags, render it as HTML safely
-  if (String(text).includes('<mark>')) {
-    const clean = DOMPurify.sanitize(text, { ALLOWED_TAGS: ['mark'] });
   // If the text contains Typesense highlight <mark> tags, sanitize before rendering as HTML.
   // Only <mark> is allowed through — everything else (scripts, event handlers, other tags) is stripped.
   if (String(text).includes('<mark>')) {
@@ -136,7 +133,6 @@ export default function SearchBar({ open, onClose, activities, events, onNavigat
     addRecentSearch,
     removeRecentSearch,
   } = useSearch(activities, events);
-
 
   const [localQuery, setLocalQuery] = useState('');
   const timeoutRef = useRef(null);
@@ -528,8 +524,7 @@ export default function SearchBar({ open, onClose, activities, events, onNavigat
                       margin: '0 auto 12px',
                     }}
                   />
-                  Searching platform…
-                  Searching across events, members, and activities…
+                  Searching platform… Searching across events, members, and activities…
                 </div>
               )}
 
@@ -668,49 +663,49 @@ export default function SearchBar({ open, onClose, activities, events, onNavigat
                 </div>
               )}
 
-            {query && results.length > 0 && (
-              <div
-                style={{
-                  padding: '12px 20px',
-                  borderTop: '1px solid rgba(255,255,255,0.06)',
-                  background: 'rgba(0,0,0,0.15)',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}
-              >
-                <span style={{ fontSize: '0.78rem', color: 'var(--t3)' }}>
-                  Press Enter to view all results
-                </span>
-                <button
-                  onClick={() => {
-                    addRecentSearch(query);
-                    navigate(
-                      `/search?q=${encodeURIComponent(query)}${filter !== 'all' ? `&type=${filter}` : ''}`
-                    );
-                    onClose();
-                    clearSearch();
-                  }}
+              {query && results.length > 0 && (
+                <div
                   style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--c1)',
-                    cursor: 'pointer',
-                    fontSize: '0.8rem',
-                    fontWeight: 600,
+                    padding: '12px 20px',
+                    borderTop: '1px solid rgba(255,255,255,0.06)',
+                    background: 'rgba(0,0,0,0.15)',
                     display: 'flex',
+                    justifyContent: 'space-between',
                     alignItems: 'center',
-                    gap: '4px',
                   }}
                 >
-                  View all results <ArrowRight size={14} />
-                </button>
-              </div>
-            )}
-          </div>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--t3)' }}>
+                    Press Enter to view all results
+                  </span>
+                  <button
+                    onClick={() => {
+                      addRecentSearch(query);
+                      navigate(
+                        `/search?q=${encodeURIComponent(query)}${filter !== 'all' ? `&type=${filter}` : ''}`
+                      );
+                      onClose();
+                      clearSearch();
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--c1)',
+                      cursor: 'pointer',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    View all results <ArrowRight size={14} />
+                  </button>
+                </div>
+              )}
+            </div>
+          </motion.div>
         </motion.div>
-      </motion.div>
-    )}
-  </AnimatePresence>
+      )}
+    </AnimatePresence>
   );
 }
