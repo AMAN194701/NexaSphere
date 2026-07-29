@@ -257,16 +257,11 @@ export function useNotifications() {
       };
       setNotifications((prev) => [note, ...prev]);
     };
-
     const handleNewComment = (data) => {
       const note = {
         id: `new-comment-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
         type: 'message',
         title: 'New Reply on Forum! 💬',
-        message:
-          data.authorName && data.threadTitle
-            ? `${data.authorName} replied to "${data.threadTitle}"`
-            : 'Someone replied to your thread.',
         message:
           data.authorName && data.threadTitle
             ? `${data.authorName} replied to "${data.threadTitle}"`

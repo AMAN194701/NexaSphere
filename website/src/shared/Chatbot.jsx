@@ -345,15 +345,12 @@ const Chatbot = () => {
         const lastBotIndex = messages.indexOf(lastBotMsg);
         const lastUserIndex = messages.indexOf(lastUserMsg);
         if (lastBotIndex > lastUserIndex) {
-          savePrompt(lastUserMsg.text, lastBotMsg.text, currentWorkspace).catch((err) => {
-            if (import.meta.env.DEV) console.error('[Chatbot] Error saving prompt:', err.message);
-          });
           savePrompt(lastUserMsg.text, lastBotMsg.text, currentWorkspace)
             .then(() => {
               triggerHistoryRefresh();
             })
             .catch((err) => {
-              console.error('Error saving prompt:', err);
+              if (import.meta.env.DEV) console.error('[Chatbot] Error saving prompt:', err.message);
             });
         }
       }
@@ -486,7 +483,6 @@ const Chatbot = () => {
             </div>
 
             <div className="chat-content">
-              <PinnedChats onSelectPrompt={handleSelectPrompt} workspace={currentWorkspace} />
               <PinnedChats
                 onSelectPrompt={handleSelectPrompt}
                 workspace={currentWorkspace}
