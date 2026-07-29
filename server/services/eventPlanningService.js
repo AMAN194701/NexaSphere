@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 const plans = new Map();
 
 function getPlan(eventId) {
@@ -40,7 +41,7 @@ export const eventPlanningService = {
 
   createTask(eventId, task, user) {
     const plan = getPlan(eventId);
-    const taskId = `task-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const taskId = `task-${Date.now()}-${crypto.randomUUID().split('-')[0]}`;
     const newTask = {
       id: taskId,
       ...task,
@@ -143,7 +144,7 @@ export const eventPlanningService = {
     ];
     defaults.forEach((t) =>
       plan.templates.push({
-        id: `tmpl-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        id: `tmpl-${Date.now()}-${crypto.randomUUID().split('-')[0]}`,
         ...t,
       })
     );
