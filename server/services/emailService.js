@@ -110,7 +110,7 @@ export async function sendEmail({
       logger.info(`[Email Service - DEV] Subject: ${subject}`);
       logger.info(`[Email Service - DEV] Template: ${templateName}`);
       if (attachments.length > 0) {
-        console.log(
+        logger.info(
           `[Email Service - DEV] Attachments: ${attachments.map((attachment) => attachment.filename || 'attachment').join(', ')}`
         );
       }
