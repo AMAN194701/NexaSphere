@@ -16,9 +16,8 @@ import { ExpressAdapter } from '@bull-board/express';
 import fs, { promises as fsp } from 'fs';
 import { body, validationResult } from 'express-validator';
 import { EventEmitter } from 'events';
-import cors from 'cors';
 import { google } from 'googleapis';
-import { promises as fs } from 'fs';
+import morgan from 'morgan';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
@@ -190,6 +189,18 @@ import { portfolioRepository } from './repositories/portfolioRepository.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const CONTENT_FILE = path.join(__dirname, 'data', 'content.json');
+
+const REQUIRED_ENV_VARS = ['CORS_ORIGIN', 'ADMIN_EVENT_PASSWORD'];
+
+function validateEnvironment() {
+  const missing = REQUIRED_ENV_VARS.filter((env) => !process.env[env]);
+
+  if (missing.length > 0) {
+    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+  }
+
+  console.log('Environment validation passed');
+}
 
 validateEnvironment();
 
@@ -705,11 +716,11 @@ function validateMagicBytes(filepath, mimeType) {
 
 async function ensureContentFile() {
   const dir = path.dirname(CONTENT_FILE);
-  await fs.mkdir(dir, { recursive: true });
+  await fsp.mkdir(dir, { recursive: true });
   try {
-    await fs.access(CONTENT_FILE);
+    await fsp.access(CONTENT_FILE);
   } catch {
-    await fs.writeFile(CONTENT_FILE, JSON.stringify(defaultContent, null, 2), 'utf8');
+    await fsp.writeFile(CONTENT_FILE, JSON.stringify(defaultContent, null, 2), 'utf8');
   }
 app.use('/uploads', express.static(UPLOADS_DIR));
 
@@ -1355,13 +1366,27 @@ app.get('/api/content/core-team', async (req, res) => {
   }
 });
 
-app.get('/api/admin/core-team', adminAuth, async (req, res) => {
-  try {
-    return res.json(await listCoreTeamStore());
-  } catch (e) {
-    return res.status(500).json({ error: e?.message || 'Failed to load core team' });
-  }
-});
+// Admin Team Management
+app.get(
+  '/api/admin/core-team',
+  adminAuthMiddleware.requireScope('settings:admin'),
+  coreTeamController.adminListCoreTeamMembers
+);
+app.post(
+  '/api/admin/core-team',
+  adminAuthMiddleware.requireScope('settings:admin'),
+  coreTeamController.adminAddCoreTeamMember
+);
+app.put(
+  '/api/admin/core-team/:id',
+  adminAuthMiddleware.requireScope('settings:admin'),
+  coreTeamController.adminUpdateCoreTeamMember
+);
+app.delete(
+  '/api/admin/core-team/:id',
+  adminAuthMiddleware.requireScope('settings:admin'),
+  coreTeamController.adminDeleteCoreTeamMember
+);
 
 app.post('/api/admin/core-team', adminAuth, async (req, res) => {
   try {
@@ -1572,22 +1597,143 @@ app.get('/api/notifications', (req, res) => {
   }
 });
 
-app.post('/api/notifications/mark-read', (req, res) => {
-  try {
-    const { id, userId } = req.body || {};
-    if (!id) return res.status(400).json({ error: 'id required' });
-    const uid = userId || 'global';
-    const ok = notificationsService.markAsRead(uid, id);
-    return res.json({ success: ok });
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
+const validatePushSubscription = [
+  body('subscription').isObject().withMessage('subscription must be an object'),
+  body('subscription.endpoint')
+    .isURL()
+    .withMessage('endpoint must be a valid URL')
+    .isLength({ max: 2048 }),
+  body('subscription.keys').isObject().withMessage('keys must be an object'),
+  body('subscription.keys.p256dh')
+    .isString()
+    .isLength({ max: 256 })
+    .withMessage('p256dh must be a string up to 256 chars'),
+  body('subscription.keys.auth')
+    .isString()
+    .isLength({ max: 128 })
+    .withMessage('auth must be a string up to 128 chars'),
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res
+        .status(400)
+        .json({ error: 'Invalid subscription payload', details: errors.array() });
+    }
+
+    const {
+      endpoint,
+      keys: { p256dh, auth },
+    } = req.body.subscription;
+    req.body.subscription = { endpoint, keys: { p256dh, auth } };
+
+    next();
+  },
+];
+
+app.post(
+  '/api/notifications/subscribe',
+  adminAuth,
+  notificationRateLimiter,
+  validatePushSubscription,
+  async (req, res) => {
+    try {
+      const { subscription } = req.body;
+      if (subscription) {
+        pushSubscriptions.add(JSON.stringify(subscription));
+        if (pushSubscriptions.size > 10000) {
+          const oldest = pushSubscriptions.values().next().value;
+          pushSubscriptions.delete(oldest);
+        }
+        await persistPushSubscription(subscription);
+      }
+      return res.json({ success: true });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
   }
-});
-function requireNotificationPrefAuth(req, res, next) {
+);
+
+app.post(
+  '/api/notifications/unsubscribe',
+  adminAuth,
+  notificationRateLimiter,
+  validatePushSubscription,
+  async (req, res) => {
+    try {
+      const { subscription } = req.body;
+      if (subscription) {
+        pushSubscriptions.delete(JSON.stringify(subscription));
+        await removePersistedPushSubscription(subscription);
+      }
+      return res.json({ success: true });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+function requireNotificationAuth(req, res, next) {
   adminAuthMiddleware.requireAdmin(req, res, (err) => {
     if (!err && req.adminSession) {
       return next();
     }
+    requireStudentAuth(req, res, (err2) => {
+      if (!err2 && req.studentUser) {
+        return next();
+      }
+      return res.status(401).json({ error: 'Unauthorized: Authentication required' });
+    });
+  });
+}
+
+app.post(
+  '/api/notifications/mark-read',
+  requireNotificationAuth,
+  notificationRateLimiter,
+  async (req, res) => {
+    try {
+      const { id, userId } = req.body || {};
+      if (!id) return res.status(400).json({ error: 'id required' });
+      let uid = userId || 'global';
+      if (req.studentUser) {
+        const studentId = req.studentUser.sub || req.studentUser.id;
+        if (userId && userId !== studentId) {
+          return res
+            .status(403)
+            .json({ error: 'Forbidden: Cannot modify other users notifications' });
+        }
+        uid = studentId;
+      }
+      const ok = await notificationsService.markAsRead(uid, id);
+      return res.json({ success: ok });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+app.post(
+  '/api/notifications/mark-all-read',
+  requireNotificationAuth,
+  notificationRateLimiter,
+  async (req, res) => {
+    try {
+      const { userId } = req.body || {};
+      let uid = userId || 'global';
+      if (req.studentUser) {
+        const studentId = req.studentUser.sub || req.studentUser.id;
+        if (userId && userId !== studentId) {
+          return res.status(403).json({ error: 'Forbidden' });
+        }
+        uid = studentId;
+      }
+      await notificationsService.markAllAsRead(uid);
+      return res.json({ success: true });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+);
     requireStudentAuth(req, res, (err2) => {
       if (err2 || !req.studentUser) {
         return res.status(401).json({ error: 'Unauthorized: Authentication required' });
@@ -1604,37 +1750,51 @@ function requireNotificationPrefAuth(req, res, next) {
   });
 }
 
-app.post('/api/notifications/mark-all-read', (req, res) => {
-  try {
-    const { userId } = req.body || {};
-    notificationsService.markAllAsRead(userId || 'global');
-    return res.json({ success: true });
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
+app.delete(
+  '/api/notifications/:id',
+  requireNotificationAuth,
+  notificationRateLimiter,
+  async (req, res) => {
+    try {
+      const id = req.params.id;
+      let uid = req.query.userId || 'global';
+      if (req.studentUser) {
+        const studentId = req.studentUser.sub || req.studentUser.id;
+        if (req.query.userId && req.query.userId !== studentId) {
+          return res.status(403).json({ error: 'Forbidden' });
+        }
+        uid = studentId;
+      }
+      const removed = await notificationsService.removeNotification(uid, id);
+      if (!removed) return res.status(404).json({ error: 'Notification not found' });
+      return res.json({ success: true });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
   }
-});
+);
 
-app.delete('/api/notifications/:id', (req, res) => {
-  try {
-    const id = req.params.id;
-    const userId = req.query.userId || 'global';
-    notificationsService.removeNotification(userId, id);
-    return res.json({ success: true });
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
+app.delete(
+  '/api/notifications',
+  requireNotificationAuth,
+  notificationRateLimiter,
+  async (req, res) => {
+    try {
+      let uid = req.query.userId || 'global';
+      if (req.studentUser) {
+        const studentId = req.studentUser.sub || req.studentUser.id;
+        if (req.query.userId && req.query.userId !== studentId) {
+          return res.status(403).json({ error: 'Forbidden' });
+        }
+        uid = studentId;
+      }
+      await notificationsService.clearAll(uid);
+      return res.json({ success: true });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
   }
-});
-
-// Delete all notifications for a user (or global)
-app.delete('/api/notifications', (req, res) => {
-  try {
-    const userId = req.query.userId || 'global';
-    notificationsService.clearAll(userId);
-    return res.json({ success: true });
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
-  }
-});
+);
 
 // Create notification (admin/testing)
 app.post('/api/notifications', (req, res) => {
