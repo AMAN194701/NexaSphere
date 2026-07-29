@@ -367,7 +367,7 @@ export const checkCriticalSecurityAlerts = () => {
   const criticalIssues = securityPatchManager.getCriticalVulnerabilities();
 
   if (criticalIssues.length > 0) {
-    console.error(`[SECURITY ALERT] ${criticalIssues.length} critical patches required`);
+    logger.error(`[SECURITY ALERT] ${criticalIssues.length} critical patches required`);
   }
 
   return criticalIssues;
@@ -378,7 +378,7 @@ export const checkEncryptionCompliance = () => {
   const status = encryptionManager.getEncryptionStatus();
 
   if (status.status !== 'SECURE') {
-    console.error('[SECURITY ALERT] Encryption compliance issue detected');
+    logger.error('[SECURITY ALERT] Encryption compliance issue detected');
   }
 
   return status;
