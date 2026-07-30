@@ -3,7 +3,18 @@ import { toPublicUserDTO, toAdminUserDTO } from '../utils/userSerializer.js';
 import { sendSuccess, sendError, sendNoContent } from '../utils/responseHelper.js';
 
 const MAX_LIMIT = 100;
-const ALLOWED_ROLES = ['admin', 'user', 'moderator', 'member'];
+const ALLOWED_ROLES = [
+  'admin',
+  'user',
+  'moderator',
+  'member',
+  'eventmanager',
+  'contentmoderator',
+  'analyticsviewer',
+  'EventManager',
+  'ContentModerator',
+  'AnalyticsViewer',
+];
 
 function parsePaginationAndFilters(query) {
   const page = Math.max(1, parseInt(query.page, 10) || 1);
@@ -69,7 +80,12 @@ export async function adminUpdateUser(req, res) {
   try {
     const { id } = req.params;
     const { display_name, email, phone_number, admin_roles } = req.body;
-    const user = await usersRepository.updateUser(id, { display_name, email, phone_number, admin_roles });
+    const user = await usersRepository.updateUser(id, {
+      display_name,
+      email,
+      phone_number,
+      admin_roles,
+    });
     if (!user) return sendError(req, res, 'User not found', 404, 'NOT_FOUND');
     return sendSuccess(res, { user });
   } catch (error) {
