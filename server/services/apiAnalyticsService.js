@@ -3,6 +3,8 @@
  * Mock implementation for Platform-Wide API Usage Analytics & Developer Portal
  */
 
+import crypto from 'crypto';
+
 const apiKeys = [
   {
     id: 1,
@@ -109,7 +111,7 @@ const generateApiKey = async (data) => {
   const key = {
     id: apiKeys.length + 1,
     name: data.name || 'New API Key',
-    key: `NSX_${Math.random().toString(36).substring(2, 15)}`,
+    key: `NSX_${crypto.randomUUID()}`,
     status: 'Active',
     createdAt: new Date().toISOString(),
   };
