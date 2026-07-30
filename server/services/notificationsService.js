@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { notificationAnalyticsRepository } from '../repositories/notificationAnalyticsRepository.js';
 import { pushSubscriptionsRepository } from '../repositories/pushSubscriptionsRepository.js';
 import { notificationsRepository } from '../repositories/notificationsRepository.js';
@@ -6,6 +7,7 @@ import webpush from 'web-push';
 import { shouldDeliver } from './notificationPreferencesService.js';
 import { smsService } from './smsService.js';
 import { usersRepository } from '../repositories/usersRepository.js';
+import logger from '../utils/logger.js';
 
 /**
  * Orchestrates notification delivery based on user preferences and behavior.
@@ -42,11 +44,7 @@ class NotificationsService {
     }
 
     // Create the notification record in DB
-    const id =
-      data.id ||
-      (typeof crypto !== 'undefined' && crypto.randomUUID
-        ? crypto.randomUUID()
-        : Math.random().toString(36).substring(2));
+    const id = data.id || crypto.randomUUID();
 
     const note = await notificationsRepository.create({
       id,
@@ -309,7 +307,7 @@ registerNotificationSyncCallback((action, userId, payload) => {
       _localRemoveNotification(userId, payload.id);
     }
   } catch (err) {
-    console.error("[Notifications Service] Sync handler error:", err.message);
+    logger.error("[Notifications Service] Sync handler error:", err.message);
   }
 });
 
@@ -490,11 +488,7 @@ export default {
       }
       return this.sendNow(userId, data);
     // Create the notification record in DB
-    const id =
-      data.id ||
-      (typeof crypto !== 'undefined' && crypto.randomUUID
-        ? crypto.randomUUID()
-        : Math.random().toString(36).substring(2));
+    const id = data.id || crypto.randomUUID();
     const note = await notificationsRepository.create({
       id,
       userId,
