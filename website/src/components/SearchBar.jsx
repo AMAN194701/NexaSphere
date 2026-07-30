@@ -17,7 +17,6 @@ import {
 // TODO: useSearch hook not implemented yet
 // import { useSearch } from '../hooks/useSearch';
 
-
 function Highlight({ text, query }) {
   if (!text) return null;
 

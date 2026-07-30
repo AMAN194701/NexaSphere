@@ -32,7 +32,13 @@ export const recoveryController = {
       const { id } = req.params;
       const { newPassword } = req.body;
       if (!newPassword || newPassword.length < 8) {
-        return sendError(req, res, 'Password must be at least 8 characters', 400, 'VALIDATION_ERROR');
+        return sendError(
+          req,
+          res,
+          'Password must be at least 8 characters',
+          400,
+          'VALIDATION_ERROR'
+        );
       }
 
       const hash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
@@ -115,7 +121,13 @@ export const recoveryController = {
     try {
       const { token, newPassword } = req.body;
       if (!token || !newPassword || newPassword.length < 8) {
-        return sendError(req, res, 'Valid token and new password (min 8 chars) required', 400, 'VALIDATION_ERROR');
+        return sendError(
+          req,
+          res,
+          'Valid token and new password (min 8 chars) required',
+          400,
+          'VALIDATION_ERROR'
+        );
       }
 
       const tokenHash = crypto.createHash('sha256').update(token).digest('hex');

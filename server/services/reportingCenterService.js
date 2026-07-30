@@ -6,16 +6,16 @@
 const reports = [
   {
     id: 1,
-    name: "Event Registration Report",
-    type: "CSV",
-    status: "Completed",
+    name: 'Event Registration Report',
+    type: 'CSV',
+    status: 'Completed',
     createdAt: new Date().toISOString(),
   },
   {
     id: 2,
-    name: "Attendance Analytics",
-    type: "PDF",
-    status: "Completed",
+    name: 'Attendance Analytics',
+    type: 'PDF',
+    status: 'Completed',
     createdAt: new Date().toISOString(),
   },
 ];
@@ -23,10 +23,10 @@ const reports = [
 const templates = [
   {
     id: 1,
-    name: "Monthly Event Summary",
+    name: 'Monthly Event Summary',
     filters: {
-      module: "events",
-      format: "PDF",
+      module: 'events',
+      format: 'PDF',
     },
   },
 ];
@@ -49,9 +49,9 @@ const getReports = async () => reports;
 const exportData = async (data) => {
   const report = {
     id: reports.length + 1,
-    name: data.name || "Custom Export",
-    type: data.format || "CSV",
-    status: "Completed",
+    name: data.name || 'Custom Export',
+    type: data.format || 'CSV',
+    status: 'Completed',
     exportedAt: new Date().toISOString(),
   };
 
@@ -59,7 +59,7 @@ const exportData = async (data) => {
   reportHistory.push(report);
 
   auditLogs.push({
-    action: "Export Generated",
+    action: 'Export Generated',
     report: report.name,
     timestamp: new Date().toISOString(),
   });
@@ -72,13 +72,13 @@ const scheduleReport = async (data) => ({
   id: Date.now(),
   schedule: data.schedule,
   format: data.format,
-  status: "Scheduled",
+  status: 'Scheduled',
 });
 
 // Generate Custom Report
 const generateCustomReport = async (data) => ({
   id: Date.now(),
-  title: data.title || "Custom Report",
+  title: data.title || 'Custom Report',
   filters: data.filters || {},
   generatedAt: new Date().toISOString(),
 });
@@ -102,7 +102,7 @@ const getTemplates = async () => templates;
 const emailReport = async (data) => ({
   email: data.email,
   report: data.report,
-  status: "Sent",
+  status: 'Sent',
   sentAt: new Date().toISOString(),
 });
 
@@ -121,15 +121,13 @@ const filterReports = async (filters) => {
 
   if (filters.type) {
     filtered = filtered.filter(
-      (report) =>
-        report.type.toLowerCase() === filters.type.toLowerCase()
+      (report) => report.type.toLowerCase() === filters.type.toLowerCase()
     );
   }
 
   if (filters.status) {
     filtered = filtered.filter(
-      (report) =>
-        report.status.toLowerCase() === filters.status.toLowerCase()
+      (report) => report.status.toLowerCase() === filters.status.toLowerCase()
     );
   }
 

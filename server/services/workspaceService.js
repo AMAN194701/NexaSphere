@@ -6,8 +6,8 @@
 const workspaces = [
   {
     id: 1,
-    name: "Coding Club Workspace",
-    description: "Workspace for Coding Club members",
+    name: 'Coding Club Workspace',
+    description: 'Workspace for Coding Club members',
     createdAt: new Date().toISOString(),
   },
 ];
@@ -25,8 +25,7 @@ const timeline = [];
 const getAllWorkspaces = async () => workspaces;
 
 // Get Workspace By ID
-const getWorkspaceById = async (id) =>
-  workspaces.find((workspace) => workspace.id === Number(id));
+const getWorkspaceById = async (id) => workspaces.find((workspace) => workspace.id === Number(id));
 
 // Create Workspace
 const createWorkspace = async (data) => {
@@ -42,9 +41,7 @@ const createWorkspace = async (data) => {
 
 // Update Workspace
 const updateWorkspace = async (id, data) => {
-  const index = workspaces.findIndex(
-    (workspace) => workspace.id === Number(id)
-  );
+  const index = workspaces.findIndex((workspace) => workspace.id === Number(id));
 
   if (index === -1) return null;
 
@@ -59,9 +56,7 @@ const updateWorkspace = async (id, data) => {
 
 // Delete Workspace
 const deleteWorkspace = async (id) => {
-  const index = workspaces.findIndex(
-    (workspace) => workspace.id === Number(id)
-  );
+  const index = workspaces.findIndex((workspace) => workspace.id === Number(id));
 
   if (index === -1) return null;
 
@@ -103,8 +98,8 @@ const getCalendar = async (workspaceId) => ({
   workspaceId: Number(workspaceId),
   events: [
     {
-      title: "Weekly Team Meeting",
-      date: "2026-07-15",
+      title: 'Weekly Team Meeting',
+      date: '2026-07-15',
     },
   ],
 });
@@ -114,7 +109,7 @@ const createTask = async (workspaceId, data) => {
   const task = {
     id: tasks.length + 1,
     workspaceId: Number(workspaceId),
-    status: "Pending",
+    status: 'Pending',
     createdAt: new Date().toISOString(),
     ...data,
   };

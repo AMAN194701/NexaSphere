@@ -1,5 +1,5 @@
-import { announcementPriorityService } from "../services/announcementPriorityService.js";
-import { sendSuccess, sendError } from "../utils/responseHelper.js";
+import { announcementPriorityService } from '../services/announcementPriorityService.js';
+import { sendSuccess, sendError } from '../utils/responseHelper.js';
 
 export const getAnnouncements = async (req, res) => {
   try {
@@ -9,7 +9,7 @@ export const getAnnouncements = async (req, res) => {
   } catch (error) {
     console.error(error);
 
-    return sendError(req, res, "Failed to fetch announcements", 500, 'INTERNAL_ERROR');
+    return sendError(req, res, 'Failed to fetch announcements', 500, 'INTERNAL_ERROR');
   }
 };
 
@@ -21,7 +21,7 @@ export const createAnnouncement = async (req, res) => {
   } catch (error) {
     console.error(error);
 
-    return sendError(req, res, "Failed to create announcement", 500, 'INTERNAL_ERROR');
+    return sendError(req, res, 'Failed to create announcement', 500, 'INTERNAL_ERROR');
   }
 };
 
@@ -33,14 +33,14 @@ export const updatePriority = async (req, res) => {
     const announcement = announcementPriorityService.updatePriority(id, priority);
 
     if (!announcement) {
-      return sendError(req, res, "Announcement not found", 404, 'NOT_FOUND');
+      return sendError(req, res, 'Announcement not found', 404, 'NOT_FOUND');
     }
 
     return sendSuccess(res, { announcement });
   } catch (error) {
     console.error(error);
 
-    return sendError(req, res, "Failed to update priority", 500, 'INTERNAL_ERROR');
+    return sendError(req, res, 'Failed to update priority', 500, 'INTERNAL_ERROR');
   }
 };
 
@@ -52,14 +52,14 @@ export const pinAnnouncement = async (req, res) => {
     const announcement = announcementPriorityService.pinAnnouncement(id, pinned);
 
     if (!announcement) {
-      return sendError(req, res, "Announcement not found", 404, 'NOT_FOUND');
+      return sendError(req, res, 'Announcement not found', 404, 'NOT_FOUND');
     }
 
     return sendSuccess(res, { announcement });
   } catch (error) {
     console.error(error);
 
-    return sendError(req, res, "Failed to pin announcement", 500, 'INTERNAL_ERROR');
+    return sendError(req, res, 'Failed to pin announcement', 500, 'INTERNAL_ERROR');
   }
 };
 
@@ -71,14 +71,14 @@ export const markRead = async (req, res) => {
     const announcement = announcementPriorityService.markAnnouncementRead(id, userId);
 
     if (!announcement) {
-      return sendError(req, res, "Announcement not found", 404, 'NOT_FOUND');
+      return sendError(req, res, 'Announcement not found', 404, 'NOT_FOUND');
     }
 
     return sendSuccess(res, { announcement });
   } catch (error) {
     console.error(error);
 
-    return sendError(req, res, "Failed to mark announcement as read", 500, 'INTERNAL_ERROR');
+    return sendError(req, res, 'Failed to mark announcement as read', 500, 'INTERNAL_ERROR');
   }
 };
 
@@ -90,6 +90,6 @@ export const analytics = async (req, res) => {
   } catch (error) {
     console.error(error);
 
-    return sendError(req, res, "Failed to fetch analytics", 500, 'INTERNAL_ERROR');
+    return sendError(req, res, 'Failed to fetch analytics', 500, 'INTERNAL_ERROR');
   }
 };

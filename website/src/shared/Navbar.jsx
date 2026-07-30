@@ -7,7 +7,6 @@ import { useStudentAuth } from '../context/StudentAuthContext';
 import LanguageSelector from '../components/common/LanguageSelector';
 import { useTranslation } from 'react-i18next';
 
-
 const TABS = [
   'Home',
   'Activities',
@@ -119,7 +118,15 @@ export default function Navbar({
         <button
           className="ns-mobile-top"
           onClick={goHome}
-          style={{ cursor: 'pointer', background: 'none', border: 'none', display: 'flex', alignItems: 'center', width: '100%', padding: 0 }}
+          style={{
+            cursor: 'pointer',
+            background: 'none',
+            border: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            width: '100%',
+            padding: 0,
+          }}
           aria-label="Go to homepage"
         >
           <img
@@ -192,7 +199,15 @@ export default function Navbar({
                 <button
                   className="ns-nav-user-badge"
                   onClick={() => navigate('/settings/account')}
-                  style={{ cursor: 'pointer', fontSize: '1rem', color: 'var(--t1)', background: 'none', border: 'none', padding: '4px', borderRadius: '4px' }}
+                  style={{
+                    cursor: 'pointer',
+                    fontSize: '1rem',
+                    color: 'var(--t1)',
+                    background: 'none',
+                    border: 'none',
+                    padding: '4px',
+                    borderRadius: '4px',
+                  }}
                   title="Settings & Privacy"
                   aria-label="Account settings"
                 >
@@ -201,7 +216,15 @@ export default function Navbar({
                 <button
                   className="ns-nav-user-badge"
                   onClick={() => navigate('/dashboard')}
-                  style={{ cursor: 'pointer', fontSize: '0.8rem', color: 'var(--t1)', background: 'none', border: 'none', padding: '4px', borderRadius: '4px' }}
+                  style={{
+                    cursor: 'pointer',
+                    fontSize: '0.8rem',
+                    color: 'var(--t1)',
+                    background: 'none',
+                    border: 'none',
+                    padding: '4px',
+                    borderRadius: '4px',
+                  }}
                   title={user?.name || user?.email}
                   aria-label={`View dashboard for ${user?.name || 'user'}`}
                 >
@@ -366,7 +389,15 @@ export default function Navbar({
                 <button
                   className="ns-nav-user-badge"
                   onClick={() => navigate('/settings/account')}
-                  style={{ cursor: 'pointer', fontSize: '1rem', color: 'var(--t1)', background: 'none', border: 'none', padding: '4px', borderRadius: '4px' }}
+                  style={{
+                    cursor: 'pointer',
+                    fontSize: '1rem',
+                    color: 'var(--t1)',
+                    background: 'none',
+                    border: 'none',
+                    padding: '4px',
+                    borderRadius: '4px',
+                  }}
                   title="Settings & Privacy"
                   aria-label="Account settings"
                 >
@@ -375,7 +406,15 @@ export default function Navbar({
                 <button
                   className="ns-nav-user-badge"
                   onClick={() => navigate('/dashboard')}
-                  style={{ cursor: 'pointer', fontSize: '0.9rem', color: 'var(--t1)', background: 'none', border: 'none', padding: '4px', borderRadius: '4px' }}
+                  style={{
+                    cursor: 'pointer',
+                    fontSize: '0.9rem',
+                    color: 'var(--t1)',
+                    background: 'none',
+                    border: 'none',
+                    padding: '4px',
+                    borderRadius: '4px',
+                  }}
                   title={user?.name || user?.email}
                   aria-label={`View dashboard for ${user?.name || 'user'}`}
                 >

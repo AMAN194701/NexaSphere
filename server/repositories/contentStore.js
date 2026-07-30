@@ -120,7 +120,6 @@ export function normalizePhone(value) {
   return String(value || '').replace(/[^\d]/g, '');
 }
 
-
 export async function listEventsStore({ page = 1, limit = 20 } = {}) {
   if (HAS_SUPABASE) {
     const { rows, total } = await supabasePaginatedRequest(

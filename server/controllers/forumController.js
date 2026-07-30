@@ -185,7 +185,8 @@ export const voteReply = wrapAsync(async (req, res) => {
 export const acceptReply = wrapAsync(async (req, res) => {
   const threadId = parseInt(req.params.id, 10);
   const replyId = parseInt(req.params.replyId, 10);
-  if (isNaN(threadId) || isNaN(replyId)) return sendError(req, res, 'Invalid IDs', 400, 'VALIDATION_ERROR');
+  if (isNaN(threadId) || isNaN(replyId))
+    return sendError(req, res, 'Invalid IDs', 400, 'VALIDATION_ERROR');
   if (!req.studentUser) {
     return sendError(req, res, 'Authentication required', 401, 'UNAUTHORIZED');
   }
@@ -207,7 +208,13 @@ export const moderateThread = wrapAsync(async (req, res) => {
   if (isNaN(id)) return sendError(req, res, 'Invalid thread ID', 400, 'VALIDATION_ERROR');
   const { status } = req.body;
   if (!['approved', 'rejected', 'flagged'].includes(status)) {
-    return sendError(req, res, 'Invalid status. Must be approved, rejected, or flagged', 400, 'VALIDATION_ERROR');
+    return sendError(
+      req,
+      res,
+      'Invalid status. Must be approved, rejected, or flagged',
+      400,
+      'VALIDATION_ERROR'
+    );
   }
   const thread = await forumService.moderateThread(id, status);
   if (!thread) return sendError(req, res, 'Thread not found', 404, 'NOT_FOUND');
@@ -219,7 +226,13 @@ export const moderateReply = wrapAsync(async (req, res) => {
   if (isNaN(id)) return sendError(req, res, 'Invalid reply ID', 400, 'VALIDATION_ERROR');
   const { status } = req.body;
   if (!['approved', 'rejected', 'flagged'].includes(status)) {
-    return sendError(req, res, 'Invalid status. Must be approved, rejected, or flagged', 400, 'VALIDATION_ERROR');
+    return sendError(
+      req,
+      res,
+      'Invalid status. Must be approved, rejected, or flagged',
+      400,
+      'VALIDATION_ERROR'
+    );
   }
   const reply = await forumService.moderateReply(id, status);
   if (!reply) return sendError(req, res, 'Reply not found', 404, 'NOT_FOUND');

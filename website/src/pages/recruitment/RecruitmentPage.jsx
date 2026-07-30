@@ -1460,7 +1460,11 @@ export default function RecruitmentPage({ onBack }) {
                       ref={stepHeadingRef}
                       tabIndex={-1}
                       aria-live="polite"
-                      aria-label={done ? 'Submission Complete' : `${current.title}, step ${step + 1} of ${steps.length}`}
+                      aria-label={
+                        done
+                          ? 'Submission Complete'
+                          : `${current.title}, step ${step + 1} of ${steps.length}`
+                      }
                       style={{ outline: 'none' }}
                     >
                       {done ? 'Submission Complete' : current.title}

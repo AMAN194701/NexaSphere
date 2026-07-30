@@ -1,6 +1,16 @@
 import React from 'react';
 
-export default function Image({ src, alt, width, height, fill, style, className, priority, ...props }) {
+export default function Image({
+  src,
+  alt,
+  width,
+  height,
+  fill,
+  style,
+  className,
+  priority,
+  ...props
+}) {
   const imageStyle = fill
     ? {
         position: 'absolute',
@@ -23,14 +33,19 @@ export default function Image({ src, alt, width, height, fill, style, className,
   const loadingProp = priority ? 'eager' : 'lazy';
 
   // Generate webp sources if it's a static path (e.g. /assets/logo.png)
-  const isStaticAsset = typeof src === 'string' && src.startsWith('/') && src.match(/\.(png|jpe?g)$/i) && !src.includes('@');
-  
+  const isStaticAsset =
+    typeof src === 'string' &&
+    src.startsWith('/') &&
+    src.match(/\.(png|jpe?g)$/i) &&
+    !src.includes('@');
+
   if (isStaticAsset) {
     const basePath = src.substring(0, src.lastIndexOf('.'));
     // Generate responsive srcset using widths
     const srcsetWebp = `${basePath}-480w.webp 480w, ${basePath}-800w.webp 800w, ${basePath}-1200w.webp 1200w`;
-    const defaultSizes = props.sizes || '(max-width: 600px) 480px, (max-width: 1024px) 800px, 1200px';
-    
+    const defaultSizes =
+      props.sizes || '(max-width: 600px) 480px, (max-width: 1024px) 800px, 1200px';
+
     // For picture, we need the parent to take the full space and img to fill it
     // The wrapper picture needs to adopt the display sizing
     const pictureStyle = {
@@ -43,7 +58,7 @@ export default function Image({ src, alt, width, height, fill, style, className,
       right: imageStyle.right,
       bottom: imageStyle.bottom,
     };
-    
+
     const innerImgStyle = {
       width: '100%',
       height: '100%',
@@ -54,13 +69,28 @@ export default function Image({ src, alt, width, height, fill, style, className,
       <picture className={className} style={pictureStyle}>
         <source srcSet={srcsetWebp} sizes={defaultSizes} type="image/webp" />
         {/* Fallback to original image format for legacy browsers */}
-        <img src={src} alt={alt} style={innerImgStyle} loading={loadingProp} srcSet={`${basePath}-480w.png 480w, ${basePath}-800w.png 800w, ${basePath}-1200w.png 1200w`} sizes={defaultSizes} {...props} />
+        <img
+          src={src}
+          alt={alt}
+          style={innerImgStyle}
+          loading={loadingProp}
+          srcSet={`${basePath}-480w.png 480w, ${basePath}-800w.png 800w, ${basePath}-1200w.png 1200w`}
+          sizes={defaultSizes}
+          {...props}
+        />
       </picture>
     );
   }
 
   // Fallback for external URLs or SVGs
   return (
-    <img src={src} alt={alt} style={imageStyle} className={className} loading={loadingProp} {...props} />
+    <img
+      src={src}
+      alt={alt}
+      style={imageStyle}
+      className={className}
+      loading={loadingProp}
+      {...props}
+    />
   );
 }

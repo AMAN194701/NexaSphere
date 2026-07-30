@@ -25,7 +25,6 @@ export default defineConfig({
   plugins: [
     react(),
 
-
     sentryVitePlugin({
       org: process.env.SENTRY_ORG || 'nexasphere',
       project: process.env.SENTRY_PROJECT || 'javascript-react',

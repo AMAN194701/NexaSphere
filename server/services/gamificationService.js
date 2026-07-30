@@ -50,7 +50,6 @@ const ACHIEVEMENT_DEFS = {
     tier: 'silver',
     source: 'system',
   },
-
 };
 
 class GamificationService {
@@ -84,7 +83,6 @@ class GamificationService {
       }
     }
   }
-
 }
 
 const gamificationService = new GamificationService();

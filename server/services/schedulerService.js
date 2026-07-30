@@ -227,7 +227,6 @@ const TASK_DEFINITIONS = [
     category: 'email',
     enabled: true,
   },
-
 ];
 
 // ─── In-memory state ──────────────────────────────────────────────────────────
@@ -678,7 +677,6 @@ class SchedulerService extends EventEmitter {
       throw err;
     }
   }
-
 
   // ── Public API ───────────────────────────────────────────────────────────────
 

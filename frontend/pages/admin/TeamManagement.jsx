@@ -8,7 +8,7 @@ const TeamManagement = () => {
   const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
-    api.getPending().then(res => setPendingCount(res.data.length));
+    api.getPending().then((res) => setPendingCount(res.data.length));
   }, []);
 
   return (

@@ -13,6 +13,7 @@ import { protectedActionRateLimiter } from '../middleware/authRateLimiter.js';
 import { requireStudentAuth } from '../middleware/studentAuthMiddleware.js';
 import notificationsService from '../services/notificationsService.js';
 import { sendSuccess, sendError, sendNoContent } from '../utils/responseHelper.js';
+import { getAuthorizationUrl, fetchLinkedInData } from '../utils/linkedinHelper.js';
 
 const router = Router();
 
@@ -128,6 +129,63 @@ function clearPasskeyAttempts(username, ip) {
 // ── Routes ─────────────────────────────────────────────────────────────────
 
 /**
+ * GET /api/portfolio/linkedin/auth
+ * Initiates the LinkedIn OAuth flow.
+ */
+router.get('/portfolio/linkedin/auth', (req, res) => {
+  const state = Math.random().toString(36).substring(7);
+  // Ideally, store the state in session or a cookie to verify it later to prevent CSRF
+  const authUrl = getAuthorizationUrl(state);
+  res.redirect(authUrl);
+});
+
+/**
+ * GET /api/portfolio/linkedin/callback
+ * Handles the callback from LinkedIn OAuth.
+ */
+router.get('/portfolio/linkedin/callback', async (req, res) => {
+  const { code, state, error, error_description } = req.query;
+
+  if (error) {
+    return res.status(400).send(`
+      <script>
+        window.opener.postMessage({ type: 'LINKEDIN_ERROR', payload: '${error_description || error}' }, '*');
+        window.close();
+      </script>
+    `);
+  }
+
+  if (!code) {
+    return res.status(400).send(`
+      <script>
+        window.opener.postMessage({ type: 'LINKEDIN_ERROR', payload: 'Authorization code missing.' }, '*');
+        window.close();
+      </script>
+    `);
+  }
+
+  try {
+    const data = await fetchLinkedInData(code);
+
+    // Send data back to the popup opener (PortfolioBuilder)
+    res.send(`
+      <script>
+        window.opener.postMessage({ type: 'LINKEDIN_SUCCESS', payload: ${JSON.stringify(data)} }, '*');
+        window.close();
+      </script>
+    `);
+  } catch (err) {
+    console.error('LinkedIn OAuth Error:', err);
+    res.status(500).send(`
+      <script>
+        window.opener.postMessage({ type: 'LINKEDIN_ERROR', payload: 'Failed to fetch LinkedIn data' }, '*');
+        window.close();
+      </script>
+    `);
+  }
+});
+
+/**
  * GET /api/portfolio/github-repos/:username — Server-side GitHub repository import.
  * Keeps GitHub API credentials off the browser and avoids unauthenticated client calls.
  */
@@ -139,7 +197,13 @@ router.get('/portfolio/github-repos/:username', async (req, res) => {
 
   const token = getGitHubToken();
   if (!token) {
-    return sendError(req, res, 'GitHub repository import is unavailable because the server token is not configured.', 503, 'DEPENDENCY_ERROR');
+    return sendError(
+      req,
+      res,
+      'GitHub repository import is unavailable because the server token is not configured.',
+      503,
+      'DEPENDENCY_ERROR'
+    );
   }
 
   const sort =
@@ -164,15 +228,34 @@ router.get('/portfolio/github-repos/:username', async (req, res) => {
       const resetDate = resetHeader
         ? new Date(Number.parseInt(resetHeader, 10) * 1000).toISOString()
         : null;
-      return sendError(req, res, 'GitHub rate limit reached. Please try again later.', response.status, 'RATE_LIMITED', { rateLimitReset: resetDate });
+      return sendError(
+        req,
+        res,
+        'GitHub rate limit reached. Please try again later.',
+        response.status,
+        'RATE_LIMITED',
+        { rateLimitReset: resetDate }
+      );
     }
 
     if (response.status === 404) {
-      return sendError(req, res, `GitHub user "${username}" not found. Please check the username and try again.`, 404, 'NOT_FOUND');
+      return sendError(
+        req,
+        res,
+        `GitHub user "${username}" not found. Please check the username and try again.`,
+        404,
+        'NOT_FOUND'
+      );
     }
 
     if (!response.ok) {
-      return sendError(req, res, `GitHub API error: ${response.status} ${response.statusText}`, response.status, 'DEPENDENCY_ERROR');
+      return sendError(
+        req,
+        res,
+        `GitHub API error: ${response.status} ${response.statusText}`,
+        response.status,
+        'DEPENDENCY_ERROR'
+      );
     }
 
     const repos = await response.json();
@@ -180,7 +263,13 @@ router.get('/portfolio/github-repos/:username', async (req, res) => {
     return sendSuccess(res, repos);
   } catch (err) {
     console.error('Error fetching GitHub repositories:', err);
-    return sendError(req, res, 'Failed to fetch repositories from GitHub.', 502, 'DEPENDENCY_ERROR');
+    return sendError(
+      req,
+      res,
+      'Failed to fetch repositories from GitHub.',
+      502,
+      'DEPENDENCY_ERROR'
+    );
   }
 });
 
@@ -281,7 +370,13 @@ router.put('/portfolio', protectedActionRateLimiter, async (req, res) => {
     });
     if (!credentials.success) {
       const firstIssue = credentials.error.issues[0];
-      return sendError(req, res, firstIssue?.message || 'Invalid request body', 400, 'VALIDATION_ERROR');
+      return sendError(
+        req,
+        res,
+        firstIssue?.message || 'Invalid request body',
+        400,
+        'VALIDATION_ERROR'
+      );
     }
     const { username, passkey } = credentials.data;
 
@@ -292,9 +387,13 @@ router.put('/portfolio', protectedActionRateLimiter, async (req, res) => {
     const content = portfolioContentSchema.safeParse(body);
     if (!content.success) {
       const firstIssue = content.error.issues[0];
-      return sendError(req, res,
+      return sendError(
+        req,
+        res,
         `Invalid portfolio content: ${firstIssue?.path?.join('.') || ''} ${firstIssue?.message || ''}`.trim(),
-        400, 'VALIDATION_ERROR');
+        400,
+        'VALIDATION_ERROR'
+      );
     }
 
     const existingPortfolio = await portfolioRepository.getByUsername(username);
@@ -302,7 +401,13 @@ router.put('/portfolio', protectedActionRateLimiter, async (req, res) => {
 
     const lockout = checkPasskeyLockout(username, ip);
     if (lockout) {
-      return sendError(req, res, 'Too many failed passkey attempts. Please try again later.', 429, 'RATE_LIMITED');
+      return sendError(
+        req,
+        res,
+        'Too many failed passkey attempts. Please try again later.',
+        429,
+        'RATE_LIMITED'
+      );
     }
 
     const isAuthorized = await portfolioRepository.verifyPasskey(username, passkey, {
@@ -340,7 +445,13 @@ router.put('/portfolio', protectedActionRateLimiter, async (req, res) => {
     return sendSuccess(res, { ok: true, portfolio: saved });
   } catch (err) {
     if (err.code === '23505') {
-      return sendError(req, res, 'Username already exists. Another request may have just created it.', 409, 'CONFLICT');
+      return sendError(
+        req,
+        res,
+        'Username already exists. Another request may have just created it.',
+        409,
+        'CONFLICT'
+      );
     }
     console.error('Error saving portfolio:', err);
     return sendError(req, res, err.message || 'Internal server error', 500, 'INTERNAL_ERROR');

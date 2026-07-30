@@ -6,7 +6,6 @@ export function SubscriptionsManager() {
   const [stats, setStats] = useState({ total: 0, premium: 0, pro: 0, revenue: 0 });
   const [loading, setLoading] = useState(true);
 
-
   useEffect(() => {
     loadData();
   }, []);
@@ -26,7 +25,6 @@ export function SubscriptionsManager() {
       });
     } catch (e) {
       console.error('Failed to load subscriptions', e);
-
     }
     setLoading(false);
   };

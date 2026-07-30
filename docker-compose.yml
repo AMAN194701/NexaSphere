@@ -58,7 +58,6 @@ services:
       timeout: 5s
       retries: 5
 
-
   # ── API Gateway (Nginx) ──────────────────────────────────────────────────────
   # Handles: SSL termination, rate limiting, request logging, routing to backend.
   # Port 80  → HTTP (redirects to HTTPS)
@@ -119,7 +118,7 @@ networks:
     name: nexasphere-observability
     driver: bridge
 
-# Redis is used for rate limiting and Socket.IO session sharing.
+  # Redis is used for rate limiting and Socket.IO session sharing.
 
   # ── Java Microservices API (optional) ────────────────────────────────────────
   java-api:

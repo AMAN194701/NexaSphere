@@ -35,7 +35,6 @@ export default function EventPricingCard({ eventId, onRegister }) {
     estimatedPriceIn7Days,
     reasons,
     capacityUtilization,
-
   } = pricing;
 
   // Format reasons for users
@@ -87,7 +86,6 @@ export default function EventPricingCard({ eventId, onRegister }) {
               {reason}
             </span>
           ))}
-
         </div>
       )}
 

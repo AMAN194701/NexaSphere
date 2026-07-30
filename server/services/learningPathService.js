@@ -2,7 +2,6 @@ import { learningPathsRepository } from '../repositories/learningPathsRepository
 import { supabaseRequest } from '../storage/supabaseClient.js';
 import notificationsService from './notificationsService.js';
 
-
 /**
  * Service for Learning Path logic, progress tracking, and nudges.
  */
@@ -73,7 +72,6 @@ export const learningPathService = {
           });
         }
       }
-
     }
 
     const [updated] = await learningPathsRepository.updateProgress(userPathId, updates);

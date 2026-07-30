@@ -54,7 +54,6 @@ class NotificationsService {
       message,
       link,
       isRead: data.isRead || false,
-
     });
 
     if (effectiveFrequency === 'immediate') {
@@ -62,7 +61,6 @@ class NotificationsService {
     } else if (effectiveFrequency !== 'disabled') {
       await this.addToDigest(userId, effectiveFrequency, { ...data, id });
     }
-
 
     return note;
   }

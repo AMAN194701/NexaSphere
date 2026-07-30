@@ -940,7 +940,6 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
             </div>
           )}
 
-
           {activeSubTab === 'media' && (
             <div
               className="pop-in"

@@ -42,7 +42,6 @@ export default function UserManager() {
     admin_roles: 'member',
   });
 
-
   async function fetchUsers() {
     setLoading(true);
     try {

@@ -43,7 +43,10 @@ const PinnedChats = ({ onSelectPrompt, workspace = 'default' }) => {
         <div className="pinned-header">
           <h4>📌 Pinned Conversations</h4>
         </div>
-        <div className="pinned-error" style={{ color: '#ef4444', padding: '12px 16px', fontSize: '0.9rem' }}>
+        <div
+          className="pinned-error"
+          style={{ color: '#ef4444', padding: '12px 16px', fontSize: '0.9rem' }}
+        >
           {error}
         </div>
       </div>

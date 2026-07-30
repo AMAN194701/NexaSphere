@@ -6,7 +6,6 @@ import { roadmapData } from '../../data/roadmapData';
 import { RepoCardSkeleton } from '../ui/skeleton/RepoCardSkeleton';
 import AdvancedCustomizer from './AdvancedCustomizer';
 
-
 export default function PortfolioBuilder() {
   const [username, setUsername] = useState('');
   const [passkey, setPasskey] = useState('');
@@ -47,6 +46,7 @@ export default function PortfolioBuilder() {
   const [selectedRoadmaps, setSelectedRoadmaps] = useState([]);
   const [selectedProjects, setSelectedProjects] = useState([]);
   const [customProjects, setCustomProjects] = useState([]);
+  const [workExperience, setWorkExperience] = useState([]);
 
   // GitHub Fetching States
   const [ghUsername, setGhUsername] = useState('');
@@ -127,6 +127,7 @@ export default function PortfolioBuilder() {
         setSelectedRoadmaps(data.roadmaps || []);
         setSelectedProjects(data.projects || []);
         setCustomProjects(data.customProjects || []);
+        setWorkExperience(data.workExperience || []);
         setSuccessMsg('Existing portfolio configuration found and loaded!');
       }
     } catch (err) {
@@ -173,6 +174,7 @@ export default function PortfolioBuilder() {
         roadmaps: selectedRoadmaps,
         projects: selectedProjects,
         customProjects,
+        workExperience,
         githubUsername: ghUsername.trim() || undefined,
       };
 
@@ -306,6 +308,44 @@ export default function PortfolioBuilder() {
     });
   };
 
+  const handleLinkedInSync = () => {
+    const base = getApiBase();
+    const width = 600;
+    const height = 700;
+    const left = window.innerWidth / 2 - width / 2;
+    const top = window.innerHeight / 2 - height / 2;
+    const url = base ? `${base}/api/portfolio/linkedin/auth` : `/api/portfolio/linkedin/auth`;
+
+    window.open(url, 'LinkedInSync', `width=${width},height=${height},top=${top},left=${left}`);
+  };
+
+  React.useEffect(() => {
+    const handleMessage = (event) => {
+      if (event.data?.type === 'LINKEDIN_SUCCESS') {
+        const payload = event.data.payload;
+        setSuccessMsg('LinkedIn data imported successfully!');
+        if (payload.socialLink) {
+          setSocialLinks((prev) => ({ ...prev, linkedin: payload.socialLink }));
+        }
+        if (payload.skills && payload.skills.length > 0) {
+          const newSkills = payload.skills.map((s) => s.name);
+          setSelectedSkills((prev) => {
+            const merged = new Set([...prev, ...newSkills]);
+            return Array.from(merged);
+          });
+        }
+        if (payload.workExperience) {
+          setWorkExperience(payload.workExperience);
+        }
+      } else if (event.data?.type === 'LINKEDIN_ERROR') {
+        setErrorMsg('LinkedIn Import Error: ' + event.data.payload);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
   const getPortfolioUrl = () => {
     const base = typeof window !== 'undefined' ? window.location.origin : '';
     return `${base}/p/${username}`;
@@ -343,12 +383,14 @@ export default function PortfolioBuilder() {
       setErrorMsg('Unable to copy link. Please copy it manually from the address bar.');
     }
     document.body.removeChild(textarea);
-
   };
 
   return (
     <div className="portfolio-builder-container">
-      <div className="builder-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div
+        className="builder-header"
+        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}
+      >
         <div>
           <h1 className="builder-title">Portfolio Builder</h1>
           <p className="builder-subtitle">
@@ -375,19 +417,40 @@ export default function PortfolioBuilder() {
               alignItems: 'center',
               gap: '8px',
               fontSize: '0.9rem',
-              whiteSpace: 'nowrap'
+              whiteSpace: 'nowrap',
             }}
           >
             {isParsing ? (
               <>
-                <svg className="spinner" viewBox="0 0 50 50" style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }}>
-                  <circle className="path" cx="25" cy="25" r="20" fill="none" strokeWidth="5" stroke="currentColor" strokeDasharray="31.4 31.4" strokeLinecap="round" />
+                <svg
+                  className="spinner"
+                  viewBox="0 0 50 50"
+                  style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }}
+                >
+                  <circle
+                    className="path"
+                    cx="25"
+                    cy="25"
+                    r="20"
+                    fill="none"
+                    strokeWidth="5"
+                    stroke="currentColor"
+                    strokeDasharray="31.4 31.4"
+                    strokeLinecap="round"
+                  />
                 </svg>
                 Parsing...
               </>
             ) : (
               <>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                   <polyline points="17 8 12 3 7 8" />
                   <line x1="12" y1="3" x2="12" y2="15" />
@@ -903,6 +966,60 @@ export default function PortfolioBuilder() {
                 )
               )}
             </div>
+
+            <div
+              className="form-group"
+              style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px dashed var(--bdr2)' }}
+            >
+              <label className="form-label">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  style={{ marginRight: '6px', verticalAlign: 'middle' }}
+                >
+                  <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path>
+                  <rect x="2" y="9" width="4" height="12"></rect>
+                  <circle cx="4" cy="4" r="2"></circle>
+                </svg>
+                Sync with LinkedIn (Optional)
+              </label>
+              <p className="switch-subtext" style={{ marginBottom: '12px' }}>
+                Import your job history and skills directly from your LinkedIn profile.
+              </p>
+              <button type="button" className="ns-btn secondary" onClick={handleLinkedInSync}>
+                Connect LinkedIn
+              </button>
+
+              {workExperience.length > 0 && (
+                <div style={{ marginTop: '16px' }}>
+                  <h4 style={{ fontSize: '0.9rem', marginBottom: '8px', color: 'var(--c1a)' }}>
+                    Imported Experience
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {workExperience.map((we, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          padding: '8px',
+                          border: '1px solid var(--bdr1)',
+                          borderRadius: '6px',
+                          fontSize: '0.85rem',
+                        }}
+                      >
+                        <strong>{we.company}</strong> — {we.role} <br />
+                        <span style={{ color: 'var(--c3)', fontSize: '0.8rem' }}>
+                          {we.startDate} - {we.current ? 'Present' : we.endDate}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* SEO & Optimization metadata */}
@@ -1061,7 +1178,8 @@ export default function PortfolioBuilder() {
                 className="portfolio-intro"
                 style={{ flexDirection: 'column', textAlign: 'center', gap: '12px' }}
               >
-                <img loading="lazy"
+                <img
+                  loading="lazy"
                   src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${username || 'preview'}`}
                   alt="avatar"
                   className="portfolio-avatar"

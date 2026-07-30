@@ -93,6 +93,12 @@ export async function getProjectRecommendations(req, res, next) {
     return sendSuccess(res, recommendations);
   } catch (error) {
     console.error('Error in getProjectRecommendations controller:', error);
-    return sendError(req, res, error.message || 'An error occurred during resume analysis.', 500, 'INTERNAL_ERROR');
+    return sendError(
+      req,
+      res,
+      error.message || 'An error occurred during resume analysis.',
+      500,
+      'INTERNAL_ERROR'
+    );
   }
 }

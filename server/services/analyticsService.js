@@ -48,9 +48,7 @@ export const analyticsService = {
       const eventsThisMonth = parseInt(eventRows[0]?.count || 0, 10);
 
       // 3. Registrations total
-      const { rows: regRows } = await client.query(
-        `SELECT COUNT(*) as count FROM registrations`
-      );
+      const { rows: regRows } = await client.query(`SELECT COUNT(*) as count FROM registrations`);
       const totalRegistrations = parseInt(regRows[0]?.count || 0, 10);
 
       // 4. Page views

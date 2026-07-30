@@ -45,7 +45,13 @@ export async function getMyCertificates(req, res) {
 
 export async function downloadCertificatePdf(req, res) {
   // TODO: stream from S3
-  return sendError(req, res, 'PDF download not implemented yet (S3 + storage layer TODO).', 501, 'NOT_IMPLEMENTED');
+  return sendError(
+    req,
+    res,
+    'PDF download not implemented yet (S3 + storage layer TODO).',
+    501,
+    'NOT_IMPLEMENTED'
+  );
 }
 
 export async function getOpenBadge(req, res) {

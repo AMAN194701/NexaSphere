@@ -83,7 +83,8 @@ export const requestMentorship = wrapAsync(async (req, res) => {
     mentee_email: req.studentUser.email,
   });
   const mentorship = await mentorshipService.requestMentorship(input);
-  if (!mentorship) return sendError(req, res, 'Mentorship system is offline', 503, 'DEPENDENCY_ERROR');
+  if (!mentorship)
+    return sendError(req, res, 'Mentorship system is offline', 503, 'DEPENDENCY_ERROR');
   return sendSuccess(res, { mentorship }, 201);
 });
 
@@ -123,7 +124,13 @@ export const getMentorship = wrapAsync(async (req, res) => {
     mentorship.menteeEmail === req.studentUser.email ||
     mentorEmail === req.studentUser.email;
   if (!isAuthorized) {
-    return sendError(req, res, 'Forbidden: You are not authorized to view this mentorship', 403, 'FORBIDDEN');
+    return sendError(
+      req,
+      res,
+      'Forbidden: You are not authorized to view this mentorship',
+      403,
+      'FORBIDDEN'
+    );
   }
 
   return sendSuccess(res, { mentorship });
@@ -141,7 +148,13 @@ export const updateMentorshipStatus = wrapAsync(async (req, res) => {
 
   const { status } = req.body;
   if (!['active', 'rejected', 'completed'].includes(status)) {
-    return sendError(req, res, 'Invalid status. Must be active, rejected, or completed', 400, 'VALIDATION_ERROR');
+    return sendError(
+      req,
+      res,
+      'Invalid status. Must be active, rejected, or completed',
+      400,
+      'VALIDATION_ERROR'
+    );
   }
 
   const isAdmin = req.adminSession || req.studentUser?.role === 'admin';
@@ -152,11 +165,23 @@ export const updateMentorshipStatus = wrapAsync(async (req, res) => {
   const isMentee = req.studentUser && req.studentUser.email === mentorship.menteeEmail;
 
   if (!isAdmin && !isMentor && !isMentee) {
-    return sendError(req, res, 'Forbidden: You are not authorized to update this status', 403, 'FORBIDDEN');
+    return sendError(
+      req,
+      res,
+      'Forbidden: You are not authorized to update this status',
+      403,
+      'FORBIDDEN'
+    );
   }
 
   if (isMentee && !isAdmin && status !== 'completed') {
-    return sendError(req, res, 'Forbidden: Mentees can only mark mentorship as completed', 403, 'FORBIDDEN');
+    return sendError(
+      req,
+      res,
+      'Forbidden: Mentees can only mark mentorship as completed',
+      403,
+      'FORBIDDEN'
+    );
   }
 
   const updated = await mentorshipService.updateMentorshipStatus(id, status);
@@ -165,7 +190,8 @@ export const updateMentorshipStatus = wrapAsync(async (req, res) => {
 
 export const logSession = wrapAsync(async (req, res) => {
   const mentorshipId = parseInt(req.params.id, 10);
-  if (isNaN(mentorshipId)) return sendError(req, res, 'Invalid mentorship ID', 400, 'VALIDATION_ERROR');
+  if (isNaN(mentorshipId))
+    return sendError(req, res, 'Invalid mentorship ID', 400, 'VALIDATION_ERROR');
   if (!req.studentUser) {
     return sendError(req, res, 'Authentication required', 401, 'UNAUTHORIZED');
   }
@@ -182,7 +208,13 @@ export const logSession = wrapAsync(async (req, res) => {
     mentorship.menteeEmail === req.studentUser.email ||
     mentorEmail === req.studentUser.email;
   if (!isAuthorized) {
-    return sendError(req, res, 'Forbidden: You are not authorized to log sessions for this mentorship', 403, 'FORBIDDEN');
+    return sendError(
+      req,
+      res,
+      'Forbidden: You are not authorized to log sessions for this mentorship',
+      403,
+      'FORBIDDEN'
+    );
   }
 
   const input = logSessionSchema.parse(req.body);
@@ -193,7 +225,8 @@ export const logSession = wrapAsync(async (req, res) => {
 
 export const listSessions = wrapAsync(async (req, res) => {
   const mentorshipId = parseInt(req.params.id, 10);
-  if (isNaN(mentorshipId)) return sendError(req, res, 'Invalid mentorship ID', 400, 'VALIDATION_ERROR');
+  if (isNaN(mentorshipId))
+    return sendError(req, res, 'Invalid mentorship ID', 400, 'VALIDATION_ERROR');
   if (!req.studentUser) {
     return sendError(req, res, 'Authentication required', 401, 'UNAUTHORIZED');
   }
@@ -210,7 +243,13 @@ export const listSessions = wrapAsync(async (req, res) => {
     mentorship.menteeEmail === req.studentUser.email ||
     mentorEmail === req.studentUser.email;
   if (!isAuthorized) {
-    return sendError(req, res, 'Forbidden: You are not authorized to view sessions for this mentorship', 403, 'FORBIDDEN');
+    return sendError(
+      req,
+      res,
+      'Forbidden: You are not authorized to view sessions for this mentorship',
+      403,
+      'FORBIDDEN'
+    );
   }
 
   const { page, limit } = req.query;
@@ -231,7 +270,13 @@ export const createBuddyPair = wrapAsync(async (req, res) => {
   const isSelf =
     input.buddy1_email === req.studentUser.email || input.buddy2_email === req.studentUser.email;
   if (!isSelf && !isAdmin) {
-    return sendError(req, res, 'Forbidden: You can only register buddy pairings for yourself', 403, 'FORBIDDEN');
+    return sendError(
+      req,
+      res,
+      'Forbidden: You can only register buddy pairings for yourself',
+      403,
+      'FORBIDDEN'
+    );
   }
 
   const pair = await mentorshipService.createBuddyPair(input);

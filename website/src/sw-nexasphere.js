@@ -164,14 +164,14 @@ const bgSyncPlugin = new BackgroundSyncPlugin('nexasphere-offline-queue', {
       if (self.registration && self.Notification && self.Notification.permission === 'granted') {
         self.registration.showNotification('Changes Synced', {
           body: 'Your offline actions have been successfully synchronized with NexaSphere.',
-          icon: '/pwa-192x192.png'
+          icon: '/pwa-192x192.png',
         });
       }
     } catch (error) {
       console.error('[Service Worker] Sync failed', error);
       throw error;
     }
-  }
+  },
 });
 
 // Intercept mutating requests to our API — queue them when offline
@@ -219,10 +219,12 @@ self.addEventListener('sync', (event) => {
 // Serve offline.html when a document request fails and there is no cache match.
 setCatchHandler(async ({ request }) => {
   if (request.destination === 'document') {
-    return (await matchPrecache('offline.html')) || 
-           (await matchPrecache('/offline.html')) || 
-           (await caches.match('/offline.html')) || 
-           Response.error();
+    return (
+      (await matchPrecache('offline.html')) ||
+      (await matchPrecache('/offline.html')) ||
+      (await caches.match('/offline.html')) ||
+      Response.error()
+    );
   }
   return Response.error();
 });

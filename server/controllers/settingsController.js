@@ -250,7 +250,8 @@ export async function updateSettings(req, res) {
   }
 
   const errors = validateSettings(updates);
-  if (Object.keys(errors).length) return sendError(req, res, 'Validation failed', 422, 'VALIDATION_ERROR', errors);
+  if (Object.keys(errors).length)
+    return sendError(req, res, 'Validation failed', 422, 'VALIDATION_ERROR', errors);
 
   if (preview) return sendSuccess(res, { valid: true, preview: updates });
 
@@ -326,7 +327,12 @@ export async function getHistory(req, res) {
     newValue: SECRET_KEYS.has(l.key) ? '***REDACTED***' : l.newValue,
   }));
 
-  return sendSuccess(res, { logs: sanitized, total, page: Number(page), pages: Math.ceil(total / take) });
+  return sendSuccess(res, {
+    logs: sanitized,
+    total,
+    page: Number(page),
+    pages: Math.ceil(total / take),
+  });
 }
 
 /**
@@ -399,7 +405,8 @@ export async function importSettings(req, res) {
   );
 
   const errors = validateSettings(toImport);
-  if (Object.keys(errors).length) return sendError(req, res, 'Validation failed', 422, 'VALIDATION_ERROR', errors);
+  if (Object.keys(errors).length)
+    return sendError(req, res, 'Validation failed', 422, 'VALIDATION_ERROR', errors);
 
   // Re-use updateSettings logic
   req.body = { env, updates: toImport };

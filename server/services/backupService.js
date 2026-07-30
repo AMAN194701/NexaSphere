@@ -15,7 +15,6 @@ import { withDb } from '../repositories/db.js';
 import { HAS_SUPABASE } from '../storage/supabaseClient.js';
 import { sendSlackAlert } from '../utils/slack.js';
 
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const BACKUP_LOCAL_DIR = path.resolve(__dirname, '../../backups');
@@ -31,8 +30,8 @@ function getEncryptionPassphrase() {
   if (!process.env.ENCRYPTION_KEY) {
     throw new Error(
       'ENCRYPTION_KEY environment variable is required for backup encryption. ' +
-      'Set it to a strong, random value (minimum 32 characters). ' +
-      'Example: openssl rand -hex 32'
+        'Set it to a strong, random value (minimum 32 characters). ' +
+        'Example: openssl rand -hex 32'
     );
   }
   return process.env.ENCRYPTION_KEY;

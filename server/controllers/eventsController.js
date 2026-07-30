@@ -95,7 +95,6 @@ export const adminUpdateEvent = wrapAsync(async (req, res) => {
   const updated = await eventsService.updateEvent(id, req.body, updateSeries);
   if (!updated) return sendError(req, res, 'Event not found', 404, 'NOT_FOUND');
 
-
   // Broadcast real-time update to all calendar views
   emitToRole('user', 'calendar:event-updated', updated);
 

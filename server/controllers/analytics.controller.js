@@ -7,7 +7,13 @@ exports.trackEvents = async (req, res) => {
     const { events } = req.body;
 
     if (!events || !Array.isArray(events) || events.length === 0) {
-      return sendError(req, res, 'Invalid payload: "events" array is required.', 400, 'VALIDATION_ERROR');
+      return sendError(
+        req,
+        res,
+        'Invalid payload: "events" array is required.',
+        400,
+        'VALIDATION_ERROR'
+      );
     }
 
     // Validate and sanitize data items inside the batch

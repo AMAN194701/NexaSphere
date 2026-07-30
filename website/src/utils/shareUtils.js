@@ -43,7 +43,6 @@ export const PLATFORMS = [
   },
 ];
 
-
 export function addUtmParams(baseUrl, source) {
   try {
     const url = new URL(baseUrl);
@@ -55,7 +54,6 @@ export function addUtmParams(baseUrl, source) {
     return baseUrl;
   }
 }
-
 
 export function getQRUrl(text) {
   return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(text)}`;

@@ -55,16 +55,21 @@ router.get('/admin/groups/:id', validate(groupIdParamsSchema, 'params'), async (
 });
 
 // Update group
-router.put('/admin/groups/:id', validate(groupIdParamsSchema, 'params'), validate(updateGroupBodySchema), async (req, res) => {
-  try {
-    const group = await userGroupsRepository.updateGroup(req.params.id, req.body);
-    if (!group) return sendError(req, res, 'Group not found', 404, 'NOT_FOUND');
-    sendSuccess(res, { group });
-  } catch (err) {
-    console.error('Error updating group:', err);
-    sendError(req, res, 'Internal server error', 500, 'INTERNAL_ERROR');
+router.put(
+  '/admin/groups/:id',
+  validate(groupIdParamsSchema, 'params'),
+  validate(updateGroupBodySchema),
+  async (req, res) => {
+    try {
+      const group = await userGroupsRepository.updateGroup(req.params.id, req.body);
+      if (!group) return sendError(req, res, 'Group not found', 404, 'NOT_FOUND');
+      sendSuccess(res, { group });
+    } catch (err) {
+      console.error('Error updating group:', err);
+      sendError(req, res, 'Internal server error', 500, 'INTERNAL_ERROR');
+    }
   }
-});
+);
 
 // Delete group
 router.delete('/admin/groups/:id', validate(groupIdParamsSchema, 'params'), async (req, res) => {
@@ -79,69 +84,88 @@ router.delete('/admin/groups/:id', validate(groupIdParamsSchema, 'params'), asyn
 });
 
 // Get group members
-router.get('/admin/groups/:id/members', validate(groupIdParamsSchema, 'params'), async (req, res) => {
-  try {
-    const members = await userGroupsRepository.getGroupMembers(req.params.id);
-    sendSuccess(res, { members });
-  } catch (err) {
-    console.error('Error fetching group members:', err);
-    sendError(req, res, 'Internal server error', 500, 'INTERNAL_ERROR');
+router.get(
+  '/admin/groups/:id/members',
+  validate(groupIdParamsSchema, 'params'),
+  async (req, res) => {
+    try {
+      const members = await userGroupsRepository.getGroupMembers(req.params.id);
+      sendSuccess(res, { members });
+    } catch (err) {
+      console.error('Error fetching group members:', err);
+      sendError(req, res, 'Internal server error', 500, 'INTERNAL_ERROR');
+    }
   }
-});
+);
 
 // Add members to group
-router.post('/admin/groups/:id/members', validate(groupIdParamsSchema, 'params'), validate(addMembersBodySchema), async (req, res) => {
-  try {
-    const { studentIds } = req.body;
-    const addedCount = await userGroupsRepository.addMembersToGroup(req.params.id, studentIds);
-    sendSuccess(res, { addedCount });
-  } catch (err) {
-    console.error('Error adding members:', err);
-    sendError(req, res, 'Internal server error', 500, 'INTERNAL_ERROR');
+router.post(
+  '/admin/groups/:id/members',
+  validate(groupIdParamsSchema, 'params'),
+  validate(addMembersBodySchema),
+  async (req, res) => {
+    try {
+      const { studentIds } = req.body;
+      const addedCount = await userGroupsRepository.addMembersToGroup(req.params.id, studentIds);
+      sendSuccess(res, { addedCount });
+    } catch (err) {
+      console.error('Error adding members:', err);
+      sendError(req, res, 'Internal server error', 500, 'INTERNAL_ERROR');
+    }
   }
-});
+);
 
 // Remove member from group
-router.delete('/admin/groups/:id/members/:studentId', validate(groupMemberParamsSchema, 'params'), async (req, res) => {
-  try {
-    const success = await userGroupsRepository.removeMemberFromGroup(
-      req.params.id,
-      req.params.studentId
-    );
-    if (!success) return sendError(req, res, 'Member not found in group', 404, 'NOT_FOUND');
-    sendSuccess(res, { success: true });
-  } catch (err) {
-    console.error('Error removing member:', err);
-    sendError(req, res, 'Internal server error', 500, 'INTERNAL_ERROR');
+router.delete(
+  '/admin/groups/:id/members/:studentId',
+  validate(groupMemberParamsSchema, 'params'),
+  async (req, res) => {
+    try {
+      const success = await userGroupsRepository.removeMemberFromGroup(
+        req.params.id,
+        req.params.studentId
+      );
+      if (!success) return sendError(req, res, 'Member not found in group', 404, 'NOT_FOUND');
+      sendSuccess(res, { success: true });
+    } catch (err) {
+      console.error('Error removing member:', err);
+      sendError(req, res, 'Internal server error', 500, 'INTERNAL_ERROR');
+    }
   }
-});
+);
 
 // Bulk email group
-router.post('/admin/groups/:id/email', validate(groupIdParamsSchema, 'params'), validate(emailGroupBodySchema), async (req, res) => {
-  try {
-    const { subject, htmlContent } = req.body;
+router.post(
+  '/admin/groups/:id/email',
+  validate(groupIdParamsSchema, 'params'),
+  validate(emailGroupBodySchema),
+  async (req, res) => {
+    try {
+      const { subject, htmlContent } = req.body;
 
-    // Import inside route to avoid circular deps if any
-    const { emailCampaignRepository } = await import('../repositories/emailCampaignRepository.js');
-    const { emailCampaignService } = await import('../services/emailCampaignService.js');
+      // Import inside route to avoid circular deps if any
+      const { emailCampaignRepository } =
+        await import('../repositories/emailCampaignRepository.js');
+      const { emailCampaignService } = await import('../services/emailCampaignService.js');
 
-    // Create a one-off campaign for this group
-    const campaign = await emailCampaignRepository.createCampaign({
-      name: `Group Email - ${req.params.id} - ${new Date().toISOString()}`,
-      subject,
-      content: { html: htmlContent },
-      segmentCriteria: { groupId: req.params.id },
-      status: 'draft',
-      createdBy: req.user?.username || 'admin',
-    });
+      // Create a one-off campaign for this group
+      const campaign = await emailCampaignRepository.createCampaign({
+        name: `Group Email - ${req.params.id} - ${new Date().toISOString()}`,
+        subject,
+        content: { html: htmlContent },
+        segmentCriteria: { groupId: req.params.id },
+        status: 'draft',
+        createdBy: req.user?.username || 'admin',
+      });
 
-    // Send it immediately
-    const stats = await emailCampaignService.sendCampaign(campaign.id);
-    sendSuccess(res, { success: true, campaignId: campaign.id, stats });
-  } catch (err) {
-    console.error('Error sending bulk email:', err);
-    sendError(req, res, 'Internal server error', 500, 'INTERNAL_ERROR');
+      // Send it immediately
+      const stats = await emailCampaignService.sendCampaign(campaign.id);
+      sendSuccess(res, { success: true, campaignId: campaign.id, stats });
+    } catch (err) {
+      console.error('Error sending bulk email:', err);
+      sendError(req, res, 'Internal server error', 500, 'INTERNAL_ERROR');
+    }
   }
-});
+);
 
 export default router;

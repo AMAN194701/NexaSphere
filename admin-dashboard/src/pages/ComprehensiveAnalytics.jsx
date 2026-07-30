@@ -11,7 +11,6 @@ import {
 } from 'recharts';
 import { CustomReportBuilder } from '../components/analytics/CustomReportBuilder';
 
-
 export function ComprehensiveAnalytics() {
   const [summary, setSummary] = useState(null);
   const [userAnalytics, setUserAnalytics] = useState(null);

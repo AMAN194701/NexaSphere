@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useUnsavedChangesWarning } from "../../hooks/useUnsavedChangesWarning";
+import { useState, useEffect } from 'react';
+import { useUnsavedChangesWarning } from '../../hooks/useUnsavedChangesWarning';
 const styles = {
   page: {
     minHeight: '100vh',
@@ -201,22 +201,30 @@ const statusBg = (s) =>
 
 export default function ProfilePage() {
   const navigate = useNavigate();
-  const [profile,    setProfile]    = useState(null);
-  const [loading,    setLoading]    = useState(true);
-  const [error,      setError]      = useState(null);
-  const [editing,    setEditing]    = useState(false);
-  const [saving,     setSaving]     = useState(false);
-  const [activeTab,  setActiveTab]  = useState("registrations");
-  const [editForm,   setEditForm]   = useState({ fullName: "", bio: "", socialLinks: { github: "", linkedin: "", portfolio: "" } });
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState('registrations');
+  const [editForm, setEditForm] = useState({
+    fullName: '',
+    bio: '',
+    socialLinks: { github: '', linkedin: '', portfolio: '' },
+  });
 
-  const isDirty = editing && profile && (
-    editForm.fullName !== (profile.fullName || profile.name || "") ||
-    editForm.bio !== (profile.bio || "") ||
-    JSON.stringify(editForm.socialLinks) !== JSON.stringify(profile.socialLinks || { github: "", linkedin: "", portfolio: "" })
-  );
+  const isDirty =
+    editing &&
+    profile &&
+    (editForm.fullName !== (profile.fullName || profile.name || '') ||
+      editForm.bio !== (profile.bio || '') ||
+      JSON.stringify(editForm.socialLinks) !==
+        JSON.stringify(profile.socialLinks || { github: '', linkedin: '', portfolio: '' }));
   useUnsavedChangesWarning(isDirty);
 
-  useEffect(() => { fetchProfile(); }, []);
+  useEffect(() => {
+    fetchProfile();
+  }, []);
 
   const fetchProfile = async () => {
     try {
@@ -337,8 +345,15 @@ export default function ProfilePage() {
             )}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <button onClick={() => setEditing(true)} style={styles.btnOutline}>Edit Profile</button>
-            <button onClick={() => navigate('/settings/account')} style={{ ...styles.btnOutline, background: '#1e293b' }}>Manage Account & Privacy</button>
+            <button onClick={() => setEditing(true)} style={styles.btnOutline}>
+              Edit Profile
+            </button>
+            <button
+              onClick={() => navigate('/settings/account')}
+              style={{ ...styles.btnOutline, background: '#1e293b' }}
+            >
+              Manage Account & Privacy
+            </button>
           </div>
         </div>
 

@@ -60,7 +60,14 @@ export async function renderTemplateHtml(templateName, data, customTemplateConte
   return renderTemplate(templateName, data, customTemplateContent);
 }
 
-export async function sendEmail({ to, subject, templateName, data, from = defaultFrom, customTemplateContent = null }) {
+export async function sendEmail({
+  to,
+  subject,
+  templateName,
+  data,
+  from = defaultFrom,
+  customTemplateContent = null,
+}) {
   try {
     const html = await renderTemplate(templateName, data, customTemplateContent);
 

@@ -27,7 +27,6 @@ import DashboardPage from './pages/dashboard/DashboardPage';
 import GamificationDashboard from './components/gamification/GamificationDashboard';
 import RecommendationWidget from './components/recommendation/RecommendationWidget';
 
-
 import {
   AmbientOrbs,
   SectionDivider,
@@ -78,7 +77,6 @@ export default function App() {
   const [activeTab, setActiveTab] = useState(() => urlToState(window.location.pathname).activeTab);
   const [page, setPage] = useState(() => urlToState(window.location.pathname).page);
   const [mobile, setMobile] = useState(window.innerWidth <= 768);
-
 
   const { theme, toggleTheme } = useThemeManagement();
   const eventsData = useDynamicEvents(fallbackEvents);
@@ -172,7 +170,6 @@ export default function App() {
             onTabChange={handleTabChange}
             onToggleTheme={toggleTheme}
             theme={theme}
-
           />
         </>
       )}
@@ -272,7 +269,6 @@ export default function App() {
               <GamificationDashboard />
             </PageIn>
           )}
-
 
           {!page && cinDone && (
             <PageIn k="main">

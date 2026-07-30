@@ -5,7 +5,6 @@ import { formatRelativeTime } from '../../utils/formatRelativeTime';
 import { useStudentAuth } from '../../context/StudentAuthContext';
 import { NotificationSkeleton } from '../../components/ui/skeleton/NotificationSkeleton';
 
-
 const TYPE_ICONS = {
   message: '💬',
   connection: '🔗',
