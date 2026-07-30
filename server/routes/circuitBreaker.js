@@ -9,6 +9,7 @@ const adminAuth = adminAuthMiddleware.requireAdmin;
 router.get('/metrics', adminAuth, async (req, res) => {
   const metrics = circuitBreakerRegistry.getAllMetrics();
   return sendSuccess(res, { circuitBreakers: metrics });
+  return res.json({ circuitBreakers: metrics });
 });
 
 router.post('/reset/:name', adminAuth, async (req, res) => {
@@ -18,6 +19,9 @@ router.post('/reset/:name', adminAuth, async (req, res) => {
     return sendError(req, res, `No circuit breaker found: "${name}"`, 404, 'NOT_FOUND');
   }
   return sendSuccess(res, { ok: true, message: `Circuit breaker "${name}" reset to CLOSED` });
+    return res.status(404).json({ error: `No circuit breaker found: "${name}"` });
+  }
+  return res.json({ ok: true, message: `Circuit breaker "${name}" reset to CLOSED` });
 });
 
 router.post('/retry/:name', adminAuth, async (req, res) => {
@@ -31,6 +35,12 @@ router.post('/retry/:name', adminAuth, async (req, res) => {
     return sendSuccess(res, { ok: true, state: breaker.state, result });
   } catch (err) {
     return sendError(req, res, err.message, 500, 'INTERNAL_ERROR');
+      return res.status(404).json({ error: `No circuit breaker found: "${name}"` });
+    }
+    const result = await breaker.manualRetry();
+    return res.json({ ok: true, state: breaker.state, result });
+  } catch (err) {
+    return res.json({ ok: false, error: err.message });
   }
 });
 

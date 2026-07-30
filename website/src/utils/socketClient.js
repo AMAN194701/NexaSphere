@@ -69,6 +69,11 @@ export function initializeSocket(serverUrl = getSocketServerUrl()) {
 
     socket.on('disconnect', (reason) => {
       console.log('Socket disconnected:', reason);
+      identifyUser();
+    });
+
+    socket.on('disconnect', (reason) => {
+      console.log('Socket disconnected:', reason);
     });
 
     socket.on('connect_error', (error) => {

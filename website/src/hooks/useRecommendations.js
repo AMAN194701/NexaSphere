@@ -1,4 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { userInterestTracker } from '../services/recommendation/userInterestTracker';
+import apiClient from '../utils/apiClient';
+import { getApiBase } from '../utils/runtimeConfig';
+import { recommendationEngine } from '../services/recommendation/recommendationEngine';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
@@ -31,6 +35,7 @@ export function useRecommendations(userId, { limit = 10, page = 1 } = {}) {
     } catch (err) {
       console.error('[useRecommendations] fetch error:', err);
       setError(err.message);
+      setRecommendations([]);
     } finally {
       setLoading(false);
     }

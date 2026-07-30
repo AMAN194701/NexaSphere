@@ -13,18 +13,16 @@ export interface ValidatedRoadmap {
  * Validates a parsed JSON object to ensure it strictly matches the Roadmap schema.
  * Throws a specific descriptive error if anything is malformed.
  */
-export const validateRoadmapJSON = (data: unknown): ValidatedRoadmap => {
+export const validateRoadmapJSON = (data: any): ValidatedRoadmap => {
   if (!data || typeof data !== 'object') {
     throw new Error('Import failed: Data is not a valid JSON object.');
   }
 
-  const raw = data as Record<string, unknown>;
-
-  const title = typeof raw.title === 'string' ? raw.title : 'Imported Custom Path';
+  const title = typeof data.title === 'string' ? data.title : 'Imported Custom Path';
   const description =
-    typeof raw.description === 'string' ? raw.description : 'Custom imported path.';
+    typeof data.description === 'string' ? data.description : 'Custom imported path.';
 
-  if (!raw.nodes || !Array.isArray(raw.nodes)) {
+  if (!data.nodes || !Array.isArray(data.nodes)) {
     throw new Error('Import failed: The file must contain a "nodes" array.');
   }
 
@@ -37,60 +35,65 @@ export const validateRoadmapJSON = (data: unknown): ValidatedRoadmap => {
 
   const validatedNodes: RoadmapNode[] = [];
 
-  raw.nodes.forEach((node: unknown, index: number) => {
+  data.nodes.forEach((node: any, index: number) => {
     if (!node || typeof node !== 'object') {
       throw new Error(`Node at index ${index} is not a valid object.`);
     }
 
-    const n = node as Record<string, unknown>;
-
-    if (!n.id || typeof n.id !== 'string') {
+    if (!node.id || typeof node.id !== 'string') {
       throw new Error(
         `Node validation failed at index ${index}: "id" is missing or is not a string.`
       );
     }
-    if (!n.title || typeof n.title !== 'string') {
+
+    if (!node.title || typeof node.title !== 'string') {
       throw new Error(
-        `Node validation failed (ID: ${n.id || index}): "title" is missing or is not a string.`
-      );
-    }
-    if (typeof n.x !== 'number' || typeof n.y !== 'number') {
-      throw new Error(
-        `Node validation failed (ID: ${n.id}): Coordinates "x" or "y" must be numbers.`
+        `Node validation failed (ID: ${node.id || index}): "title" is missing or is not a string.`
       );
     }
 
-    const status: RoadmapNode['status'] = validStatuses.includes(n.status as RoadmapNode['status'])
-      ? (n.status as RoadmapNode['status'])
-      : 'Not Started';
+    if (typeof node.x !== 'number' || typeof node.y !== 'number') {
+      throw new Error(
+        `Node validation failed (ID: ${node.id}): Coordinates "x" or "y" must be numbers.`
+      );
+    }
 
-    const rawResources = Array.isArray(n.resources) ? n.resources : [];
-    const resources = rawResources.map((r: unknown, rIdx: number) => {
-      if (!r || typeof r !== 'object') {
+    const status = validStatuses.includes(node.status) ? node.status : 'Not Started';
+
+    if (node.resources && !Array.isArray(node.resources)) {
+      node.resources = [];
+    }
+
+    const resources = (node.resources || []).map((r: any, rIdx: number) => {
+      if (
+        !r ||
+        typeof r !== 'object' ||
+        !r.title ||
+        typeof r.title !== 'string' ||
+        !r.url ||
+        typeof r.url !== 'string'
+      ) {
         throw new Error(
-          `Node "${n.title}" resource at index ${rIdx} is malformed. Resources need a "title" and a "url".`
+          `Node "${node.title}" resource at index ${rIdx} is malformed. Resources need a "title" and a "url".`
         );
       }
-      const res = r as Record<string, unknown>;
-      if (!res.title || typeof res.title !== 'string' || !res.url || typeof res.url !== 'string') {
-        throw new Error(
-          `Node "${n.title}" resource at index ${rIdx} is malformed. Resources need a "title" and a "url".`
-        );
-      }
-      return { title: res.title, url: res.url };
+      return { title: r.title, url: r.url };
     });
 
-    const rawPrereqs = Array.isArray(n.prerequisites) ? n.prerequisites : [];
-    const prerequisites = rawPrereqs.filter((p: unknown): p is string => typeof p === 'string');
+    if (node.prerequisites && !Array.isArray(node.prerequisites)) {
+      node.prerequisites = [];
+    }
+
+    const prerequisites = (node.prerequisites || []).filter((p: any) => typeof p === 'string');
 
     validatedNodes.push({
-      id: n.id,
-      title: n.title,
-      description: typeof n.description === 'string' ? n.description : '',
-      x: n.x,
-      y: n.y,
-      status,
-      notes: typeof n.notes === 'string' ? n.notes : '',
+      id: node.id,
+      title: node.title,
+      description: typeof node.description === 'string' ? node.description : '',
+      x: node.x,
+      y: node.y,
+      status: status as any,
+      notes: typeof node.notes === 'string' ? node.notes : '',
       resources,
       prerequisites,
     });
@@ -199,6 +202,7 @@ export const buildStandaloneSVG = (
     }
   };
 
+  // Compile SVGs and Lines
   let linePaths = '';
   nodes.forEach((node) => {
     node.prerequisites.forEach((preId) => {
@@ -223,6 +227,7 @@ export const buildStandaloneSVG = (
     const statusColor = getStatusColor(node.status);
     const cardBgHex = theme === 'dark' ? '#1E1E1E' : '#F9F9F9';
 
+    // Safe XML text
     const safeTitle = node.title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const safeDesc =
       node.description
@@ -308,17 +313,20 @@ export const downloadPNG = (
   const width = parseFloat(svgEl.getAttribute('width') || '1200');
   const height = parseFloat(svgEl.getAttribute('height') || '1000');
 
+  // Convert SVG string to Data URL
   const svgBlob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
   const url = URL.createObjectURL(svgBlob);
 
   const image = new Image();
   image.onload = () => {
     const canvas = document.createElement('canvas');
+    // Set high-resolution output scaling
     canvas.width = width * 1.5;
     canvas.height = height * 1.5;
 
     const ctx = canvas.getContext('2d');
     if (ctx) {
+      // Clear canvas
       ctx.fillStyle = theme === 'dark' ? '#0A0A0A' : '#FFFFFF';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.scale(1.5, 1.5);

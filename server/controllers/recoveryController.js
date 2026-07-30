@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { withDb } from '../repositories/db.js';
 import bcrypt from 'bcryptjs';
 import { sendSuccess, sendError } from '../utils/responseHelper.js';
+import { sendPasswordResetEmail } from '../services/emailService.js';
 
 const BCRYPT_ROUNDS = 12;
 
@@ -80,7 +81,7 @@ export const recoveryController = {
       // In a real app, send the token via emailService here
       // For now, we just create the token in the DB
       const userResult = await withDb(async (client) => {
-        const { rows } = await client.query(`SELECT id FROM users WHERE email = $1`, [email]);
+        const { rows } = await client.query(`SELECT id, username, display_name FROM users WHERE email = $1`, [email]);
         return rows[0];
       });
 
@@ -96,8 +97,10 @@ export const recoveryController = {
           );
         });
 
-        // TODO: Implement actual email delivery here
-        // The token should be sent via email, never logged
+        // Send the token via email
+        const resetUrl = `${process.env.PUBLIC_APP_URL || 'https://nexasphere.com'}/reset-password?token=${token}`;
+        const name = userResult.display_name || userResult.username || 'User';
+        await sendPasswordResetEmail(email, name, resetUrl);
       }
 
       // Always return success to prevent email enumeration

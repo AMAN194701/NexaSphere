@@ -226,7 +226,7 @@ export default function ProjectsPage({ onBack, loading = false }) {
                         <Users size={16} /> Team
                       </h4>
                       <div className="project-team-list">
-                        {selectedProject.team.map((member, idx) => (
+                        {selectedProject.team.map((member) => (
                           <div key={member.name} className="team-member">
                             <SafeImage
                               src={member.photo}

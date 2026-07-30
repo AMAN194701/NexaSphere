@@ -11,6 +11,7 @@ import {
   createAnnouncementSchema,
   updateAnnouncementSchema,
 } from '../validators/routes/announcementsSchemas.js';
+import { renderTemplateHtml } from '../services/emailService.js';
 
 const router = Router();
 
@@ -81,6 +82,31 @@ router.post(
         err.name === 'ZodError' ? 'VALIDATION_ERROR' : 'INTERNAL_ERROR',
         err.issues
       );
+    }
+  }
+);
+
+router.post(
+  '/api/admin/announcements/preview',
+  adminAuthMiddleware.requireScope('events:write'),
+  apiRateLimiter,
+  async (req, res) => {
+    try {
+      const { title, content } = req.body;
+      if (!title || !content) {
+        return sendError(req, res, 'Title and content are required for preview', 400, 'VALIDATION_ERROR');
+      }
+      const html = await renderTemplateHtml('generic', {
+        title,
+        message: content,
+        // Mock data for preview
+        name: 'Preview User',
+        unsubscribeUrl: '#',
+      });
+      return sendSuccess(res, { html });
+    } catch (err) {
+      logger.error('Error rendering announcement preview:', err.message);
+      return sendError(req, res, 'Failed to generate preview', 500, 'INTERNAL_ERROR');
     }
   }
 );

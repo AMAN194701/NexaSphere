@@ -10,6 +10,12 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 const STORAGE_PREFIX = 'ns_form_memory_';
 const MAX_HISTORY = 20;
 
+function logStorageWarning(action, error) {
+  if (import.meta.env.DEV) {
+    console.warn(`[useFormMemory] ${action} failed:`, error);
+  }
+}
+
 /* ── Branch inference from GL Bajaj email domain ── */
 function inferBranchFromEmail(email) {
   if (!email || !email.includes('@')) return null;

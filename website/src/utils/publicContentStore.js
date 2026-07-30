@@ -81,7 +81,6 @@ export function mergeEvents(fallbackEvents = [], liveEvents = []) {
   }
 
   // Remove tombstoned events from both the cached fallback data and live server data.
-  // This ensures deleted events stay deleted regardless of the data source.
   const filteredFallback = fallbackEvents.filter((event) => !tombstones.includes(String(event.id)));
   const filteredLive = liveEvents.filter((event) => !tombstones.includes(String(event.id)));
 
@@ -173,9 +172,15 @@ export function initStorageSyncBridge() {
   // Read admin origin from VITE_ADMIN_DASHBOARD_URL — already defined in
   // .env.example for both local dev and production deployments.
   // Falls back to http://localhost:5001 only when running locally.
+  const isLocal =
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
   const configuredAdminOrigin =
-    import.meta.env?.VITE_ADMIN_DASHBOARD_URL || 'http://localhost:5001';
-  const adminOrigin = normalizeOrigin(configuredAdminOrigin) || 'http://localhost:5001';
+    import.meta.env?.VITE_ADMIN_DASHBOARD_URL ||
+    (isLocal ? 'http://localhost:5001' : 'https://admin.nexasphere.com');
+  const adminOrigin =
+    normalizeOrigin(configuredAdminOrigin) ||
+    (isLocal ? 'http://localhost:5001' : 'https://admin.nexasphere.com');
   const bridgeUrl = `${adminOrigin}/sync-bridge.html`;
 
   // Check if we're in a cross-origin context (different port)
@@ -193,6 +198,7 @@ export function initStorageSyncBridge() {
     if (import.meta.env.DEV) {
       console.log('[StorageSync] Bridge iframe loaded from', adminOrigin);
     }
+    console.log('[StorageSync] Bridge iframe loaded from', adminOrigin);
     ALLOWED_BRIDGE_KEYS.forEach((key) => {
       iframe.contentWindow?.postMessage({ type: 'ns-sync', key }, adminOrigin);
     });

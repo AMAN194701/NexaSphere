@@ -24,6 +24,7 @@ export default class SentryTransport extends Transport {
         level,
         extra,
         tags: {},
+        tags: {}
       };
 
       if (reqId) context.tags.reqId = reqId;

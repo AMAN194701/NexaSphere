@@ -206,4 +206,13 @@ export function canManageRole(adminRole, targetRole) {
   const targetConfig = DEFAULT_ROLES[targetRole];
   if (!adminConfig || !targetConfig) return false;
   return adminConfig.hierarchy < targetConfig.hierarchy;
+export const ROLES = {
+  SuperAdmin: ['users:read', 'users:write', 'settings:admin', 'events:read', 'events:write'],
+  Moderator: ['users:read', 'events:read', 'events:write'],
+  Editor: ['events:read', 'events:write'],
+  Viewer: ['users:read', 'events:read'],
+};
+
+export function getScopesForRole(role) {
+  return ROLES[role] || [];
 }

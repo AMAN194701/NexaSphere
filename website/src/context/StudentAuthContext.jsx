@@ -10,13 +10,11 @@ export function StudentAuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchMe = useCallback(async (token) => {
+  // Fetch the current user using cookie-based session (httpOnly cookie).
+  const fetchMe = useCallback(async () => {
     try {
-      const data = await apiClient('/api/auth/me', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setUser(data.user);
-      localStorage.setItem(TOKEN_KEY, token);
+      const data = await apiClient('/api/auth/me', { credentials: 'include' });
+      setUser(data.user || null);
       if (data.user) {
         localStorage.setItem(
           'ns_user',
@@ -26,21 +24,33 @@ export function StudentAuthProvider({ children }) {
             name: data.user.name,
           })
         );
+      } else {
+        localStorage.removeItem('ns_user');
       }
     } catch {
-      localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem('ns_user');
       setUser(null);
     }
   }, []);
 
   useEffect(() => {
-    const storedToken = localStorage.getItem(TOKEN_KEY);
-    if (storedToken) {
-      fetchMe(storedToken).finally(() => setLoading(false));
-    } else {
-      setLoading(false);
+    // If OAuth redirected with a token query param, remove it from the URL
+    // to avoid accidental leakage, but don't store the token client-side.
+    const params = new URLSearchParams(window.location.search);
+    const urlToken = params.get('token');
+    if (urlToken) {
+      params.delete('token');
+      const cleanUrl =
+        window.location.pathname +
+        (params.toString() ? '?' + params.toString() : '') +
+        window.location.hash;
+      window.history.replaceState({}, '', cleanUrl);
+      fetchMe().finally(() => setLoading(false));
+      return;
     }
+
+    // Normal startup: attempt to fetch current user via cookie-based session.
+    fetchMe().finally(() => setLoading(false));
   }, [fetchMe]);
 
   useEffect(() => {
@@ -61,11 +71,10 @@ export function StudentAuthProvider({ children }) {
 
   const logout = useCallback(async () => {
     try {
-      await apiClient('/api/auth/logout', { method: 'POST' });
+      await apiClient('/api/auth/logout', { method: 'POST', credentials: 'include' });
     } catch {
       // ignore
     }
-    localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem('ns_user');
     setUser(null);
   }, []);

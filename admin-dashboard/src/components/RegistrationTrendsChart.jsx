@@ -18,6 +18,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+import { Skeleton } from './Skeleton';
 import analyticsAPI from '../services/analyticsAPI.js';
 
 export default function RegistrationTrendsChart({
@@ -96,9 +97,8 @@ export default function RegistrationTrendsChart({
       </div>
 
       {loading ? (
-        <div className="chart-loading">
-          <div className="spinner"></div>
-          <p>Loading trends...</p>
+        <div style={{ padding: '20px' }}>
+          <Skeleton height={350} />
         </div>
       ) : chartData && chartData.length > 0 ? (
         <ResponsiveContainer width="100%" height={350}>
@@ -112,7 +112,7 @@ export default function RegistrationTrendsChart({
               <Line
                 type="monotone"
                 dataKey="registrations"
-                stroke="#3b82f6"
+                stroke="var(--chart-primary)"
                 strokeWidth={2}
                 dot={{ r: 4 }}
                 activeDot={{ r: 6 }}
@@ -120,7 +120,7 @@ export default function RegistrationTrendsChart({
               <Line
                 type="monotone"
                 dataKey="checkedIn"
-                stroke="#10b981"
+                stroke="var(--chart-success)"
                 strokeWidth={2}
                 dot={{ r: 4 }}
                 activeDot={{ r: 6 }}
@@ -135,8 +135,18 @@ export default function RegistrationTrendsChart({
               <YAxis />
               <Tooltip content={<CustomTooltip />} />
               <Legend />
-              <Area type="monotone" dataKey="registrations" fill="#3b82f6" stroke="#3b82f6" />
-              <Area type="monotone" dataKey="checkedIn" fill="#10b981" stroke="#10b981" />
+              <Area
+                type="monotone"
+                dataKey="registrations"
+                fill="url(#colorRegs)"
+                stroke="var(--chart-primary)"
+              />
+              <Area
+                type="monotone"
+                dataKey="checkedIn"
+                fill="url(#colorCheckins)"
+                stroke="var(--chart-success)"
+              />
             </AreaChart>
           )}
 
@@ -147,8 +157,8 @@ export default function RegistrationTrendsChart({
               <YAxis />
               <Tooltip content={<CustomTooltip />} />
               <Legend />
-              <Bar dataKey="registrations" fill="#3b82f6" />
-              <Bar dataKey="checkedIn" fill="#10b981" />
+              <Bar dataKey="registrations" fill="var(--chart-primary)" />
+              <Bar dataKey="checkedIn" fill="var(--chart-success)" />
             </BarChart>
           )}
         </ResponsiveContainer>

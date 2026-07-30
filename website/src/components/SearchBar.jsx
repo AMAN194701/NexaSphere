@@ -14,16 +14,18 @@ import {
   Folder,
   MessageSquare,
 } from 'lucide-react';
-// TODO: useSearch hook not implemented yet
-// import { useSearch } from '../hooks/useSearch';
-
+import { useSearch } from '../hooks/useSearch';
 
 function Highlight({ text, query }) {
   if (!text) return null;
 
-  // If the text contains Typesense highlight <mark> tags, render it as HTML safely
+  // If the text contains Typesense highlight <mark> tags, sanitize before rendering as HTML.
+  // Only <mark> is allowed through — everything else (scripts, event handlers, other tags) is stripped.
   if (String(text).includes('<mark>')) {
-    const clean = DOMPurify.sanitize(text, { ALLOWED_TAGS: ['mark'] });
+    const clean = DOMPurify.sanitize(text, {
+      ALLOWED_TAGS: ['mark'],
+      ALLOWED_ATTR: [],
+    });
     return <span dangerouslySetInnerHTML={{ __html: clean }} />;
   }
 
@@ -117,35 +119,20 @@ export default function SearchBar({ open, onClose, activities, events, onNavigat
   const inputRef = useRef(null);
   const listRef = useRef(null);
   const [focusIdx, setFocusIdx] = useState(-1);
-  // TODO: useSearch hook not implemented yet
-  // const {
-  //   query,
-  //   setQuery,
-  //   filter,
-  //   setFilter,
-  //   results,
-  //   groupedResults,
-  //   loading,
-  //   error,
-  //   clearSearch,
-  //   recentSearches,
-  //   addRecentSearch,
-  //   removeRecentSearch,
-  // } = useSearch(activities, events);
-
-  // Placeholder values for now
-  const query = '';
-  const setQuery = () => {};
-  const filter = null;
-  const setFilter = () => {};
-  const results = [];
-  const groupedResults = {};
-  const loading = false;
-  const error = null;
-  const clearSearch = () => {};
-  const recentSearches = [];
-  const addRecentSearch = () => {};
-  const removeRecentSearch = () => {};
+  const {
+    query,
+    setQuery,
+    filter,
+    setFilter,
+    results,
+    groupedResults,
+    loading,
+    error,
+    clearSearch,
+    recentSearches,
+    addRecentSearch,
+    removeRecentSearch,
+  } = useSearch(activities, events);
 
   const [localQuery, setLocalQuery] = useState('');
   const timeoutRef = useRef(null);
@@ -170,7 +157,7 @@ export default function SearchBar({ open, onClose, activities, events, onNavigat
       return () => clearTimeout(t);
     }
     setFocusIdx(-1);
-  }, [open]);
+  }, [open, clearSearch]);
 
   useEffect(() => {
     setFocusIdx(-1);
@@ -186,7 +173,7 @@ export default function SearchBar({ open, onClose, activities, events, onNavigat
       onClose();
       clearSearch();
     },
-    [onNavigate, onEventClick, onClose, clearSearch, navigate]
+    [onNavigate, onEventClick, onClose, clearSearch, navigate, addRecentSearch, query]
   );
 
   useEffect(() => {
@@ -204,6 +191,7 @@ export default function SearchBar({ open, onClose, activities, events, onNavigat
         }
         return;
       }
+      if (!results.length) return;
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         setFocusIdx((prev) => (prev < results.length - 1 ? prev + 1 : 0));
@@ -306,6 +294,9 @@ export default function SearchBar({ open, onClose, activities, events, onNavigat
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search events, posts, users, resources…"
+                value={localQuery}
+                onChange={handleInputChange}
+                placeholder="Search events, members, activities…"
                 aria-label="Search"
                 style={{
                   flex: 1,
@@ -369,6 +360,8 @@ export default function SearchBar({ open, onClose, activities, events, onNavigat
                 { key: 'members', label: 'Core Team' },
                 { key: 'users', label: 'Users' },
                 { key: 'activities', label: 'Activities' },
+                { key: 'activities', label: 'Activities' },
+                { key: 'members', label: 'Members' },
               ].map((f) => (
                 <button
                   key={f.key}
@@ -493,7 +486,7 @@ export default function SearchBar({ open, onClose, activities, events, onNavigat
                 <div style={{ padding: '44px 20px', textAlign: 'center', color: 'var(--t2)' }}>
                   <Search size={34} color="rgba(204,17,17,0.35)" style={{ marginBottom: '12px' }} />
                   <div style={{ fontSize: '0.95rem', marginBottom: '8px' }}>
-                    Type to search events, posts, users &amp; resources
+                    Type to search events, members &amp; activities
                   </div>
                   <div style={{ fontSize: '0.78rem', opacity: 0.6 }}>
                     Press{' '}
@@ -514,7 +507,7 @@ export default function SearchBar({ open, onClose, activities, events, onNavigat
               {loading && query && (
                 <div
                   style={{
-                    padding: '32px 20px',
+                    padding: '24px 20px',
                     textAlign: 'center',
                     color: 'var(--t2)',
                     fontSize: '0.9rem',
@@ -531,7 +524,7 @@ export default function SearchBar({ open, onClose, activities, events, onNavigat
                       margin: '0 auto 12px',
                     }}
                   />
-                  Searching platform…
+                  Searching platform… Searching across events, members, and activities…
                 </div>
               )}
 
@@ -669,47 +662,47 @@ export default function SearchBar({ open, onClose, activities, events, onNavigat
                   })}
                 </div>
               )}
-            </div>
 
-            {query && results.length > 0 && (
-              <div
-                style={{
-                  padding: '12px 20px',
-                  borderTop: '1px solid rgba(255,255,255,0.06)',
-                  background: 'rgba(0,0,0,0.15)',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}
-              >
-                <span style={{ fontSize: '0.78rem', color: 'var(--t3)' }}>
-                  Press Enter to view all results
-                </span>
-                <button
-                  onClick={() => {
-                    addRecentSearch(query);
-                    navigate(
-                      `/search?q=${encodeURIComponent(query)}${filter !== 'all' ? `&type=${filter}` : ''}`
-                    );
-                    onClose();
-                    clearSearch();
-                  }}
+              {query && results.length > 0 && (
+                <div
                   style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--c1)',
-                    cursor: 'pointer',
-                    fontSize: '0.8rem',
-                    fontWeight: 600,
+                    padding: '12px 20px',
+                    borderTop: '1px solid rgba(255,255,255,0.06)',
+                    background: 'rgba(0,0,0,0.15)',
                     display: 'flex',
+                    justifyContent: 'space-between',
                     alignItems: 'center',
-                    gap: '4px',
                   }}
                 >
-                  View all results <ArrowRight size={14} />
-                </button>
-              </div>
-            )}
+                  <span style={{ fontSize: '0.78rem', color: 'var(--t3)' }}>
+                    Press Enter to view all results
+                  </span>
+                  <button
+                    onClick={() => {
+                      addRecentSearch(query);
+                      navigate(
+                        `/search?q=${encodeURIComponent(query)}${filter !== 'all' ? `&type=${filter}` : ''}`
+                      );
+                      onClose();
+                      clearSearch();
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--c1)',
+                      cursor: 'pointer',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    View all results <ArrowRight size={14} />
+                  </button>
+                </div>
+              )}
+            </div>
           </motion.div>
         </motion.div>
       )}

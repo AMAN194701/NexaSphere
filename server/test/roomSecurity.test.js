@@ -28,6 +28,7 @@ const createMockSocket = (id = 'test-socket-123') => {
     socket.emit('disconnect');
   };
   socket.disconnected = false;
+  socket.use = (fn) => {};
   return socket;
 };
 
@@ -158,6 +159,23 @@ test('Security Audit & Validation: Socket Room Hardening', async (t) => {
       eve.emit('cursor_moved', { roomId: room, pos: 99 });
       const eveCursors = eve.emittedTo.filter((e) => e.event === 'cursor_moved');
       assert.equal(eveCursors.length, 0);
+    // Same for document_change
+    alice.emit('document_change', { roomId: room, content: 'doc1', version: 0 });
+    const aliceDocs = alice.emittedTo.filter(e => e.event === 'document_change');
+    assert.equal(aliceDocs.length, 1);
+
+    eve.emit('document_change', { roomId: room, content: 'doc1', version: 0 });
+    const eveDocs = eve.emittedTo.filter(e => e.event === 'document_change');
+    assert.equal(eveDocs.length, 0);
+
+    // cursor_moved
+    alice.emit('cursor_moved', { roomId: room, cursor: { x: 100, y: 200 } });
+    const aliceCursors = alice.emittedTo.filter(e => e.event === 'cursor_moved');
+    assert.equal(aliceCursors.length, 1);
+
+    eve.emit('cursor_moved', { roomId: room, cursor: { x: 999, y: 999 } });
+    const eveCursors = eve.emittedTo.filter(e => e.event === 'cursor_moved');
+    assert.equal(eveCursors.length, 0);
 
       // typing_start
       alice.emit('typing_start', { roomId: room });
@@ -211,6 +229,8 @@ test('Security Audit & Validation: Socket Room Hardening', async (t) => {
 
     socket.emit('document_change', { roomId: room, doc: 'doc2' });
     const docs = socket.emittedTo.filter((e) => e.event === 'document_change');
+    socket.emit('document_change', { roomId: room, content: 'doc2', version: 0 });
+    const docs = socket.emittedTo.filter(e => e.event === 'document_change');
     assert.equal(docs.length, 0);
   });
 
@@ -258,5 +278,25 @@ test('Security Audit & Validation: Socket Room Hardening', async (t) => {
 
     // All 10 round 3 joins should be blocked by rate limit
     assert.equal(joinedCount, 0, `Expected 0 joined in round 3, got ${joinedCount}`);
+  });
+
+  await t.test('Scenario 12: Only authorized room members can publish Yjs delta events', () => {
+    const socket = createMockSocket('socket-12');
+    const attackerSocket = createMockSocket('attacker-socket-12');
+
+    _onConnection(socket);
+    _onConnection(attackerSocket);
+
+    // Socket joins legitimate room
+    socket.emit('join_room', 'room-abc', { name: 'Alice' });
+
+    // Attacker tries to publish to room-abc without joining it
+    attackerSocket.emit('yjs_update', 'room-abc', Buffer.from([1, 2, 3]));
+    const attackerUpdates = attackerSocket.emittedTo.filter((e) => e.event === 'yjs_update');
+    assert.equal(
+      attackerUpdates.length,
+      0,
+      'Attacker should not be able to publish Yjs updates to rooms they have not joined'
+    );
   });
 });

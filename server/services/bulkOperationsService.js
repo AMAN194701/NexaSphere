@@ -5,8 +5,9 @@ import { auditLogRepository } from '../repositories/auditLogRepository.js';
 import { parseCSV, generateCSV } from '../utils/csvParser.js';
 import { sendEmail } from './emailService.js';
 import { bulkOperationsQueue as queueServiceQueue } from './queueService.js';
+import { validateTableName } from '../utils/sqlSafety.js';
 import crypto from 'crypto';
-
+import bcrypt from 'bcryptjs';
 import { Queue } from 'bullmq';
 import IORedis from 'ioredis';
 import logger from '../utils/logger.js';
@@ -14,6 +15,11 @@ import logger from '../utils/logger.js';
 let connection;
 if (process.env.REDIS_URL) {
   connection = new IORedis(process.env.REDIS_URL, { maxRetriesPerRequest: null });
+  connection = new IORedis(process.env.REDIS_URL, {
+    maxRetriesPerRequest: null, // Required by BullMQ
+  connection = new IORedis(process.env.REDIS_URL, {
+    maxRetriesPerRequest: null,
+  });
 }
 
 export const bulkOperationsQueueName = 'bulk-operations';
@@ -246,6 +252,118 @@ class BulkOperationsService {
         } catch (auditErr) {
           logger.error('Failed to insert audit log for bulk operations', { err: auditErr.message });
         }
+              [
+                user.display_name || existing.display_name,
+                user.username,
+                user.role,
+                user.status,
+                user.major || null,
+                user.year || null,
+                updatedTags,
+                existing.id,
+              ]
+            );
+            newState.push({
+              type: 'update',
+              table: 'users',
+              key: existing.id,
+              data: updatedRows[0],
+            });
+          } else {
+            // Create new user with password
+            const id = `user-${crypto.randomUUID()}`;
+            const updatedTags = JSON.stringify(user.tags);
+            const plainPassword = crypto.randomBytes(4).toString('hex'); // 8 char temp password
+            const passwordHash = await bcrypt.hash(plainPassword, 10);
+
+              [
+                user.display_name || existing.display_name,
+                user.username,
+                user.role,
+                user.status,
+                user.major || null,
+                user.year || null,
+                updatedTags,
+                existing.id,
+              ]
+            );
+            newState.push({
+              type: 'update',
+              table: 'users',
+              key: existing.id,
+              data: updatedRows[0],
+            });
+          } else {
+            // Create new user with password
+            const id = `user-${crypto.randomUUID()}`;
+            const updatedTags = JSON.stringify(user.tags);
+            const plainPassword = crypto.randomBytes(4).toString('hex'); // 8 char temp password
+            const passwordHash = await bcrypt.hash(plainPassword, 10);
+
+              [
+                user.display_name || existing.display_name,
+                user.username,
+                user.role,
+                user.status,
+                user.major || null,
+                user.year || null,
+                updatedTags,
+                existing.id,
+              ]
+            );
+            newState.push({
+              type: 'update',
+              table: 'users',
+              key: existing.id,
+              data: updatedRows[0],
+            });
+          } else {
+            // Create new user with password
+            const id = `user-${crypto.randomUUID()}`;
+            const updatedTags = JSON.stringify(user.tags);
+            const plainPassword = crypto.randomBytes(4).toString('hex'); // 8 char temp password
+            const passwordHash = await bcrypt.hash(plainPassword, 10);
+
+            const { rows: insertedRows } = await client.query(
+              `INSERT INTO users (id, username, display_name, email, role, admin_roles, status, major, year, tags, password_hash, created_at, updated_at)
+                 VALUES ($1, $2, $3, $4, $5, $5, $6, $7, $8, $9, $10, NOW(), NOW()) RETURNING *`,
+              [
+                id,
+                user.username,
+                user.display_name,
+                user.email,
+                user.role,
+                user.status,
+                user.major || null,
+                user.year || null,
+                updatedTags,
+                passwordHash,
+              ]
+            );
+
+            // Email the user their temporary password
+            try {
+              await sendEmail({
+                to: user.email,
+                subject: 'Welcome to NexaSphere!',
+                templateName: 'generic',
+                data: {
+                  name: user.display_name || 'Student',
+                  message: `Your account has been created. You can log in using your email and this temporary password: ${plainPassword} \nPlease change it after your first login.`,
+                },
+              });
+            } catch (emailErr) {
+              console.error(`Failed to send welcome email to ${user.email}:`, emailErr.message);
+            }
+
+            oldState.push({ type: 'insert', table: 'users', key: id, data: null });
+            newState.push({ type: 'insert', table: 'users', key: id, data: insertedRows[0] });
+          }
+        });
+        processed++;
+        this.updateJobProgress(job.id, processed, []);
+      } catch (err) {
+        jobErrors.push(`Row ${user.row}: Database error - ${err.message}`);
       }
 
     // Log to audit log
@@ -986,9 +1104,13 @@ class BulkOperationsService {
       for (let j = operations.length - 1; j >= 0; j--) {
         const op = operations[j];
 
+        if (!/^[a-zA-Z0-9_]+$/.test(op.table)) {
+          throw new Error(`Invalid table name detected in rollback log: ${op.table}`);
+        }
+
         if (op.type === 'insert') {
           // A insert rollback deletes the created row
-          await client.query(`DELETE FROM ${op.table} WHERE id = $1`, [op.key]);
+          await client.query(`DELETE FROM ${validateTableName(op.table)} WHERE id = $1`, [op.key]);
           rolledBackOps.push({ type: 'delete', table: op.table, key: op.key });
         } else if (op.type === 'update') {
           // A update rollback restores previous values
@@ -999,6 +1121,9 @@ class BulkOperationsService {
 
           Object.keys(oldData).forEach((field) => {
             if (field === 'id' || field === 'created_at') return;
+            if (!/^[a-zA-Z0-9_]+$/.test(field)) {
+              throw new Error(`Invalid column name detected in rollback log: ${field}`);
+            }
             fields.push(`${field} = $${index++}`);
             let val = oldData[field];
             if (val !== null && typeof val === 'object') {
@@ -1008,7 +1133,7 @@ class BulkOperationsService {
           });
 
           values.push(op.key);
-          const sql = `UPDATE ${op.table} SET ${fields.join(', ')} WHERE id = $${index}`;
+          const sql = `UPDATE ${validateTableName(op.table)} SET ${fields.join(', ')} WHERE id = $${index}`;
           await client.query(sql, values);
           rolledBackOps.push({ type: 'update', table: op.table, key: op.key });
         }

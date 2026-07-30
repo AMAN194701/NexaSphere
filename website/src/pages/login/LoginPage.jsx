@@ -40,7 +40,7 @@ export default function LoginPage() {
             <span className={styles.btnIcon} aria-hidden="true">
               G
             </span>
-            Sign in with Google
+            Continue with Google
           </button>
           <button
             type="button"
@@ -51,7 +51,7 @@ export default function LoginPage() {
             <span className={styles.btnIcon} aria-hidden="true">
               &#xf09b;
             </span>
-            Sign in with GitHub
+            Continue with GitHub
           </button>
         </div>
       </div>

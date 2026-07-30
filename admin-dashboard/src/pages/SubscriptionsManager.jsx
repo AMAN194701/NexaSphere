@@ -5,6 +5,8 @@ export function SubscriptionsManager() {
   const [subscriptions, setSubscriptions] = useState([]);
   const [stats, setStats] = useState({ total: 0, premium: 0, pro: 0, revenue: 0 });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [error, setError] = useState(null);
 
 
   useEffect(() => {
@@ -13,6 +15,8 @@ export function SubscriptionsManager() {
 
   const loadData = async () => {
     setLoading(true);
+    setError('');
+    setError(null);
 
     try {
       const data = await api.subscriptions.getAll();
@@ -26,7 +30,9 @@ export function SubscriptionsManager() {
       });
     } catch (e) {
       console.error('Failed to load subscriptions', e);
-
+      setError(e.message || 'Failed to load subscriptions');
+      setSubscriptions([]);
+      setError(e.message || 'Failed to load subscriptions. Please try again.');
     }
     setLoading(false);
   };
@@ -45,6 +51,13 @@ export function SubscriptionsManager() {
           Refresh
         </button>
       </div>
+
+      {error && (
+        <div style={{ color: '#ef4444', padding: '12px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '6px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>{error}</span>
+          <button className="btn btn-secondary" style={{ fontSize: '0.8rem', padding: '4px 8px' }} onClick={loadData}>Retry</button>
+        </div>
+      )}
 
       <div
         style={{
@@ -78,58 +91,66 @@ export function SubscriptionsManager() {
 
       {loading && <p className="text-muted">Loading…</p>}
 
-      <div className="card">
-        <h3 style={{ margin: '0 0 16px' }}>All Subscriptions</h3>
-        <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ borderBottom: '1px solid var(--border)' }}>
-              <th style={{ textAlign: 'left', padding: '8px' }}>User ID</th>
-              <th style={{ textAlign: 'left', padding: '8px' }}>Tier</th>
-              <th style={{ textAlign: 'left', padding: '8px' }}>Status</th>
-              <th style={{ textAlign: 'left', padding: '8px' }}>Price</th>
-              <th style={{ textAlign: 'left', padding: '8px' }}>Period End</th>
-            </tr>
-          </thead>
-          <tbody>
-            {subscriptions.length === 0 && (
-              <tr>
-                <td
-                  colSpan={5}
-                  style={{ padding: '16px', textAlign: 'center', color: 'var(--t2)' }}
-                >
-                  No subscriptions yet
-                </td>
+      {error && (
+        <div className="page-error" style={{ marginBottom: '20px' }}>
+          {error}
+        </div>
+      )}
+
+      {!error && (
+        <div className="card">
+          <h3 style={{ margin: '0 0 16px' }}>All Subscriptions</h3>
+          <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                <th style={{ textAlign: 'left', padding: '8px' }}>User ID</th>
+                <th style={{ textAlign: 'left', padding: '8px' }}>Tier</th>
+                <th style={{ textAlign: 'left', padding: '8px' }}>Status</th>
+                <th style={{ textAlign: 'left', padding: '8px' }}>Price</th>
+                <th style={{ textAlign: 'left', padding: '8px' }}>Period End</th>
               </tr>
-            )}
-            {subscriptions.map((sub) => {
-              const tier = tiers.find((t) => t.id === sub.tier) || tiers[0];
-              return (
-                <tr key={sub.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                  <td style={{ padding: '8px' }}>{sub.userId}</td>
-                  <td style={{ padding: '8px' }}>
-                    <span className="badge" style={{ background: tier.color, color: '#fff' }}>
-                      {tier.name}
-                    </span>
-                  </td>
-                  <td style={{ padding: '8px' }}>
-                    <span
-                      className={`badge ${sub.status === 'active' ? 'badge-success' : 'badge-secondary'}`}
-                    >
-                      {sub.status}
-                    </span>
-                  </td>
-                  <td style={{ padding: '8px' }}>${(sub.price || 0) / 100}/mo</td>
-                  <td style={{ padding: '8px' }}>
-                    {sub.currentPeriodEnd
-                      ? new Date(sub.currentPeriodEnd).toLocaleDateString()
-                      : '-'}
+            </thead>
+            <tbody>
+              {subscriptions.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={5}
+                    style={{ padding: '16px', textAlign: 'center', color: 'var(--t2)' }}
+                  >
+                    No subscriptions yet
                   </td>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+              )}
+              {subscriptions.map((sub) => {
+                const tier = tiers.find((t) => t.id === sub.tier) || tiers[0];
+                return (
+                  <tr key={sub.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '8px' }}>{sub.userId}</td>
+                    <td style={{ padding: '8px' }}>
+                      <span className="badge" style={{ background: tier.color, color: '#fff' }}>
+                        {tier.name}
+                      </span>
+                    </td>
+                    <td style={{ padding: '8px' }}>
+                      <span
+                        className={`badge ${sub.status === 'active' ? 'badge-success' : 'badge-secondary'}`}
+                      >
+                        {sub.status}
+                      </span>
+                    </td>
+                    <td style={{ padding: '8px' }}>${(sub.price || 0) / 100}/mo</td>
+                    <td style={{ padding: '8px' }}>
+                      {sub.currentPeriodEnd
+                        ? new Date(sub.currentPeriodEnd).toLocaleDateString()
+                        : '-'}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

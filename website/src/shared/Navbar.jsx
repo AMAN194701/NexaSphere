@@ -6,7 +6,9 @@ import { ThemeToggle } from '../components/common/ThemeToggle';
 import { useStudentAuth } from '../context/StudentAuthContext';
 import LanguageSelector from '../components/common/LanguageSelector';
 import { useTranslation } from 'react-i18next';
-
+import { Trophy } from 'lucide-react';
+import { useWalkthroughStep } from '../hooks/useWalkthroughStep';
+import { WalkthroughWrapper } from '../components/walkthrough/WalkthroughWrapper';
 
 const TABS = [
   'Home',
@@ -14,8 +16,14 @@ const TABS = [
   'Events',
   'Projects',
   'Roadmaps',
+  'Recommendations',
+  'Portfolio',
+  'Blog',
   'Resources',
   'Forum',
+  'Gamification',
+  'Forum',
+  'Mentorship',
   'About',
   'Core Team',
   'Contact',
@@ -100,6 +108,19 @@ export default function Navbar({
     };
   }, []);
 
+  useEffect(() => {
+    if (!compact || !menuOpen) return undefined;
+
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        setMenuOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [compact, menuOpen]);
+
   const { user, isAuthenticated, login } = useStudentAuth();
 
   const handleTab = (tab) => {
@@ -116,24 +137,27 @@ export default function Navbar({
   if (compact)
     return (
       <nav className="ns-navbar-mobile">
-        <button
+        <div
           className="ns-mobile-top"
-          onClick={goHome}
-          style={{ cursor: 'pointer', background: 'none', border: 'none', display: 'flex', alignItems: 'center', width: '100%', padding: 0 }}
-          aria-label="Go to homepage"
+          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 14px 5px', width: '100%' }}
         >
-          <img
-            src={BRAND_LOGO_ICON}
-            alt="NexaSphere"
-            className="ns-mobile-logo-ns"
-            loading="lazy"
-            width="28"
-            height="28"
-          />
-
-          <span className="ns-mobile-brand">
-            <span>NexaSphere</span>
-          </span>
+          <div
+            onClick={goHome}
+            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+            aria-label="Go to homepage"
+          >
+            <img
+              src={BRAND_LOGO_ICON}
+              alt="NexaSphere"
+              className="ns-mobile-logo-ns"
+              loading="lazy"
+              width="28"
+              height="28"
+            />
+            <span className="ns-mobile-brand">
+              <span>NexaSphere</span>
+            </span>
+          </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <NotificationBell />
@@ -151,6 +175,27 @@ export default function Navbar({
               title="View all notifications"
             >
               📋
+            </button>
+            <button
+              onClick={() => navigate('/leaderboard')}
+              aria-label="Leaderboard"
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--t1)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '6px',
+                borderRadius: '50%',
+                transition: 'background 0.2s',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+              title="Open leaderboard"
+            >
+              <Trophy size={16} />
             </button>
             <button
               onClick={onSearchToggle}
@@ -210,7 +255,7 @@ export default function Navbar({
               </div>
             )}
           </div>
-        </button>
+        </div>
 
         <div className="ns-mobile-tabs">
           {TABS.map((t) => (
@@ -271,6 +316,7 @@ export default function Navbar({
             <WalkthroughWrapper stepId="notifications" style={{ display: 'flex' }}>
               <NotificationBell />
             </WalkthroughWrapper>
+            <NotificationBell />
             <button
               onClick={() => navigate('/notifications')}
               aria-label="Notification history"
@@ -285,6 +331,27 @@ export default function Navbar({
               title="View all notifications"
             >
               📋
+            </button>
+            <button
+              onClick={() => navigate('/leaderboard')}
+              aria-label="Leaderboard"
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--t1)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '6px',
+                borderRadius: '50%',
+                transition: 'background 0.2s',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+              title="Open leaderboard"
+            >
+              <Trophy size={16} />
             </button>
             <button
               onClick={onSearchToggle}
@@ -384,10 +451,32 @@ export default function Navbar({
               </div>
             )}
 
+            {isAuthenticated ? (
+              <span
+                className="ns-nav-user-badge"
+                onClick={() => navigate('/dashboard')}
+                style={{ cursor: 'pointer', fontSize: '0.9rem', color: 'var(--t1)' }}
+                title={user?.name || user?.email}
+              >
+                👤
+              </span>
+            ) : (
+              <button
+                className="btn btn-sm btn-outline"
+                onClick={() => login('google')}
+                aria-label="Sign in"
+                style={{ marginLeft: '4px' }}
+              >
+                Login
+              </button>
+            )}
+
             <button
               className={`ns-nav-menu-toggle${menuOpen ? ' open' : ''}`}
               onClick={() => compact && setMenuOpen((open) => !open)}
-              aria-label="Toggle navigation menu"
+              type="button"
+              aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              aria-controls="ns-nav-menu"
               aria-expanded={menuOpen}
             >
               <span />
@@ -397,7 +486,7 @@ export default function Navbar({
           </div>
         </div>
 
-        <div className="ns-nav-menu">
+        <div className="ns-nav-menu" id="ns-nav-menu" aria-hidden={compact ? !menuOpen : undefined}>
           <ul className="ns-nav-tabs">
             {TABS.map((t) => (
               <li key={t}>

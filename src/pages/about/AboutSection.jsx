@@ -6,6 +6,17 @@ const WHATSAPP = 'https://chat.whatsapp.com/Jjc5cuUKENu0RC1vWSEs20';
 const LINKEDIN = 'https://www.linkedin.com/showcase/glbajaj-nexasphere/';
 const NEXASPHERE_EMAIL = 'nexasphere@glbajajgroup.org';
 
+const values = [
+  'Innovation',
+  'Collaboration',
+  'Learning',
+  'Growth',
+  'Community',
+  'Technology',
+  'Career',
+  'Mentorship',
+];
+
 export default function AboutSection() {
   const { t } = useTranslation();
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
@@ -79,6 +90,10 @@ export default function AboutSection() {
           <h2 className="section-title pop-word">{t('about.title')}</h2>
           <p className="section-subtitle pop-in" style={{ animationDelay: '.1s' }}>
             {t('about.subtitle')}
+        <div className="section-heading">
+          <h2 className="section-title pop-word">About NexaSphere</h2>
+          <p className="section-subtitle pop-in" style={{ animationDelay: '.1s' }}>
+            Building Tomorrow&apos;s Tech Leaders Today
           </p>
         </div>
 
@@ -97,12 +112,22 @@ export default function AboutSection() {
               <strong style={{ color: 'var(--c1)' }}>NexaSphere</strong>{' '}
               {t('about.desc_1').split('NexaSphere').slice(1).join('NexaSphere') ||
                 t('about.desc_1')}
+              <strong style={{ color: 'var(--c1)' }}>NexaSphere</strong> is a student-driven tech
+              ecosystem at{' '}
+              <strong style={{ color: 'var(--c2)' }}>
+                GL Bajaj Group of Institutions, Mathura
+              </strong>
+              . Founded to bridge the gap between academic learning and real-world technology, we
+              run hackathons, workshops, knowledge-sharing sessions, and career guidance events.
             </p>
             <p
               className="about-text pop-left"
               style={{ marginTop: '12px', animationDelay: '.16s' }}
             >
               {t('about.desc_2')}
+              From peer-led Knowledge Sharing Sessions and hands-on workshops to Industry Insider
+              career guidance and competitive hackathons — NexaSphere runs events that connect
+              curiosity with real opportunity, all year round.
             </p>
 
             <div className="pop-left" style={{ marginTop: '16px', animationDelay: '.22s' }}>
@@ -120,6 +145,10 @@ export default function AboutSection() {
                 {t('about.contact_us')}
               </div>
               <a
+                Contact Us
+              </div>
+              <a
+                aria-label="Interactive element"
                 href={`mailto:${NEXASPHERE_EMAIL}`}
                 style={{ color: 'var(--c1)', fontSize: '.88rem', fontWeight: 600 }}
               >
@@ -166,6 +195,7 @@ export default function AboutSection() {
                 }}
               >
                 {t('about.our_values')}
+                Our Values
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                 {values.map((v) => (
@@ -212,6 +242,30 @@ export default function AboutSection() {
           </a>
           <a href={`mailto:${NEXASPHERE_EMAIL}`} className="btn btn-outline">
             <Mail size={16} aria-hidden="true" /> {t('about.actions.email_us')}
+          <a
+            aria-label="Interactive element"
+            href={WHATSAPP}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-whatsapp"
+          >
+            💬 Join WhatsApp
+          </a>
+          <a
+            aria-label="Interactive element"
+            href={LINKEDIN}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-linkedin"
+          >
+            🔗 LinkedIn
+          </a>
+          <a
+            aria-label="Interactive element"
+            href={`mailto:${NEXASPHERE_EMAIL}`}
+            className="btn btn-outline"
+          >
+            📧 Email Us
           </a>
         </div>
       </div>

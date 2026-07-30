@@ -34,6 +34,10 @@ When multiple instances of the backend API run concurrently, standard in-memory 
   ```javascript
   import { createRateLimitStore } from '../services/rateLimitService.js';
 
+- Rate limiters defined in `server/middleware/rateLimiter.js` and `server/middleware/authRateLimiter.js` utilize a shared Redis backend:
+  ```javascript
+  import { createRateLimitStore } from '../services/rateLimitService.js';
+  
   export const apiRateLimiter = rateLimit({
     store: createRateLimitStore('rate-limit:api:'),
     // ...
@@ -46,6 +50,10 @@ When multiple instances of the backend API run concurrently, standard in-memory 
 
 - Real-time WebSockets are synchronized across all running instances using the `@socket.io/redis-adapter`:
 
+- If Redis is unreachable, the system gracefully falls back to a memory store (`CappedMemoryStore`) to prevent backend crashes.
+
+### 2.2 Socket.IO State Sharing
+- Real-time WebSockets are synchronized across all running instances using the `@socket.io/redis-adapter`:
   ```javascript
   const pubClient = getRedisClient();
   const subClient = pubClient.duplicate();

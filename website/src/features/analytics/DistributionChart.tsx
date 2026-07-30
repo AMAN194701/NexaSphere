@@ -1,14 +1,20 @@
-import React from 'react';
-import { PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
-import { ChartWrapper, CustomTooltip } from '../../components/analytics/ChartComponents';
-import { DistributionDataPoint } from '../../utils/chartDataFormatters';
+import React from "react";
+import { PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
+import {
+  ChartWrapper,
+  CustomTooltip,
+} from "../../components/analytics/ChartComponents";
+import { DistributionDataPoint } from "../../utils/chartDataFormatters";
 
 interface DistributionChartProps {
   data: DistributionDataPoint[];
   loading: boolean;
 }
 
-export const DistributionChart: React.FC<DistributionChartProps> = ({ data, loading }) => {
+export const DistributionChart: React.FC<DistributionChartProps> = ({
+  data,
+  loading,
+}) => {
   return (
     <ChartWrapper
       title="Skill Distribution"
@@ -28,7 +34,11 @@ export const DistributionChart: React.FC<DistributionChartProps> = ({ data, load
           animationDuration={1000}
         >
           {data.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={entry.fill || '#8884d8'} stroke="rgba(0,0,0,0)" />
+            <Cell
+              key={`cell-${index}`}
+              fill={entry.fill || "#8884d8"}
+              stroke="rgba(0,0,0,0)"
+            />
           ))}
         </Pie>
         <Tooltip content={<CustomTooltip />} />

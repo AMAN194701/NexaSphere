@@ -4,6 +4,7 @@
  */
 
 import React from 'react';
+import { Skeleton } from './Skeleton';
 
 export default function RecentRegistrationsList({ registrations = [], isLoading }) {
   const formatDate = (dateString) => {
@@ -45,9 +46,30 @@ export default function RecentRegistrationsList({ registrations = [], isLoading 
       </div>
 
       {isLoading && registrations.length === 0 ? (
-        <div className="loading-state">
-          <div className="spinner"></div>
-          <p>Loading registrations...</p>
+        <div className="registrations-list">
+          <div
+            className="list-items"
+            style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '16px' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <Skeleton width="40px" height="40px" rounded={true} />
+              <div style={{ flex: 1 }}>
+                <Skeleton height="20px" width="80%" />
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <Skeleton width="40px" height="40px" rounded={true} />
+              <div style={{ flex: 1 }}>
+                <Skeleton height="20px" width="60%" />
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <Skeleton width="40px" height="40px" rounded={true} />
+              <div style={{ flex: 1 }}>
+                <Skeleton height="20px" width="70%" />
+              </div>
+            </div>
+          </div>
         </div>
       ) : registrations.length > 0 ? (
         <div className="registrations-list">

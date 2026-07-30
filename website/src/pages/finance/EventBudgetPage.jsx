@@ -244,7 +244,7 @@ export default function EventBudgetPage() {
   const selectBudget = useCallback(
     async (budget) => {
       setSelectedBudget(budget);
-      await Promise.all([
+      await Promise.allSettled([
         fetchExpenses(budget.id),
         fetchRevenues(budget.id),
         fetchVariance(budget.id),
@@ -421,6 +421,11 @@ export default function EventBudgetPage() {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount || 0);
+  };
+
+  const formatDate = (value) => {
+    const date = value ? new Date(value) : null;
+    return date && !Number.isNaN(date.getTime()) ? date.toLocaleDateString() : 'Unknown';
   };
 
   const totalSpent = expenses
@@ -817,6 +822,7 @@ export default function EventBudgetPage() {
                     <td style={tdStyle}>{revenue.description || '-'}</td>
                     <td style={tdStyle}>{formatCurrency(revenue.amount)}</td>
                     <td style={tdStyle}>{formatRevDate(revenue.receivedAt)}</td>
+                    <td style={tdStyle}>{formatDate(revenue.receivedAt)}</td>
                     <td style={tdStyle}>
                       <button
                         style={{ ...buttonStyle('danger'), padding: '6px 12px', fontSize: '12px' }}
@@ -1050,9 +1056,19 @@ export default function EventBudgetPage() {
 
       {/* Create Budget Modal */}
       {showBudgetModal && (
-        <div style={modalOverlayStyle} onClick={() => setShowBudgetModal(false)}>
-          <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ margin: '0 0 24px 0', fontSize: '20px', fontWeight: '600' }}>
+        <div
+          style={modalOverlayStyle}
+          onClick={() => setShowBudgetModal(false)}
+          onKeyDown={(e) => e.key === 'Escape' && setShowBudgetModal(false)}
+        >
+          <div
+            style={modalStyle}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="create-budget-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="create-budget-title" style={{ margin: '0 0 24px 0', fontSize: '20px', fontWeight: '600' }}>
               Create Budget
             </h3>
             <label style={labelStyle}>Budget Name *</label>
@@ -1114,9 +1130,19 @@ export default function EventBudgetPage() {
 
       {/* Create Expense Modal */}
       {showExpenseModal && (
-        <div style={modalOverlayStyle} onClick={() => setShowExpenseModal(false)}>
-          <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ margin: '0 0 24px 0', fontSize: '20px', fontWeight: '600' }}>
+        <div
+          style={modalOverlayStyle}
+          onClick={() => setShowExpenseModal(false)}
+          onKeyDown={(e) => e.key === 'Escape' && setShowExpenseModal(false)}
+        >
+          <div
+            style={modalStyle}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="add-expense-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="add-expense-title" style={{ margin: '0 0 24px 0', fontSize: '20px', fontWeight: '600' }}>
               Add Expense
             </h3>
             <label style={labelStyle}>Expense Name *</label>
@@ -1176,9 +1202,19 @@ export default function EventBudgetPage() {
 
       {/* Create Revenue Modal */}
       {showRevenueModal && (
-        <div style={modalOverlayStyle} onClick={() => setShowRevenueModal(false)}>
-          <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ margin: '0 0 24px 0', fontSize: '20px', fontWeight: '600' }}>
+        <div
+          style={modalOverlayStyle}
+          onClick={() => setShowRevenueModal(false)}
+          onKeyDown={(e) => e.key === 'Escape' && setShowRevenueModal(false)}
+        >
+          <div
+            style={modalStyle}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="add-revenue-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="add-revenue-title" style={{ margin: '0 0 24px 0', fontSize: '20px', fontWeight: '600' }}>
               Add Revenue
             </h3>
             <label style={labelStyle}>Revenue Source *</label>

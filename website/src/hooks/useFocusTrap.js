@@ -58,3 +58,5 @@ export function useFocusTrap(active, onEscape) {
 
   return ref;
 }
+
+export default useFocusTrap;

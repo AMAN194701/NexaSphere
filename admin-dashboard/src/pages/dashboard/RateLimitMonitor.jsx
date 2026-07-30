@@ -9,6 +9,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { useLogoutAwareInterval } from '../../hooks/useLogoutAwareInterval';
 
 const API = '/api/admin';
 
@@ -292,9 +293,9 @@ export default function RateLimitMonitor() {
 
   useEffect(() => {
     loadStatus();
-    const timer = setInterval(loadStatus, 30_000); // auto-refresh every 30 s
-    return () => clearInterval(timer);
   }, [loadStatus]);
+
+  useLogoutAwareInterval(loadStatus, 30_000);
 
   const tabs = [
     { id: 'overview',   label: 'Overview' },

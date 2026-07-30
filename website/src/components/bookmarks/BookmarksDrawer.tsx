@@ -54,6 +54,10 @@ export default function BookmarksDrawer({ isOpen, onClose, onNavigate }: Bookmar
 
           {/* Drawer */}
           <motion.div
+            id="bookmarks-drawer"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="bookmarks-drawer-title"
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
@@ -87,6 +91,7 @@ export default function BookmarksDrawer({ isOpen, onClose, onNavigate }: Bookmar
               }}
             >
               <h2
+                id="bookmarks-drawer-title"
                 style={{
                   margin: 0,
                   fontSize: '1.25rem',

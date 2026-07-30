@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
-import { useUnsavedChangesWarning } from "../../hooks/useUnsavedChangesWarning";
+import { useState, useEffect } from 'react';
+import { useUnsavedChangesWarning } from '../../hooks/useUnsavedChangesWarning';
+import { Skeleton, SkeletonAvatar, SkeletonText } from '../../components/ui/skeleton/Skeleton';
 const styles = {
   page: {
     minHeight: '100vh',
@@ -201,22 +202,30 @@ const statusBg = (s) =>
 
 export default function ProfilePage() {
   const navigate = useNavigate();
-  const [profile,    setProfile]    = useState(null);
-  const [loading,    setLoading]    = useState(true);
-  const [error,      setError]      = useState(null);
-  const [editing,    setEditing]    = useState(false);
-  const [saving,     setSaving]     = useState(false);
-  const [activeTab,  setActiveTab]  = useState("registrations");
-  const [editForm,   setEditForm]   = useState({ fullName: "", bio: "", socialLinks: { github: "", linkedin: "", portfolio: "" } });
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState('registrations');
+  const [editForm, setEditForm] = useState({
+    fullName: '',
+    bio: '',
+    socialLinks: { github: '', linkedin: '', portfolio: '' },
+  });
 
-  const isDirty = editing && profile && (
-    editForm.fullName !== (profile.fullName || profile.name || "") ||
-    editForm.bio !== (profile.bio || "") ||
-    JSON.stringify(editForm.socialLinks) !== JSON.stringify(profile.socialLinks || { github: "", linkedin: "", portfolio: "" })
-  );
+  const isDirty =
+    editing &&
+    profile &&
+    (editForm.fullName !== (profile.fullName || profile.name || '') ||
+      editForm.bio !== (profile.bio || '') ||
+      JSON.stringify(editForm.socialLinks) !==
+        JSON.stringify(profile.socialLinks || { github: '', linkedin: '', portfolio: '' }));
   useUnsavedChangesWarning(isDirty);
 
-  useEffect(() => { fetchProfile(); }, []);
+  useEffect(() => {
+    fetchProfile();
+  }, []);
 
   const fetchProfile = async () => {
     try {
@@ -259,8 +268,53 @@ export default function ProfilePage() {
 
   if (loading)
     return (
-      <div style={styles.center}>
-        <p style={{ color: '#888' }}>Loading your profile...</p>
+      <div style={styles.page}>
+        <div style={styles.container}>
+          <div style={styles.header}>
+            <SkeletonAvatar size={80} />
+            <div style={styles.headerInfo}>
+              <Skeleton width="40%" height="1.5rem" />
+              <div style={{ height: 8 }} />
+              <Skeleton width="58%" height="0.9rem" />
+              <div style={{ height: 12 }} />
+              <SkeletonText lines={2} lastLineWidth="72%" />
+            </div>
+          </div>
+
+          <div style={styles.statsGrid}>
+            <div style={styles.statCard}>
+              <Skeleton width="48%" height="2rem" />
+              <div style={{ height: 8 }} />
+              <Skeleton width="60%" height="0.8rem" />
+            </div>
+            <div style={styles.statCard}>
+              <Skeleton width="48%" height="2rem" />
+              <div style={{ height: 8 }} />
+              <Skeleton width="60%" height="0.8rem" />
+            </div>
+            <div style={styles.statCard}>
+              <Skeleton width="48%" height="2rem" />
+              <div style={{ height: 8 }} />
+              <Skeleton width="60%" height="0.8rem" />
+            </div>
+            <div style={styles.statCard}>
+              <Skeleton width="48%" height="2rem" />
+              <div style={{ height: 8 }} />
+              <Skeleton width="60%" height="0.8rem" />
+            </div>
+          </div>
+
+          <div style={styles.tabs}>
+            <Skeleton width="88px" height="2.2rem" />
+            <Skeleton width="78px" height="2.2rem" />
+            <Skeleton width="96px" height="2.2rem" />
+            <Skeleton width="102px" height="2.2rem" />
+          </div>
+
+          <div style={styles.statCard}>
+            <SkeletonText lines={4} lastLineWidth="66%" />
+          </div>
+        </div>
       </div>
     );
   if (error)
@@ -337,8 +391,15 @@ export default function ProfilePage() {
             )}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <button onClick={() => setEditing(true)} style={styles.btnOutline}>Edit Profile</button>
-            <button onClick={() => navigate('/settings/account')} style={{ ...styles.btnOutline, background: '#1e293b' }}>Manage Account & Privacy</button>
+            <button onClick={() => setEditing(true)} style={styles.btnOutline}>
+              Edit Profile
+            </button>
+            <button
+              onClick={() => navigate('/settings/account')}
+              style={{ ...styles.btnOutline, background: '#1e293b' }}
+            >
+              Manage Account & Privacy
+            </button>
           </div>
         </div>
 

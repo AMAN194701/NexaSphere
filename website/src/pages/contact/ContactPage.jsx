@@ -430,6 +430,12 @@ function MessageCTA() {
     return () => clearTimeout(timer);
   }, [copied, copyError]);
 
+  useEffect(() => {
+    if (!copied) return;
+    const timer = setTimeout(() => setCopied(false), 2200);
+    return () => clearTimeout(timer);
+  }, [copied]);
+
   const handleCopy = () => {
     if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
     navigator.clipboard

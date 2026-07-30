@@ -263,6 +263,14 @@ function TopicCard({ topic, index, color }) {
             {topic.title}
           </div>
           <div style={{ display: 'flex', gap: '14px', marginBottom: '8px', flexWrap: 'wrap' }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: '14px',
+              marginBottom: '8px',
+              flexWrap: 'wrap',
+            }}
+          >
             <span
               style={{
                 fontSize: '0.78rem',
@@ -354,6 +362,12 @@ function AckCard({ ack, color }) {
       </div>
       <p
         style={{ color: 'var(--text-secondary)', fontSize: '0.84rem', margin: 0, lineHeight: 1.55 }}
+        style={{
+          color: 'var(--text-secondary)',
+          fontSize: '0.84rem',
+          margin: 0,
+          lineHeight: 1.55,
+        }}
       >
         {ack.note}
       </p>
@@ -379,6 +393,13 @@ function MediaBtn({ href, icon, label, color }) {
         }}
       >
         <div style={{ marginBottom: '6px', display: 'flex', justifyContent: 'center' }}>
+        <div
+          style={{
+            marginBottom: '6px',
+            display: 'flex',
+            justifyContent: 'center',
+          }}
+        >
           <DynamicIcon name={icon} size={32} />
         </div>
         <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '3px' }}>{label}</div>
@@ -388,6 +409,7 @@ function MediaBtn({ href, icon, label, color }) {
   }
   return (
     <a
+      aria-label="Interactive element"
       href={href}
       target="_blank"
       rel="noopener noreferrer"
@@ -441,6 +463,29 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
   useEffect(() => {
     window.scrollTo({ top: 0 });
     setTimeout(() => setMounted(true), 60);
+  const [activeTab, setActiveTab] = useState('overview');
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+    setTimeout(() => setMounted(true), 60);
+
+    // Local scroll-reveal observer — sub-pages mount after the global observer ran
+    const obs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting && !e.target.classList.contains('fired')) {
+            e.target.classList.add('fired');
+            obs.unobserve(e.target);
+          }
+        });
+      },
+      { threshold: 0.08, rootMargin: '0px 0px -30px 0px' }
+    );
+    document
+      .querySelectorAll(
+        '#event-detail-page .pop-in, #event-detail-page .pop-left, #event-detail-page .pop-right, #event-detail-page .pop-scale'
+      )
+      .forEach((el) => obs.observe(el));
+    return () => obs.disconnect();
   }, []);
 
   const color = activityColor || '#a855f7';
@@ -458,17 +503,30 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
       id: 'volunteers',
       label: 'Contributors',
       show:
-        event.volunteers?.length > 0 ||
-        event.acknowledgements?.length > 0 ||
-        event.videoPresenter?.length > 0 ||
-        event.anchor,
+        (event.volunteers?.length > 0) ||
+        (event.acknowledgements?.length > 0) ||
+        (event.videoPresenter?.length > 0) ||
+        !!event.anchor,
     },
-
     { id: 'media', label: 'Media', show: true },
   ].filter((t) => t.show);
 
   return (
     <div style={{ minHeight: '100vh', paddingBottom: '48px' }}>
+  const hasPeople = hasTopics || event.videoPresenter?.length > 0 || event.anchor;
+  const hasVolunteers = event.volunteers?.length > 0;
+  const hasAcknowledgements = event.acknowledgements?.length > 0 || event.closingNote;
+  const tabs = [
+    { id: 'overview', label: 'Overview' },
+    ...(hasTopics ? [{ id: 'topics', label: 'Topics' }] : []),
+    ...(hasPeople ? [{ id: 'speakers', label: 'Speakers' }] : []),
+    ...(hasVolunteers ? [{ id: 'volunteers', label: 'Volunteers' }] : []),
+    ...(hasAcknowledgements ? [{ id: 'acknowledgements', label: 'Acknowledgements' }] : []),
+    { id: 'media', label: 'Media' },
+  ];
+
+  return (
+    <div id="event-detail-page" style={{ minHeight: '100vh', paddingBottom: '100px' }}>
       <div
         style={{
           position: 'relative',
@@ -505,6 +563,7 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
 
         <div className="container" style={{ position: 'relative', zIndex: 1 }}>
           <button
+            aria-label="Interactive element"
             onClick={onBack}
             style={{
               display: 'inline-flex',
@@ -523,12 +582,12 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
               fontWeight: 600,
             }}
             onMouseEnter={(e) => {
-              e.target.style.background = `rgba(${rgb},0.12)`;
-              e.target.style.transform = 'translateX(-4px)';
+              e.currentTarget.style.background = `rgba(${rgb},0.12)`;
+              e.currentTarget.style.transform = 'translateX(-4px)';
             }}
             onMouseLeave={(e) => {
-              e.target.style.background = 'none';
-              e.target.style.transform = '';
+              e.currentTarget.style.background = 'none';
+              e.currentTarget.style.transform = '';
             }}
           >
             ← Back
@@ -675,7 +734,25 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
           {tabItems.map((tab) => {
             const isActive = activeSubTab === tab.id;
             return (
+            maxWidth: '820px',
+            margin: '0 auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '48px',
+          }}
+        >
+          <div
+            className="pop-in"
+            style={{
+              display: 'flex',
+              gap: '8px',
+              flexWrap: 'wrap',
+              marginBottom: '-16px',
+            }}
+          >
+            {tabs.map((tab) => (
               <button
+                aria-label="Interactive element"
                 key={tab.id}
                 onClick={() => setActiveSubTab(tab.id)}
                 style={{
@@ -685,6 +762,14 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
                   background: isActive ? `rgba(${rgb},0.1)` : 'transparent',
                   color: isActive ? color : 'var(--text-muted)',
                   fontFamily: 'Orbitron,monospace',
+                  padding: '8px 14px',
+                  borderRadius: '999px',
+                  border:
+                    activeTab === tab.id ? `1px solid ${color}` : '1px solid var(--border-subtle)',
+                  background: activeTab === tab.id ? `rgba(${rgb},0.12)` : 'var(--bg-card)',
+                  color: activeTab === tab.id ? color : 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  fontFamily: 'Rajdhani,sans-serif',
                   fontWeight: 700,
                   fontSize: '0.8rem',
                   cursor: 'pointer',
@@ -747,6 +832,240 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
                       fontSize: '0.98rem',
                       margin: 0,
                       whiteSpace: 'pre-line',
+          {activeTab === 'overview' && (
+            <section>
+              <SectionHeader icon="ClipboardList" title="Session Overview" color={color} />
+              <div
+                style={{
+                  background: 'var(--bg-card)',
+                  borderLeft: `3px solid ${color}`,
+                  borderRadius: '0 12px 12px 0',
+                  padding: '28px 32px',
+                  border: `1px solid rgba(${rgb},0.15)`,
+                  borderLeftWidth: '3px',
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}
+              >
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    right: 0,
+                    width: '150px',
+                    height: '150px',
+                    background: `radial-gradient(circle, rgba(${rgb},0.07), transparent)`,
+                    pointerEvents: 'none',
+                  }}
+                />
+                <p
+                  style={{
+                    color: 'var(--text-secondary)',
+                    lineHeight: 1.85,
+                    fontSize: '0.98rem',
+                    margin: 0,
+                    whiteSpace: 'pre-line',
+                  }}
+                >
+                  <Typewriter text={overview} speed={6} />
+                </p>
+              </div>
+            </section>
+          )}
+
+          {activeTab === 'speakers' && hasTopics && (
+            <section>
+              <SectionHeader icon="Mic2" title="Presenters" color={color} />
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                {event.topics?.map((t, i) => (
+                  <PersonChip
+                    key={i}
+                    name={t.speaker}
+                    role="Presenter"
+                    color={color}
+                    icon="Code2"
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {activeTab === 'topics' && hasTopics && (
+            <section>
+              <SectionHeader icon="Target" title="Topics Covered" color={color} />
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '14px',
+                }}
+              >
+                {event.topics?.map((t, i) => (
+                  <TopicCard key={i} topic={t} index={i} color={color} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {activeTab === 'speakers' && (event.videoPresenter?.length > 0 || event.anchor) && (
+            <section>
+              <SectionHeader icon="Clapperboard" title="Video Presentors & Anchor" color={color} />
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                {event.videoPresenter?.map((p, i) => (
+                  <PersonChip key={i} name={p.name} role={p.role} color={color} icon="Video" />
+                ))}
+                {event.anchor && (
+                  <PersonChip
+                    name={event.anchor.name}
+                    role={event.anchor.role}
+                    color={color}
+                    icon="Mic2"
+                  />
+                )}
+              </div>
+            </section>
+          )}
+
+          {activeTab === 'volunteers' && event.volunteers?.length > 0 && (
+            <section>
+              <SectionHeader icon="Zap" title="Volunteers — The Unsung Heroes" color={color} />
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                {event.volunteers.map((v, i) => (
+                  <PersonChip key={i} name={v.name} role="Volunteer" color={color} icon="Zap" />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {activeTab === 'acknowledgements' && event.acknowledgements?.length > 0 && (
+            <section>
+              <SectionHeader icon="Heart" title="Special Thanks" color={color} />
+              <div
+                style={{
+                  display: 'grid',
+                  gap: '14px',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                }}
+              >
+                {event.acknowledgements.map((a, i) => (
+                  <AckCard key={i} ack={a} color={color} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {activeTab === 'media' && (
+            <section>
+              <SectionHeader icon="Camera" title="Photos & Videos" color={color} />
+              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                <MediaBtn href={event.photoLink} icon="Camera" label="View Photos" color={color} />
+                <MediaBtn
+                  href={event.videoLink}
+                  icon="Video"
+                  label="Watch Recording"
+                  color={color}
+                />
+              </div>
+              {!event.photoLink && !event.videoLink && (
+                <p
+                  style={{
+                    color: 'var(--text-muted)',
+                    fontSize: '0.78rem',
+                    marginTop: '12px',
+                    fontStyle: 'italic',
+                  }}
+                >
+                  Photos and recordings are not available for this event yet.
+                </p>
+              )}
+            </section>
+          )}
+
+          {activeTab === 'acknowledgements' && event.closingNote && (
+            <section>
+              <div
+                style={{
+                  background: `linear-gradient(135deg, rgba(${rgb},0.08), rgba(${rgb},0.03))`,
+                  border: `1px solid rgba(${rgb},0.25)`,
+                  borderRadius: '16px',
+                  padding: '28px 32px',
+                  textAlign: 'center',
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}
+              >
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    backgroundImage: `radial-gradient(rgba(${rgb},0.08) 1px, transparent 1px)`,
+                    backgroundSize: '20px 20px',
+                    pointerEvents: 'none',
+                  }}
+                />
+                <div
+                  style={{
+                    marginBottom: '12px',
+                    display: 'flex',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <DynamicIcon name="Rocket" size={32} />
+                </div>
+                <p
+                  style={{
+                    fontFamily: 'Rajdhani,sans-serif',
+                    fontSize: '1.1rem',
+                    fontWeight: 600,
+                    color: 'var(--text-primary)',
+                    lineHeight: 1.7,
+                    margin: '0 0 16px',
+                    position: 'relative',
+                  }}
+                >
+                  {event.closingNote}
+                </p>
+                <p
+                  style={{
+                    color: 'var(--text-muted)',
+                    fontSize: '0.85rem',
+                    margin: 0,
+                    fontStyle: 'italic',
+                  }}
+                >
+                  Stay tuned. Stay curious. The best is yet to come.{' '}
+                  <DynamicIcon name="Star" size={12} style={{ verticalAlign: 'middle' }} />
+                </p>
+              </div>
+            </section>
+          )}
+
+          {event.hashtags?.length > 0 && (
+            <section>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {event.hashtags.map((tag) => (
+                  <span
+                    key={tag}
+                    style={{
+                      fontSize: '0.78rem',
+                      padding: '4px 12px',
+                      borderRadius: '20px',
+                      background: `rgba(${rgb},0.08)`,
+                      color,
+                      border: `1px solid rgba(${rgb},0.2)`,
+                      fontFamily: 'Rajdhani,sans-serif',
+                      fontWeight: 600,
+                      letterSpacing: '0.03em',
+                      cursor: 'default',
+                      transition: 'all 0.2s',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.background = `rgba(${rgb},0.18)`;
+                      e.target.style.transform = 'translateY(-2px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.background = `rgba(${rgb},0.08)`;
+                      e.target.style.transform = '';
                     }}
                   >
                     <Typewriter text={overview} speed={6} />
@@ -849,12 +1168,12 @@ export default function EventDetailPage({ event, activityColor, activityIcon, on
                           transition: 'all 0.2s',
                         }}
                         onMouseEnter={(e) => {
-                          e.target.style.background = `rgba(${rgb},0.18)`;
-                          e.target.style.transform = 'translateY(-2px)';
+                          e.currentTarget.style.background = `rgba(${rgb},0.18)`;
+                          e.currentTarget.style.transform = 'translateY(-2px)';
                         }}
                         onMouseLeave={(e) => {
-                          e.target.style.background = `rgba(${rgb},0.08)`;
-                          e.target.style.transform = '';
+                          e.currentTarget.style.background = `rgba(${rgb},0.08)`;
+                          e.currentTarget.style.transform = '';
                         }}
                       >
                         {tag}

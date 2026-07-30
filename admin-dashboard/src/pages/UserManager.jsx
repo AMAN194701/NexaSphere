@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import UserTimelineModal from '../components/UserTimelineModal';
 import { Skeleton } from '../components/Skeleton';
+import { useLogoutAwareInterval } from '../hooks/useLogoutAwareInterval';
 
 const ROLES = ['member', 'moderator', 'admin'];
 const PASSWORD_REQUIREMENTS = [
@@ -23,7 +24,8 @@ export default function UserManager() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
-
+  const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(null);
   const [awardBadgeUser, setAwardBadgeUser] = useState(null);
   const [badgeForm, setBadgeForm] = useState({
     name: '',
@@ -42,8 +44,14 @@ export default function UserManager() {
     admin_roles: 'member',
   });
 
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [csvText, setCsvText] = useState('');
+  const [importPreview, setImportPreview] = useState(null);
+  const [importJobId, setImportJobId] = useState(null);
+  const [importProgress, setImportProgress] = useState(null);
+  const [importErrors, setImportErrors] = useState([]);
 
-  async function fetchUsers() {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch('/api/admin/users', { credentials: 'include' });
@@ -54,7 +62,7 @@ export default function UserManager() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
     fetchUsers();
@@ -79,11 +87,25 @@ export default function UserManager() {
           }
         } catch (err) {
           console.error('Failed to poll job status');
+  const pollImportJob = useCallback(async () => {
+    if (!importJobId || importProgress === 100) return;
+
+    try {
+      const res = await fetch(`/api/admin/bulk/jobs/${importJobId}`, { credentials: 'include' });
+      if (res.ok) {
+        const job = await res.json();
+        setImportProgress(job.progress);
+        if (job.status === 'completed' || job.status === 'failed') {
+          setImportErrors(job.errors || []);
+          fetchUsers(); // Refresh after import
         }
-      }, 2000);
+      }
+    } catch (err) {
+      console.error('Failed to poll job status');
     }
-    return () => clearInterval(interval);
-  }, [importJobId, importProgress]);
+  }, [fetchUsers, importJobId, importProgress]);
+
+  useLogoutAwareInterval(pollImportJob, 2000, Boolean(importJobId && importProgress !== 100));
 
   function downloadCsvTemplate() {
     const template =
@@ -141,44 +163,55 @@ export default function UserManager() {
   }
 
   async function handleCreate() {
-    const res = await fetch('/api/admin/users', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify(form),
-    });
-    if (res.ok) {
-      setShowAddModal(false);
-      setForm({ username: '', display_name: '', email: '', admin_roles: 'member' });
-      fetchUsers();
-    } else {
-      const d = await res.json();
-      alert(d.error);
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(form),
+      });
+      if (res.ok) {
+        setShowAddModal(false);
+        setForm({ username: '', display_name: '', email: '', admin_roles: 'member' });
+        fetchUsers();
+      } else {
+        const d = await res.json();
+        alert(d.error);
+      }
+    } finally {
+      setSubmitting(false);
     }
   }
 
   async function handleUpdate() {
-    const res = await fetch(`/api/admin/users/${editUser.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({
-        display_name: form.display_name,
-        email: form.email,
-        admin_roles: form.admin_roles,
-      }),
-    });
-    if (res.ok) {
-      setEditUser(null);
-      fetchUsers();
-    } else {
-      const d = await res.json();
-      alert(d.error);
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/admin/users/${editUser.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          display_name: form.display_name,
+          email: form.email,
+          admin_roles: form.admin_roles,
+        }),
+      });
+      if (res.ok) {
+        setEditUser(null);
+        fetchUsers();
+      } else {
+        const d = await res.json();
+        alert(d.error);
+      }
+    } finally {
+      setSubmitting(false);
     }
   }
 
   async function handleDeactivate(id) {
     if (!window.confirm('Deactivate this user?')) return;
+    if (!confirm('Deactivate this user?')) return;
     setDeleting(id);
     try {
       const res = await fetch(`/api/admin/users/${id}`, {
@@ -275,6 +308,53 @@ export default function UserManager() {
       alert('Error resetting password');
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleAwardBadge() {
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/admin/users/${awardBadgeUser.id}/badges`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          ...badgeForm,
+          isCustom: true,
+          earnedAt: new Date(),
+        }),
+      });
+      if (res.ok) {
+        setAwardBadgeUser(null);
+        setBadgeForm({ name: '', description: '', icon: 'Award' });
+        fetchUsers();
+      } else {
+        const d = await res.json();
+        alert(d.error || 'Failed to award badge');
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleAwardBadge() {
+    const res = await fetch(`/api/admin/users/${awardBadgeUser.id}/badges`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        ...badgeForm,
+        isCustom: true,
+        earnedAt: new Date(),
+      }),
+    });
+    if (res.ok) {
+      setAwardBadgeUser(null);
+      setBadgeForm({ name: '', description: '', icon: 'Award' });
+      fetchUsers();
+    } else {
+      const d = await res.json();
+      alert(d.error || 'Failed to award badge');
     }
   }
 

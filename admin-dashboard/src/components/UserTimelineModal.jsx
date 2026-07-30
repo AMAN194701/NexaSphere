@@ -44,7 +44,7 @@ export default function UserTimelineModal({ user, onClose }) {
     const params = new URLSearchParams();
     if (user.email) params.append('email', user.email);
     if (usernameInput) params.append('username', usernameInput);
-    window.open(`/api/admin/users/timeline/export?${params.toString()}`, '_blank');
+    window.open(`/api/admin/users/timeline/export?${params.toString()}`, '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -92,8 +92,9 @@ export default function UserTimelineModal({ user, onClose }) {
         </div>
 
         <div style={{ display: 'flex', gap: 10, marginBottom: 20, alignItems: 'center' }}>
-          <label>Portfolio Username:</label>
+          <label htmlFor="portfolio-username-input">Portfolio Username:</label>
           <input
+            id="portfolio-username-input"
             type="text"
             value={usernameInput}
             onChange={(e) => setUsernameInput(e.target.value)}

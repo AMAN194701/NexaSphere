@@ -1,7 +1,7 @@
 // src/hooks/useRecommendations.js
-import { useState, useEffect, useCallback } from 'react';
-import { userInterestTracker } from '../services/recommendation/userInterestTracker';
-import { recommendationEngine } from '../services/recommendation/recommendationEngine';
+import { useState, useEffect, useCallback } from "react";
+import { userInterestTracker } from "../services/recommendation/userInterestTracker";
+import { recommendationEngine } from "../services/recommendation/recommendationEngine";
 
 export function useRecommendations(events) {
   const [recommendations, setRecommendations] = useState([]);
@@ -15,6 +15,7 @@ export function useRecommendations(events) {
     }
   }, [events]);
 
+  /* eslint-disable react-hooks/preserve-manual-memoization */
   const generateRecommendations = useCallback(() => {
     const interests = userInterestTracker.getUserInterests();
     const history = userInterestTracker.getEventHistory();
@@ -22,9 +23,16 @@ export function useRecommendations(events) {
     setUserInterests(interests);
 
     const recs = recommendationEngine.getRecommendations(events, interests, history, 10);
+    const recs = recommendationEngine.getRecommendations(
+      events,
+      interests,
+      history,
+      10
+    );
     setRecommendations(recs);
     setLoading(false);
   }, [events]);
+  /* eslint-enable react-hooks/preserve-manual-memoization */
 
   const trackEvent = useCallback(
     (eventId, action, metadata) => {
@@ -41,6 +49,11 @@ export function useRecommendations(events) {
       }
 
       const similar = recommendationEngine.getSimilarEvents(event, events, limit);
+      const similar = recommendationEngine.getSimilarEvents(
+        event,
+        events,
+        limit
+      );
       setSimilarEvents((prev) => ({ ...prev, [event.id]: similar }));
       return similar;
     },

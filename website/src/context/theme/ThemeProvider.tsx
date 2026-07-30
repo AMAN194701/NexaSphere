@@ -1,4 +1,9 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, {
+  createContext,
+  useState,
+  useEffect,
+  useLayoutEffect,
+} from 'react';
 
 type Theme = 'light' | 'dark' | 'system';
 type ResolvedTheme = 'light' | 'dark';
@@ -16,7 +21,7 @@ export const ThemeContext = createContext<ThemeContextType | undefined>(undefine
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setThemeState] = useState<Theme>(() => {
     try {
-      const stored = localStorage.getItem('ns-theme') as Theme | null;
+      const stored = (localStorage.getItem('ns-theme') || localStorage.getItem('nexasphere-theme')) as Theme | null;
       return stored || 'system';
     } catch {
       return 'system';
@@ -27,21 +32,19 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (typeof window !== 'undefined') {
       return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
-    return 'dark'; // Fallback for SSR/safety
+    return 'dark';
   });
 
-  // Keep system theme updated in real-time
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleChange = (e: MediaQueryListEvent) => {
       setSystemTheme(e.matches ? 'dark' : 'light');
     };
 
-    // Modern API
     if (mediaQuery.addEventListener) {
       mediaQuery.addEventListener('change', handleChange);
     } else {
-      // Fallback for older browsers
       mediaQuery.addListener(handleChange);
     }
 
@@ -54,11 +57,10 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
   }, []);
 
-  const resolvedTheme = theme === 'system' ? systemTheme : theme;
+  const resolvedTheme: ResolvedTheme = theme === 'system' ? systemTheme : theme;
   const isDark = resolvedTheme === 'dark';
 
-  useEffect(() => {
-    // Apply the resolved theme to documentElement
+  useLayoutEffect(() => {
     document.documentElement.setAttribute('data-theme', resolvedTheme);
   }, [resolvedTheme]);
 
@@ -66,19 +68,16 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setThemeState(newTheme);
     try {
       localStorage.setItem('ns-theme', newTheme);
+      localStorage.setItem('nexasphere-theme', newTheme);
 
-      // Sync with database if token exists
-      const token = localStorage.getItem('ns_student_token');
-      if (token) {
-        fetch('/api/auth/theme', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ theme: newTheme }),
-        }).catch((err) => console.error('Failed to sync theme preference:', err));
-      }
+      fetch('/api/auth/theme', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ theme: newTheme }),
+      }).catch((err) => console.error('Failed to sync theme preference:', err));
     } catch {
       // Storage/Network unavailable
     }

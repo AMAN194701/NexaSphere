@@ -3,7 +3,13 @@ import { getAllPrompts, deletePrompt, togglePinPrompt } from '../../lib/promptSt
 import { getWorkspaces } from '../../lib/workspaceService';
 import './PromptHistorySidebar.css';
 
-const PromptHistorySidebar = ({ isOpen, onSelectPrompt, currentWorkspace = 'default' }) => {
+const PromptHistorySidebar = ({
+  isOpen,
+  onSelectPrompt,
+  currentWorkspace = 'default',
+  historyVersion = 0,
+  onHistoryChange,
+}) => {
   const [prompts, setPrompts] = useState([]);
   const [workspaces, setWorkspaces] = useState([]);
   const [selectedWorkspace, setSelectedWorkspace] = useState(currentWorkspace);
@@ -27,9 +33,15 @@ const PromptHistorySidebar = ({ isOpen, onSelectPrompt, currentWorkspace = 'defa
     }
   };
 
+  // Sync selectedWorkspace when currentWorkspace prop changes
+  useEffect(() => {
+    setSelectedWorkspace(currentWorkspace);
+  }, [currentWorkspace]);
+
+  // Load data when selectedWorkspace, isOpen, or historyVersion changes
   useEffect(() => {
     loadData();
-  }, [selectedWorkspace]);
+  }, [selectedWorkspace, isOpen, historyVersion]);
 
   const handleDeletePrompt = async (e, id) => {
     e.stopPropagation();
@@ -40,51 +52,34 @@ const PromptHistorySidebar = ({ isOpen, onSelectPrompt, currentWorkspace = 'defa
     if (!deleteTarget) return;
     await deletePrompt(deleteTarget);
     setDeleteTarget(null);
-    loadData();
+    if (onHistoryChange) {
+      onHistoryChange();
+    } else {
+      loadData();
+    }
   };
 
   const handlePinPrompt = async (e, id) => {
     e.stopPropagation();
     await togglePinPrompt(id);
-    loadData();
+    if (onHistoryChange) {
+      onHistoryChange();
+    } else {
+      loadData();
+    }
   };
 
   const handleSelectPrompt = (prompt) => {
     onSelectPrompt(prompt);
   };
 
-  const formatTime = (timestamp) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now - date;
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString();
-  };
-
-  const getCurrentWorkspaceName = () => {
-    return workspaces.find((w) => w.id === selectedWorkspace)?.name || 'General';
-  };
+  if (loading) return null;
 
   return (
-    <div id="prompt-history-sidebar" className={`history-sidebar ${isOpen ? 'open' : 'closed'}`}>
+    <div className={`prompt-history-sidebar ${isOpen ? 'open' : ''}`}>
       <div className="sidebar-header">
-        <h3>History</h3>
-        <span className="workspace-badge">{getCurrentWorkspaceName()}</span>
-      </div>
-
-      <div className="workspace-selector">
-        <select
-          value={selectedWorkspace}
-          onChange={(e) => setSelectedWorkspace(e.target.value)}
-          className="workspace-select"
-        >
+        <h3>Prompt History</h3>
+        <select value={selectedWorkspace} onChange={(e) => setSelectedWorkspace(e.target.value)}>
           {workspaces.map((ws) => (
             <option key={ws.id} value={ws.id}>
               {ws.name}
@@ -93,52 +88,45 @@ const PromptHistorySidebar = ({ isOpen, onSelectPrompt, currentWorkspace = 'defa
         </select>
       </div>
 
-      <div className="prompts-list">
-        {loading ? (
-          <div className="loading-state">
-            <span>Loading...</span>
-          </div>
-        ) : prompts.length === 0 ? (
-          <div className="empty-state">
-            <p>No conversations yet</p>
-            <small>Start a new chat to build history</small>
-          </div>
-        ) : (
-          prompts.map((prompt) => (
-            <div
-              key={prompt.id}
-              className={`prompt-item ${prompt.pinned ? 'pinned' : ''}`}
-              onClick={() => handleSelectPrompt(prompt)}
-            >
-              <div className="prompt-content">
-                <p className="prompt-text">{prompt.userPrompt.substring(0, 50)}...</p>
-                <span className="prompt-time">{formatTime(prompt.timestamp)}</span>
-              </div>
-              <div className="prompt-actions">
-                <button
-                  className="action-btn pin-btn"
-                  title={prompt.pinned ? 'Unpin' : 'Pin'}
-                  onClick={(e) => handlePinPrompt(e, prompt.id)}
-                >
-                  {prompt.pinned ? '📌' : '📍'}
-                </button>
-                <button
-                  className="action-btn delete-btn"
-                  title="Delete"
-                  onClick={(e) => handleDeletePrompt(e, prompt.id)}
-                >
-                  🗑️
-                </button>
-              </div>
+      <div className="prompt-list">
+        {prompts.map((prompt) => (
+          <div
+            key={prompt.id}
+            className="prompt-item"
+            role="button"
+            tabIndex={0}
+            onClick={() => handleSelectPrompt(prompt)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleSelectPrompt(prompt);
+              }
+            }}
+          >
+            <div className="prompt-content">
+              <p className="prompt-text">{prompt.userPrompt.substring(0, 50)}...</p>
             </div>
-          ))
-        )}
+            <div className="prompt-actions">
+              <button aria-label="Pin prompt" onClick={(e) => handlePinPrompt(e, prompt.id)}>
+                📌
+              </button>
+              <button aria-label="Delete prompt" onClick={(e) => handleDeletePrompt(e, prompt.id)}>
+                🗑
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
+
       {deleteTarget && (
-        <div className="history-confirm" role="dialog" aria-modal="true">
-          <p>Delete this conversation?</p>
-          <button onClick={() => setDeleteTarget(null)}>Cancel</button>
-          <button onClick={confirmDeletePrompt}>Delete</button>
+        <div className="delete-confirm-overlay">
+          <p>Delete this prompt?</p>
+          <button aria-label="Interactive element" onClick={() => setDeleteTarget(null)}>
+            Cancel
+          </button>
+          <button aria-label="Interactive element" onClick={confirmDeletePrompt}>
+            Delete
+          </button>
         </div>
       )}
     </div>

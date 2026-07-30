@@ -2,3 +2,8 @@ test-results
 e2e/test-results
 playwright-report
 
+node_modules/
+test-results/
+e2e/test-results/
+.git/
+**/node_modules/

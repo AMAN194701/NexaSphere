@@ -7,6 +7,7 @@ import { auditLogController } from '../controllers/auditLogController.js';
 import * as eventsController from '../controllers/eventsController.js';
 import * as activityEventsController from '../controllers/activityEventsController.js';
 import { adminAuthMiddleware } from '../middleware/adminAuthMiddleware.js';
+import * as coreTeamController from '../controllers/coreTeamController.js';
 import * as eventRegistrationController from '../controllers/eventRegistrationController.js';
 import * as usersController from '../controllers/usersController.js';
 import { usersRepository } from '../repositories/usersRepository.js';
@@ -14,28 +15,24 @@ import * as attendanceController from '../controllers/attendanceController.js';
 import * as eventAnalyticsController from '../controllers/eventAnalyticsController.js';
 import * as bannersController from '../controllers/bannersController.js';
 import { adminAuditMiddleware, attachOldState } from '../middleware/adminAuditMiddleware.js';
-import { healthRepository } from '../repositories/healthRepository.js';
-import eventCollaboratorRoutes from './eventCollaboratorRoutes.js';
 import { eventsRepository } from '../repositories/eventsRepository.js';
+import { coreTeamService } from '../services/coreTeamService.js';
 import { authRateLimiter, protectedActionRateLimiter } from '../middleware/authRateLimiter.js';
-import { eventRegistrationLimiter } from '../middleware/rateLimiter.js';
+import { eventRegistrationUserLimiter, eventRegistrationIpLimiter } from '../middleware/rateLimiter.js';
+import { eventRegistrationIpLimiter, eventRegistrationUserLimiter } from '../middleware/rateLimiter.js';
 import { portfolioRepository } from '../repositories/portfolioRepository.js';
 import { achievementsRepository } from '../repositories/achievementsRepository.js';
 import { portfolioService } from '../services/portfolioService.js';
 import { waitingRoomService } from '../services/waitingRoomService.js';
 import { studentAuthService } from '../services/studentAuthService.js';
-import { requireStudentAuth } from '../middleware/studentAuthMiddleware.js';
 import * as sponsorshipsController from '../controllers/sponsorshipsController.js';
+import { requireStudentAuth } from '../middleware/studentAuthMiddleware.js';
 import * as subscriptionsController from '../controllers/subscriptionsController.js';
+import * as followsController from '../controllers/followsController.js';
 import * as portfolioAnalyticsController from '../controllers/portfolioAnalyticsController.js';
 import { achievementSchema } from '../validators/portfolioSchemas.js';
-import * as analyticsController from '../controllers/analyticsController.js';
 import { auditLogRepository } from '../repositories/auditLogRepository.js';
 import announcementPriorityRouter from "./announcementPriority.js";
-import eventPricingRoutes from "./eventPricingRoutes.js";
-import eventSurveyRoutes from "./eventSurveyRoutes.js";
-import smartFormsRoutes from "./smartFormsRoutes.js";
-import smartFormsGlobalRoutes from "./smartFormsGlobalRoutes.js";
 import eventConflictRouter from "./eventConflict.js";
 import waitlistRoutes from "./waitlist.js";
 import * as localAuthController from '../controllers/localAuthController.js';
@@ -44,6 +41,13 @@ import recommendationEngine from './recommendationEngine.js';
 import platformAnalyticsRoutes from './platformAnalytics.js';
 // Fixed duplicate import
 import * as whiteboardController from '../controllers/whiteboardController.js';
+import * as portfolioAnalyticsController from '../controllers/portfolioAnalyticsController.js';
+import { achievementSchema } from '../validators/portfolioSchemas.js';
+import { auditLogRepository } from '../repositories/auditLogRepository.js';
+import announcementPriorityRouter from "./announcementPriority.js";
+import eventConflictRouter from "./eventConflict.js";
+import waitlistRoutes from "./waitlist.js";
+
 import bookmarkRoutes from './bookmark.js';
 import operationalInsightsRoutes from './operationalInsights.js';
 import * as authRefreshController from '../controllers/authRefreshController.js';
@@ -60,6 +64,7 @@ import {
   markAttendanceSchema,
   adminCreateUserSchema,
   adminUpdateUserSchema,
+  adminUpdateUserRoleSchema,
   adminLoginSchema,
   localLoginSchema,
   verifyTwoFactorSchema,
@@ -71,6 +76,23 @@ import {
 } from '../validators/routes/apiSchemas.js';
 import * as recommendationsController from '../controllers/recommendationsController.js';
 import * as gamificationController from '../controllers/gamificationController.js';
+import { studentAuthService } from '../services/studentAuthService.js';
+import * as recommendationsController from '../controllers/recommendationsController.js';
+import * as gamificationController from '../controllers/gamificationController.js';
+import * as recommendationsController from '../controllers/recommendationsController.js';
+import * as gamificationController from '../controllers/gamificationController.js';
+import multer from 'multer';
+import settingsRouter from './settingsRoutes.js';
+import { impersonationService } from '../services/impersonationService.js';
+
+const router = Router();
+
+const router = Router();
+import multer from 'multer';
+
+const router = Router();
+import multer from 'multer';
+
 // Fixed duplicate import
 import { impersonationService } from '../services/impersonationService.js';
 import * as followsController from '../controllers/followsController.js';
@@ -83,6 +105,7 @@ const workflowAutomationRoutes = require("./workflowAutomation");
 const router = Router();
 // Fixed duplicate import
 const digitalAssetRoutes = require("./digitalAsset");
+import googleFormsWebhookRoutes from './googleFormsWebhookRoutes.js';
 
 router.use(rateLimitAdminRoutes);
 router.use(throttleMiddleware);
@@ -90,6 +113,13 @@ router.use(throttleMiddleware);
 const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
 });
+
+// Public
+router.get('/api/dashboard/leaderboard', gamificationController.getLeaderboard);
+router.post('/api/dashboard/xp', protectedActionRateLimiter, adminAuthMiddleware.requireAdmin, gamificationController.awardXP);
+const knowledgeAssistantRoutes = require("./knowledgeAssistant");
+const reportingCenterRoutes = require("./reportingCenter");
+const router = Router();
 const budgetRoutes = require('./budget');
 const resourceDiscoveryRoutes = require("./resourceDiscovery");
 const notificationCampaignRoutes = require("./notificationCampaign");
@@ -99,61 +129,40 @@ const workspaceRoutes = require("./workspace");
 
 // Public
 router.get('/api/dashboard/leaderboard', gamificationController.getLeaderboard);
-router.get('/api/dashboard/xp-history', gamificationController.getXPHistory);
+router.post('/api/dashboard/xp', gamificationController.awardXP);
+router.use("/knowledge-assistant", knowledgeAssistantRoutes);
+router.use("/reporting-center", reportingCenterRoutes);
+
+// Public
+router.get('/api/dashboard/leaderboard', gamificationController.getLeaderboard);
 router.post(
   '/api/dashboard/xp',
   protectedActionRateLimiter,
   adminAuthMiddleware.requireAdmin,
-  validate(awardXPSchema),
   gamificationController.awardXP
 );
-import reportingCenterRoutes from "./reportingCenter.js";
-router.post('/api/dashboard/xp', gamificationController.awardXP);
-router.use("/reporting-center", reportingCenterRoutes);
 router.post(
   '/api/assistant/recommend',
   upload.single('file'),
   recommendationsController.getProjectRecommendations
 );
 router.get('/api/users', usersController.getPublicUsers);
-router.post('/api/whiteboard/export-pdf', whiteboardController.exportPDF);
-/**
- * @swagger
- * /api/events:
- *   get:
- *     summary: Get all events
- *     description: Returns a list of all published events. No authentication required.
- *     tags: [Events]
- *     responses:
- *       200:
- *         description: List of events
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   id:
- *                     type: string
- *                   title:
- *                     type: string
- *                   date:
- *                     type: string
- *                     format: date
- *                   description:
- *                     type: string
- */
-router.post(
-  '/api/whiteboard/export-pdf',
-  validate(exportPDFSchema),
-  whiteboardController.exportPDF
-);
 router.get('/api/content/events', eventsController.listEvents);
+router.post('/api/content/events/:eventId/register', eventRegistrationController.registerForEvent);
+router.post(
+  '/api/content/events/:eventId/cancel',
+  requireStudentAuth,
+  eventRegistrationController.cancelRegistration
 router.get('/api/content/banners', bannersController.listActiveBanners);
 router.post(
   '/api/content/events/:eventId/register',
-  eventRegistrationLimiter,
+  eventRegistrationUserLimiter,
+  eventRegistrationIpLimiter,
+  eventRegistrationController.registerForEvent
+);
+router.get('/api/content/events/:eventId/calendar', eventRegistrationController.getEventCalendar);
+  eventRegistrationIpLimiter,
+  eventRegistrationUserLimiter,
   validate(eventRegistrationSchema),
   eventRegistrationController.registerForEvent
 );
@@ -164,7 +173,8 @@ router.get('/api/registrations/:id/qr', eventRegistrationController.getRegistrat
 
 router.post(
   '/api/content/events/:eventId/cancel',
-  eventRegistrationLimiter,
+  eventRegistrationIpLimiter,
+  eventRegistrationUserLimiter,
   requireStudentAuth,
   validate(emailSchema),
   eventRegistrationController.cancelRegistration
@@ -180,7 +190,8 @@ router.post(
 );
 router.delete(
   '/api/content/events/:eventId/waitlist',
-  eventRegistrationLimiter,
+  eventRegistrationIpLimiter,
+  eventRegistrationUserLimiter,
   validate(emailSchema),
   eventRegistrationController.leaveWaitlist
 );
@@ -192,7 +203,6 @@ router.post(
   '/api/content/activity-events/:activityKey',
   protectedActionRateLimiter,
   adminAuthMiddleware.requireScope('events:write'),
-  validate(addActivityEventSchema),
   activityEventsController.addActivityEvent
 );
 router.delete(
@@ -201,50 +211,31 @@ router.delete(
   adminAuthMiddleware.requireScope('events:write'),
   activityEventsController.deleteActivityEvent
 );
-router.post(
-  '/account-recovery/request',
-  authRateLimiter,
-  validate(accountRecoveryRequestSchema),
-  async (req, res) => {
-    const { email } = req.body;
+router.post('/account-recovery/request', async (req, res) => {
+  const { email } = req.body;
 
-    await studentAuthService.createRecoveryRequest(email);
-
-    return sendSuccess(res, {
-      success: true,
-      message: 'If an account with that email exists, a recovery code has been sent.',
-    });
-  }
-);
-router.post(
-  '/account-recovery/verify',
-  authRateLimiter,
-  validate(accountRecoveryVerifySchema),
-  async (req, res) => {
-    const { email, enteredCode } = req.body;
-
-    const valid = await studentAuthService.verifyRecoveryCode(email, enteredCode);
+  const recovery = await studentAuthService.createRecoveryRequest(email);
 
   return res.json({
     success: true,
-    message: 'If an account with that email exists, a recovery code has been sent.',
+    message: 'Recovery code generated',
+    recovery,
   });
 });
-router.post('/account-recovery/verify', authRateLimiter, async (req, res) => {
 router.post('/account-recovery/verify', async (req, res) => {
-  const { email, enteredCode } = req.body;
-  if (!email || !enteredCode) {
-    return res.status(400).json({ error: 'Email and code are required' });
-    return sendSuccess(res, {
-      success: valid,
-  }
-);
+  const { savedCode, enteredCode } = req.body;
+
+  const valid = studentAuthService.verifyRecoveryCode(savedCode, enteredCode);
+
+  return res.json({
+    success: valid,
+  });
+});
 
 // Admin auth
 router.post(
   '/api/attendance/mark',
   adminAuthMiddleware.requireAdmin,
-  validate(markAttendanceSchema),
   attendanceController.markAttendance
 );
 router.get(
@@ -257,7 +248,6 @@ router.post(
   '/api/admin/users',
   adminAuthMiddleware.requireAdmin,
   adminAuditMiddleware,
-  validate(adminCreateUserSchema),
   usersController.adminCreateUser
 );
 router.put(
@@ -265,8 +255,16 @@ router.put(
   adminAuthMiddleware.requireAdmin,
   attachOldState((req) => usersRepository.getUserById(req.params.id)),
   adminAuditMiddleware,
-  validate(adminUpdateUserSchema),
   usersController.adminUpdateUser
+);
+router.put(
+  '/api/admin/users/:id/role',
+  adminAuthMiddleware.requireAdmin,
+  adminAuthMiddleware.requireScope('users:write'),
+  attachOldState((req) => usersRepository.getUserById(req.params.id)),
+  adminAuditMiddleware,
+  validate(adminUpdateUserRoleSchema),
+  usersController.adminUpdateUserRole
 );
 router.delete(
   '/api/admin/users/:id',
@@ -274,6 +272,7 @@ router.delete(
   adminAuditMiddleware,
   usersController.adminDeactivateUser
 );
+router.post('/api/admin/login', authRateLimiter, adminAuthMiddleware.login);
 router.post(
   '/api/admin/login',
   authRateLimiter,
@@ -311,82 +310,23 @@ router.post(
   validate(verifyTwoFactorSetupSchema),
   adminAuthMiddleware.verifyTwoFactorSetup
 );
+
+router.get('/api/admin/2fa/settings/status', adminAuthMiddleware.requireAdmin, adminAuthMiddleware.getTwoFactorStatus);
+router.post('/api/admin/2fa/settings/setup/init', adminAuthMiddleware.requireAdmin, adminAuthMiddleware.initTwoFactorSetup);
+router.post('/api/admin/2fa/settings/setup/verify', adminAuthMiddleware.requireAdmin, adminAuthMiddleware.verifySettingsTwoFactorSetup);
+router.post('/api/admin/2fa/settings/disable', adminAuthMiddleware.requireAdmin, adminAuthMiddleware.disableTwoFactor);
+
 router.post('/api/admin/logout', adminAuthMiddleware.requireAdmin, adminAuthMiddleware.logout);
-router.get(
-  '/api/admin/security',
-  adminAuthMiddleware.requireAdmin,
-  adminAuthMiddleware.getSecurityOverview
-);
-router.delete(
-  '/api/admin/security/sessions/:sessionId',
-  adminAuthMiddleware.requireAdmin,
-  adminAuthMiddleware.revokeSession
-);
-router.post(
-  '/api/admin/security/sessions/logout-others',
-  adminAuthMiddleware.requireAdmin,
-  adminAuthMiddleware.logoutOtherSessions
-);
-router.get('/api/admin/audit-logs', adminAuthMiddleware.requireAdmin, async (req, res) => {
-  const logs = await auditLogRepository.searchAuditLogs(req.query);
-  return sendSuccess(res, { logs });
-});
-router.get('/api/admin/audit-logs/export', adminAuthMiddleware.requireAdmin, async (req, res) => {
-  const csv = await auditLogRepository.exportAuditLogsCsv(req.query);
-  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-  res.setHeader('Content-Disposition', 'attachment; filename="admin-audit-logs.csv"');
-  return res.send(csv);
-});
 
 router.get(
   '/api/admin/events',
   adminAuthMiddleware.requireScope('events:read'),
   eventsController.adminListEvents
 );
-router.get(
-  '/api/admin/events/recommendations',
-  adminAuthMiddleware.requireScope('events:read'),
-  eventAnalyticsController.getEventRecommendations
-);
-router.get(
-  '/api/admin/events/:eventId/analytics',
-  adminAuthMiddleware.requireScope('events:read'),
-  eventAnalyticsController.getEventStats
-);
-/**
- * @swagger
- * /api/admin/events:
- *   post:
- *     summary: Create a new event (admin only)
- *     tags: [Events]
- *     security:
- *       - cookieAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [title, date, description]
- *             properties:
- *               title:
- *                 type: string
- *               date:
- *                 type: string
- *                 format: date
- *               description:
- *                 type: string
- *     responses:
- *       201:
- *         description: Event created successfully
- *       401:
- *         description: Unauthorized — admin login required
- */
 router.post(
   '/api/admin/events',
   adminAuthMiddleware.requireScope('events:write'),
   adminAuditMiddleware,
-  validate(adminCreateEventSchema),
   eventsController.adminCreateEvent
 );
 router.put(
@@ -394,7 +334,6 @@ router.put(
   adminAuthMiddleware.requireScope('events:write'),
   attachOldState((req) => eventsRepository.getById(req.params.id)),
   adminAuditMiddleware,
-  validate(adminUpdateEventSchema),
   eventsController.adminUpdateEvent
 );
 router.delete(
@@ -405,6 +344,29 @@ router.delete(
   eventsController.adminDeleteEvent
 );
 
+// Core team management APIs
+router.get(
+  '/api/admin/core-team/members',
+  adminAuthMiddleware.requireScope('settings:admin'),
+  coreTeamController.adminListCoreTeamMembers
+);
+router.post(
+  '/api/admin/core-team/members',
+  adminAuthMiddleware.requireScope('settings:admin'),
+  adminAuditMiddleware,
+  coreTeamController.adminAddCoreTeamMember
+);
+router.delete(
+  '/api/admin/core-team/members/:id',
+  adminAuthMiddleware.requireScope('settings:admin'),
+  attachOldState(async (req) => {
+    const members = await coreTeamService.listMembers();
+    return members.find((m) => String(m.id) === String(req.params.id));
+  }),
+  adminAuditMiddleware,
+  coreTeamController.adminDeleteCoreTeamMember
+);
+
 // Subscription management APIs
 router.get(
   '/api/admin/subscriptions',
@@ -420,63 +382,15 @@ router.post(
   '/api/admin/subscriptions',
   adminAuthMiddleware.requireScope('events:write'),
   adminAuditMiddleware,
-  validate(createSubscriptionSchema),
   subscriptionsController.createSubscription
 );
 
 // Banners Admin
-router.get(
-  '/api/admin/banners',
-  adminAuthMiddleware.requireAdmin,
-  bannersController.listAllBanners
-);
-router.post(
-  '/api/admin/banners',
-  adminAuthMiddleware.requireAdmin,
-  validate(adminBannerBodySchema),
-  bannersController.createBanner
-);
-router.put(
-  '/api/admin/banners/:id',
-  adminAuthMiddleware.requireAdmin,
-  validate(adminBannerBodySchema),
-  bannersController.updateBanner
-);
-router.delete(
-  '/api/admin/banners/:id',
-  adminAuthMiddleware.requireAdmin,
-  bannersController.deleteBanner
-);
+router.get('/api/admin/banners', adminAuthMiddleware.requireAdmin, bannersController.listAllBanners);
+router.post('/api/admin/banners', adminAuthMiddleware.requireAdmin, bannersController.createBanner);
+router.put('/api/admin/banners/:id', adminAuthMiddleware.requireAdmin, bannersController.updateBanner);
+router.delete('/api/admin/banners/:id', adminAuthMiddleware.requireAdmin, bannersController.deleteBanner);
 
-router.post(
-  '/api/admin/subscriptions/:userId/cancel',
-  adminAuthMiddleware.requireScope('events:write'),
-  adminAuditMiddleware,
-  subscriptionsController.cancelSubscription
-);
-router.get(
-  '/api/admin/subscriptions/:userId/billing',
-  adminAuthMiddleware.requireScope('events:read'),
-  subscriptionsController.getBillingHistory
-);
-
-// Subscription management APIs
-router.get(
-  '/api/admin/subscriptions',
-  adminAuthMiddleware.requireScope('events:read'),
-  subscriptionsController.listSubscriptions
-);
-router.get(
-  '/api/admin/subscriptions/stats',
-  adminAuthMiddleware.requireScope('events:read'),
-  subscriptionsController.getStats
-);
-router.post(
-  '/api/admin/subscriptions',
-  adminAuthMiddleware.requireScope('events:write'),
-  adminAuditMiddleware,
-  subscriptionsController.createSubscription
-);
 router.post(
   '/api/admin/subscriptions/:userId/cancel',
   adminAuthMiddleware.requireScope('events:write'),
@@ -498,14 +412,14 @@ router.get(
       const username = String(req.query.username || '').trim();
       if (username) {
         const portfolio = await portfolioService.getByUsername(username);
-        return sendSuccess(res, portfolio ? { portfolios: [portfolio] } : { portfolios: [] });
+        return res.json(portfolio ? { portfolios: [portfolio] } : { portfolios: [] });
       }
       const portfolios = (await portfolioRepository.listAll)
         ? await portfolioRepository.listAll()
         : [];
-      return sendSuccess(res, { portfolios });
+      return res.json({ portfolios });
     } catch (err) {
-      return sendError(req, res, err.message, 500, 'INTERNAL_ERROR');
+      return res.status(500).json({ error: err.message });
     }
   }
 );
@@ -518,11 +432,11 @@ router.delete(
       const username = String(req.params.username || '')
         .trim()
         .toLowerCase();
-      if (!username) return sendError(req, res, 'Username required', 400, 'VALIDATION_ERROR');
+      if (!username) return res.status(400).json({ error: 'Username required' });
       await portfolioRepository.delete(username);
-      return sendSuccess(res, { ok: true });
+      return res.json({ ok: true });
     } catch (err) {
-      return sendError(req, res, err.message, 500, 'INTERNAL_ERROR');
+      return res.status(500).json({ error: err.message });
     }
   }
 );
@@ -539,10 +453,6 @@ router.post(
   portfolioAnalyticsController.recordPortfolioVisit
 );
 router.post('/api/portfolio/:username/visit', portfolioAnalyticsController.recordPortfolioVisit);
-router.post(
-  '/api/portfolio/:username/visit',
-  portfolioAnalyticsController.recordPortfolioVisit
-);
 
 router.get(
   '/api/portfolio/:username/monthly-report',
@@ -559,42 +469,38 @@ router.get(
         .trim()
         .toLowerCase();
       const achievements = await achievementsRepository.getByUsername(username);
-      return sendSuccess(res, { achievements });
+      return res.json({ achievements });
     } catch (err) {
-      return sendError(req, res, err.message, 500, 'INTERNAL_ERROR');
+      return res.status(500).json({ error: err.message });
     }
   }
 );
 router.post(
   '/api/admin/portfolios/:username/achievements',
   adminAuthMiddleware.requireScope('events:write'),
-  adminAuditMiddleware,
-  validate(achievementSchema),
   async (req, res) => {
     try {
       const username = String(req.params.username || '')
         .trim()
         .toLowerCase();
-
-      const achievement = await portfolioService.awardAchievement(username, req.body);
-      return sendSuccess(res, { achievement }, 201);
+      const { name, description, tier, iconUrl, source } = req.body;
+      if (!name) return res.status(400).json({ error: 'Achievement name is required' });
+      const achievement = await portfolioService.awardAchievement(username, {
+        name: String(name).trim().slice(0, 120),
+        description: description ? String(description).trim().slice(0, 1000) : null,
+        tier: tier ? String(tier).trim().slice(0, 40) : 'bronze',
+        iconUrl: iconUrl ? String(iconUrl).trim().slice(0, 500) : null,
+        source: source ? String(source).trim().slice(0, 60) : 'admin',
+      });
+      return res.status(201).json({ achievement });
     } catch (err) {
-      return sendError(req, res, err.message, 500, 'INTERNAL_ERROR');
+      return res.status(500).json({ error: err.message });
     }
   }
 );
 router.delete(
   '/api/admin/portfolios/:username/achievements/:name',
   adminAuthMiddleware.requireScope('events:write'),
-  attachOldState(async (req) => {
-    const username = String(req.params.username || '')
-      .trim()
-      .toLowerCase();
-    const achievements = await achievementsRepository.getByUsername(username);
-    const targetName = String(req.params.name || '').trim();
-    return achievements.find((a) => a.name === targetName);
-  }),
-  adminAuditMiddleware,
   async (req, res) => {
     try {
       const username = String(req.params.username || '')
@@ -602,70 +508,61 @@ router.delete(
         .toLowerCase();
       const name = String(req.params.name || '').trim();
       await portfolioService.removeAchievement(username, name);
-      return sendSuccess(res, { ok: true });
+      return res.json({ ok: true });
     } catch (err) {
-      return sendError(req, res, err.message, 500, 'INTERNAL_ERROR');
+      return res.status(500).json({ error: err.message });
     }
   }
 );
 
-// Waiting room management API
-// Waiting room management API
+// Sponsorship management APIs
+router.get('/api/content/sponsors', sponsorshipsController.listSponsors);
 router.get(
-  '/api/admin/events/:eventId/waiting-room',
+  '/api/admin/sponsors',
   adminAuthMiddleware.requireScope('events:read'),
-  async (req, res) => {
-    try {
-      const eventId = String(req.params.eventId || '').trim();
-      const queue = waitingRoomService.getQueue(eventId);
-      return sendSuccess(res, { queue, total: queue.length });
-    } catch (err) {
-      return sendError(req, res, err.message, 500, 'INTERNAL_ERROR');
-    }
-  }
+  sponsorshipsController.adminListSponsors
 );
-router.use('/api/admin/settings', adminAuthMiddleware.requireAdmin, settingsRouter);
+router.post(
+  '/api/admin/sponsors',
+  adminAuthMiddleware.requireScope('events:write'),
+  adminAuditMiddleware,
+  sponsorshipsController.adminCreateSponsor
+);
+router.put(
+  '/api/admin/sponsors/:id',
+  adminAuthMiddleware.requireScope('events:write'),
+  adminAuditMiddleware,
+  sponsorshipsController.adminUpdateSponsor
+);
+router.delete(
+  '/api/admin/sponsors/:id',
+  adminAuthMiddleware.requireScope('events:write'),
+  adminAuditMiddleware,
+  sponsorshipsController.adminDeleteSponsor
 router.post('/api/admin/impersonate/stop', adminAuthMiddleware.requireAdmin, (req, res) => {
   impersonationService.stop(req.adminSession.token);
-  return sendSuccess(res, { impersonating: false });
+  return res.json({ impersonating: false });
 });
 router.get('/api/admin/impersonate/status', adminAuthMiddleware.requireAdmin, (req, res) => {
   const active = impersonationService.getActive(req.adminSession.token);
-  return sendSuccess(res, { impersonating: !!active, user: active?.targetUser || null });
+  return res.json({ impersonating: !!active, user: active?.targetUser || null });
 });
 router.use(
-
-  "/resource-discovery",
-  resourceDiscoveryRoutes
+"/api/announcements",
+announcementPriorityRouter
 );
 
-router.use(
-  "/api/announcements",
-  announcementPriorityRouter
-);
-router.use('/budgets', budgetRoutes);
-router.use("/maintenance", maintenanceRoutes);
-router.use("/workspaces", workspaceRoutes);
-router.use('/api/announcements', announcementPriorityRouter);
+router.use("/api/events", eventConflictRouter);
+
 router.use(
   "/api/admin/waitlist",
   waitlistRoutes
-); // Audit Log Viewer APIs
-router.use('/api/events', eventConflictRouter);
-router.use("/api/events/:eventId/survey", eventSurveyRoutes);
-router.use("/api/events/:eventId/forms", smartFormsRoutes);
-router.use("/api/forms", smartFormsGlobalRoutes);
-router.use('/api/admin/waitlist', waitlistRoutes);
-router.use("/api/events/recurring", eventRecurringRoutes);
-router.use("/api/events/:eventId/pricing", eventPricingRoutes);
-router.use(
-  "/api/admin/waitlist",
-  adminAuthMiddleware.requireAdmin,
-  waitlistRoutes
 );
-router.use("/api/events/:event_id/collaborators", eventCollaboratorRoutes);
+
 // Audit Log Viewer APIs
+}); // Audit Log Viewer APIs
 router.get('/api/admin/audit-logs', adminAuthMiddleware.requireAdmin, auditLogController.listLogs);
+
 router.get(
   '/api/admin/audit-logs/stats',
   adminAuthMiddleware.requireAdmin,
@@ -709,9 +606,18 @@ router.get(
   followsController.checkFollowStatus
 );
 
-router.use(
-  "/workflow-automation",
-  workflowAutomationRoutes
+// Get followers and following lists
+router.get('/api/student/users/:userId/followers', followsController.getUserFollowers);
+router.get('/api/student/users/:userId/following', followsController.getUserFollowing);
+
+// Get follow counts
+router.get('/api/student/users/:userId/follow-counts', followsController.getFollowCounts);
+
+// Current user endpoints
+router.get(
+  '/api/student/me/followers',
+  requireStudentAuth,
+  followsController.getCurrentUserFollowers
 );
 router.get(
   '/api/student/me/following',
@@ -732,10 +638,14 @@ router.get(
 );
 
 // Platform Analytics APIs
-router.use("/api/analytics", platformAnalyticsRoutes);
-router.use("/digital-assets", digitalAssetRoutes);
 router.use('/api/analytics', platformAnalyticsRoutes);
 
-router.use('/api-analytics', apiAnalyticsRoutes);
+router.use("/api-analytics", apiAnalyticsRoutes);
+
+router.use("/api/analytics", platformAnalyticsRoutes);
+router.use("/digital-assets", digitalAssetRoutes);
+router.use('/api/analytics', requireStudentAuth, platformAnalyticsRoutes);
+router.use('/api/budget', adminAuthMiddleware.requireAdmin, budgetRoutes);
+router.use('/api/webhooks', googleFormsWebhookRoutes);
 router.use("/notification-campaigns", notificationCampaignRoutes);
 export default router;

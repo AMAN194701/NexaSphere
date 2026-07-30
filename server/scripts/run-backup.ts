@@ -3,8 +3,8 @@ import { execFile } from 'child_process';
 import util from 'util';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { BackupStorageService } from '../services/backupStorage';
-import { BackupVerifierService } from '../services/backupVerifier';
+import { BackupStorageService } from '../services/backupStorage.js';
+import { BackupVerifierService } from '../services/backupVerifier.js';
 
 const execFileAsync = util.promisify(execFile);
 

@@ -98,7 +98,9 @@ export function useEventSearch(activities, events) {
 
     const doSearch = async () => {
       try {
-        const apiResults = await searchApi(query, filter === 'all' ? 'all' : filter);
+        const searchTerm = query.trim();
+        const apiResults = await searchApi(searchTerm, filter === 'all' ? 'all' : filter);
+        if (!active) return;
         if (apiResults && apiResults.results) {
           setResults(apiResults.results);
           setLoading(false);
@@ -108,6 +110,8 @@ export function useEventSearch(activities, events) {
         console.error('Search API error:', err);
         setApiError('Unable to connect to search service.');
       }
+
+      if (!active) return;
 
       let all = [];
 
@@ -230,4 +234,5 @@ export function useEventSearch(activities, events) {
     addRecentSearch,
     removeRecentSearch,
   };
+  return { query, setQuery, filter, setFilter, results, loading, apiError, clearSearch };
 }

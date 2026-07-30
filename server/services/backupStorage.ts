@@ -71,6 +71,12 @@ export class BackupStorageService {
       key: obj.Key as string,
       createdAt: obj.LastModified as Date,
     }));
+    return response.Contents
+      .filter((obj) => obj.Key && obj.LastModified)
+      .map((obj) => ({
+        key: obj.Key as string,
+        createdAt: obj.LastModified as Date,
+      }));
   }
 
   /**

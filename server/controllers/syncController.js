@@ -19,7 +19,7 @@ export const syncController = {
            FROM events
            WHERE updated_at > NOW() - INTERVAL '24 hours'`
         );
-        return pendingRes.rows[0].count;
+        return pendingRes.rows[0]?.count || 0;
       });
       return sendSuccess(res, {
         status: 'ok',
@@ -34,6 +34,25 @@ export const syncController = {
         status: 'error',
         serverTime: new Date().toISOString(),
         databaseConnected: false,
+
+export const syncController = {
+  async getSyncStatus(req, res) {
+    try {
+      await withDb(async (client) => {
+        // Ping database
+        await client.query('SELECT 1');
+      });
+      return res.json({
+        status: 'ok',
+        serverTime: new Date().toISOString(),
+        databaseConnected: true,
+      });
+    } catch (err) {
+      return res.status(500).json({
+        status: 'error',
+        serverTime: new Date().toISOString(),
+        databaseConnected: false,
+        error: err.message,
       });
     }
   },
@@ -46,6 +65,11 @@ export const syncController = {
     const sinceDate = new Date(since);
     if (isNaN(sinceDate.getTime())) {
       return sendError(req, res, 'Invalid "since" date format', 400, 'VALIDATION_ERROR');
+      return res.status(400).json({ error: 'Missing "since" query parameter' });
+    }
+    const sinceDate = new Date(since);
+    if (isNaN(sinceDate.getTime())) {
+      return res.status(400).json({ error: 'Invalid "since" date format' });
     }
 
     try {
@@ -64,14 +88,22 @@ export const syncController = {
         );
 
         return sendSuccess(res, {
+
+        return res.json({
           serverTime: new Date().toISOString(),
           events: eventsRes.rows,
           portfolios: portfolioRes.rows,
+        
+        return res.json({
+          serverTime: new Date().toISOString(),
+          events: eventsRes.rows,
+          portfolios: [],
         });
       });
     } catch (err) {
       logger.error('Failed to retrieve sync updates', { error: err.message });
       return sendError(req, res, 'Sync retrieval failed', 500, 'INTERNAL_ERROR');
+      return res.status(500).json({ error: 'Sync retrieval failed' });
     }
   },
 
@@ -101,6 +133,7 @@ export const syncController = {
       if (!change.data.name || typeof change.data.name !== 'string') {
         return sendError(req, res, `changes[${i}].data.name is required and must be a string`, 400, 'VALIDATION_ERROR');
       }
+      return res.status(400).json({ error: 'Expected "changes" array in request body' });
     }
 
     const results = [];
@@ -211,6 +244,8 @@ export const syncController = {
       });
 
       return sendSuccess(res, {
+      const hasConflicts = results.some(r => r.status === 'conflict');
+      return res.status(hasConflicts ? 409 : 200).json({
         serverTime: new Date().toISOString(),
         results,
       });
@@ -219,4 +254,8 @@ export const syncController = {
       return sendError(req, res, 'Conflict resolution failed', 500, 'INTERNAL_ERROR');
     }
   },
+      logger.error('Sync batch execution failed', { error: err.message });
+      return res.status(500).json({ error: 'Sync batch failed' });
+    }
+  }
 };

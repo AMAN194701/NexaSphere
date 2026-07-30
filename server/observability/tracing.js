@@ -12,19 +12,32 @@ import logger from '../utils/logger.js';
 
 const SERVICE_NAME = process.env.OTEL_SERVICE_NAME || 'nexasphere-api';
 const OTLP_ENDPOINT = process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318/v1/traces';
+import { Resource } from '@opentelemetry/resources';
+import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
+import { trace, context, propagation } from '@opentelemetry/api';
+
+const SERVICE_NAME = process.env.OTEL_SERVICE_NAME || 'nexasphere-api';
+const OTLP_ENDPOINT =
+  process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318/v1/traces';
 
 let sdk = null;
+let shutdownHookRegistered = false;
 
 export function initTracing() {
   if (process.env.OTEL_ENABLED === 'false') {
     return null;
   }
 
+  if (sdk) {
+    return sdk;
+  }
+
   const exporter = new OTLPTraceExporter({ url: OTLP_ENDPOINT });
 
   sdk = new NodeSDK({
     resource: resourceFromAttributes({
-      [SEMRESATTRS_SERVICE_NAME]: SERVICE_NAME,
+    resource: new Resource({
+      [ATTR_SERVICE_NAME]: SERVICE_NAME,
     }),
     traceExporter: exporter,
     instrumentations: [
@@ -38,7 +51,15 @@ export function initTracing() {
 
   process.on('SIGTERM', () => {
     sdk?.shutdown().catch((err) => logger.error('OpenTelemetry SDK shutdown failed', { err }));
+    sdk?.shutdown().catch(() => {});
   });
+  if (!shutdownHookRegistered) {
+    process.on('SIGTERM', () => {
+      sdk?.shutdown().catch(() => {});
+      sdk = null;
+    });
+    shutdownHookRegistered = true;
+  }
 
   return sdk;
 }
@@ -48,6 +69,9 @@ export function getActiveTraceId() {
   if (!span) return null;
   const ctx = span.spanContext();
   return ctx.traceId && ctx.traceId !== '00000000000000000000000000000000' ? ctx.traceId : null;
+  return ctx.traceId && ctx.traceId !== '00000000000000000000000000000000'
+    ? ctx.traceId
+    : null;
 }
 
 export function injectTraceHeaders(headers = {}) {

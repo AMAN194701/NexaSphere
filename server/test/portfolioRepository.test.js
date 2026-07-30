@@ -55,24 +55,21 @@ test('ensureSchema repairs case-variant duplicates before adding unique lower(us
 
   await __portfolioRepositoryInternals.ensureSchema(client);
 
-  const backupQuery = queries.find(
-    (query) =>
-      query.includes('portfolio_username_case_duplicates_backup') &&
-      query.includes('TO_JSONB(duplicate_rows)')
+  const backupQuery = queries.find((query) =>
+    query.includes('portfolio_username_case_duplicates_backup')
+    && query.includes('TO_JSONB(duplicate_rows)')
   );
-  const deleteDuplicateQuery = queries.find(
-    (query) =>
-      query.includes('DELETE FROM portfolios p') &&
-      query.includes('PARTITION BY LOWER(TRIM(username))')
+  const deleteDuplicateQuery = queries.find((query) =>
+    query.includes('DELETE FROM portfolios p')
+    && query.includes('PARTITION BY LOWER(TRIM(username))')
   );
-  const canonicalUpdateQuery = queries.find(
-    (query) =>
-      query.includes('UPDATE portfolios') && query.includes('SET username = LOWER(TRIM(username))')
+  const canonicalUpdateQuery = queries.find((query) =>
+    query.includes('UPDATE portfolios')
+    && query.includes('SET username = LOWER(TRIM(username))')
   );
-  const uniqueIndexQuery = queries.find(
-    (query) =>
-      query.includes('CREATE UNIQUE INDEX IF NOT EXISTS idx_portfolios_username_lower_unique') &&
-      query.includes('ON portfolios (LOWER(username))')
+  const uniqueIndexQuery = queries.find((query) =>
+    query.includes('CREATE UNIQUE INDEX IF NOT EXISTS idx_portfolios_username_lower_unique')
+    && query.includes('ON portfolios (LOWER(username))')
   );
 
   assert.ok(backupQuery, 'backs up Alice/alice style duplicate rows before repair');
@@ -112,6 +109,25 @@ test('Case 1: Primary source succeeds', async () => {
                 updated_at: new Date(),
               },
             ],
+            rows: [{
+              username: 'alice',
+              theme: 'dark',
+              visible_sections: '{"quests":true}',
+              social_links: '{}',
+              custom_domain: '',
+              seo_metadata: '{}',
+              skills: '[]',
+              badges: '[]',
+              projects: '[]',
+              roadmaps: '[]',
+              bio: 'Bio',
+              title: 'Title',
+              avatar_url: '',
+              education: '[]',
+              work_experience: '[]',
+              created_at: new Date(),
+              updated_at: new Date(),
+            }],
           };
         }
         return { rows: [] };
@@ -145,6 +161,14 @@ test('Case 2: Primary source fails (triggers fallback)', async () => {
     ),
     'utf8'
   );
+  await fs.writeFile(PORTFOLIOS_FILE, JSON.stringify({
+    alice: {
+      username: 'alice',
+      theme: 'glassmorphic',
+      bio: 'Fallback bio',
+      title: 'Fallback Title',
+    },
+  }, null, 2), 'utf8');
 
   setWithDbOverride(async (fn) => {
     throw new Error('Database connection failed catastrophically');

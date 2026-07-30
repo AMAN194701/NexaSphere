@@ -1,6 +1,19 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { STORAGE_KEYS } from '../utils/storageKeys.js';
 
+// Simple debounce helper
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
 /**
  * Hook for managing advanced search state and API interaction
  */
@@ -12,9 +25,6 @@ export const useGlobalSearch = () => {
   const [activeFilters, setActiveFilters] = useState({});
   const [suggestions, setSuggestions] = useState([]);
 
-  // Track the latest request + allow aborting.
-  // eslint/react-hooks/refs cannot be satisfied if we access .current inside a memoized
-  // callback created during render; so we keep the debounced function out of render-time memo.
   const activeRequestRef = useRef(null);
   const requestIdRef = useRef(0);
 
@@ -108,8 +118,7 @@ export const useGlobalSearch = () => {
     [updateRecentSearches]
   );
 
-  // Debounce outside render-time closures that eslint associates with ref access.
-  // We'll debounce the trigger in the effect that responds to (query, filters).
+  // Debounce search triggers
   useEffect(() => {
     const t = setTimeout(() => {
       fetchResults(query, activeFilters);

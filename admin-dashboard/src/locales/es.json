@@ -1,0 +1,9 @@
+{
+  "admin": {
+    "dashboard": "Tablero",
+    "users": "Usuarios",
+    "settings": "Ajustes",
+    "logout": "Cerrar sesión",
+    "overview": "Visión general"
+  }
+}

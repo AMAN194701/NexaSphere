@@ -2,6 +2,8 @@ import { useState, useCallback } from 'react';
 import { api } from '../services/api';
 import { AdminIcon } from './AdminIcon';
 import { useFocusTrap } from '../hooks/useFocusTrap';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
 const STATUSES = ['upcoming', 'ongoing', 'completed', 'cancelled'];
 
@@ -75,6 +77,7 @@ export function EventForm({ event, onClose }) {
           restrictedGroupsInput: Array.isArray(event.restrictedGroups)
             ? event.restrictedGroups.join(', ')
             : '',
+          restrictedGroupsInput: Array.isArray(event.restrictedGroups) ? event.restrictedGroups.join(', ') : '',
           dateISO: toISODate(event.dateText ?? event.date ?? ''),
           gradientColors: Array.isArray(event.gradientColors) ? [...event.gradientColors] : [],
           capacity: event.capacity ?? '',
@@ -178,6 +181,7 @@ export function EventForm({ event, onClose }) {
               .split(',')
               .map((s) => parseInt(s.trim(), 10))
               .filter((id) => !isNaN(id))
+          ? form.restrictedGroupsInput.split(',').map(s => parseInt(s.trim(), 10)).filter(id => !isNaN(id))
           : [],
         capacity: form.capacity ? parseInt(form.capacity, 10) : null,
         startDate: form.startDate || null,
@@ -205,18 +209,26 @@ export function EventForm({ event, onClose }) {
       className="modal-overlay"
       ref={modalRef}
       onClick={(e) => e.target === e.currentTarget && onClose()}
+      onKeyDown={(e) => e.key === 'Escape' && onClose()}
     >
-      <div className="modal" style={{ maxWidth: 600, maxHeight: '90vh', overflowY: 'auto' }}>
+      <div
+        className="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="event-form-title"
+        style={{ maxWidth: 600, maxHeight: '90vh', overflowY: 'auto' }}
+      >
         <div className="modal-header">
-          <h3>{event?.id ? 'Edit Event' : 'New Event'}</h3>
-          <button className="modal-close" onClick={onClose} aria-label="Close">
+          <h3 id="event-form-title">{event?.id ? 'Edit Event' : 'New Event'}</h3>
+          <button className="modal-close" onClick={onClose} aria-label="Close modal">
             <AdminIcon name="X" size={18} />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="form">
           <div className="form-row">
-            <label>Event Name *</label>
+            <label htmlFor="event-form-name">Event Name *</label>
             <input
+              id="event-form-name"
               value={form.name}
               onChange={(e) => set('name', e.target.value)}
               placeholder="e.g. KSS #153 — Knowledge Sharing Session"
@@ -224,8 +236,9 @@ export function EventForm({ event, onClose }) {
             />
           </div>
           <div className="form-row">
-            <label>Short Name</label>
+            <label htmlFor="event-form-shortname">Short Name</label>
             <input
+              id="event-form-shortname"
               value={form.shortName || ''}
               onChange={(e) => set('shortName', e.target.value)}
               placeholder="e.g. KSS #153"
@@ -233,8 +246,8 @@ export function EventForm({ event, onClose }) {
           </div>
 
           <div className="form-row">
-            <label>Activity Category</label>
-            <select value={form.category || ''} onChange={(e) => set('category', e.target.value)}>
+            <label htmlFor="event-form-category">Activity Category</label>
+            <select id="event-form-category" value={form.category || ''} onChange={(e) => set('category', e.target.value)}>
               {CATEGORIES.map((c) => (
                 <option key={c.value} value={c.value}>
                   {c.label}
@@ -244,8 +257,9 @@ export function EventForm({ event, onClose }) {
           </div>
 
           <div className="form-row">
-            <label>Event Date</label>
+            <label htmlFor="event-form-date">Event Date</label>
             <input
+              id="event-form-date"
               type="date"
               value={form.dateISO || ''}
               onChange={(e) => handleDateChange(e.target.value)}
@@ -260,8 +274,9 @@ export function EventForm({ event, onClose }) {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div className="form-row">
-              <label>Start Date & Time</label>
+              <label htmlFor="event-form-startdate">Start Date & Time</label>
               <input
+                id="event-form-startdate"
                 type="datetime-local"
                 value={form.startDate || ''}
                 onChange={(e) => set('startDate', e.target.value)}
@@ -269,8 +284,9 @@ export function EventForm({ event, onClose }) {
               />
             </div>
             <div className="form-row">
-              <label>End Date & Time</label>
+              <label htmlFor="event-form-enddate">End Date & Time</label>
               <input
+                id="event-form-enddate"
                 type="datetime-local"
                 value={form.endDate || ''}
                 onChange={(e) => set('endDate', e.target.value)}
@@ -281,16 +297,18 @@ export function EventForm({ event, onClose }) {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div className="form-row">
-              <label>Location</label>
+              <label htmlFor="event-form-location">Location</label>
               <input
+                id="event-form-location"
                 value={form.location || ''}
                 onChange={(e) => set('location', e.target.value)}
                 placeholder="e.g. Conference Hall"
               />
             </div>
             <div className="form-row">
-              <label>Capacity</label>
+              <label htmlFor="event-form-capacity">Capacity</label>
               <input
+                id="event-form-capacity"
                 type="number"
                 value={form.capacity}
                 onChange={(e) => set('capacity', e.target.value)}
@@ -330,8 +348,8 @@ export function EventForm({ event, onClose }) {
           </div>
 
           <div className="form-row">
-            <label>Status</label>
-            <select value={form.status} onChange={(e) => set('status', e.target.value)}>
+            <label htmlFor="event-form-status">Status</label>
+            <select id="event-form-status" value={form.status} onChange={(e) => set('status', e.target.value)}>
               {STATUSES.map((s) => (
                 <option key={s} value={s}>
                   {s.charAt(0).toUpperCase() + s.slice(1)}
@@ -341,11 +359,23 @@ export function EventForm({ event, onClose }) {
           </div>
 
           <div className="form-row">
-            <label>Description</label>
+            <label htmlFor="event-form-description">Description</label>
             <textarea
+              id="event-form-description"
+            <label>Description</label>
+            <ReactQuill
+              theme="snow"
               value={form.description || ''}
-              onChange={(e) => set('description', e.target.value)}
-              rows={4}
+              onChange={(val) => set('description', val)}
+              modules={{
+                toolbar: [
+                  ['bold', 'italic'],
+                  [{ list: 'ordered' }, { list: 'bullet' }],
+                  ['link'],
+                  ['clean'],
+                ],
+              }}
+              style={{ background: 'var(--bg)', color: 'var(--text)' }}
             />
           </div>
 

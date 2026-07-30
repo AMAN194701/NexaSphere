@@ -86,4 +86,34 @@ describe('Workspace Service', () => {
     const stored = JSON.parse(localStorage.getItem('nexasphere_workspaces'));
     expect(stored.find((w) => w.id === ws1.id)).toBeDefined();
   });
+
+  it('should fall back to defaults when stored data is malformed (initializeWorkspaces)', () => {
+    localStorage.setItem('nexasphere_workspaces', '{ not valid json');
+
+    const workspaces = initializeWorkspaces();
+    expect(Array.isArray(workspaces)).toBe(true);
+    expect(workspaces.some((w) => w.id === 'default')).toBe(true);
+  });
+
+  it('should reset malformed localStorage data to defaults', () => {
+    localStorage.setItem('nexasphere_workspaces', '{ not valid json');
+
+    initializeWorkspaces();
+
+    // The corrupt value should have been overwritten with valid defaults
+    const stored = JSON.parse(localStorage.getItem('nexasphere_workspaces'));
+    expect(Array.isArray(stored)).toBe(true);
+    expect(stored.some((w) => w.id === 'default')).toBe(true);
+  });
+
+  it('should not throw and return defaults when getWorkspaces reads malformed data', () => {
+    localStorage.setItem('nexasphere_workspaces', '{ not valid json');
+
+    let workspaces;
+    expect(() => {
+      workspaces = getWorkspaces();
+    }).not.toThrow();
+    expect(Array.isArray(workspaces)).toBe(true);
+    expect(workspaces.some((w) => w.id === 'default')).toBe(true);
+  });
 });

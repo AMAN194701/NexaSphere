@@ -66,6 +66,15 @@ exports.reject = async (req, res) => {
 exports.getTimeline = async (req, res) => {
   try {
     const { startDate, endDate, role } = req.query;
+
+    // --- Add this validation ---
+    if (startDate && isNaN(new Date(startDate))) {
+      return res.status(400).json({ error: 'Invalid startDate format' });
+    }
+    if (endDate && isNaN(new Date(endDate))) {
+      return res.status(400).json({ error: 'Invalid endDate format' });
+    }
+    // --------------------------
     const filter = { status: 'approved' };
     if (startDate) filter.reviewedAt = { $gte: new Date(startDate) };
     if (endDate) filter.reviewedAt = { ...filter.reviewedAt, $lte: new Date(endDate) };

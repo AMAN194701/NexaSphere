@@ -4,6 +4,34 @@ import { recordCacheHit, recordCacheMiss } from '../observability/metrics.js';
 
 let redisClient = null;
 const inFlightQueries = new Map();
+let lastHealthCheck = 0;
+const HEALTH_CHECK_INTERVAL_MS = 30000;
+const HEALTH_CHECK_TIMEOUT_MS = 5000;
+
+function isRedisHealthy() {
+  if (!redisClient) return false;
+  if (redisClient.status !== 'ready') return false;
+  const now = Date.now();
+  if (now - lastHealthCheck < HEALTH_CHECK_INTERVAL_MS) return true;
+  lastHealthCheck = now;
+  return true;
+}
+
+async function performHealthCheck() {
+  if (!redisClient) return false;
+  try {
+    const result = await redisClient.ping();
+    if (result === 'PONG') {
+      lastHealthCheck = Date.now();
+      return true;
+    }
+    logger.warn('Redis health check failed: unexpected ping response');
+    return false;
+  } catch (err) {
+    logger.error('Redis health check failed:', err.message);
+    return false;
+  }
+}
 
 export function getRedisClient() {
   if (!redisClient) {
@@ -23,6 +51,8 @@ export function getRedisClient() {
       enableReadyCheck: true,
       lazyConnect: false,
     });
+    const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+    redisClient = new Redis(redisUrl);
 
     redisClient.on('error', (err) => {
       logger.error('Redis connection error:', err);
@@ -63,6 +93,7 @@ export async function getCachedQuery(key, queryFn, ttlSeconds = 300) {
     }
   }
 
+  // Try to read from cache first
   let cached = null;
   try {
     cached = await client.get(key);
@@ -104,6 +135,18 @@ export async function getCachedQuery(key, queryFn, ttlSeconds = 300) {
       inFlightQueries.delete(key);
     }
   }
+  // Cache miss or Redis error — run queryFn exactly once
+  const result = await queryFn();
+
+  try {
+    client.set(key, JSON.stringify(result), 'EX', ttlSeconds).catch((err) => {
+      logger.error('Error setting Redis cache:', err);
+    });
+  } catch (err) {
+    logger.warn('Redis cache write error:', err);
+  }
+
+  return result;
 }
 
 export function clearCache(keyPattern) {

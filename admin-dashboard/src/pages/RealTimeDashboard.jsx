@@ -13,7 +13,19 @@ import {
   Bar,
 } from 'recharts';
 
-const socket = io('http://localhost:3001');
+const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || 'http://localhost:3001';
+
+function getSocket() {
+  if (!getSocket.instance || !getSocket.instance.connected) {
+    getSocket.instance = io(SOCKET_URL, {
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: Infinity,
+    });
+  }
+  return getSocket.instance;
+}
 
 const StatCard = ({ title, value, color, icon }) => (
   <div
@@ -53,18 +65,47 @@ export default function RealTimeDashboard() {
   const [trendData, setTrendData] = useState([]);
   const [eventData, setEventData] = useState({});
   const [connected, setConnected] = useState(false);
+  const [connectionError, setConnectionError] = useState('');
+  const [reconnecting, setReconnecting] = useState(false);
 
   useEffect(() => {
-    socket.on('connect', () => {
+    const socket = getSocket();
+
+    const handleConnect = () => {
       setConnected(true);
+      setConnectionError('');
+      setReconnecting(false);
       socket.emit('analytics:subscribe', 'all');
       socket.emit('analytics:request:metrics', 'all');
       socket.emit('analytics:request:trends', { eventId: 'all', timeWindow: '7 days' });
-    });
+    };
 
-    socket.on('disconnect', () => setConnected(false));
+    const handleDisconnect = () => {
+      setConnected(false);
+      setReconnecting(true);
+    };
 
-    socket.on('analytics:metrics:current', (data) => {
+    const handleConnectError = (err) => {
+      setConnected(false);
+      setReconnecting(true);
+      setConnectionError(err?.message || 'Connection failed');
+    };
+
+    const handleReconnectAttempt = () => {
+      setReconnecting(true);
+      setConnectionError('Reconnecting...');
+    };
+
+    if (socket.connected) {
+      handleConnect();
+    }
+
+    socket.on('connect', handleConnect);
+    socket.on('disconnect', handleDisconnect);
+    socket.on('connect_error', handleConnectError);
+    socket.on('reconnect_attempt', handleReconnectAttempt);
+
+    const handleMetricsCurrent = (data) => {
       if (data?.metrics) {
         setStats({
           registrations: data.metrics.totalRegistrations || 0,
@@ -73,13 +114,13 @@ export default function RealTimeDashboard() {
         });
         if (data.metrics.eventData) setEventData(data.metrics.eventData);
       }
-    });
+    };
 
-    socket.on('analytics:trends:current', (data) => {
+    const handleTrendsCurrent = (data) => {
       if (data?.trends) setTrendData(data.trends);
-    });
+    };
 
-    socket.on('analytics:metrics:update', (data) => {
+    const handleMetricsUpdate = (data) => {
       if (data?.metrics) {
         setStats({
           registrations: data.metrics.totalRegistrations || 0,
@@ -87,12 +128,47 @@ export default function RealTimeDashboard() {
           checkIns: data.metrics.totalCheckIns || 0,
         });
       }
-    });
+    };
 
-    return () => socket.off();
+    return () => {
+      socket.off('connect', handleConnect);
+      socket.off('disconnect', handleDisconnect);
+      socket.off('connect_error', handleConnectError);
+      socket.off('reconnect_attempt', handleReconnectAttempt);
+      socket.off('analytics:metrics:current');
+      socket.off('analytics:trends:current');
+      socket.off('analytics:metrics:update');
+    };
+  }, []);
+
+  const retryConnection = useCallback(() => {
+    setReconnecting(true);
+    setConnectionError('Reconnecting...');
+    const socket = getSocket();
+    socket.connect();
+    socket.on('connect', handleConnect);
+    socket.on('disconnect', handleDisconnect);
+    socket.on('analytics:metrics:current', handleMetricsCurrent);
+    socket.on('analytics:trends:current', handleTrendsCurrent);
+    socket.on('analytics:metrics:update', handleMetricsUpdate);
+
+    return () => {
+      socket.off('connect', handleConnect);
+      socket.off('disconnect', handleDisconnect);
+      socket.off('analytics:metrics:current', handleMetricsCurrent);
+      socket.off('analytics:trends:current', handleTrendsCurrent);
+      socket.off('analytics:metrics:update', handleMetricsUpdate);
+    };
   }, []);
 
   const exportCSV = useCallback(() => {
+    const escapeCSV = (val) => {
+      if (typeof val === 'string') {
+        return `"${val.replace(/"/g, '""')}"`;
+      }
+      return val;
+    };
+
     const rows = [
       ['Event', 'Registrations', 'Attendees', 'Check-ins'],
       ...Object.entries(eventData).map(([name, d]) => [
@@ -103,7 +179,7 @@ export default function RealTimeDashboard() {
       ]),
       ['LIVE TOTAL', stats.registrations, stats.attendees, stats.checkIns],
     ];
-    const csv = rows.map((r) => r.join(',')).join('\n');
+    const csv = rows.map((r) => r.map(escapeCSV).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -148,7 +224,7 @@ export default function RealTimeDashboard() {
             NexaSphere Event Dashboard
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           <div
             style={{
               padding: '6px 14px',
@@ -161,7 +237,23 @@ export default function RealTimeDashboard() {
           >
             {connected ? '🟢 Connected' : '🔴 Disconnected'}
           </div>
-
+          {reconnecting && !connected && (
+            <button
+              onClick={retryConnection}
+              style={{
+                padding: '8px 14px',
+                background: '#1d3557',
+                color: '#fff',
+                border: '1px solid #457b9d',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: 600,
+                fontSize: '14px',
+              }}
+            >
+              Retry Connection
+            </button>
+          )}
           <button
             onClick={exportCSV}
             style={{
@@ -207,9 +299,9 @@ export default function RealTimeDashboard() {
         </h2>
         <ResponsiveContainer width="100%" height={250}>
           <LineChart data={trendData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#ffffff0f" />
-            <XAxis dataKey="time" stroke="#555" fontSize={11} />
-            <YAxis stroke="#555" fontSize={11} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+            <XAxis dataKey="time" stroke="var(--chart-text)" fontSize={11} />
+            <YAxis stroke="var(--chart-text)" fontSize={11} />
             <Tooltip
               contentStyle={{
                 background: '#1a1a2e',
@@ -221,11 +313,17 @@ export default function RealTimeDashboard() {
             <Line
               type="monotone"
               dataKey="registrations"
-              stroke="#e63946"
+              stroke="var(--chart-danger)"
               strokeWidth={2}
               dot={false}
             />
-            <Line type="monotone" dataKey="checkIns" stroke="#00ff88" strokeWidth={2} dot={false} />
+            <Line
+              type="monotone"
+              dataKey="checkIns"
+              stroke="var(--chart-success)"
+              strokeWidth={2}
+              dot={false}
+            />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -244,9 +342,9 @@ export default function RealTimeDashboard() {
         </h2>
         <ResponsiveContainer width="100%" height={250}>
           <BarChart data={eventChartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#ffffff0f" />
-            <XAxis dataKey="name" stroke="#555" fontSize={11} />
-            <YAxis stroke="#555" fontSize={11} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+            <XAxis dataKey="name" stroke="var(--chart-text)" fontSize={11} />
+            <YAxis stroke="var(--chart-text)" fontSize={11} />
             <Tooltip
               contentStyle={{
                 background: '#1a1a2e',
@@ -255,9 +353,9 @@ export default function RealTimeDashboard() {
               }}
             />
             <Legend />
-            <Bar dataKey="registrations" fill="#e63946" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="attendees" fill="#00b4d8" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="checkIns" fill="#00ff88" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="registrations" fill="var(--chart-danger)" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="attendees" fill="var(--chart-primary)" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="checkIns" fill="var(--chart-success)" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>

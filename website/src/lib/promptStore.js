@@ -79,7 +79,8 @@ export const savePrompt = async (prompt, response, workspace = 'default') => {
 /**
  * Get all prompts from storage
  */
-export const getAllPrompts = async (workspace = null) => {
+export const getAllPrompts = async (workspace = null, options = {}) => {
+  const { throwOnError = false } = options;
   try {
     const database = await initializeDB();
 
@@ -103,16 +104,21 @@ export const getAllPrompts = async (workspace = null) => {
     });
   } catch (error) {
     logger.error('Error retrieving prompts from IndexedDB:', error);
-    return getPromptsFromLocalStorage(workspace);
+    const fallback = getPromptsFromLocalStorage(workspace);
+    if (throwOnError && fallback.length === 0) {
+      throw error;
+    }
+    return fallback;
   }
 };
 
 /**
  * Search prompts by keyword
  */
-export const searchPrompts = async (keyword, workspace = null) => {
+export const searchPrompts = async (keyword, workspace = null, options = {}) => {
+  const { throwOnError = false } = options;
   try {
-    const allPrompts = await getAllPrompts(workspace);
+    const allPrompts = await getAllPrompts(workspace, { throwOnError });
     const lowerKeyword = keyword.toLowerCase();
 
     return allPrompts.filter(
@@ -122,6 +128,9 @@ export const searchPrompts = async (keyword, workspace = null) => {
     );
   } catch (error) {
     logger.error('Error searching prompts:', error);
+    if (throwOnError) {
+      throw error;
+    }
     return [];
   }
 };
@@ -129,28 +138,20 @@ export const searchPrompts = async (keyword, workspace = null) => {
 /**
  * Get pinned prompts
  */
-export const getPinnedPrompts = async (workspace = null) => {
+export const getPinnedPrompts = async (workspace = null, options = {}) => {
+  const { throwOnError = false } = options;
   try {
-    const database = await initializeDB();
-
-    return new Promise((resolve, reject) => {
-      const transaction = database.transaction([STORE_NAME], 'readonly');
-      const store = transaction.objectStore(STORE_NAME);
-      const index = store.index('pinned');
-      const request = index.getAll(true);
-
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => {
-        let results = request.result;
-        if (workspace) {
-          results = results.filter((p) => p.workspace === workspace);
-        }
-        resolve(results.sort((a, b) => b.timestamp - a.timestamp));
-      };
-    });
+    const allPrompts = await getAllPrompts(workspace);
+    return allPrompts.filter((p) => p.pinned);
   } catch (error) {
     logger.error('Error retrieving pinned prompts:', error);
     return getPinnedPromptsFromLocalStorage(workspace);
+    return [];
+    const fallback = getPinnedPromptsFromLocalStorage(workspace);
+    if (throwOnError && fallback.length === 0) {
+      throw error;
+    }
+    return fallback;
   }
 };
 

@@ -27,18 +27,35 @@ const DOMAIN_ICONS = {
   cybersecurity: Shield,
 };
 
+const LEARNING_DETAILS_PANEL_ID = 'roadmap-learning-details-panel';
+
 export default function RoadmapsPage({ onBack }) {
+  const innerScrollRef = useRef(null);
   const [isBuilderActive, setIsBuilderActive] = useState(false);
   const [activeDomain, setActiveDomain] = useState('webdev');
   const [selectedNode, setSelectedNode] = useState(null);
   const panelRef = useRef(null);
   const nodeRefs = useRef({});
 
+  // Ensure panel scroll resets to top when a new node is selected
+  useEffect(() => {
+    if (innerScrollRef.current) {
+      innerScrollRef.current.scrollTop = 0;
+    }
+  }, [selectedNode]);
+
   const domainData = roadmapData[activeDomain];
 
   // Reset selected node when domain changes
   useEffect(() => {
     setSelectedNode(null);
+  }, [activeDomain]);
+
+  // Scroll page to top when domain changes (smooth scroll)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   }, [activeDomain]);
 
   // Handle outside click to close the panel
@@ -61,14 +78,14 @@ export default function RoadmapsPage({ onBack }) {
   // the empty dep array caused a second redundant keydown listener to be
   // registered on mount that was never re-registered, while the correct
   // selectedNode-aware listener was already handled by the effect above.
+  // Ensure panel scroll resets to top when a new node is selected
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        setSelectedNode(null);
+    if (panelRef.current) {
+      const innerScroll = panelRef.current.querySelector('.panel-inner-scroll');
+      if (innerScroll) {
+        innerScroll.scrollTop = 0;
       }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    }
   }, [selectedNode]);
 
   const IconComponent = DOMAIN_ICONS[activeDomain] || Monitor;
@@ -99,6 +116,7 @@ export default function RoadmapsPage({ onBack }) {
         </p>
         <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center' }}>
           <button
+            aria-label="Interactive element"
             onClick={() => setIsBuilderActive(true)}
             className="btn btn-primary flex items-center gap-2"
             style={{
@@ -123,6 +141,7 @@ export default function RoadmapsPage({ onBack }) {
           const isActive = activeDomain === key;
           return (
             <button
+              aria-label="Interactive element"
               key={key}
               role="tab"
               aria-selected={isActive}
@@ -197,6 +216,7 @@ export default function RoadmapsPage({ onBack }) {
                     className={`roadmap-node-capsule ${isSelected ? 'selected' : ''}`}
                     aria-label={`Step ${index + 1}: ${node.label}. Click to toggle learning details panel.`}
                     aria-expanded={isSelected}
+                    aria-controls={LEARNING_DETAILS_PANEL_ID}
                   >
                     <div className="node-capsule-glow" />
                     <div className="node-capsule-content">
@@ -221,6 +241,7 @@ export default function RoadmapsPage({ onBack }) {
             exit={{ x: '100%', opacity: 0 }}
             transition={{ type: 'spring', damping: 25, stiffness: 220 }}
             className="learning-details-panel"
+            id={LEARNING_DETAILS_PANEL_ID}
             role="dialog"
             aria-modal="true"
             aria-labelledby="panel-title"
@@ -244,7 +265,7 @@ export default function RoadmapsPage({ onBack }) {
               style={{ position: 'absolute', top: '16px', right: '16px', zIndex: 20 }}
             />
 
-            <div className="panel-inner-scroll">
+            <div className="panel-inner-scroll" ref={innerScrollRef}>
               {/* Header */}
               <div className="panel-header-section">
                 <span className="panel-category-tag">{domainData.title} · Core Step</span>
@@ -262,7 +283,7 @@ export default function RoadmapsPage({ onBack }) {
                 <ul className="concepts-pill-list">
                   {selectedNode.concepts.map((concept, idx) => (
                     <li
-                      key={`concept-${selectedNode.id}-${concept}`}
+                      key={`concept-${selectedNode.id}-${idx}`}
                       className="concept-badge-pill"
                     >
                       {concept}
@@ -277,6 +298,7 @@ export default function RoadmapsPage({ onBack }) {
                   <FileText size={16} /> Official Documentation
                 </h4>
                 <a
+                  aria-label="Interactive element"
                   href={selectedNode.docs}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -301,6 +323,8 @@ export default function RoadmapsPage({ onBack }) {
                   {selectedNode.tutorials.map((tutorial, idx) => (
                     <a
                       key={`tutorial-${selectedNode.id}-${tutorial.url}`}
+                      aria-label="Interactive element"
+                      key={idx}
                       href={tutorial.url}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -325,6 +349,8 @@ export default function RoadmapsPage({ onBack }) {
                   {selectedNode.practice.map((item, idx) => (
                     <a
                       key={`practice-${selectedNode.id}-${item.url}`}
+                      aria-label="Interactive element"
+                      key={idx}
                       href={item.url}
                       target="_blank"
                       rel="noopener noreferrer"

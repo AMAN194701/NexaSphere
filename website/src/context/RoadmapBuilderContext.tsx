@@ -15,6 +15,10 @@ export interface RoadmapNode {
   notes: string;
   resources: ResourceLink[];
   prerequisites: string[];
+  isAiGenerated?: boolean;
+  isPrerequisite?: boolean;
+  isAdvanced?: boolean;
+  aiReason?: string;
 }
 
 export interface RoadmapBuilderContextType {
@@ -23,7 +27,7 @@ export interface RoadmapBuilderContextType {
   roadmapDescription: string;
   selectedNodeId: string | null;
   activeNodeId: string | null;
-  addNode: (node: Omit<RoadmapNode, 'id'>) => void;
+  addNode: (node: Omit<RoadmapNode, 'id' | 'x' | 'y'> & { x?: number; y?: number }) => void;
   updateNode: (id: string, updates: Partial<RoadmapNode>) => void;
   deleteNode: (id: string) => void;
   setNodes: (nodes: RoadmapNode[]) => void;
@@ -72,10 +76,15 @@ export const RoadmapBuilderProvider: React.FC<{ children: ReactNode }> = ({ chil
           {
             id: 'node-1',
             title: 'Getting Started',
+            id: 'node-1',
+            title: 'Getting Started',
             description:
               'This is your first learning node. Drag me around, double click or click "Edit" to configure!',
             x: 200,
             y: 150,
+            status: 'Not Started',
+            notes: '- Learn the basics\n- Customize this node',
+            resources: [{ title: 'NexaSphere Home', url: 'https://nexasphere.gl' }],
             status: 'Not Started',
             notes: '- Learn the basics\n- Customize this node',
             resources: [{ title: 'NexaSphere Home', url: 'https://nexasphere.gl' }],
@@ -93,12 +102,15 @@ export const RoadmapBuilderProvider: React.FC<{ children: ReactNode }> = ({ chil
       }
     } finally {
       isHydrated.current = true;
+      console.error('Failed to load roadmap from localStorage:', e);
     }
   }, []);
 
   // Autosave roadmap state using localStorage on every change
   useEffect(() => {
     if (!isHydrated.current) return;
+    // Skip empty initial state saving to prevent overwriting
+    if (nodes.length === 0 && roadmapTitle === 'My Custom Path') return;
 
     const stateToSave = {
       title: roadmapTitle,
@@ -108,15 +120,76 @@ export const RoadmapBuilderProvider: React.FC<{ children: ReactNode }> = ({ chil
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stateToSave));
   }, [nodes, roadmapTitle, roadmapDescription]);
 
-  const addNode = useCallback((nodeData: Omit<RoadmapNode, 'id'>) => {
-    const id = `node-${Date.now()}`;
-    const newNode: RoadmapNode = {
-      ...nodeData,
-      id,
-    };
-    setNodesState((prev) => [...prev, newNode]);
-    setActiveNodeId(id);
-  }, []);
+  const addNode = useCallback(
+    (
+      nodeData: Omit<RoadmapNode, 'id' | 'x' | 'y'> & {
+        x?: number;
+        y?: number;
+      }
+    ) => {
+      // Use a highly unique ID to prevent rapid click collisions
+      const id = `node-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+
+      setNodesState((prev) => {
+        let finalX = nodeData.x;
+        let finalY = nodeData.y;
+
+        if (finalX === undefined || finalY === undefined) {
+          let baseX = 350;
+          let baseY = 100;
+
+          // Intelligent Canvas-Aware placement
+          const container = document.querySelector('.canvas-container-outer');
+          if (container) {
+            // Find viewport center based on scroll
+            baseX = container.scrollLeft + container.clientWidth / 2 - 110; // 110 is half of NODE_WIDTH (220)
+            baseY = container.scrollTop + container.clientHeight / 2 - 45; // 45 is half of NODE_HEIGHT (90)
+          }
+
+          // Strict Canvas Bounds protection
+          baseX = Math.max(10, Math.min(baseX, 1800 - 220 - 10));
+          baseY = Math.max(10, Math.min(baseY, 1200 - 90 - 10));
+
+          finalX = baseX;
+          finalY = baseY;
+
+          // Collision Avoidance & Staggered Spawning
+          const OFFSET = 40;
+          let collision = true;
+          let attempts = 0;
+
+          while (collision && attempts < 50) {
+            // Check if any existing node is dangerously close
+            collision = prev.some(
+              (n) => Math.abs(n.x - finalX!) < 10 && Math.abs(n.y - finalY!) < 10
+            );
+            if (collision) {
+              finalX! += OFFSET;
+              finalY! += OFFSET;
+
+              // If staggering pushes off-canvas, reset to base with slight random jitter
+              if (finalX! > 1800 - 220 - 10 || finalY! > 1200 - 90 - 10) {
+                finalX = baseX + (Math.random() * 80 - 40);
+                finalY = baseY + (Math.random() * 80 - 40);
+              }
+            }
+            attempts++;
+          }
+        }
+
+        const newNode: RoadmapNode = {
+          ...(nodeData as Omit<RoadmapNode, 'id'>),
+          x: finalX!,
+          y: finalY!,
+          id,
+        };
+
+        return [...prev, newNode];
+      });
+      setActiveNodeId(id);
+    },
+    []
+  );
 
   const updateNode = useCallback((id: string, updates: Partial<RoadmapNode>) => {
     setNodesState((prev) => prev.map((node) => (node.id === id ? { ...node, ...updates } : node)));

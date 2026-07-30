@@ -6,6 +6,25 @@ import { IconArrowRight, IconSpark } from '../../shared/Icons';
 import { BannerOrbs } from '../../shared/MotionLayer';
 import Footer from '../../shared/Footer';
 import SkeletonCard from '../../components/SkeletonCard';
+import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
+import { Rocket } from "lucide-react";
+import TeamMemberModal from "./TeamMemberModal";
+import { IconArrowRight, IconSpark } from "../../shared/Icons";
+import { BannerOrbs } from "../../shared/MotionLayer";
+import Footer from "../../shared/Footer";
+import { Rocket } from 'lucide-react';
+import { teamMembers } from '../../data/teamData';
+import apiClient from '../../utils/apiClient.js';
+import {
+  getLocalTeamMembers,
+  mergeTeamMembers,
+  subscribePublicContent,
+} from '../../utils/publicContentStore.js';
+import TeamMemberModal from './TeamMemberModal';
+import { IconSpark } from '../../shared/Icons';
+import { BannerOrbs } from '../../shared/MotionLayer';
+import Footer from '../../shared/Footer';
 
 function MemberCard({ member, idx, onClick }) {
   const ref = useRef(null);
@@ -19,6 +38,7 @@ function MemberCard({ member, idx, onClick }) {
     const x = (e.clientX - rect.left) / rect.width - 0.5;
     const y = (e.clientY - rect.top) / rect.height - 0.5;
     c.style.animationPlayState = 'paused';
+    c.style.animationPlayState = "paused";
     c.style.transform = `translateY(-14px) rotateX(${-y * 18}deg) rotateY(${x * 18}deg) scale(1.06)`;
   };
   const onLeave = () => {
@@ -31,11 +51,18 @@ function MemberCard({ member, idx, onClick }) {
     setTimeout(() => {
       if (c) c.style.transform = '';
     }, 150);
+    c.style.transform = "";
+    c.style.animationPlayState = "";
+    c.style.transform = '';
+    c.style.animationPlayState = '';
   };
   const click = () => {
     const c = ref.current;
     if (c) {
       c.style.transform = 'scale(.9)';
+      setTimeout(() => {
+        c.style.transform = '';
+      c.style.transform = "scale(.9)";
       setTimeout(() => {
         c.style.transform = '';
       }, 140);
@@ -47,6 +74,10 @@ function MemberCard({ member, idx, onClick }) {
     <div
       ref={ref}
       className="team-card shimmer mag-card pop-flip"
+      style={{
+        cursor: 'pointer',
+        perspective: '800px',
+      className="team-card shimmer mag-card"
       style={{
         cursor: 'pointer',
         perspective: '800px',
@@ -64,18 +95,31 @@ function MemberCard({ member, idx, onClick }) {
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') click();
       }}
+      onMouseMove={onMove}
+      onMouseLeave={onLeave}
+      onClick={click}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') click();
+      }}
     >
       <div className="team-card-photo-wrap">
-        <img
+        <img loading="lazy"
           src={
             !member.photo || imgError
               ? 'https://api.dicebear.com/7.x/initials/svg?seed=' +
                 encodeURIComponent(member.name) +
                 '&backgroundColor=7b6fff&textColor=ffffff'
+            imgError
+              ? 'https://api.dicebear.com/7.x/initials/svg?seed=' +
+                encodeURIComponent(member.name) +
+                '&backgroundColor=CC1111&textColor=ffffff'
               : member.photo
           }
           alt={member.name}
           className="team-card-photo"
+          loading="lazy"
           onError={() => setImgError(true)}
         />
       </div>
@@ -95,7 +139,9 @@ function MemberCard({ member, idx, onClick }) {
 export default function TeamPage({ onBack, onApply }) {
   const [sel, setSel] = useState(null);
   const [members, setMembers] = useState([]);
+  const [teamMembers, setTeamMembers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [members, setMembers] = useState(() => getLocalTeamMembers(teamMembers));
 
   useEffect(() => {
     window.scrollTo({ top: 0 });
@@ -136,6 +182,32 @@ export default function TeamPage({ onBack, onApply }) {
       .finally(() => {
         if (alive) setLoading(false);
       });
+    const applyLocalTeam = () => {
+      if (alive) setMembers(getLocalTeamMembers(teamMembers));
+    };
+
+    if (!base) {
+      applyLocalTeam();
+      return subscribePublicContent(applyLocalTeam);
+    }
+
+    const fetchTeam = () => {
+      apiClient(`${base}/api/content/team`)
+        .then((data) => {
+          if (!alive) return;
+          setMembers(
+            Array.isArray(data?.members) && data.members.length
+              ? mergeTeamMembers(teamMembers, data.members)
+              : getLocalTeamMembers(teamMembers)
+          );
+        })
+        .catch(() => {
+          if (alive) setMembers((prev) => (prev?.length ? prev : getLocalTeamMembers(teamMembers)));
+        });
+    };
+
+    fetchTeam();
+    const interval = setInterval(fetchTeam, 4000);
     return () => {
       alive = false;
     };
@@ -156,6 +228,59 @@ export default function TeamPage({ onBack, onApply }) {
           marginBottom: '60px',
           position: 'relative',
           overflow: 'hidden',
+    const fetchTeam = async () => {
+      try {
+        const base = (import.meta?.env?.VITE_API_BASE || "").replace(
+          /\/+$/,
+          ""
+        );
+        const res = await fetch(`${base}/api/content/portfolios`);
+        if (res.ok) {
+          const data = await res.json();
+          setTeamMembers(data || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch team members", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTeam();
+  }, []);
+
+  const organiser = teamMembers.filter(
+    (m) =>
+      m.role === "Organiser" ||
+      m.role === "Co-organiser" ||
+      m.role.toLowerCase().includes("lead")
+  );
+  const coreTeam = teamMembers.filter(
+    (m) =>
+      m.role !== "Organiser" &&
+      m.role !== "Co-organiser" &&
+      !m.role.toLowerCase().includes("lead")
+  );
+
+  return (
+    <div id="team-page" style={{ minHeight: '100vh', padding: '0 0 100px' }}>
+      <div
+        className="page-banner"
+        style={{
+          background:
+            "linear-gradient(135deg, rgba(123,111,255,.07), rgba(189,92,255,.04))",
+          borderBottom: "1px solid var(--bdr)",
+          padding: "70px 0 50px",
+          textAlign: "center",
+          marginBottom: "60px",
+          position: "relative",
+          overflow: "hidden",
+          background: 'linear-gradient(135deg, rgba(123,111,255,.07), rgba(189,92,255,.04))',
+          borderBottom: '1px solid var(--bdr)',
+          padding: '70px 0 50px',
+          textAlign: 'center',
+          marginBottom: '48px',
+          position: 'relative',
+          overflow: 'hidden',
         }}
       >
         <div
@@ -167,10 +292,17 @@ export default function TeamPage({ onBack, onApply }) {
             right: 0,
             height: '3px',
             background: 'linear-gradient(90deg,var(--c2),var(--c3),var(--c1))',
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '3px',
+            background: 'linear-gradient(90deg,var(--c2),var(--c3),var(--c1))',
           }}
         />
         <BannerOrbs color="rgba(123,111,255,.07)" />
         <button
+          aria-label="Interactive element"
           onClick={onBack}
           className="ns-back-btn"
           style={{
@@ -187,6 +319,19 @@ export default function TeamPage({ onBack, onApply }) {
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
+            position: "absolute",
+            top: "24px",
+            left: "28px",
+            background: "var(--card)",
+            border: "1px solid var(--bdr)",
+            borderRadius: "50px",
+            padding: "7px 16px",
+            color: "var(--t2)",
+            fontSize: ".8rem",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
             fontFamily: "'Rajdhani', sans-serif",
             fontWeight: 600,
           }}
@@ -206,6 +351,17 @@ export default function TeamPage({ onBack, onApply }) {
             letterSpacing: '.3em',
             textTransform: 'uppercase',
             position: 'relative',
+          className="cin-section-label"
+          style={{
+            display: "block",
+            textAlign: "center",
+            marginBottom: "8px",
+            fontFamily: "'Space Mono', monospace",
+            fontSize: ".6rem",
+            color: "var(--t3)",
+            letterSpacing: ".3em",
+            textTransform: "uppercase",
+            position: "relative",
             zIndex: 1,
           }}
         >
@@ -214,6 +370,12 @@ export default function TeamPage({ onBack, onApply }) {
         <h1
           className="section-title pop-word"
           style={{ fontSize: 'clamp(2rem, 5vw, 3.2rem)', position: 'relative', zIndex: 1 }}
+          className="section-title"
+          style={{
+            fontSize: "clamp(2rem, 5vw, 3.2rem)",
+            position: "relative",
+            zIndex: 1,
+          }}
         >
           Core Team
         </h1>
@@ -222,11 +384,59 @@ export default function TeamPage({ onBack, onApply }) {
           style={{ maxWidth: '500px', margin: '0 auto', position: 'relative', zIndex: 1 }}
         >
           The minds and hands behind NexaSphere — meet the people driving the vision forward.
+          className="section-subtitle"
+          style={{
+            maxWidth: "500px",
+            margin: "0 auto",
+            position: "relative",
+            zIndex: 1,
+          }}
+        >
+          The minds and hands behind NexaSphere — meet the people driving the
+          vision forward.
         </p>
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <span
+            className="cin-section-label"
+            style={{
+              display: 'block',
+              textAlign: 'center',
+              marginBottom: '8px',
+              fontFamily: "'Space Mono', monospace",
+              fontSize: '.6rem',
+              color: 'var(--t3)',
+              letterSpacing: '.3em',
+              textTransform: 'uppercase',
+            }}
+          >
+            GL Bajaj Group of Institutions · Mathura
+          </span>
+          <h1 className="section-title pop-word" style={{ fontSize: 'clamp(2rem, 5vw, 3.2rem)' }}>
+            Core Team
+          </h1>
+          <p className="section-subtitle" style={{ maxWidth: '500px', margin: '0 auto' }}>
+            The minds and hands behind NexaSphere — meet the people driving the vision forward.
+          </p>
+        </div>
       </div>
 
       <div className="container">
         <div style={{ marginBottom: '52px' }}>
+          <div
+            style={{
+              fontFamily: "'Orbitron', monospace",
+              fontSize: '.68rem',
+              fontWeight: 700,
+              color: 'var(--c2)',
+              letterSpacing: '.2em',
+              textTransform: 'uppercase',
+              textAlign: 'center',
+              marginBottom: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '12px',
+        <div style={{ marginBottom: "52px" }}>
           <div
             style={{
               fontFamily: "'Orbitron', monospace",
@@ -248,6 +458,8 @@ export default function TeamPage({ onBack, onApply }) {
                 flex: 1,
                 height: '1px',
                 background: 'linear-gradient(90deg, transparent, var(--bdr2))',
+                height: "1px",
+                background: "linear-gradient(90deg, transparent, var(--bdr2))",
               }}
             />
             Leadership
@@ -273,10 +485,59 @@ export default function TeamPage({ onBack, onApply }) {
               : organiser.map((m, i) => (
                   <MemberCard key={m.id} member={m} idx={i} onClick={setSel} />
                 ))}
+                height: "1px",
+                background: "linear-gradient(90deg, var(--bdr2), transparent)",
+              }}
+            />
           </div>
+          {loading ? (
+            <div
+              style={{
+                textAlign: "center",
+                padding: "40px",
+                color: "var(--t2)",
+              }}
+            >
+              Loading leadership...
+            </div>
+          ) : (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(175px, 1fr))",
+                gap: "16px",
+                maxWidth: "500px",
+                margin: "0 auto",
+              }}
+            >
+              {organiser.map((m, i) => (
+                <MemberCard
+                  key={m.id || i}
+                  member={m}
+                  idx={i}
+                  onClick={setSel}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
         <div style={{ marginBottom: '52px' }}>
+          <div
+            style={{
+              fontFamily: "'Orbitron', monospace",
+              fontSize: '.68rem',
+              fontWeight: 700,
+              color: 'var(--c1)',
+              letterSpacing: '.2em',
+              textTransform: 'uppercase',
+              textAlign: 'center',
+              marginBottom: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '12px',
+        <div style={{ marginBottom: "52px" }}>
           <div
             style={{
               fontFamily: "'Orbitron', monospace",
@@ -298,6 +559,8 @@ export default function TeamPage({ onBack, onApply }) {
                 flex: 1,
                 height: '1px',
                 background: 'linear-gradient(90deg, transparent, var(--bdr2))',
+                height: "1px",
+                background: "linear-gradient(90deg, transparent, var(--bdr2))",
               }}
             />
             Core Members
@@ -315,7 +578,33 @@ export default function TeamPage({ onBack, onApply }) {
               : coreTeam.map((m, i) => (
                   <MemberCard key={m.id} member={m} idx={i + 2} onClick={setSel} />
                 ))}
+                height: "1px",
+                background: "linear-gradient(90deg, var(--bdr2), transparent)",
+              }}
+            />
           </div>
+          {loading ? (
+            <div
+              style={{
+                textAlign: "center",
+                padding: "40px",
+                color: "var(--t2)",
+              }}
+            >
+              Loading team members...
+            </div>
+          ) : (
+            <div className="team-grid">
+              {coreTeam.map((m, i) => (
+                <MemberCard
+                  key={m.id || i}
+                  member={m}
+                  idx={i + 2}
+                  onClick={setSel}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
         <div
@@ -330,6 +619,15 @@ export default function TeamPage({ onBack, onApply }) {
             margin: '0 auto',
             position: 'relative',
             overflow: 'hidden',
+            textAlign: "center",
+            padding: "32px",
+            background: "var(--card)",
+            border: "1px solid var(--bdr)",
+            borderRadius: "var(--r3)",
+            maxWidth: "520px",
+            margin: "0 auto",
+            position: "relative",
+            overflow: "hidden",
           }}
         >
           <div
@@ -340,17 +638,36 @@ export default function TeamPage({ onBack, onApply }) {
               right: 0,
               height: '3px',
               background: 'linear-gradient(90deg, var(--c1), var(--c2), var(--c3))',
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '3px',
+              background: 'linear-gradient(90deg, var(--c1), var(--c2), var(--c3))',
             }}
           />
           <div className="corner-tl" />
           <div className="corner-br" />
           <div style={{ fontSize: '2rem', marginBottom: '10px', color: 'var(--c1)' }}>
+          <div
+            style={{
+              fontSize: '2rem',
+              marginBottom: '10px',
+              color: 'var(--c1)',
+            }}
+          >
             <Rocket size={32} />
           </div>
           <h3
             style={{
               fontFamily: 'Orbitron,monospace',
               fontSize: '1rem',
+              fontWeight: 700,
+              color: 'var(--c1)',
+              marginBottom: '8px',
+              letterSpacing: '.05em',
+              fontFamily: "Orbitron,monospace",
+              fontSize: "1rem",
               fontWeight: 700,
               color: 'var(--c1)',
               marginBottom: '8px',
@@ -369,8 +686,17 @@ export default function TeamPage({ onBack, onApply }) {
           >
             We&apos;re looking for passionate students to drive NexaSphere forward. Fill in the form
             and we&apos;ll reach out!
+              color: "var(--t2)",
+              fontSize: ".88rem",
+              marginBottom: "18px",
+              lineHeight: 1.65,
+            }}
+          >
+            We&apos;re looking for passionate students to drive NexaSphere forward. Fill in the form
+            and we&apos;ll reach out!
           </p>
           <button
+            aria-label="Interactive element"
             type="button"
             onClick={() => onApply && onApply()}
             className="btn btn-join btn-ripple"

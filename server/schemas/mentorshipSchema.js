@@ -7,6 +7,7 @@ const domainsSchema = z.union([z.array(z.string().max(50)), z.string()]).transfo
       .map((t) => t.trim())
       .filter(Boolean)
       .slice(0, 10);
+    return val.split(',').map(t => t.trim()).filter(Boolean).slice(0, 10);
   }
   return val.slice(0, 10);
 });
@@ -29,6 +30,13 @@ export const updateMentorSchema = z
     is_available: z.boolean().optional(),
   })
   .passthrough();
+export const updateMentorSchema = z.object({
+  domains: domainsSchema.optional(),
+  bio: z.string().trim().max(2000).optional(),
+  experience: z.string().trim().max(100).optional(),
+  availability: z.string().trim().max(500).optional(),
+  is_available: z.boolean().optional(),
+}).passthrough();
 
 export const requestMentorshipSchema = z.object({
   mentor_id: z.number().int().positive('Mentor is required'),
@@ -68,3 +76,9 @@ export const mentorshipPaginationSchema = z
     q: z.string().optional(),
   })
   .passthrough();
+export const mentorshipPaginationSchema = z.object({
+  page: z.string().optional().transform(v => Math.max(1, parseInt(v, 10) || 1)),
+  limit: z.string().optional().transform(v => Math.min(100, Math.max(1, parseInt(v, 10) || 20))),
+  domain: z.string().optional(),
+  q: z.string().optional(),
+}).passthrough();

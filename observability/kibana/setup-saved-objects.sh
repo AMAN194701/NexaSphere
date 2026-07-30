@@ -21,6 +21,17 @@ curl -sf -X POST "${KIBANA_URL}/api/index_patterns/index_pattern" \
     }
   }' || echo "Index pattern may already exist."
 
+echo "Creating index pattern nexasphere-api-requests-*..."
+curl -sf -X POST "${KIBANA_URL}/api/index_patterns/index_pattern" \
+  -H 'kbn-xsrf: true' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "index_pattern": {
+      "title": "nexasphere-api-requests-*",
+      "timeFieldName": "@timestamp"
+    }
+  }' || echo "API request index pattern may already exist."
+
 echo "Creating saved search: errors by service..."
 curl -sf -X POST "${KIBANA_URL}/api/saved_objects/search/nexasphere-errors" \
   -H 'kbn-xsrf: true' \

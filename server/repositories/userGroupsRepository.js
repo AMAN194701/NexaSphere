@@ -71,6 +71,7 @@ export const userGroupsRepository = {
     return withDb(async (client) => {
       const { rows } = await client.query(
         `
+      const { rows } = await client.query(`
         SELECT s.id, s.email, s.full_name, m.joined_at
         FROM student_users s
         JOIN user_group_members m ON s.id = m.student_id
@@ -79,6 +80,7 @@ export const userGroupsRepository = {
       `,
         [groupId]
       );
+      `, [groupId]);
       return rows;
     });
   },
@@ -118,4 +120,7 @@ export const userGroupsRepository = {
       return rows.map((r) => r.group_id);
     });
   },
+      return rows.map(r => r.group_id);
+    });
+  }
 };

@@ -13,6 +13,9 @@ import { sendSuccess, sendError } from '../utils/responseHelper.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+import { eventsRepository } from '../repositories/eventsRepository.js';
+import { coreTeamService } from '../services/coreTeamService.js';
+import { activityEventsService } from '../services/activityEventsService.js';
 
 export const searchController = {
   async search(req, res) {
@@ -25,6 +28,7 @@ export const searchController = {
 
       if (!q || q.length < 2) {
         return sendSuccess(res, { results: [], total: 0, page, limit });
+        return res.json({ results: [], total: 0, page, limit });
       }
 
       const { isTypesenseEnabled, typesenseClient } = await import('../config/typesense.js');
@@ -143,6 +147,27 @@ export const searchController = {
         if (type === 'all' || type === 'events') {
           const events = await eventsRepository.list({ page: 1, limit: 100 });
           const matched = (events?.rows || []).map((ev) => ({
+      const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+
+      if (!q || q.length < 2) {
+        return res.json({ results: [], total: 0 });
+      }
+
+      const query = q.toLowerCase();
+      let results = [];
+
+      if (type === 'all' || type === 'events') {
+        const events = await eventsRepository.list({ page: 1, limit: 100 });
+        const matched = (events?.rows || [])
+          .filter(
+            (ev) =>
+              ev.name?.toLowerCase().includes(query) ||
+              ev.description?.toLowerCase().includes(query) ||
+              ev.shortName?.toLowerCase().includes(query) ||
+              ev.location?.toLowerCase().includes(query) ||
+              ev.tags?.some((t) => t.toLowerCase().includes(query))
+          )
+          .map((ev) => ({
             id: ev.id,
             type: 'event',
             title: ev.name || ev.shortName,
@@ -159,6 +184,20 @@ export const searchController = {
         if (type === 'all' || type === 'members') {
           const members = await coreTeamService.listMembers();
           const matched = (members || []).map((m) => ({
+        results = [...results, ...matched];
+      }
+
+      if (type === 'all' || type === 'members') {
+        const members = await coreTeamService.listMembers();
+        const matched = (members || [])
+          .filter(
+            (m) =>
+              m.name?.toLowerCase().includes(query) ||
+              m.role?.toLowerCase().includes(query) ||
+              m.bio?.toLowerCase().includes(query) ||
+              m.skills?.some((s) => s.toLowerCase().includes(query))
+          )
+          .map((m) => ({
             id: m.id,
             type: 'member',
             title: m.name,
@@ -173,6 +212,20 @@ export const searchController = {
         if (type === 'all' || type === 'activities') {
           const activities = await activityEventsService.listAllActivities();
           const matched = Object.entries(activities || {}).map(([key, a]) => ({
+        results = [...results, ...matched];
+      }
+
+      if (type === 'all' || type === 'activities') {
+        const activities = await activityEventsService.listAllActivities();
+        const matched = Object.entries(activities || {})
+          .filter(
+            ([key, a]) =>
+              key.toLowerCase().includes(query) ||
+              a.title?.toLowerCase().includes(query) ||
+              a.description?.toLowerCase().includes(query) ||
+              a.subtitle?.toLowerCase().includes(query)
+          )
+          .map(([key, a]) => ({
             id: key,
             type: 'activity',
             title: a.title || key,
@@ -346,9 +399,21 @@ export const searchController = {
       results = results.slice(0, limit);
 
       return sendSuccess(res, { results, total: allResultsCount, query: q });
+
+      return res.json({ results, total: trueTotal, page, limit, query: q });
     } catch (err) {
       console.error('Search error:', err);
       return sendError(req, res, 'Search failed', 500, 'INTERNAL_ERROR', { results: [], total: 0 });
+        results = [...results, ...matched];
+      }
+
+      const trueTotal = results.length;
+      results = results.slice(0, limit);
+
+      return res.json({ results, total: trueTotal, query: q });
+    } catch (err) {
+      console.error('Search error:', err);
+      return res.status(500).json({ error: 'Search failed', results: [], total: 0 });
     }
   },
 
@@ -387,6 +452,10 @@ export const searchController = {
         trending: [],
         popularSearches: [],
       });
+      return res.json({ trending: sorted });
+    } catch (err) {
+      console.error('Trending error:', err);
+      return res.status(500).json({ error: 'Failed to fetch trending', trending: [] });
     }
   },
 
@@ -450,6 +519,12 @@ export const searchController = {
       return sendError(req, res, 'Failed to fetch recommendations', 500, 'INTERNAL_ERROR', {
         recommendations: [],
       });
+      return res.json({ recommendations: recommended });
+    } catch (err) {
+      console.error('Recommendations error:', err);
+      return res
+        .status(500)
+        .json({ error: 'Failed to fetch recommendations', recommendations: [] });
     }
   },
 };

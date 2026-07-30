@@ -11,6 +11,7 @@ export function CopyButton({ text, label = 'Copy' }) {
         ''
       );
       await navigator.clipboard.writeText(sanitizedText);
+      await navigator.clipboard.writeText(text);
 
       setCopied(true);
 

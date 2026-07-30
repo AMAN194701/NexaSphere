@@ -51,6 +51,20 @@ async function renderTemplate(templateName, data) {
   if (typeof templateName !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(templateName)) {
     throw new Error('Invalid email template name');
   }
+
+  try {
+    const { emailTemplateRepository } = await import('../repositories/emailTemplateRepository.js');
+    const dbTemplate = await emailTemplateRepository.getByName(templateName);
+    if (dbTemplate && dbTemplate.body) {
+      return ejs.render(dbTemplate.body, data);
+    }
+  } catch (err) {
+    console.warn(
+      `[Email Service] Failed to load DB template ${templateName}, falling back to file`,
+      err.message
+    );
+  }
+
   const templatePath = path.join(__dirname, 'templates', `${templateName}.ejs`);
   const templateStr = await fs.readFile(templatePath, 'utf-8');
   return ejs.render(templateStr, data);
@@ -61,6 +75,24 @@ export async function renderTemplateHtml(templateName, data, customTemplateConte
 }
 
 export async function sendEmail({ to, subject, templateName, data, from = defaultFrom, customTemplateContent = null }) {
+export let sendEmailOverride = null;
+
+/**
+ * Send an email with HTML generated from a template.
+ */
+export async function sendEmail({ to, subject, templateName, data, from = defaultFrom }) {
+  if (sendEmailOverride) {
+    return await sendEmailOverride({ to, subject, templateName, data, from });
+  }
+export async function sendEmail({
+  to,
+  subject,
+  templateName,
+  data,
+  from = defaultFrom,
+  customTemplateContent = null,
+  attachments = [],
+}) {
   try {
     const html = await renderTemplate(templateName, data, customTemplateContent);
 
@@ -69,12 +101,18 @@ export async function sendEmail({ to, subject, templateName, data, from = defaul
       to,
       subject,
       html,
+      attachments,
     };
 
     if (!isProduction && (!process.env.SMTP_USER || !process.env.SMTP_PASS)) {
       console.log(`[Email Service - DEV] Would send email to: ${to}`);
       console.log(`[Email Service - DEV] Subject: ${subject}`);
       console.log(`[Email Service - DEV] Template: ${templateName}`);
+      if (attachments.length > 0) {
+        console.log(
+          `[Email Service - DEV] Attachments: ${attachments.map((attachment) => attachment.filename || 'attachment').join(', ')}`
+        );
+      }
       return { success: true, simulated: true };
     }
 
@@ -146,10 +184,91 @@ export async function sendWaitlistPromotionEmail(to, data) {
 }
 
 export async function sendEventReminderEmail(to, data) {
+  const timeText =
+    data.timeUntilEvent && data.timeUntilEvent !== 'soon' ? `in ${data.timeUntilEvent}` : 'soon';
   return sendEmail({
     to,
-    subject: `Reminder: ${data.eventName} is starting soon`,
+    subject: `Reminder: ${data.eventName} is starting ${timeText}`,
     templateName: 'event-reminder',
     data: { name: data.name, ...data },
   });
+}
+/**
+ * Send a Registration Confirmation Email
+ */
+export async function sendRegistrationConfirmationEmail(to, eventDetails) {
+  return sendEmail({
+    to,
+    subject: `Registration Confirmed: ${eventDetails.eventName}`,
+    templateName: 'rsvp-confirmation',
+    data: { 
+      name: eventDetails.name, 
+      eventName: eventDetails.eventName,
+      eventDate: eventDetails.eventDate,
+      eventLocation: eventDetails.eventLocation || 'NexaSphere HQ',
+      eventTime: eventDetails.eventTime,
+      eventUrl: eventDetails.eventUrl
+    },
+  });
+}
+
+/**
+ * Send a Waitlist Promotion Email
+ */
+export async function sendWaitlistPromotionEmail(to, eventDetails) {
+  return sendEmail({
+    to,
+    subject: `🎉 Promoted from Waitlist: ${eventDetails.eventName}`,
+    templateName: 'rsvp-confirmation',
+    data: { 
+      name: eventDetails.name, 
+      eventName: eventDetails.eventName,
+      eventDate: eventDetails.eventDate,
+      eventLocation: 'Promoted - Access Granted',
+      eventTime: eventDetails.eventTime,
+      eventUrl: eventDetails.eventLink
+    },
+  });
+}
+
+/**
+ * Send an Event Reminder Email
+ */
+export async function sendEventReminderEmail(to, eventDetails) {
+  return sendEmail({
+    to,
+    subject: `⏰ Reminder: ${eventDetails.eventName} is coming up!`,
+    templateName: 'rsvp-confirmation',
+    data: { 
+      name: eventDetails.name, 
+      eventName: eventDetails.eventName,
+      eventDate: eventDetails.eventDate,
+      eventLocation: eventDetails.eventLocation || 'NexaSphere HQ',
+      eventTime: eventDetails.eventTime,
+      eventUrl: eventDetails.eventLink
+    },
+  });
+}
+
+/**
+ * Send an Attendance Confirmation Email
+ */
+export async function sendAttendanceConfirmationEmail(to, eventDetails) {
+  return sendEmail({
+    to,
+    subject: `Attendance Marked: ${eventDetails.eventName}`,
+    templateName: 'rsvp-confirmation',
+    data: { 
+      name: eventDetails.name, 
+      eventName: eventDetails.eventName,
+      eventDate: eventDetails.eventDate,
+      eventLocation: `Earned ${eventDetails.points || 0} Points`,
+      eventTime: 'Completed',
+      eventUrl: '/'
+    },
+  });
+}
+
+export function setSendEmailOverride(fn) {
+  sendEmailOverride = fn;
 }

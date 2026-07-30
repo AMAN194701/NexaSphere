@@ -11,6 +11,13 @@ import {
 } from 'lucide-react';
 import glbajajLogo from '../../assets/images/logos/glbajaj-logo.png';
 import { sanitizeInput } from '../../utils/security';
+import { useEffect, useRef, useState } from "react";
+import glbajajLogo from "../../assets/images/logos/glbajaj-logo.png";
+import { Turnstile } from "@marsidev/react-turnstile";
+import "./ContactPage.css";
+import glbajajLogo from '../../assets/images/logos/glbajaj-logo.png';
+import { Turnstile } from '@marsidev/react-turnstile';
+import './ContactPage.css';
 
 /* ─────────────────────────────────────────────────────────
    NEXASPHERE — CONTACT PAGE
@@ -28,6 +35,17 @@ const WHATSAPP = 'https://chat.whatsapp.com/Jjc5cuUKENu0RC1vWSEs20';
 /* GL Bajaj Group of Institutions, Mathura coordinates */
 const MAP_EMBED =
   'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3548.9!2d77.6779!3d27.5706!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3973a5a9d0f5a4c5%3A0x9f5e2b8c1d2a3b4e!2sGL%20Bajaj%20Group%20of%20Institutions%2C%20Mathura!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin';
+const EMAIL = "nexasphere@glbajajgroup.org";
+const LINKEDIN = "https://www.linkedin.com/showcase/glbajaj-nexasphere/";
+const WHATSAPP = "https://chat.whatsapp.com/Jjc5cuUKENu0RC1vWSEs20";
+
+/* GL Bajaj Group of Institutions, Mathura coordinates */
+const MAP_EMBED =
+  "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3548.9!2d77.6779!3d27.5706!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3973a5a9d0f5a4c5%3A0x9f5e2b8c1d2a3b4e!2sGL%20Bajaj%20Group%20of%20Institutions%2C%20Mathura!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin";
+
+/* GL Bajaj Group of Institutions, Mathura coordinates */
+const MAP_EMBED =
+  'https://maps.google.com/maps?q=GL+Bajaj+Group+of+Institutions,+Mathura,+Uttar+Pradesh&t=&z=15&ie=UTF8&iwloc=&output=embed';
 
 /* ── Particle burst on hover ── */
 function useBurst(ref) {
@@ -67,12 +85,17 @@ function ContactCard({ icon, label, value, href, delay = 0, color }) {
 
   return (
     <a
+      aria-label="Interactive element"
       ref={ref}
       href={href}
       target={href.startsWith('mailto') ? '_self' : '_blank'}
       rel="noopener noreferrer"
       className="contact-card pop-flip shimmer"
-      style={{ animationDelay: `${delay}s`, textDecoration: 'none', display: 'block' }}
+      style={{
+        animationDelay: `${delay}s`,
+        textDecoration: 'none',
+        display: 'block',
+      }}
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
     >
@@ -81,6 +104,13 @@ function ContactCard({ icon, label, value, href, delay = 0, color }) {
       <div
         style={{
           position: 'absolute',
+          inset: 0,
+          borderRadius: 'inherit',
+          background: `radial-gradient(ellipse at 50% 0%, ${color}18 0%, transparent 60%)`,
+          opacity: hov ? 1 : 0,
+          transition: 'opacity .3s',
+          pointerEvents: 'none',
+          position: "absolute",
           inset: 0,
           borderRadius: 'inherit',
           background: `radial-gradient(ellipse at 50% 0%, ${color}18 0%, transparent 60%)`,
@@ -108,6 +138,17 @@ function ContactCard({ icon, label, value, href, delay = 0, color }) {
           boxShadow: hov ? `0 0 24px ${color}40` : 'none',
           transition: 'box-shadow .3s, transform .3s cubic-bezier(.34,1.56,.64,1)',
           transform: hov ? 'scale(1.15) rotate(8deg)' : 'scale(1)',
+          borderRadius: "50%",
+          margin: "0 auto 20px",
+          background: `${color}15`,
+          border: `2px solid ${color}40`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '1.75rem',
+          boxShadow: hov ? `0 0 24px ${color}40` : 'none',
+          transition: 'box-shadow .3s, transform .3s cubic-bezier(.34,1.56,.64,1)',
+          transform: hov ? 'scale(1.15) rotate(8deg)' : 'scale(1)',
         }}
       >
         {icon}
@@ -117,6 +158,14 @@ function ContactCard({ icon, label, value, href, delay = 0, color }) {
         style={{
           fontFamily: 'Orbitron,monospace',
           fontSize: '.72rem',
+          fontWeight: 700,
+          color: color,
+          letterSpacing: '.12em',
+          textTransform: 'uppercase',
+          marginBottom: 8,
+          textAlign: 'center',
+          fontFamily: "Orbitron,monospace",
+          fontSize: ".72rem",
           fontWeight: 700,
           color: color,
           letterSpacing: '.12em',
@@ -136,6 +185,12 @@ function ContactCard({ icon, label, value, href, delay = 0, color }) {
           textAlign: 'center',
           lineHeight: 1.45,
           wordBreak: 'break-all',
+          color: "var(--t1)",
+          fontSize: ".9rem",
+          fontWeight: 600,
+          textAlign: 'center',
+          lineHeight: 1.45,
+          wordBreak: 'break-all',
         }}
       >
         {value}
@@ -146,6 +201,21 @@ function ContactCard({ icon, label, value, href, delay = 0, color }) {
           marginTop: 14,
           textAlign: 'center',
           fontSize: '.72rem',
+          color: color,
+          letterSpacing: '.08em',
+          opacity: hov ? 1 : 0.55,
+          transition: 'opacity .2s',
+          fontWeight: 700,
+          textTransform: 'uppercase',
+        }}
+      >
+        {href.startsWith('mailto')
+          ? 'Send Email →'
+          : href.includes('linkedin')
+            ? 'Open LinkedIn →'
+            : 'Join Chat →'}
+          textAlign: "center",
+          fontSize: ".72rem",
           color: color,
           letterSpacing: '.08em',
           opacity: hov ? 1 : 0.55,
@@ -212,12 +282,46 @@ function MapSection() {
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
+    <div
+      ref={ref}
+      className="pop-in map-wrapper"
+      style={{ maxWidth: 900, margin: "0 auto" }}
+    >
+      <div style={{ textAlign: "center", marginBottom: 28 }}>
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            fontFamily: 'Space Mono,monospace',
+            fontSize: '.65rem',
+            color: 'var(--t3)',
+            letterSpacing: '.28em',
+            textTransform: 'uppercase',
+          }}
+        >
+          📍 FIND US
+        </span>
+        <h3
+          style={{
+            fontFamily: 'Orbitron,monospace',
+            fontSize: 'clamp(1.1rem,3vw,1.6rem)',
+            fontWeight: 700,
+            marginTop: 8,
+            marginBottom: 6,
+            background: 'linear-gradient(135deg,var(--c1),var(--c2))',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
           }}
         >
           GL Bajaj Group of Institutions
         </h3>
         <p style={{ color: 'var(--t2)', fontSize: '.9rem' }}>
           Mathura – Delhi Highway (NH-2), Near Crossing Republic, Mathura, UP 281406
+        <p style={{ color: "var(--t2)", fontSize: ".9rem" }}>
+          Mathura – Delhi Highway (NH-2), Near Crossing Republic, Mathura, UP
+          281406
         </p>
       </div>
 
@@ -230,6 +334,13 @@ function MapSection() {
           boxShadow: 'var(--sh1)',
           aspectRatio: '16/7',
           background: 'var(--card)',
+          position: "relative",
+          borderRadius: "var(--r3)",
+          overflow: "hidden",
+          border: "1px solid var(--bdr2)",
+          boxShadow: "var(--sh1)",
+          aspectRatio: "16/7",
+          background: "var(--card)",
         }}
       >
         <div className="corner-tl" style={{ width: 20, height: 20 }} />
@@ -239,6 +350,15 @@ function MapSection() {
           <div
             style={{
               position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 12,
+              zIndex: 2,
+              background: 'var(--card)',
+              position: "absolute",
               inset: 0,
               display: 'flex',
               flexDirection: 'column',
@@ -264,6 +384,20 @@ function MapSection() {
                 fontSize: '.6rem',
                 color: 'var(--t3)',
                 letterSpacing: '.2em',
+                fontSize: "2rem",
+                animation: "float 2s ease-in-out infinite",
+                fontSize: '2rem',
+                animation: 'float 2s ease-in-out infinite',
+              }}
+            >
+              📍
+            </div>
+            <div
+              style={{
+                fontFamily: 'Space Mono,monospace',
+                fontSize: '.6rem',
+                color: 'var(--t3)',
+                letterSpacing: '.2em',
               }}
             >
               LOADING MAP...
@@ -276,11 +410,21 @@ function MapSection() {
                 background: 'var(--bdr)',
                 overflow: 'hidden',
                 position: 'relative',
+                background: "var(--bdr)",
+                overflow: "hidden",
+                position: "relative",
               }}
             >
               <div
                 style={{
                   position: 'absolute',
+                  left: 0,
+                  top: 0,
+                  height: '100%',
+                  width: '60%',
+                  background: 'linear-gradient(90deg,var(--c1),var(--c2))',
+                  animation: 'shimmerBar 1.2s ease-in-out infinite',
+                  position: "absolute",
                   left: 0,
                   top: 0,
                   height: '100%',
@@ -302,6 +446,8 @@ function MapSection() {
               border: 0,
               display: 'block',
               filter: 'saturate(.9) contrast(1.05)',
+              display: "block",
+              filter: "saturate(.9) contrast(1.05)",
               opacity: loaded ? 1 : 0,
               transition: 'opacity .5s ease',
             }}
@@ -321,17 +467,27 @@ function MapSection() {
             background:
               'linear-gradient(180deg,rgba(0,212,255,.03) 0%,transparent 30%,transparent 70%,rgba(123,111,255,.03) 100%)',
             mixBlendMode: 'screen',
+            position: "absolute",
+            inset: 0,
+            pointerEvents: 'none',
+            background:
+              'linear-gradient(180deg,rgba(0,212,255,.03) 0%,transparent 30%,transparent 70%,rgba(123,111,255,.03) 100%)',
+            mixBlendMode: 'screen',
           }}
         />
       </div>
 
       <div style={{ textAlign: 'center', marginTop: 16 }}>
+      <div style={{ textAlign: "center", marginTop: 16 }}>
         <a
+          aria-label="Interactive element"
           href="https://maps.google.com/?q=GL+Bajaj+Group+of+Institutions+Mathura"
           target="_blank"
           rel="noopener noreferrer"
           className="btn btn-outline btn-sm"
           style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}
+          style={{ display: "inline-flex" }}
+          style={{ display: 'inline-flex' }}
         >
           <Map size={14} aria-hidden="true" /> Open in Google Maps
         </a>
@@ -344,6 +500,8 @@ function MapSection() {
 function MessageCTA() {
   const [name, setName] = useState('');
   const [message, setMessage] = useState('');
+  const [name, setName] = useState("");
+  const [message, setMessage] = useState("");
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -384,11 +542,36 @@ function MessageCTA() {
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
+  const subject = encodeURIComponent(
+    `Hi NexaSphere${name ? ` — ${name}` : ""}`
+  );
+  const body = encodeURIComponent(
+    `Hello NexaSphere Team,\n\n${message || '[Your message here]'}\n\nBest,\n${name || 'Your Name'}`
+  );
+
+  return (
+    <div className="pop-scale message-cta-box" style={{ maxWidth: 600, margin: '0 auto' }}>
+      <div className="corner-tl" />
+      <div className="corner-br" />
+
+      <div style={{ textAlign: 'center', marginBottom: 28 }}>
+        <div style={{ fontSize: '2.2rem', marginBottom: 12 }}>✉️</div>
+        <h3
+          style={{
+            fontFamily: 'Orbitron,monospace',
+            fontSize: 'clamp(1rem,2.5vw,1.3rem)',
+            fontWeight: 700,
+            marginBottom: 8,
+            background: 'linear-gradient(135deg,var(--c1),var(--c2))',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
           }}
         >
           Drop Us a Message
         </h3>
         <p style={{ color: 'var(--t2)', fontSize: '.88rem', lineHeight: 1.6 }}>
+        <p style={{ color: "var(--t2)", fontSize: ".88rem", lineHeight: 1.6 }}>
           For collaborations, queries, or just to say hi —<br />
           we respond to every message.
         </p>
@@ -399,6 +582,7 @@ function MessageCTA() {
         <input
           value={name}
           onChange={(e) => setName(sanitizeInput(e.target.value))}
+          onChange={(e) => setName(e.target.value)}
           placeholder="Your name (optional)"
           aria-label="Your name"
           style={{
@@ -420,6 +604,24 @@ function MessageCTA() {
           onBlur={(e) => {
             e.target.style.borderColor = 'var(--bdr2)';
             e.target.style.boxShadow = 'none';
+            width: "100%",
+            padding: "12px 16px",
+            background: "var(--card2)",
+            border: "1px solid var(--bdr2)",
+            borderRadius: "var(--r2)",
+            color: "var(--t1)",
+            fontFamily: "Rajdhani,sans-serif",
+            fontSize: ".95rem",
+            outline: "none",
+            boxSizing: "border-box",
+          }}
+          onFocus={(e) => {
+            e.target.style.borderColor = 'var(--c1b)';
+            e.target.style.boxShadow = 'var(--sh1)';
+          }}
+          onBlur={(e) => {
+            e.target.style.borderColor = 'var(--bdr2)';
+            e.target.style.boxShadow = 'none';
           }}
         />
       </div>
@@ -429,6 +631,7 @@ function MessageCTA() {
         <textarea
           value={message}
           onChange={(e) => setMessage(sanitizeInput(e.target.value))}
+          onChange={(e) => setMessage(e.target.value)}
           placeholder="Your message — what would you like to tell us?"
           aria-label="Your message"
           rows={5}
@@ -452,20 +655,50 @@ function MessageCTA() {
           onBlur={(e) => {
             e.target.style.borderColor = 'var(--bdr2)';
             e.target.style.boxShadow = 'none';
+            width: "100%",
+            padding: "12px 16px",
+            background: "var(--card2)",
+            border: "1px solid var(--bdr2)",
+            borderRadius: "var(--r2)",
+            color: "var(--t1)",
+            fontFamily: "Rajdhani,sans-serif",
+            fontSize: ".95rem",
+            outline: "none",
+            resize: "vertical",
+            boxSizing: "border-box",
+          }}
+          onFocus={(e) => {
+            e.target.style.borderColor = 'var(--c1b)';
+            e.target.style.boxShadow = 'var(--sh1)';
+          }}
+          onBlur={(e) => {
+            e.target.style.borderColor = 'var(--bdr2)';
+            e.target.style.boxShadow = 'none';
           }}
         />
       </div>
 
       {/* Action buttons */}
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+      <div
+        style={{
+          display: 'flex',
+          gap: 10,
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+        }}
+      >
         <a
+          aria-label="Interactive element"
           href={`mailto:${EMAIL}?subject=${subject}&body=${body}`}
           className="btn btn-primary btn-ripple"
           style={{ flex: 1, minWidth: 0, justifyContent: 'center', gap: 6 }}
+          style={{ flex: 1, minWidth: 0, justifyContent: "center" }}
+          style={{ flex: 1, minWidth: 0, justifyContent: 'center' }}
         >
           <Mail size={14} aria-hidden="true" /> Open Email App
         </a>
         <button
+          aria-label="Interactive element"
           className="btn btn-outline btn-ripple"
           onClick={handleCopy}
           style={{ flex: 1, minWidth: 0, justifyContent: 'center', gap: 6 }}
@@ -479,12 +712,22 @@ function MessageCTA() {
               <Clipboard size={14} aria-hidden="true" /> Copy Email
             </>
           )}
+          style={{ flex: 1, minWidth: 0, justifyContent: "center" }}
+          style={{ flex: 1, minWidth: 0, justifyContent: 'center' }}
+        >
+          {copied ? '✅ Copied!' : '📋 Copy Email'}
         </button>
       </div>
 
       <p
         style={{
           textAlign: 'center',
+          marginTop: 14,
+          fontFamily: 'Space Mono,monospace',
+          fontSize: '.6rem',
+          color: 'var(--t3)',
+          letterSpacing: '.15em',
+          textAlign: "center",
           marginTop: 14,
           fontFamily: 'Space Mono,monospace',
           fontSize: '.6rem',
@@ -500,17 +743,24 @@ function MessageCTA() {
 
 /* ══════════════════ MAIN EXPORT ══════════════════ */
 export default function ContactPage({ onBack }) {
+  const [captchaToken, setCaptchaToken] = useState('');
   useEffect(() => {
     const obs = new IntersectionObserver(
       (entries) => {
         entries.forEach((e) => {
           if (e.isIntersecting) {
             e.target.classList.add('fired');
+            e.target.classList.add("fired");
             obs.unobserve(e.target);
           }
         });
       },
       { threshold: 0.1, rootMargin: '0px 0px -30px 0px' }
+    );
+    document
+      .querySelectorAll(
+        '#pg-contact .pop-flip, #pg-contact .pop-in, #pg-contact .pop-word, #pg-contact .pop-scale'
+      { threshold: 0.1, rootMargin: "0px 0px -30px 0px" }
     );
     document
       .querySelectorAll(
@@ -598,6 +848,7 @@ export default function ContactPage({ onBack }) {
         <div className="contact-hero-bg" />
         {onBack && (
           <button
+            aria-label="Interactive element"
             onClick={onBack}
             className="btn btn-outline btn-sm"
             style={{ position: 'absolute', top: 24, left: 24 }}
@@ -631,6 +882,25 @@ export default function ContactPage({ onBack }) {
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            color: "var(--t2)",
+            fontSize: "clamp(.9rem,2vw,1.08rem)",
+            maxWidth: 540,
+            margin: '0 auto',
+            lineHeight: 1.7,
+            animationDelay: '.12s',
+          }}
+        >
+          We&apos;re a student-run community — always happy to connect, collaborate, and answer
+          questions.
+        </p>
+        <div className="contact-divider" style={{ marginTop: 40, maxWidth: 600 }} />
+      </div>
+
+      <div className="container" style={{ paddingBottom: 48 }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
             gap: 18,
             marginBottom: 72,
           }}
@@ -638,6 +908,7 @@ export default function ContactPage({ onBack }) {
         >
           <ContactCard
             icon={<Mail size={28} color="var(--c1)" aria-hidden="true" />}
+            icon="📧"
             label="Email"
             delay={0}
             value={EMAIL}
@@ -646,6 +917,7 @@ export default function ContactPage({ onBack }) {
           />
           <ContactCard
             icon={<ExternalLink size={28} color="var(--c2)" aria-hidden="true" />}
+            icon="🔗"
             label="LinkedIn"
             delay={0.08}
             value="NexaSphere · GL Bajaj"
@@ -654,6 +926,7 @@ export default function ContactPage({ onBack }) {
           />
           <ContactCard
             icon={<MessageCircle size={28} color="var(--c5)" aria-hidden="true" />}
+            icon="💬"
             label="WhatsApp Community"
             delay={0.16}
             value="Join our active community group"
@@ -667,6 +940,10 @@ export default function ContactPage({ onBack }) {
         </div>
 
         <div className="contact-divider" style={{ maxWidth: 400, margin: '0 auto 64px' }} />
+        <div
+          className="contact-divider"
+          style={{ maxWidth: 400, margin: "0 auto 64px" }}
+        />
 
         <MessageCTA />
 
@@ -674,6 +951,15 @@ export default function ContactPage({ onBack }) {
           className="pop-in"
           style={{
             textAlign: 'center',
+            marginTop: 56,
+            padding: '24px',
+            maxWidth: 520,
+            margin: '56px auto 0',
+            background: 'var(--card)',
+            border: '1px solid var(--bdr)',
+            borderRadius: 'var(--r3)',
+            position: 'relative',
+            textAlign: "center",
             marginTop: 56,
             padding: '24px',
             maxWidth: 520,
@@ -694,6 +980,12 @@ export default function ContactPage({ onBack }) {
               margin: '0 auto 12px',
               background: 'rgba(255,255,255,.88)',
               padding: '3px 8px',
+            loading="lazy"
+            style={{
+              height: 38,
+              margin: '0 auto 12px',
+              background: 'rgba(255,255,255,.88)',
+              padding: '3px 8px',
               borderRadius: 6,
             }}
           />
@@ -705,12 +997,21 @@ export default function ContactPage({ onBack }) {
               fontWeight: 700,
               letterSpacing: '.1em',
               textTransform: 'uppercase',
+              fontFamily: "Orbitron,monospace",
+              fontSize: ".72rem",
+              color: "var(--c1)",
+              fontWeight: 700,
+              letterSpacing: '.1em',
+              textTransform: 'uppercase',
               marginBottom: 6,
             }}
           >
             GL Bajaj Group of Institutions
           </div>
           <p style={{ color: 'var(--t2)', fontSize: '.83rem', lineHeight: 1.65 }}>
+          <p
+            style={{ color: "var(--t2)", fontSize: ".83rem", lineHeight: 1.65 }}
+          >
             Mathura – Delhi Highway (NH-2),
             <br />
             Near Crossing Republic, Mathura,
@@ -718,11 +1019,17 @@ export default function ContactPage({ onBack }) {
             Uttar Pradesh — 281406
           </p>
           <a
+            aria-label="Interactive element"
             href="tel:+915652400400"
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: 6,
+              marginTop: 10,
+              color: 'var(--c1)',
+              fontSize: '.85rem',
+              display: "block",
+              display: 'block',
               marginTop: 10,
               color: 'var(--c1)',
               fontSize: '.85rem',

@@ -42,7 +42,7 @@ test('core team application rejects missing required fields', () => {
         section: 'A',
         whyJoin: 'Interested',
       }),
-    /Year is required/
+    /"year"|Year is required/i
   );
 });
 

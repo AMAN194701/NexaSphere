@@ -1,4 +1,4 @@
-import { promises as fs } from 'fs';
+﻿import { promises as fs } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { withDb } from './db.js';
@@ -28,6 +28,9 @@ async function writeLocalSlackSettings(data) {
   await ensureLocalFile();
   await fs.writeFile(SLACK_STUDENTS_FILE, JSON.stringify(data, null, 2), 'utf8');
 }
+
+import { withDb } from './db.js';
+import { HAS_SUPABASE } from '../storage/supabaseClient.js';
 
 export const studentUsersRepository = {
   async ensureSchema() {
@@ -73,6 +76,7 @@ export const studentUsersRepository = {
       `);
       await client.query(`
         CREATE INDEX IF NOT EXISTS idx_xp_transactions_user_id ON xp_transactions(student_user_id)
+        ALTER TABLE student_users ADD COLUMN IF NOT EXISTS phone_number VARCHAR(20) DEFAULT NULL;
       `);
     });
   },
@@ -99,9 +103,20 @@ export const studentUsersRepository = {
         slack_dm_reminders: settings.slackDmReminders || false,
       };
     }
+    if (!HAS_SUPABASE) return null;
     return withDb(async (client) => {
       const { rows } = await client.query('SELECT * FROM student_users WHERE email = $1 LIMIT 1', [
         email,
+      ]);
+      return rows[0] || null;
+    });
+  },
+
+  async findById(id) {
+    if (!HAS_SUPABASE) return null;
+    return withDb(async (client) => {
+      const { rows } = await client.query('SELECT * FROM student_users WHERE id = $1 LIMIT 1', [
+        id,
       ]);
       return rows[0] || null;
     });
@@ -138,6 +153,18 @@ export const studentUsersRepository = {
         }
       }
 
+      const { rows } = await client.query(
+        `INSERT INTO student_users (provider, provider_id, email, full_name, avatar_url, last_login_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+         ON CONFLICT (provider, provider_id) DO UPDATE SET
+           email = EXCLUDED.email,
+           full_name = COALESCE(NULLIF(EXCLUDED.full_name, ''), student_users.full_name),
+           avatar_url = COALESCE(NULLIF(EXCLUDED.avatar_url, ''), student_users.avatar_url),
+           last_login_at = NOW(),
+           updated_at = NOW()
+         RETURNING *`,
+        [provider, providerId, email, fullName || null, avatarUrl || null]
+      );
       return rows[0];
     });
   },
@@ -204,19 +231,18 @@ export const studentUsersRepository = {
         'SELECT xp, level, badges FROM student_users WHERE id = $1',
         [userId]
       );
+      const userRes = await client.query('SELECT xp, level, badges FROM student_users WHERE id = $1', [userId]);
       if (userRes.rows.length === 0) return null;
 
       const currentXP = userRes.rows[0].xp || 0;
       const newXP = currentXP + amount;
 
-      // Calculate level: Level 1 (0 XP), Level 2 (500 XP), Level 3 (1500 XP), Level 4 (4000 XP), Level 5 (10000 XP)
       let newLevel = 1;
       if (newXP >= 10000) newLevel = 5;
       else if (newXP >= 4000) newLevel = 4;
       else if (newXP >= 1500) newLevel = 3;
       else if (newXP >= 500) newLevel = 2;
 
-      // Award matching badges automatically based on Level milestones
       let badges = Array.isArray(userRes.rows[0].badges) ? userRes.rows[0].badges : [];
       if (newLevel >= 2 && !badges.includes('explorer')) badges.push('explorer');
       if (newLevel >= 3 && !badges.includes('contributor')) badges.push('contributor');
@@ -230,9 +256,9 @@ export const studentUsersRepository = {
       );
 
       const { rows } = await client.query(
-        `UPDATE student_users 
-         SET xp = $1, level = $2, badges = $3::jsonb, updated_at = NOW() 
-         WHERE id = $4 
+        `UPDATE student_users
+         SET xp = $1, level = $2, badges = $3::jsonb, updated_at = NOW()
+         WHERE id = $4
          RETURNING *`,
         [newXP, newLevel, JSON.stringify(badges), userId]
       );
@@ -257,10 +283,9 @@ export const studentUsersRepository = {
   async getLeaderboard(filter = 'all') {
     if (!HAS_SUPABASE) return [];
     return withDb(async (client) => {
-      // Support sorting contributors by XP score. Filtering could optionally scope to weekly/monthly metrics
       const { rows } = await client.query(
         `SELECT id, full_name as name, email, avatar_url, xp, level, badges
-         FROM student_users 
+         FROM student_users
          ORDER BY xp DESC, level DESC
          LIMIT 50`
       );
@@ -310,6 +335,48 @@ export const studentUsersRepository = {
         const { rows } = await client.query('SELECT * FROM student_users WHERE id = $1 LIMIT 1', [
           id,
         ]);
+        return rows[0] || null;
+      }
+
+      setClauses.push(`updated_at = NOW()`);
+      values.push(id);
+
+      const { rows } = await client.query(
+        `UPDATE student_users SET ${setClauses.join(', ')} WHERE id = $${idx} RETURNING *`,
+        values
+      );
+      return rows[0] || null;
+    });
+  },
+
+  async updateProfile(id, updates) {
+    if (!HAS_SUPABASE) return null;
+    return withDb(async (client) => {
+      const setClauses = [];
+      const values = [];
+      let idx = 1;
+
+      if (updates.full_name !== undefined) {
+        setClauses.push(`full_name = $${idx++}`);
+        values.push(updates.full_name);
+      }
+      if (updates.bio !== undefined) {
+        setClauses.push(`bio = $${idx++}`);
+        values.push(updates.bio);
+      }
+      if (updates.social_links !== undefined) {
+        setClauses.push(`social_links = $${idx++}::jsonb`);
+        values.push(
+          typeof updates.social_links === 'string'
+            ? updates.social_links
+            : JSON.stringify(updates.social_links)
+        );
+      }
+
+      if (setClauses.length === 0) {
+        const { rows } = await client.query(
+          'SELECT * FROM student_users WHERE id = $1 LIMIT 1', [id]
+        );
         return rows[0] || null;
       }
 

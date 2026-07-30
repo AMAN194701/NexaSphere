@@ -1,10 +1,10 @@
-/**
- * Sentry Configuration for Backend
- * Enterprise error tracking and monitoring
- */
+import Sentry from '@sentry/node';
+import { nodeProfilingIntegration } from '@sentry/profiling-node';
 
 import * as Sentry from '@sentry/node';
 import { getLogContext } from './logContext.js';
+
+let nodeProfilingIntegration = null;
 
 let nodeProfilingIntegration = null;
 
@@ -17,6 +17,11 @@ async function initializeSentry(app) {
   const dsn = process.env.SENTRY_DSN;
 
   if ((!dsn || dsn.trim() === '') && !isDevelopment) {
+function initializeSentry(app) {
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const dsn = process.env.SENTRY_DSN;
+
+  if (!dsn && !isDevelopment) {
     console.warn('Sentry DSN not configured. Error tracking disabled.');
     return;
   }
@@ -35,6 +40,16 @@ async function initializeSentry(app) {
     dsn: dsn,
     environment: process.env.NODE_ENV || 'development',
     integrations: [...(nodeProfilingIntegration ? [nodeProfilingIntegration()] : [])],
+    integrations: [
+      new Sentry.Integrations.Http({ tracing: true }),
+      new Sentry.Integrations.Express({
+        app: true,
+        request: true,
+        serverName: true,
+      }),
+      nodeProfilingIntegration(),
+      ...(nodeProfilingIntegration ? [nodeProfilingIntegration()] : []),
+    ],
     tracesSampleRate: isDevelopment ? 1.0 : 0.1,
     profilesSampleRate: isDevelopment ? 1.0 : 0.1,
     attachStacktrace: true,
@@ -62,7 +77,7 @@ async function initializeSentry(app) {
     // Graceful fallback if os import fails
   }
 
-  Sentry.addGlobalEventProcessor((event) => {
+  Sentry.addEventProcessor((event) => {
     const ctx = getLogContext();
     event.tags = event.tags || {};
     if (ctx.reqId) event.tags.reqId = ctx.reqId;
@@ -70,20 +85,22 @@ async function initializeSentry(app) {
     if (ctx.service) event.tags.service = ctx.service;
     return event;
   });
+  app.use(Sentry.Handlers.requestHandler());
+  app.use(Sentry.Handlers.tracingHandler());
+
+  return Sentry;
+};
 
   return Sentry;
 }
 
-/**
- * Add Sentry error handler middleware
- * @param {Object} app - Express app instance
- */
 function addSentryErrorHandler(app) {
   if (typeof Sentry.setupExpressErrorHandler === 'function') {
     Sentry.setupExpressErrorHandler(app);
   } else if (Sentry.Handlers && typeof Sentry.Handlers.errorHandler === 'function') {
     app.use(Sentry.Handlers.errorHandler());
   }
+  Sentry.setupExpressErrorHandler(app);
 }
 
 /**
@@ -92,6 +109,9 @@ function addSentryErrorHandler(app) {
  * @param {Object} context - Additional context
  * @param {string} level - Error level (fatal, error, warning, info)
  */
+  app.use(Sentry.Handlers.errorHandler());
+}
+
 function captureException(error, context = {}, level = 'error') {
   Sentry.captureException(error, {
     level,
@@ -119,10 +139,6 @@ function captureMessage(message, level = 'info', context = {}) {
   });
 }
 
-/**
- * Add breadcrumb for tracking
- * @param {Object} data - Breadcrumb data
- */
 function addBreadcrumb(data) {
   Sentry.addBreadcrumb({
     category: data.category || 'custom',
@@ -145,6 +161,9 @@ function registerSentryShutdown(timeout = 2000) {
       console.log(`[Sentry] Received ${signal}. Flushing pending events...`);
 
       try {
+      
+      try {
+        // close() flushes queued events and disables the SDK from accepting new events
         const cleanClose = await Sentry.close(timeout);
         if (cleanClose) {
           console.log('[Sentry] Successfully flushed buffered telemetry and closed.');

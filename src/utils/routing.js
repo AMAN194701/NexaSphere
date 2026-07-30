@@ -6,6 +6,7 @@ function titleCase(str) {
     .split(' ')
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
     .join(' ');
+  return str.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
 }
 
 export function stateToUrl(page) {
@@ -38,6 +39,10 @@ export function urlToState(path) {
   if (part1 === 'activities' && part2) {
     const slug = decodeURIComponent(part2).replace(/-/g, ' ');
     const key = Object.keys(activityPages).find((k) => k.toLowerCase() === slug) || titleCase(slug);
+  
+  if (part1 === 'activities' && part2) {
+    const slug = decodeURIComponent(part2).replace(/-/g, ' ');
+    const key = Object.keys(activityPages).find(k => k.toLowerCase() === slug) || titleCase(slug);
     return { page: { type: 'activity', activityKey: key }, activeTab: 'Activities' };
   }
 
@@ -45,6 +50,7 @@ export function urlToState(path) {
     const id = decodeURIComponent(part2);
     // Find event in fallbackEvents
     let ev = fallbackEvents.find((e) => e.id === id);
+    let ev = fallbackEvents.find(e => e.id === id);
     let activityKey = ev?.activityKey || 'Insight Session';
 
     // If not found, search in activityPages
@@ -52,6 +58,7 @@ export function urlToState(path) {
       for (const [key, activity] of Object.entries(activityPages)) {
         if (activity.conductedEvents) {
           const e = activity.conductedEvents.find((e) => e.id === id);
+          const e = activity.conductedEvents.find(e => e.id === id);
           if (e) {
             ev = e;
             activityKey = key;
@@ -60,6 +67,7 @@ export function urlToState(path) {
         }
         if (activity.upcomingEvents) {
           const e = activity.upcomingEvents.find((e) => e.id === id);
+          const e = activity.upcomingEvents.find(e => e.id === id);
           if (e) {
             ev = e;
             activityKey = key;

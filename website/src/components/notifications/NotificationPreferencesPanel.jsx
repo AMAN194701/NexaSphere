@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import prefsService from '../../services/notifications/preferences';
+import apiClient from '../../utils/apiClient';
+import { useStudentAuth } from '../../context/StudentAuthContext';
 
 const CATEGORIES = [
   { key: 'event_reminders', label: 'Event Reminders', desc: 'Reminders for your events' },
@@ -41,6 +43,7 @@ export default function NotificationPreferencesPanel({ userId, onClose }) {
     (async () => {
       try {
         const list = await prefsService.fetchPreferences(userId);
+        const data = await apiClient(`/api/notifications/preferences?userId=${effectiveUserId}`);
         const map = {};
         for (const p of list || []) {
           map[p.category] = {
@@ -57,6 +60,36 @@ export default function NotificationPreferencesPanel({ userId, onClose }) {
               quiet_end: p.quiet_end || g.quiet_end,
             }));
           }
+import apiClient from '../../utils/apiClient';
+
+const CATEGORIES = [
+  { key: 'events', label: 'Event Updates', desc: 'New events, registration openings' },
+  { key: 'team', label: 'Team Invitations', desc: 'Core team & club invitations' },
+  { key: 'activities', label: 'Activity Updates', desc: 'Club activity announcements' },
+  { key: 'announcements', label: 'Admin Announcements', desc: 'Platform-wide announcements' },
+  { key: 'deadlines', label: 'Deadline Reminders', desc: 'Registration closing reminders' },
+  { key: 'attendance', label: 'Attendance & Points', desc: 'Attendance confirmations & points' },
+  { key: 'promotions', label: 'Waitlist & Promotions', desc: 'Waitlist promotion updates' },
+];
+
+const CHANNELS = [
+  { key: 'in_app', label: 'In-App', desc: 'Bell icon notifications' },
+  { key: 'push', label: 'Push', desc: 'Browser push notifications' },
+  { key: 'email', label: 'Email', desc: 'Email notifications' },
+];
+
+export default function NotificationPreferencesPanel({ userId = 'global', onClose }) {
+  const [prefs, setPrefs] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await apiClient(`/api/notifications/preferences?userId=${userId}`);
+        const map = {};
+        for (const p of data.preferences || []) {
+          map[p.category] = { email: p.email, push: p.push, in_app: p.in_app };
         }
         setPrefs(map);
       } catch {
@@ -74,6 +107,11 @@ export default function NotificationPreferencesPanel({ userId, onClose }) {
         sms: true,
         frequency: 'immediate',
       };
+  }, [userId]);
+
+  const toggle = useCallback((category, channel) => {
+    setPrefs((prev) => {
+      const current = prev[category] || { email: true, push: true, in_app: true };
       return { ...prev, [category]: { ...current, [channel]: !current[channel] } };
     });
   }, []);
@@ -103,12 +141,27 @@ export default function NotificationPreferencesPanel({ userId, onClose }) {
         dnd: !!global.dnd,
         quiet_start: global.quiet_start,
         quiet_end: global.quiet_end,
+      await apiClient('/api/notifications/preferences/bulk', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: effectiveUserId, preferences: bulk }),
       });
     } catch (e) {
       // ignore
     }
     setSaving(false);
   }, [prefs, userId, global]);
+  }, [prefs, effectiveUserId]);
+      await apiClient('/api/notifications/preferences/bulk', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, preferences: bulk }),
+      });
+    } catch {
+      // ignore
+    }
+    setSaving(false);
+  }, [prefs, userId]);
 
   if (!loaded)
     return (
@@ -190,6 +243,7 @@ export default function NotificationPreferencesPanel({ userId, onClose }) {
               sms: true,
               frequency: 'immediate',
             };
+            const channels = prefs[cat.key] || { email: true, push: true, in_app: true };
             return (
               <tr key={cat.key} style={{ borderBottom: '1px solid var(--border)' }}>
                 <td style={{ padding: '0.85rem 0.5rem' }}>

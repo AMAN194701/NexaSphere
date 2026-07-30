@@ -58,6 +58,7 @@ export const forumService = {
 
   async getReply(id) {
     return forumRepository.getReplyById(id);
+    return forumRepository.createReply(threadId, input);
   },
 
   async updateReply(id, content) {

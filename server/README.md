@@ -31,7 +31,7 @@ The `server/` directory contains the **Node.js / Express** backend API that powe
 - **Auth:** Firebase Admin SDK (token verification)
 - **Real-Time:** Socket.io 4
 - **Validation:** Zod schemas
-- **API Docs:** Swagger UI at `/api-docs` · ReDoc at `/redoc`
+- **API Docs:** Swagger UI at `/api/docs` · ReDoc at `/api/redoc` · OpenAPI JSON at `/api/swagger.json`
 
 ---
 
@@ -49,7 +49,6 @@ The `server/` directory contains the **Node.js / Express** backend API that powe
 | `zod`                | ^4.4    | Request schema validation     |
 | `express-validator`  | ^7.0    | Additional input validation   |
 | `winston`            | ^3.11   | Structured logging            |
-| `morgan`             | ^1.10   | HTTP request logging          |
 | `cors`               | ^2.8    | CORS header management        |
 | `swagger-jsdoc`      | ^6.2    | OpenAPI spec generation       |
 | `swagger-ui-express` | ^5.0    | Swagger UI serving            |
@@ -193,7 +192,10 @@ curl http://localhost:8080/healthz
 | URL         | Description             |
 | ----------- | ----------------------- |
 | `/api-docs` | Interactive Swagger UI  |
-| `/redoc`    | ReDoc API documentation |
+| `/api/docs` | Swagger UI API documentation |
+| `/api/redoc` | ReDoc API documentation |
+| `/api/swagger.json` | OpenAPI JSON specification |
+| `/api/swagger.yaml` | OpenAPI YAML specification |
 
 ---
 

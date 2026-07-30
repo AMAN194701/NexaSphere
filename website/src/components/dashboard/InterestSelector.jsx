@@ -23,6 +23,7 @@ export default function InterestSelector({ selectedInterests, onToggleInterest }
           const isActive = selectedInterests.includes(domain);
           return (
             <button
+              aria-label="Interactive element"
               key={domain}
               onClick={() => onToggleInterest(domain)}
               aria-pressed={isActive}

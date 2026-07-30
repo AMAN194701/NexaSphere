@@ -26,6 +26,11 @@
           "refId": "A"
         }
       ]
+      "targets": [{
+        "expr": "rate(nexasphere_events_registered_total[5m]) * 60",
+        "legendFormat": "registrations/min",
+        "refId": "A"
+      }]
     },
     {
       "id": 3,
@@ -39,6 +44,11 @@
           "refId": "A"
         }
       ]
+      "targets": [{
+        "expr": "rate(nexasphere_events_created_total[5m]) * 60",
+        "legendFormat": "created/min",
+        "refId": "A"
+      }]
     },
     {
       "id": 4,
@@ -52,6 +62,11 @@
           "refId": "A"
         }
       ]
+      "targets": [{
+        "expr": "histogram_quantile(0.95, sum(rate(nexasphere_page_load_seconds_bucket[5m])) by (le))",
+        "legendFormat": "p95",
+        "refId": "A"
+      }]
     }
   ]
 }

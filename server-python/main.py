@@ -19,10 +19,9 @@ from observability.metrics import collect_celery_queue_depth
 from observability.tracing import init_tracing
 from prompts.system_prompt import SYSTEM_PROMPT
 from routers import certificates, forms, health, notifications, portfolio, recommend, review, webhooks, sync
+from routers.membership import router as membership_router
 from services.sync_worker import periodic_sync_worker
 from utils.security import limiter
-
-load_dotenv()
 
 # --- Logging Standardization with Trace ID ---
 request_id_context = contextvars.ContextVar("request_id", default="system")
@@ -115,6 +114,28 @@ origins = os.getenv(
     "https://admin-nexasphere.vercel.app,https://nexa-sphere-sigma.vercel.app,"
     "https://admin-dashboard-navy-pi-22.vercel.app",
 ).split(",")
+@app.middleware("http")
+async def request_id_middleware(request: Request, call_next):
+    req_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+    token = request_id_context.set(req_id)
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = req_id
+    request_id_context.reset(token)
+    return response
+
+@app.get("/")
+async def root():
+    return {"message": "NexaSphere AI Core API is running. Visit /docs for Swagger API documentation."}
+
+from routers import forms, recommend, certificates, notifications, portfolio, health
+app.include_router(forms.router)
+app.include_router(recommend.router)
+app.include_router(certificates.router)
+app.include_router(notifications.router)
+app.include_router(health.router)
+app.include_router(portfolio.router)
+# 3. CORS Configuration
+origins = os.getenv("CORS_ORIGIN", "http://localhost:5173,http://localhost:5174,https://nexasphere-glbajaj.vercel.app,https://admin-nexasphere.vercel.app,https://nexa-sphere-sigma.vercel.app,https://admin-dashboard-navy-pi-22.vercel.app").split(",")
 
 app.add_middleware(
     CORSMiddleware,
@@ -151,6 +172,7 @@ app.include_router(notifications.router)
 app.include_router(health.router)
 app.include_router(portfolio.router)
 app.include_router(review.router)
+app.include_router(membership_router)
 
 
 class ChatRequest(BaseModel):

@@ -11,10 +11,7 @@ import {
   downloadPNG,
 } from '../../utils/exportRoadmap';
 import { roadmapData } from '../../data/roadmapData';
-
-// Use StaticRoadmap from roadmapParser — eliminates as any casts
-// when accessing domain keys and title fields in the builder.
-type RoadmapDataMap = Record<string, StaticRoadmap>;
+import { adaptiveEngineService } from '../../services/adaptiveEngine';
 import {
   ArrowLeft,
   Plus,
@@ -26,11 +23,18 @@ import {
   AlertCircle,
   Edit,
   Check,
+  Bot,
 } from 'lucide-react';
+
+// Use StaticRoadmap from roadmapParser — eliminates as any casts
+// when accessing domain keys and title fields in the builder.
+type RoadmapDataMap = Record<string, StaticRoadmap>;
 
 interface RoadmapBuilderInnerProps {
   onBack: () => void;
 }
+
+const typedRoadmapData = roadmapData as RoadmapDataMap;
 
 const RoadmapBuilderInner: React.FC<RoadmapBuilderInnerProps> = ({ onBack }) => {
   const {
@@ -42,10 +46,12 @@ const RoadmapBuilderInner: React.FC<RoadmapBuilderInnerProps> = ({ onBack }) => 
     loadRoadmap,
     resetRoadmap,
     addNode,
+    setNodes,
     setSelectedNodeId,
   } = useRoadmapBuilder();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [activeTheme, setActiveTheme] = useState<'dark' | 'light'>(() => {
     return (document.documentElement.getAttribute('data-theme') as 'dark' | 'light') || 'dark';
   });
@@ -89,20 +95,21 @@ const RoadmapBuilderInner: React.FC<RoadmapBuilderInnerProps> = ({ onBack }) => 
       x: 350,
       y: 100 + nodes.length * 60, // staggered visual stacking
       status: 'Not Started',
-      notes: '',
-      resources: [],
-      prerequisites: [],
     });
   };
 
   // Import static NexaSphere Roadmaps
-  // handleImportStatic replaces window.confirm() — if nodes exist it stores
-  // the pending key and shows an inline confirmation dialog instead of
-  // blocking the UI thread with a native browser dialog.
   const handleImportStatic = (domainKey: string) => {
     if (!domainKey) return;
-    if (nodes.length > 0) {
-      setPendingImportKey(domainKey);
+    const staticData = typedRoadmapData[domainKey];
+    if (!staticData) return;
+
+    if (
+      nodes.length > 0 &&
+      !confirm(
+        'Loading this base template will overwrite your active workspace. Do you wish to continue?'
+      )
+    ) {
       return;
     }
     applyImport(domainKey);
@@ -169,11 +176,46 @@ const RoadmapBuilderInner: React.FC<RoadmapBuilderInnerProps> = ({ onBack }) => 
     }
   };
 
-  // Save Meta Title & Description
   const handleSaveMeta = () => {
     setRoadmapTitle(metaTitle);
     setRoadmapDescription(metaDesc);
     setIsEditingMeta(false);
+  };
+
+  const handleGenerateAIPath = async () => {
+    try {
+      setIsGenerating(true);
+      const completedNodeIds = nodes.filter((n) => n.status === 'Completed').map((n) => n.id);
+
+      // Fetch missing skills from ResumeAnalyzer via localStorage or pass hardcoded mock
+      const savedResume = localStorage.getItem('ns_resume_analysis');
+      let missingSkills = ['System Design', 'Docker', 'GraphQL']; // Default mock
+      if (savedResume) {
+        try {
+          const parsed = JSON.parse(savedResume);
+          if (parsed.missingSkills) missingSkills = parsed.missingSkills;
+        } catch (e) {}
+      }
+
+      const newNodes = await adaptiveEngineService.getAdaptiveSuggestions({
+        currentNodes: nodes,
+        completedNodeIds,
+        missingSkills,
+      });
+
+      if (newNodes.length > 0) {
+        setNodes([...nodes, ...newNodes]);
+        alert(
+          `AI generated ${newNodes.length} adaptive learning milestones based on your profile.`
+        );
+      } else {
+        alert('No new adaptive milestones generated at this time.');
+      }
+    } catch (err: any) {
+      alert('Failed to generate AI roadmap. ' + err.message);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -241,6 +283,23 @@ const RoadmapBuilderInner: React.FC<RoadmapBuilderInnerProps> = ({ onBack }) => 
 
         {/* Global Toolbar Panel */}
         <div className="builder-toolbar glassmorphic-panel flex flex-wrap gap-2 p-2 rounded-2xl">
+          {/* AI Adaptive Generation Button */}
+          <button
+            onClick={handleGenerateAIPath}
+            disabled={isGenerating}
+            className="btn btn-sm flex items-center gap-1 text-xs"
+            style={{
+              background: 'linear-gradient(45deg, var(--c1), var(--c2))',
+              color: '#fff',
+              border: 'none',
+              opacity: isGenerating ? 0.7 : 1,
+            }}
+            title="Generate personalized path based on Resume gaps and progress"
+          >
+            <Bot size={14} className={isGenerating ? 'animate-pulse' : ''} />{' '}
+            {isGenerating ? 'Generating...' : 'AI Adapt Path'}
+          </button>
+
           {/* Add New Node button */}
           <button
             onClick={handleAddNewNode}
@@ -308,6 +367,11 @@ const RoadmapBuilderInner: React.FC<RoadmapBuilderInnerProps> = ({ onBack }) => 
                 if (action === 'png')
                   downloadPNG(roadmapTitle, roadmapDescription, nodes, activeTheme);
                 e.target.value = ''; // Reset
+                if (action === 'svg')
+                  downloadSVG(roadmapTitle, roadmapDescription, nodes, activeTheme);
+                if (action === 'png')
+                  downloadPNG(roadmapTitle, roadmapDescription, nodes, activeTheme);
+                e.target.value = ''; // Reset
               }}
               className="dropdown-select text-xxs font-black uppercase text-t2 bg-transparent border-none py-1 focus:outline-none"
               defaultValue=""
@@ -335,10 +399,12 @@ const RoadmapBuilderInner: React.FC<RoadmapBuilderInnerProps> = ({ onBack }) => 
       <div
         className="builder-split-workspace"
         style={{ display: 'flex', gap: '24px', alignItems: 'stretch' }}
+        style={{ display: 'flex', gap: '24px', alignItems: 'stretch' }}
       >
         {/* Sidebar Accessibility Listing of nodes */}
         <aside
           className="builder-sidebar glassmorphic-panel flex flex-col p-4 w-72 rounded-2xl flex-shrink-0 hide-on-mobile"
+          style={{ maxHeight: '72vh', overflowY: 'auto' }}
           style={{ maxHeight: '72vh', overflowY: 'auto' }}
         >
           <div className="flex items-center gap-2 border-b border-border-color pb-3 mb-4">
@@ -359,6 +425,12 @@ const RoadmapBuilderInner: React.FC<RoadmapBuilderInnerProps> = ({ onBack }) => 
             <ul
               className="sidebar-nodes-ul"
               style={{
+                listStyle: 'none',
+                padding: 0,
+                margin: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
                 listStyle: 'none',
                 padding: 0,
                 margin: 0,
@@ -407,6 +479,7 @@ const RoadmapBuilderInner: React.FC<RoadmapBuilderInnerProps> = ({ onBack }) => 
         {/* Dynamic Drag-and-Drop canvas grid */}
         <main
           className="canvas-container-outer glassmorphic-panel rounded-2xl flex-grow overflow-auto"
+          style={{ maxHeight: '72vh' }}
           style={{ maxHeight: '72vh' }}
         >
           <NodeCanvas theme={activeTheme} />

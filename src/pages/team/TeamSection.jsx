@@ -3,6 +3,20 @@ import { createPortal } from 'react-dom';
 import TeamMemberModal from './TeamMemberModal';
 import { IconArrowRight, IconSpark } from '../../shared/Icons';
 import SkeletonCard from '../../components/SkeletonCard';
+import { useState, useEffect, useRef } from "react";
+import apiClient from "../../utils/apiClient.js";
+import { createPortal } from "react-dom";
+import TeamMemberModal from "./TeamMemberModal";
+import { IconArrowRight, IconSpark } from "../../shared/Icons";
+import apiClient from '../../utils/apiClient.js';
+import TeamMemberModal from './TeamMemberModal';
+import { IconSpark } from '../../shared/Icons';
+import { teamMembers as fallbackTeamMembers } from '../../data/teamData';
+import {
+  getLocalTeamMembers,
+  mergeTeamMembers,
+  subscribePublicContent,
+} from '../../utils/publicContentStore.js';
 
 function MemberCard({ member, idx, onClick }) {
   const ref = useRef(null);
@@ -16,6 +30,7 @@ function MemberCard({ member, idx, onClick }) {
     const x = (e.clientX - rect.left) / rect.width - 0.5;
     const y = (e.clientY - rect.top) / rect.height - 0.5;
     c.style.animationPlayState = 'paused';
+    c.style.animationPlayState = "paused";
     c.style.transform = `translateY(-14px) rotateX(${-y * 18}deg) rotateY(${x * 18}deg) scale(1.06)`;
   };
   const onLeave = () => {
@@ -26,11 +41,20 @@ function MemberCard({ member, idx, onClick }) {
     setTimeout(() => {
       if (c) c.style.transform = '';
     }, 150);
+    c.style.transform = '';
+    c.style.animationPlayState = '';
+    c.style.transform = "";
+    c.style.animationPlayState = "";
+    c.style.transform = '';
+    c.style.animationPlayState = '';
   };
   const click = () => {
     const c = ref.current;
     if (c) {
       c.style.transform = 'scale(.9)';
+      setTimeout(() => {
+        c.style.transform = '';
+      c.style.transform = "scale(.9)";
       setTimeout(() => {
         c.style.transform = '';
       }, 140);
@@ -45,6 +69,8 @@ function MemberCard({ member, idx, onClick }) {
       style={{
         cursor: 'pointer',
         perspective: '800px',
+        cursor: "pointer",
+        perspective: "800px",
         animation: `ag 7s ease-in-out ${agDelay[idx % 12]}s infinite`,
         willChange: 'transform',
         animationFillMode: 'both',
@@ -57,13 +83,19 @@ function MemberCard({ member, idx, onClick }) {
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') click();
+        if (e.key === "Enter" || e.key === " ") click();
       }}
     >
       <div className="team-card-photo-wrap">
         <img
+          loading="lazy"
+        <img loading="lazy"
           src={
             !member.photo || imgError
               ? 'https://api.dicebear.com/7.x/initials/svg?seed=' +
+                encodeURIComponent(member.name) +
+                '&backgroundColor=7b6fff&textColor=ffffff'
+              ? "https://api.dicebear.com/7.x/initials/svg?seed=" +
                 encodeURIComponent(member.name) +
                 '&backgroundColor=7b6fff&textColor=ffffff'
               : member.photo
@@ -90,6 +122,7 @@ export default function TeamSection({ onApply }) {
   const [sel, setSel] = useState(null);
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [members, setMembers] = useState(() => getLocalTeamMembers(fallbackTeamMembers));
 
   useEffect(() => {
     let alive = true;
@@ -99,6 +132,10 @@ export default function TeamSection({ onApply }) {
     setLoading(true);
     fetch(url)
       .then((r) => (r.ok ? r.json() : Promise.reject()))
+    const base = (import.meta?.env?.VITE_API_BASE || "").replace(/\/+$/, "");
+    const url = base ? `${base}/api/content/team` : "/api/content/team";
+
+    apiClient(url)
       .then((data) => {
         if (!alive) return;
         if (Array.isArray(data?.members)) {
@@ -109,6 +146,39 @@ export default function TeamSection({ onApply }) {
       .finally(() => {
         if (alive) setLoading(false);
       });
+      .catch(() => {});
+    const applyLocalTeam = () => {
+      if (alive) setMembers(getLocalTeamMembers(fallbackTeamMembers));
+    };
+
+    if (!base) {
+      applyLocalTeam();
+      return subscribePublicContent(applyLocalTeam);
+    }
+
+    const url = `${base}/api/content/team`;
+
+    const fetchTeam = () => {
+      apiClient(url)
+        .then((data) => {
+          if (!alive) return;
+          if (Array.isArray(data?.members)) {
+            setMembers(
+              data.members.length
+                ? mergeTeamMembers(fallbackTeamMembers, data.members)
+                : getLocalTeamMembers(fallbackTeamMembers)
+            );
+          } else {
+            setMembers(getLocalTeamMembers(fallbackTeamMembers));
+          }
+        })
+        .catch(() => {
+          setMembers((prev) => (prev?.length ? prev : getLocalTeamMembers(fallbackTeamMembers)));
+        });
+    };
+
+    fetchTeam();
+    const interval = setInterval(fetchTeam, 4000);
     return () => {
       alive = false;
     };
@@ -117,12 +187,20 @@ export default function TeamSection({ onApply }) {
   useEffect(() => {
     const elements = document.querySelectorAll(
       '#section-team .pop-flip, #section-team .pop-in, #section-team .pop-word'
+      "#section-team .pop-flip, #section-team .pop-in, #section-team .pop-word"
     );
     const obs = new IntersectionObserver(
       (entries) => {
         entries.forEach((e) => {
           if (e.isIntersecting && !e.target.classList.contains('fired')) {
             e.target.classList.add('fired');
+            e.target.addEventListener(
+              'animationend',
+              () => {
+                e.target.style.opacity = '1';
+                e.target.style.transform = 'none';
+          if (e.isIntersecting && !e.target.classList.contains("fired")) {
+            e.target.classList.add("fired");
             e.target.addEventListener(
               'animationend',
               () => {
@@ -136,6 +214,7 @@ export default function TeamSection({ onApply }) {
         });
       },
       { threshold: 0, rootMargin: '0px 0px -10px 0px' }
+      { threshold: 0, rootMargin: "0px 0px -10px 0px" }
     );
     elements.forEach((el) => obs.observe(el));
     const fallback = setTimeout(() => {
@@ -143,6 +222,16 @@ export default function TeamSection({ onApply }) {
         const rect = el.getBoundingClientRect();
         if (rect.top < window.innerHeight + 100 && !el.classList.contains('fired')) {
           el.classList.add('fired');
+          el.addEventListener(
+            'animationend',
+            () => {
+              el.style.opacity = '1';
+              el.style.transform = 'none';
+        if (
+          rect.top < window.innerHeight + 100 &&
+          !el.classList.contains("fired")
+        ) {
+          el.classList.add("fired");
           el.addEventListener(
             'animationend',
             () => {
@@ -167,6 +256,10 @@ export default function TeamSection({ onApply }) {
           <span className="cin-section-label pop-in">GL Bajaj Group of Institutions · Mathura</span>
           <h2 className="section-title pop-word">Core Team</h2>
           <p className="section-subtitle pop-in" style={{ animationDelay: '.1s' }}>
+          <p
+            className="section-subtitle pop-in"
+            style={{ animationDelay: ".1s" }}
+          >
             The Minds Behind NexaSphere
           </p>
         </div>
@@ -175,6 +268,9 @@ export default function TeamSection({ onApply }) {
           {loading
             ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} type="team" />)
             : members.map((m, i) => <MemberCard key={m.id} member={m} idx={i} onClick={setSel} />)}
+          {members.map((m, i) => (
+            <MemberCard key={m.id} member={m} idx={i} onClick={setSel} />
+          ))}
         </div>
 
         <div
@@ -190,6 +286,16 @@ export default function TeamSection({ onApply }) {
             margin: '56px auto 0',
             position: 'relative',
             overflow: 'hidden',
+            textAlign: "center",
+            marginTop: "56px",
+            padding: "28px",
+            background: "var(--card)",
+            border: "1px solid var(--bdr)",
+            borderRadius: "var(--r3)",
+            maxWidth: "520px",
+            margin: "56px auto 0",
+            position: "relative",
+            overflow: "hidden",
           }}
         >
           <div className="corner-tl" />
@@ -198,6 +304,12 @@ export default function TeamSection({ onApply }) {
             style={{
               fontFamily: 'Orbitron,monospace',
               fontSize: '1rem',
+              fontWeight: 700,
+              color: 'var(--c1)',
+              marginBottom: '8px',
+              letterSpacing: '.05em',
+              fontFamily: "Orbitron,monospace",
+              fontSize: "1rem",
               fontWeight: 700,
               color: 'var(--c1)',
               marginBottom: '8px',
@@ -216,8 +328,17 @@ export default function TeamSection({ onApply }) {
           >
             We&apos;re looking for passionate students to drive NexaSphere forward. Fill in the form
             and we&apos;ll reach out!
+              color: "var(--t2)",
+              fontSize: ".88rem",
+              marginBottom: "18px",
+              lineHeight: 1.65,
+            }}
+          >
+            We&apos;re looking for passionate students to drive NexaSphere forward. Fill in the form
+            and we&apos;ll reach out!
           </p>
           <button
+            aria-label="Interactive element"
             type="button"
             onClick={() => onApply && onApply()}
             className="btn btn-join btn-ripple"

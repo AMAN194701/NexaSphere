@@ -224,12 +224,23 @@ export class FinancialService {
   }
 
   // --- Revenue ---
+  /**
+   * Creates a new revenue entry.
+   *
+   * Accepts an optional `idempotencyKey` inside `revenueData` (typically the
+   * payment-provider transaction or webhook event ID).  When present, the
+   * underlying INSERT is idempotent: concurrent or retried webhook deliveries
+   * carrying the same key are deduplicated at the database level and return
+   * the existing record rather than creating a duplicate.
+   */
   async createRevenue(revenueData, user) {
     this.checkAccess(user, 'create_revenue');
 
     const revenue = {
       ...revenueData,
       createdBy: user.id,
+      // Forward the idempotency key to the repository layer unchanged.
+      idempotencyKey: revenueData.idempotencyKey || null,
     };
 
     const newRevenue = await financialRepository.createRevenue(revenue);
@@ -312,6 +323,7 @@ export class FinancialService {
     const totalVariance = totalBudgeted - totalActual;
 
     const utilization = totalBudgeted > 0 ? totalActual / totalBudgeted : 0;
+    const utilization = totalBudgeted > 0 ? (totalActual / totalBudgeted) : 0;
     let alert = null;
     if (utilization >= 0.9) {
       alert = { alertLevel: '90%' };
@@ -492,6 +504,7 @@ export class FinancialService {
                 100
             )
           : 0,
+      percentage: totalPaidCount > 0 ? Math.round((paymentBreakdownMap[method] / revenues.reduce((sum, rev) => sum + (rev.isRefunded ? 0 : rev.amount), 0)) * 100) : 0,
     }));
 
     // Refund tracking
@@ -527,6 +540,7 @@ export class FinancialService {
       (sum, r) => sum + (r.isRefunded ? 0 : r.amount - r.taxAmount),
       0
     );
+    const totalBeforeTax = revenues.reduce((sum, r) => sum + (r.isRefunded ? 0 : (r.amount - r.taxAmount)), 0);
     const totalRevenue = revenues.reduce((sum, r) => sum + (r.isRefunded ? 0 : r.amount), 0);
 
     return {

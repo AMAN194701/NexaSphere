@@ -24,6 +24,7 @@ export function initObservability(app) {
         const provided = req.headers.authorization?.replace(/^Bearer\s+/i, '');
         if (provided !== authToken) {
           return sendError(req, res, 'Forbidden', 403, 'FORBIDDEN');
+          return res.status(403).json({ error: 'Forbidden' });
         }
       }
 

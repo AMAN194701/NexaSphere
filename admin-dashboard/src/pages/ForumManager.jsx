@@ -16,6 +16,7 @@ export function ForumManager() {
   const [moderating, setModerating] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteError, setDeleteError] = useState(null);
 
   const loadThreads = async () => {
@@ -38,12 +39,16 @@ export function ForumManager() {
   }, [statusFilter]);
 
   const filteredThreads = useMemo(() => {
-    if (!searchQuery.trim()) return threads;
+    let result = threads;
+    if (statusFilter) {
+      result = result.filter((t) => t.status === statusFilter);
+    }
+    if (!searchQuery.trim()) return result;
     const q = searchQuery.toLowerCase();
-    return threads.filter(
+    return result.filter(
       (t) => t.title?.toLowerCase().includes(q) || t.content?.toLowerCase().includes(q)
     );
-  }, [threads, searchQuery]);
+  }, [threads, searchQuery, statusFilter]);
 
   const handleModerate = async (id, status) => {
     setModerating(id);
@@ -160,6 +165,11 @@ export function ForumManager() {
                     }}
                   >
                     {moderating === thread.id ? '…' : 'Approve'}
+                      cursor: 'pointer',
+                      fontSize: '0.8rem',
+                    }}
+                  >
+                    Approve
                   </button>
                 )}
                 {thread.status !== 'flagged' && (
@@ -179,6 +189,11 @@ export function ForumManager() {
                     }}
                   >
                     {moderating === thread.id ? '…' : 'Flag'}
+                      cursor: 'pointer',
+                      fontSize: '0.8rem',
+                    }}
+                  >
+                    Flag
                   </button>
                 )}
                 {thread.status !== 'rejected' && (
@@ -198,6 +213,11 @@ export function ForumManager() {
                     }}
                   >
                     {moderating === thread.id ? '…' : 'Reject'}
+                      cursor: 'pointer',
+                      fontSize: '0.8rem',
+                    }}
+                  >
+                    Reject
                   </button>
                 )}
                 <button
@@ -213,6 +233,8 @@ export function ForumManager() {
                     cursor: moderating === thread.id ? 'not-allowed' : 'pointer',
                     fontSize: '0.8rem',
                     opacity: moderating === thread.id ? 0.6 : 1,
+                    cursor: 'pointer',
+                    fontSize: '0.8rem',
                   }}
                 >
                   Delete
@@ -224,9 +246,19 @@ export function ForumManager() {
       )}
 
       {deleteTarget && (
-        <div className="modal-overlay" onClick={() => setDeleteTarget(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3>Delete Thread</h3>
+        <div
+          className="modal-overlay"
+          onClick={() => setDeleteTarget(null)}
+          onKeyDown={(e) => e.key === 'Escape' && setDeleteTarget(null)}
+        >
+          <div
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-thread-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="delete-thread-title">Delete Thread</h3>
             <p>
               Are you sure you want to delete "{deleteTarget.title}"? This action cannot be undone.
             </p>
@@ -242,6 +274,7 @@ export function ForumManager() {
                   background: '#fff',
                   cursor: deleting ? 'not-allowed' : 'pointer',
                   opacity: deleting ? 0.6 : 1,
+                  cursor: 'pointer',
                 }}
               >
                 Cancel
@@ -260,6 +293,10 @@ export function ForumManager() {
                 }}
               >
                 {deleting ? 'Deleting…' : 'Delete'}
+                  cursor: 'pointer',
+                }}
+              >
+                Delete
               </button>
             </div>
           </div>

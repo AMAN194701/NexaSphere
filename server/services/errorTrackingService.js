@@ -78,11 +78,43 @@ async function logError(error, context = {}) {
 
   // Define endpoint for tagging and logging
   const endpoint = `${errorData.method} ${errorData.url}`;
+  if (!errorStore.errorsByEndpoint[endpoint]) {
+    // Prevent unbounded memory growth by capping the tracked endpoints at 1000.
+    // If the cap is reached, prune the endpoint with the lowest error count.
+    const keys = Object.keys(errorStore.errorsByEndpoint);
+    if (keys.length >= 1000) {
+      let minKey = null;
+      let minVal = Infinity;
+      for (const key of keys) {
+        const val = errorStore.errorsByEndpoint[key];
+        if (val < minVal) {
+          minVal = val;
+          minKey = key;
+        }
+      }
+      if (minKey) {
+        delete errorStore.errorsByEndpoint[minKey];
+      }
+    }
+    errorStore.errorsByEndpoint[endpoint] = 0;
+  }
+  errorStore.errorsByEndpoint[endpoint]++;
 
   // Log to Winston (which now forwards to Sentry automatically)
   logger.error(error.message || 'Error logged', {
     error,
     ...errorData,
+    userId: context.userId,
+    requestPath: context.url,
+    tags: { status: errorData.status, endpoint },
+  logger.error(error.message || 'Error logged', { 
+    error, 
+    ...errorData, 
+    userId: context.userId,
+    requestPath: context.url,
+  logger.error(error.message || 'Error logged', { 
+    error, 
+    ...errorData, 
     userId: context.userId,
     requestPath: context.url,
     tags: { status: errorData.status, endpoint },
@@ -104,8 +136,12 @@ async function logError(error, context = {}) {
  */
 function getErrorStats() {
   const total = errorStore.errors.length;
-  const lastHour = errorStore.errors.filter((e) => new Date() - e.timestamp < 3600000).length;
-  const last24Hours = errorStore.errors.filter((e) => new Date() - e.timestamp < 86400000).length;
+  const lastHour = errorStore.errors.filter(
+    (e) => new Date() - e.timestamp < 3600000
+  ).length;
+  const last24Hours = errorStore.errors.filter(
+    (e) => new Date() - e.timestamp < 86400000
+  ).length;
 
   const errorsByStatusMap = {};
   const errorsByEndpointMap = {};
@@ -122,6 +158,7 @@ function getErrorStats() {
     status: parseInt(status),
     count,
     percentage: total > 0 ? ((count / total) * 100).toFixed(2) : '0.00',
+    percentage: total > 0 ? ((count / total) * 100).toFixed(2) : "0.00",
   }));
 
   const topEndpoints = Object.entries(errorsByEndpointMap)
@@ -223,6 +260,11 @@ function truncateData(data, maxBytes) {
     return obj;
   }
   return truncateStrings(data, maxBytes);
+  try {
+    return JSON.parse(str.slice(0, maxBytes));
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -345,4 +387,15 @@ export const checkEncryptionCompliance = () => {
 export { logError, getErrorStats, getRecentErrors, getEndpointErrors, getUserErrors, clearErrors };
 export const predictServiceFailure = (history) => {
   // simple prediction logic
+export {
+  logError,
+  getErrorStats,
+  getRecentErrors,
+  getEndpointErrors,
+  getUserErrors,
+  clearErrors,
+};
+
+export const __errorTrackingServiceInternals = {
+  errorStore,
 };

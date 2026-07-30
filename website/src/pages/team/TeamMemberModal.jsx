@@ -20,7 +20,6 @@ function CopyPopup({ value, onClose }) {
         if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
         copiedTimeoutRef.current = setTimeout(() => {
           setCopied(false);
-          setCopyError(false);
           copiedTimeoutRef.current = null;
         }, 2000);
       })
@@ -36,21 +35,18 @@ function CopyPopup({ value, onClose }) {
       });
   };
 
+  const timerRef = useRef(null);
+
   useEffect(() => {
     const handler = (e) => {
       if (!e.target.closest('.copy-popup')) onClose();
     };
-    timeoutRef.current = setTimeout(() => {
+    const timer = setTimeout(() => {
       document.addEventListener('click', handler);
     }, 0);
 
     return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-      if (copiedTimeoutRef.current) {
-        clearTimeout(copiedTimeoutRef.current);
-      }
+      clearTimeout(timer);
       document.removeEventListener('click', handler);
     };
   }, [onClose]);
@@ -97,6 +93,10 @@ function ModalContent({ member, onClose }) {
   const modalRef = useFocusTrap(true, onClose);
 
   useEffect(() => {
+    const handler = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handler);
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = '';

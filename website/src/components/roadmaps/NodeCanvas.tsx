@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRoadmapBuilder } from '../../hooks/useRoadmapBuilder';
 import { RoadmapNode } from '../../context/RoadmapBuilderContext';
-import { Edit2, Trash2, Sparkles } from 'lucide-react';
+import { Edit2, Trash2, Plus, Sparkles, AlertCircle } from 'lucide-react';
 
 interface NodeCanvasProps {
   theme: 'dark' | 'light';
@@ -34,6 +34,9 @@ export const NodeCanvas: React.FC<NodeCanvasProps> = ({ theme }) => {
       }
     };
   }, []);
+
+  const [message, setMessage] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<RoadmapNode | null>(null);
 
   // Connection mode (visual clicking to connect nodes)
   const [connectSourceId, setConnectSourceId] = useState<string | null>(null);
@@ -122,6 +125,7 @@ export const NodeCanvas: React.FC<NodeCanvasProps> = ({ theme }) => {
       // Avoid self-references or circular connections
       if (node.prerequisites.includes(connectSourceId)) {
         alert('Prerequisite connection already exists.');
+        setMessage('Prerequisite connection already exists.');
         setConnectSourceId(null);
         return;
       }
@@ -141,6 +145,9 @@ export const NodeCanvas: React.FC<NodeCanvasProps> = ({ theme }) => {
         alert(
           'Invalid Connection: Adding this prerequisite will create a circular dependency loop!'
         );
+        setMessage(
+          'Invalid connection: adding this prerequisite will create a circular dependency loop.'
+        );
         setConnectSourceId(null);
         return;
       }
@@ -156,6 +163,56 @@ export const NodeCanvas: React.FC<NodeCanvasProps> = ({ theme }) => {
 
   return (
     <div className="canvas-wrapper-outer">
+      {message && (
+        <div
+          className="glassmorphic-panel"
+          role="alert"
+          style={{
+            padding: '10px 14px',
+            marginBottom: '12px',
+            color: 'var(--c1)',
+          }}
+        >
+          {message}
+        </div>
+      )}
+      {deleteTarget && (
+        <div
+          className="glassmorphic-panel"
+          role="dialog"
+          aria-modal="true"
+          style={{
+            padding: '12px 14px',
+            marginBottom: '12px',
+            display: 'flex',
+            gap: '10px',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+          }}
+        >
+          <span>Delete node "{deleteTarget.title}"?</span>
+          <span style={{ display: 'flex', gap: '8px' }}>
+            <button
+              aria-label="Interactive element"
+              className="btn btn-sm btn-outline"
+              onClick={() => setDeleteTarget(null)}
+            >
+              Cancel
+            </button>
+            <button
+              aria-label="Interactive element"
+              className="btn btn-sm btn-danger"
+              onClick={() => {
+                deleteNode(deleteTarget.id);
+                setDeleteTarget(null);
+              }}
+            >
+              Delete
+            </button>
+          </span>
+        </div>
+      )}
       {/* Visual Workspace Controls bar */}
       <div className="canvas-instruction-bar glassmorphic-panel">
         <Sparkles size={16} className="text-brand-red animate-pulse" />
@@ -163,7 +220,8 @@ export const NodeCanvas: React.FC<NodeCanvasProps> = ({ theme }) => {
           {connectSourceId ? (
             <span className="text-warning font-semibold">
               Connecting Mode Active: Click target node to establish connection, or click source
-              again to cancel.
+              again to cancel. Connecting Mode Active: Click target node to establish connection, or
+              click source again to cancel.
             </span>
           ) : (
             'Drag nodes to organize. Double click or click edit (✎) to customize resources & notes. Check (🔗) to draw prerequisite paths.'
@@ -180,6 +238,9 @@ export const NodeCanvas: React.FC<NodeCanvasProps> = ({ theme }) => {
           position: 'relative',
           background: theme === 'dark' ? '#090909' : '#FAFAFA',
           overflow: 'hidden',
+          position: 'relative',
+          background: theme === 'dark' ? '#090909' : '#FAFAFA',
+          overflow: 'hidden',
         }}
       >
         {/* Dynamic Grid Overlay */}
@@ -190,6 +251,9 @@ export const NodeCanvas: React.FC<NodeCanvasProps> = ({ theme }) => {
           style={{
             position: 'absolute',
             inset: 0,
+            width: '100%',
+            height: '100%',
+            pointerEvents: 'none',
             width: '100%',
             height: '100%',
             pointerEvents: 'none',
@@ -257,7 +321,14 @@ export const NodeCanvas: React.FC<NodeCanvasProps> = ({ theme }) => {
         </svg>
 
         {/* Nodes Layer */}
-        <div style={{ position: 'absolute', inset: 0, zIndex: 10, pointerEvents: 'none' }}>
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 10,
+            pointerEvents: 'none',
+          }}
+        >
           <AnimatePresence>
             {nodes.map((node) => {
               const statusColor = getStatusColor(node.status);
@@ -285,6 +356,15 @@ export const NodeCanvas: React.FC<NodeCanvasProps> = ({ theme }) => {
                     cursor: draggedNodeId === node.id ? 'grabbing' : 'grab',
                     pointerEvents: 'auto',
                     userSelect: 'none',
+                    border: `1.5px solid ${isConnectingSource ? 'var(--warning)' : isSelected ? 'var(--c1)' : node.isAiGenerated ? 'var(--c2)' : statusColor}`,
+                    borderRadius: '16px',
+                    boxShadow:
+                      node.isAiGenerated && !isSelected
+                        ? '0 0 20px rgba(230, 57, 70, 0.2)'
+                        : getStatusShadow(node.status),
+                    cursor: draggedNodeId === node.id ? 'grabbing' : 'grab',
+                    pointerEvents: 'auto',
+                    userSelect: 'none',
                   }}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -295,22 +375,30 @@ export const NodeCanvas: React.FC<NodeCanvasProps> = ({ theme }) => {
                       setSelectedNodeId(node.id);
                     }
                     if (e.key === 'Delete') {
-                      if (confirm(`Are you sure you want to delete "${node.title}"?`)) {
-                        deleteNode(node.id);
-                      }
+                      setDeleteTarget(node);
                     }
                   }}
                 >
                   <div className="node-card-inner">
-                    {/* Status marker */}
-                    <div className="node-status-badge">
-                      <span className="status-dot" style={{ backgroundColor: statusColor }} />
-                      <span
-                        className="status-text text-xxs font-bold uppercase"
-                        style={{ color: statusColor }}
-                      >
-                        {node.status}
-                      </span>
+                    {/* Status marker & AI Badge */}
+                    <div className="node-status-badge flex justify-between w-full pr-2">
+                      <div>
+                        <span className="status-dot" style={{ backgroundColor: statusColor }} />
+                        <span
+                          className="status-text text-xxs font-bold uppercase"
+                          style={{ color: statusColor }}
+                        >
+                          {node.status}
+                        </span>
+                      </div>
+                      {node.isAiGenerated && (
+                        <div
+                          className="ai-indicator"
+                          title={node.aiReason || 'Generated by Adaptive AI'}
+                        >
+                          <Sparkles size={12} className="text-brand-red animate-pulse" />
+                        </div>
+                      )}
                     </div>
 
                     {/* Node Info */}

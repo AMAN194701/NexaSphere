@@ -10,6 +10,7 @@ const FALLBACK_PROJECTS = [
     title: 'NexaSphere Portal',
     shortDesc:
       'The official community portal for NexaSphere members to manage events and activities.',
+    shortDesc: 'The official community portal for NexaSphere members to manage events and activities.',
     category: 'Web App',
     techStack: ['React', 'Node.js', 'Express', 'MongoDB', 'Vite'],
   },
@@ -57,6 +58,7 @@ export async function getProjectRecommendations(req, res, next) {
   try {
     if (!req.file) {
       return sendError(req, res, 'Please upload a PDF resume file.', 400, 'VALIDATION_ERROR');
+      return res.status(400).json({ error: 'Please upload a PDF resume file.' });
     }
 
     // Extract text from the uploaded PDF resume
@@ -72,18 +74,25 @@ export async function getProjectRecommendations(req, res, next) {
           matchChips: ['React', 'Node.js', 'Vite'],
           whyItMatches:
             'Your resume shows strong React and frontend experience which aligns perfectly with NexaSphere Portal requirements.',
+      return res.json([
+        {
+          projectId: 'nexa-portal',
+          matchChips: ['React', 'Node.js', 'Vite'],
+          whyItMatches: 'Your resume shows strong React and frontend experience which aligns perfectly with NexaSphere Portal requirements.',
         },
         {
           projectId: 'ui-kit',
           matchChips: ['UI Design', 'Figma', 'CSS Modules'],
           whyItMatches:
             'Your design sensitivity and storybook knowledge makes you an ideal candidate to build custom components for the Nexa UI Kit.',
+          whyItMatches: 'Your design sensitivity and storybook knowledge makes you an ideal candidate to build custom components for the Nexa UI Kit.',
         },
         {
           projectId: 'secure-share',
           matchChips: ['Mobile Dev', 'React Native'],
           whyItMatches:
             'Your experience with cross-platform apps maps well onto the mobile and cloud security requirements of SecureShare.',
+          whyItMatches: 'Your experience with cross-platform apps maps well onto the mobile and cloud security requirements of SecureShare.',
         },
       ]);
     }
@@ -94,5 +103,9 @@ export async function getProjectRecommendations(req, res, next) {
   } catch (error) {
     console.error('Error in getProjectRecommendations controller:', error);
     return sendError(req, res, error.message || 'An error occurred during resume analysis.', 500, 'INTERNAL_ERROR');
+    return res.json(recommendations);
+  } catch (error) {
+    console.error('Error in getProjectRecommendations controller:', error);
+    return res.status(500).json({ error: error.message || 'An error occurred during resume analysis.' });
   }
 }

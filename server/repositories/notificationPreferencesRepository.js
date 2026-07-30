@@ -16,6 +16,8 @@ export const notificationPreferencesRepository = {
       const { rows } = await client.query(
         `INSERT INTO notification_preferences (user_id, category, email, push, in_app, sms, frequency, quiet_start, quiet_end, dnd, updated_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+        `INSERT INTO notification_preferences (user_id, category, email, push, in_app, updated_at)
+         VALUES ($1, $2, $3, $4, $5, NOW())
          ON CONFLICT (user_id, category) DO UPDATE SET
            email = COALESCE($3, notification_preferences.email),
            push = COALESCE($4, notification_preferences.push),
@@ -39,6 +41,9 @@ export const notificationPreferencesRepository = {
           channels.quiet_end ?? null,
           channels.dnd ?? false,
         ]
+           updated_at = NOW()
+         RETURNING *`,
+        [userId, category, channels.email ?? true, channels.push ?? true, channels.in_app ?? true]
       );
       return rows[0];
     });
@@ -52,6 +57,10 @@ export const notificationPreferencesRepository = {
         const { rows } = await client.query(
           `INSERT INTO notification_preferences (user_id, category, email, push, in_app, sms, frequency, quiet_start, quiet_end, dnd, updated_at)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+      for (const { category, email, push, in_app } of prefs) {
+        const { rows } = await client.query(
+          `INSERT INTO notification_preferences (user_id, category, email, push, in_app, updated_at)
+           VALUES ($1, $2, $3, $4, $5, NOW())
            ON CONFLICT (user_id, category) DO UPDATE SET
              email = COALESCE($3, notification_preferences.email),
              push = COALESCE($4, notification_preferences.push),
@@ -75,6 +84,9 @@ export const notificationPreferencesRepository = {
             quiet_end ?? null,
             dnd ?? false,
           ]
+             updated_at = NOW()
+           RETURNING *`,
+          [userId, category, email ?? true, push ?? true, in_app ?? true]
         );
         results.push(rows[0]);
       }
@@ -152,6 +164,34 @@ export const notificationPreferencesRepository = {
         }
       }
       return false;
+    });
+  },
+
+  async isInsideQuietHours(userId, category = 'event_reminders') {
+    const pref = await this.get(userId, category);
+    if (!pref || !pref.quiet_start || !pref.quiet_end) return false;
+
+    const now = new Date();
+    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const start = pref.quiet_start;
+    const end = pref.quiet_end;
+
+    if (start < end) {
+      return currentTime >= start && currentTime <= end;
+    } else {
+      return currentTime >= start || currentTime <= end;
+    }
+  },
+
+  async isDNDActive(userId, category = 'event_reminders') {
+    const pref = await this.get(userId, category);
+    return pref ? !!pref.dnd : false;
+  },
+      const { rows } = await client.query(
+        'SELECT * FROM notification_preferences WHERE user_id = $1 AND category = $2 LIMIT 1',
+        [userId, category]
+      );
+      return rows[0] || null;
     });
   },
 };

@@ -28,6 +28,8 @@ export default function EventsPage({
     location: '',
     search: '',
   });
+  const EVENTS_PER_PAGE = 20;
+  const [currentPage, setCurrentPage] = useState(1);
 
 
   const getEffectiveStatus = (ev) => {
@@ -86,10 +88,27 @@ export default function EventsPage({
       .sort((a, b) => {
         const da = parseDate(a.startDate ?? a.date)?.getTime() ?? 0;
         const db = parseDate(b.startDate ?? b.date)?.getTime() ?? 0;
-
-        return da - db;
+        const aIsUpcoming = a.status === 'UPCOMING' || a.status === 'REGISTRATION_OPEN';
+        return aIsUpcoming ? da - db : db - da;
       });
   }, [filteredEvents]);
+
+  // Reset to page 1 when filters change. Adjusting state during render
+  // (rather than in a useEffect) avoids an extra cascading render pass —
+  // this is React's recommended pattern for 'resetting state when a prop
+  // changes' (https://react.dev/learn/you-might-not-need-an-effect).
+  const [prevFilters, setPrevFilters] = useState(filters);
+  if (filters !== prevFilters) {
+    setPrevFilters(filters);
+    setCurrentPage(1);
+  }
+
+  const totalPages = Math.max(1, Math.ceil(sortedEvents.length / EVENTS_PER_PAGE));
+
+  const paginatedEvents = useMemo(() => {
+    const start = (currentPage - 1) * EVENTS_PER_PAGE;
+    return sortedEvents.slice(start, start + EVENTS_PER_PAGE);
+  }, [sortedEvents, currentPage]);
 
 
   const { recommendations, loading: recsLoading } = useRecommendations(user?.sub || user?.id || '');
@@ -293,7 +312,7 @@ export default function EventsPage({
         ) : view === 'timeline' ? (
           <>
           <div className="events-timeline ns-reveal">
-            {sortedEvents.map((ev, i) => {
+            {paginatedEvents.map((ev, i) => {
               const hasDetailPage = ev.hasDetailPage !== false;
               const dynamicGradient = buildGradient(ev);
               const glowColor = ev.gradientColors?.[0] || null;
@@ -457,6 +476,11 @@ export default function EventsPage({
                         ) : ev.status === 'starting-soon' ? (
                           <>
                             <DynamicIcon name="Clock" size={11} style={{ marginRight: '4px' }} />{' '}
+                            <DynamicIcon
+                              name="Clock"
+                              size={11}
+                              style={{ marginRight: '4px' }}
+                            />{' '}
                             Starting Soon
                           </>
                         ) : (

@@ -19,6 +19,11 @@
           "refId": "A"
         }
       ]
+      "targets": [{
+        "expr": "100 - (avg(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+        "legendFormat": "CPU",
+        "refId": "A"
+      }]
     },
     {
       "id": 2,
@@ -32,6 +37,11 @@
           "refId": "A"
         }
       ]
+      "targets": [{
+        "expr": "1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)",
+        "legendFormat": "memory used ratio",
+        "refId": "A"
+      }]
     },
     {
       "id": 3,
@@ -45,6 +55,11 @@
           "refId": "A"
         }
       ]
+      "targets": [{
+        "expr": "1 - (node_filesystem_avail_bytes{fstype!~\"tmpfs|overlay\"} / node_filesystem_size_bytes{fstype!~\"tmpfs|overlay\"})",
+        "legendFormat": "{{mountpoint}}",
+        "refId": "A"
+      }]
     },
     {
       "id": 4,
@@ -62,6 +77,8 @@
           "legendFormat": "tx {{device}}",
           "refId": "B"
         }
+        { "expr": "rate(node_network_receive_bytes_total[5m])", "legendFormat": "rx {{device}}", "refId": "A" },
+        { "expr": "rate(node_network_transmit_bytes_total[5m])", "legendFormat": "tx {{device}}", "refId": "B" }
       ]
     },
     {
@@ -76,6 +93,11 @@
           "refId": "A"
         }
       ]
+      "targets": [{
+        "expr": "redis_memory_used_bytes",
+        "legendFormat": "used",
+        "refId": "A"
+      }]
     }
   ]
 }

@@ -1,5 +1,6 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { useSocketSync } from '../../hooks/useSocketSync';
+import { useCollaborativeDoc } from '../../hooks/useCollaborativeDoc';
 import { useWorkspaceStore } from '../../store/workspaceStore';
 import { useStudentAuth } from '../../context/StudentAuthContext';
 import { Users, Wifi, WifiOff, RefreshCw, CheckCircle2, ChevronLeft } from 'lucide-react';
@@ -36,8 +37,10 @@ function getOrCreateAnonUser() {
     // sessionStorage unavailable (private browsing), or stored value is not
     // valid JSON — fall through to create
   }
-  const id = Math.floor(Math.random() * 9000) + 1000;
-  const hue = Math.floor(Math.random() * 360);
+  const secureRand = new Uint32Array(2);
+  window.crypto.getRandomValues(secureRand);
+  const id = (secureRand[0] % 9000) + 1000;
+  const hue = secureRand[1] % 360;
   const name = `User-${id}`;
   const user = {
     name,
@@ -55,45 +58,76 @@ function getOrCreateAnonUser() {
 export default function WorkspacePage({ roomId, onBack }: WorkspacePageProps) {
   // Stable anonymous identity — persisted for the session so hot reloads
   // and re-mounts do not generate a new user name and color each time.
-  const [user, setUser] = useState(getOrCreateAnonUser);
+  const { user: authUser } = useStudentAuth();
+  const [anonUser] = useState(getOrCreateAnonUser);
 
-  const { emitDocumentChange, emitCursorMove, emitTyping } = useSocketSync(roomId, user);
+  const user = useMemo(() => {
+    if (authUser?.name) {
+      return {
+        name: authUser.name,
+        initials: authUser.name.substring(0, 2).toUpperCase(),
+        color: anonUser.color,
+      };
+    }
+    return anonUser;
+  }, [authUser, anonUser]);
+
+  const { updateDocContent, updateLocalCursor, updateLocalTyping } =
+    useCollaborativeDoc(roomId, user);
   const { documentContent, users, status } = useWorkspaceStore();
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const initials = user.name.substring(0, 2).toUpperCase();
     if (user.initials !== initials) {
       setUser((prev) => ({ ...prev, initials }));
     }
-  }, [user.name, user.initials]);
+    console.log(`Collaborative Workspace joined: ${roomId} as ${user.name}`);
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, [user.name, user.initials, roomId]);
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
-    useWorkspaceStore.getState().setDocumentContent(val);
-    emitDocumentChange(val);
-    emitTyping();
+    updateDocContent(val);
+    updateLocalTyping(true);
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    typingTimeoutRef.current = setTimeout(() => {
+      updateLocalTyping(false);
+    }, 1000);
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
-    emitCursorMove({
+    updateLocalCursor({
       x: e.clientX - rect.left,
       y: e.clientY - rect.top,
     });
   };
 
+  const handleMouseLeave = () => {
+    updateLocalCursor(null);
+  };
+
   const getStatusIcon = () => {
     switch (status) {
-      case 'Connected':
+      case "Connected":
         return <CheckCircle2 size={16} className="text-green-500" />;
-      case 'Disconnected':
+      case "Disconnected":
         return <WifiOff size={16} className="text-red-500" />;
-      case 'Reconnecting...':
+      case "Reconnecting...":
         return <RefreshCw size={16} className="text-yellow-500 animate-spin" />;
-      case 'Syncing changes...':
+      case "Syncing changes...":
         return <Wifi size={16} className="text-blue-500 animate-pulse" />;
       default:
         return <Wifi size={16} />;
@@ -104,7 +138,7 @@ export default function WorkspacePage({ roomId, onBack }: WorkspacePageProps) {
     <div className="workspace-container">
       <div className="workspace-header">
         <div className="workspace-header-left">
-          <button onClick={onBack} className="workspace-back-btn">
+          <button aria-label="Interactive element" onClick={onBack} className="workspace-back-btn">
             <ChevronLeft size={20} /> Back
           </button>
           <h2>Room: {roomId}</h2>
@@ -119,31 +153,39 @@ export default function WorkspacePage({ roomId, onBack }: WorkspacePageProps) {
             {Object.values(users).map((u) => (
               <div
                 key={u.socketId}
-                className={`avatar ${u.isTyping ? 'typing' : ''}`}
-                style={{ backgroundColor: u.user?.color || '#555' }}
-                title={`${u.user?.name || 'Anonymous'} ${u.isTyping ? '(typing...)' : ''}`}
+                className={`avatar ${u.isTyping ? "typing" : ""}`}
+                style={{ backgroundColor: u.user?.color || "#555" }}
+                title={`${u.user?.name || "Anonymous"} ${u.isTyping ? "(typing...)" : ""}`}
               >
-                {u.user?.initials || '?'}
+                {u.user?.initials || "?"}
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      <div className="workspace-editor-area" ref={containerRef} onMouseMove={handleMouseMove}>
+      <div
+        className="workspace-editor-area"
+        ref={containerRef}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+      >
         {Object.values(users).map((u) => {
-          if (!u.cursor || u.socketId === 'local') return null; // Don't show local cursor as a fake one
+          if (!u.cursor || u.socketId === "local") return null; // Don't show local cursor as a fake one
           return (
             <div
               key={`cursor-${u.socketId}`}
               className="remote-cursor"
               style={{
                 transform: `translate(${u.cursor.x}px, ${u.cursor.y}px)`,
-                backgroundColor: u.user?.color || '#ff0000',
+                backgroundColor: u.user?.color || "#ff0000",
               }}
             >
-              <div className="cursor-label" style={{ backgroundColor: u.user?.color || '#ff0000' }}>
-                {u.user?.name || 'Unknown'}
+              <div
+                className="cursor-label"
+                style={{ backgroundColor: u.user?.color || "#ff0000" }}
+              >
+                {u.user?.name || "Unknown"}
               </div>
             </div>
           );

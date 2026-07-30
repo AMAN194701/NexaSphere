@@ -5,19 +5,6 @@ import { StudentAuthContext } from '../context/StudentAuthContext';
 import prefsService from '../services/notifications/preferences';
 import analytics from './analytics/useNotificationAnalytics';
 
-function getAuthHeaders() {
-  // Wrapped in try-catch — localStorage.getItem throws SecurityError
-  // in Safari private browsing mode.
-  let token = null;
-  try {
-    token = localStorage.getItem('ns_student_token') || localStorage.getItem('ns_admin_token');
-  } catch {
-    // Storage unavailable — proceed without auth token.
-  }
-  return token
-    ? { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
-    : { 'Content-Type': 'application/json' };
-}
 export function useNotifications() {
   const [notifications, setNotifications] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -89,21 +76,9 @@ export function useNotifications() {
         );
 
         if (isMounted) {
-          const allNotifications = responses.flatMap((result) =>
-            result.status === 'fulfilled' ? result.value.notifications || [] : []
-          );
-
-          if (import.meta.env.DEV) {
-            responses
-              .filter((result) => result.status === 'rejected')
-              .forEach((result) => {
-                console.warn(
-                  '[useNotifications] Partial notification fetch failed:',
-                  result.reason?.message || result.reason
-                );
-              });
-          }
-
+          const allNotifications = responses
+            .filter((r) => r.status === 'fulfilled')
+            .flatMap((r) => r.value.notifications || []);
           // De-duplicate by unique id
           const seen = new Set();
           const uniqueNotifications = [];
@@ -116,6 +91,11 @@ export function useNotifications() {
           // Sort by creation date (newest first)
           uniqueNotifications.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
           setNotifications(uniqueNotifications);
+          if (import.meta.env.DEV && responses.some((r) => r.status === 'rejected')) {
+            console.warn(
+              '[useNotifications] One or more notification fetches failed; using partial results.'
+            );
+          }
         }
       } catch (err) {
         // ignore fetch errors — fallback to empty list
@@ -195,6 +175,7 @@ export function useNotifications() {
               localStorage.setItem(key, JSON.stringify(arr));
             } catch (e) {
               setNotifications((prev) => [note, ...prev]);
+              console.error('[useNotifications] Failed to persist suppressed notification:', e);
             }
             return;
           }
@@ -276,7 +257,6 @@ export function useNotifications() {
       };
       setNotifications((prev) => [note, ...prev]);
     };
-
     const handleNewComment = (data) => {
       const note = {
         id: `new-comment-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
@@ -362,6 +342,7 @@ export function useNotifications() {
         });
       } catch (e) {
         console.error('[useNotifications] Failed to mark all as read:', e);
+        console.error('[useNotifications] Failed to mark all notifications as read:', e);
       }
     })();
   }, []);

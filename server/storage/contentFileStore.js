@@ -1,7 +1,11 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import crypto from 'crypto';
 import { Mutex } from 'async-mutex';
+import { HAS_SUPABASE } from './supabaseClient.js';
+import { Mutex } from 'async-mutex';
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -53,6 +57,18 @@ export async function writeContent(content) {
   const tempPath = `${CONTENT_FILE}.${crypto.randomUUID()}.tmp`;
   await fs.writeFile(tempPath, JSON.stringify(content, null, 2), 'utf8');
   await fs.rename(tempPath, CONTENT_FILE);
+}
+
+const fileMutex = new Mutex();
+
+export async function runWithFileLock(callback) {
+  return await fileMutex.runExclusive(callback);
+}
+
+const fileMutex = new Mutex();
+
+export async function runWithFileLock(callback) {
+  return await fileMutex.runExclusive(callback);
 }
 
 const fileMutex = new Mutex();

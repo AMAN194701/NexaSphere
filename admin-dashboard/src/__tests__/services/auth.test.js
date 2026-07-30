@@ -2,11 +2,17 @@ import { describe, test, expect, beforeAll, beforeEach, afterEach, vi } from 'vi
 
 const API_BASE = 'http://test:8080';
 let auth;
+let eventEmitter;
+let EVENTS;
 
 beforeAll(async () => {
   process.env.VITE_API_BASE = API_BASE;
   const mod = await import('../../services/auth.js');
   auth = mod.auth;
+
+  const ee = await import('../../services/eventEmitter.js');
+  eventEmitter = ee.eventEmitter;
+  EVENTS = ee.EVENTS;
 });
 
 beforeEach(() => {
@@ -30,6 +36,7 @@ describe('auth.login', () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: 'test@example.com', password: 'secret123' }),
+      body: JSON.stringify({ email: 'test@example.com', password: 'secret123' }),
       credentials: 'include',
     });
     expect(result.username).toBe('test@example.com');
@@ -56,9 +63,7 @@ describe('auth.login', () => {
   test('throws "Invalid credentials" when response json() fails', async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: false,
-      json: async () => {
-        throw new Error('parse fail');
-      },
+      json: async () => { throw new Error('parse fail'); },
     });
 
     await expect(auth.login('a@b.com', 'x')).rejects.toThrow('Invalid credentials');
@@ -102,6 +107,16 @@ describe('auth.logout', () => {
       'events:read',
       'events:write',
     ]);
+    expect(auth.getScopes()).toEqual(['users:read', 'users:write', 'settings:admin', 'events:read', 'events:write']);
+  });
+
+  test('broadcasts logout so polling can stop immediately', async () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: true });
+    const emitSpy = vi.spyOn(eventEmitter, 'emit');
+
+    await auth.logout();
+
+    expect(emitSpy).toHaveBeenCalledWith(EVENTS.AUTH_LOGOUT);
   });
 });
 

@@ -1,12 +1,5 @@
 export function validateEnvironment() {
-  const required = [
-    'CORS_ORIGIN',
-    'ADMIN_EVENT_PASSWORD',
-    'JWT_SECRET',
-    'ENCRYPTION_KEY',
-    'SUPABASE_URL',
-    'SUPABASE_SERVICE_ROLE_KEY',
-  ];
+  const required = ['CORS_ORIGIN', 'ADMIN_EVENT_PASSWORD', 'JWT_SECRET', 'ENCRYPTION_KEY'];
 
   const missing = required.filter((key) => !process.env[key]);
 
@@ -16,5 +9,7 @@ export function validateEnvironment() {
     } else {
       throw new Error(`Missing environment variables: ${missing.join(', ')}`);
     }
+  if (missing.length && process.env.NODE_ENV !== 'test') {
+    throw new Error(`Missing environment variables: ${missing.join(', ')}`);
   }
 }

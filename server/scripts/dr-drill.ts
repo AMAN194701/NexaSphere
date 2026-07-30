@@ -15,6 +15,7 @@ async function runDrDrill() {
 
   const { S3_ENDPOINT, S3_REGION, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, S3_BUCKET_NAME } =
     process.env;
+  const { S3_ENDPOINT, S3_REGION, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, S3_BUCKET_NAME } = process.env;
 
   if (!S3_ENDPOINT || !S3_REGION || !S3_ACCESS_KEY_ID || !S3_SECRET_ACCESS_KEY || !S3_BUCKET_NAME) {
     console.error('Error: Missing S3 configuration environment variables.');
@@ -50,6 +51,7 @@ async function runDrDrill() {
     console.log(
       `Found latest backup: ${latestBackup.key} (created at ${latestBackup.createdAt.toISOString()})`
     );
+    console.log(`Found latest backup: ${latestBackup.key} (created at ${latestBackup.createdAt.toISOString()})`);
 
     // 2. Download the backup
     console.log('\n[2/3] Downloading encrypted backup...');

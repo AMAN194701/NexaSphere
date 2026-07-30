@@ -8,10 +8,13 @@ const SearchBar = ({ onSelectPrompt, workspace = 'default' }) => {
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [searchError, setSearchError] = useState(null);
+  const resultsPanelId = 'chat-history-search-results';
+  const isResultsExpanded = showResults && Boolean(query);
 
   const handleSearch = useCallback(
     async (searchQuery) => {
       setQuery(searchQuery);
+      setSearchError('');
 
       if (!searchQuery.trim()) {
         setResults([]);
@@ -23,10 +26,13 @@ const SearchBar = ({ onSelectPrompt, workspace = 'default' }) => {
       setIsSearching(true);
       setSearchError(null);
       try {
-        const foundPrompts = await searchPrompts(searchQuery, workspace);
+        const foundPrompts = await searchPrompts(searchQuery, workspace, { throwOnError: true });
         setResults(foundPrompts);
         setShowResults(true);
       } catch (error) {
+        setResults([]);
+        setShowResults(true);
+        setSearchError('Search is temporarily unavailable.');
         if (import.meta.env.DEV) {
           console.error('[HistorySearchBar] Search error:', error.message);
         }
@@ -60,15 +66,22 @@ const SearchBar = ({ onSelectPrompt, workspace = 'default' }) => {
           value={query}
           onChange={(e) => handleSearch(e.target.value)}
           onFocus={() => query && setShowResults(true)}
+          role="combobox"
+          aria-label="Search conversation history"
+          aria-expanded={isResultsExpanded}
+          aria-controls={resultsPanelId}
+          aria-autocomplete="list"
         />
         {isSearching && <span className="search-spinner">⟳</span>}
         {query && (
           <button
             className="clear-search"
+            aria-label="Clear conversation search"
             onClick={() => {
               setQuery('');
               setResults([]);
               setShowResults(false);
+              setSearchError('');
             }}
           >
             ✕
@@ -77,9 +90,22 @@ const SearchBar = ({ onSelectPrompt, workspace = 'default' }) => {
       </div>
 
       {showResults && results.length > 0 && (
-        <div className="search-results">
+        <div id={resultsPanelId} className="search-results" role="listbox">
           {results.slice(0, 5).map((prompt) => (
-            <div key={prompt.id} className="result-item" onClick={() => handleSelectResult(prompt)}>
+            <div
+              key={prompt.id}
+              className="result-item"
+              role="option"
+              aria-selected="false"
+              tabIndex={0}
+              onClick={() => handleSelectResult(prompt)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleSelectResult(prompt);
+                }
+              }}
+            >
               <div className="result-content">
                 <p className="result-query">{formatPreview(prompt.userPrompt)}</p>
                 <p className="result-response">{formatPreview(prompt.botResponse)}</p>
@@ -93,7 +119,7 @@ const SearchBar = ({ onSelectPrompt, workspace = 'default' }) => {
       )}
 
       {showResults && query && results.length === 0 && !isSearching && (
-        <div className="search-empty">
+        <div id={resultsPanelId} className="search-empty" role="status">
           {searchError ? (
             <p className="error-message" style={{ color: '#ef4444' }}>{searchError}</p>
           ) : (

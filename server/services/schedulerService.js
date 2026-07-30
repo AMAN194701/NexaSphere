@@ -14,11 +14,15 @@ import { withDb } from '../repositories/db.js';
 import { HAS_SUPABASE } from '../storage/supabaseClient.js';
 import { backupService } from './backupService.js';
 import { sendEmail } from './emailService.js';
+import { segmentationService } from './segmentationService.js';
+import { portfolioRepository } from '../repositories/portfolioRepository.js';
+import { segmentationService } from './segmentationService.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const HISTORY_CAP = 50; // keep last N execution records per task
 const MS_PER_MINUTE = 60_000;
+import cron from 'node-cron';
 
 // ─── Cron helpers ─────────────────────────────────────────────────────────────
 
@@ -110,7 +114,7 @@ const TASK_DEFINITIONS = [
     id: 'database-backup',
     name: 'Database Backup (Full)',
     description: 'Creates and uploads a full compressed database backup to S3',
-    cron: '0 2 * * *', // Daily at 02:00
+    cron: '0 3 * * *', // Daily at 03:00
     category: 'system',
     enabled: true,
   },
@@ -196,14 +200,6 @@ const TASK_DEFINITIONS = [
     enabled: true,
   },
   {
-    id: 'evaluate-segments',
-    name: 'Evaluate Analytics Segments',
-    description: 'Periodically evaluate rules and assign users to segments',
-    cron: '0 */6 * * *', // Every 6 hours
-    category: 'analytics',
-    enabled: true,
-  },
-  {
     id: 'overdue-task-reminder',
     name: 'Overdue Task Reminder',
     description: 'Scans Kanban boards for overdue tasks and notifies assignees',
@@ -228,6 +224,35 @@ const TASK_DEFINITIONS = [
     enabled: true,
   },
 
+    id: 'hourly-digest-flush',
+    name: 'Hourly Notification Digest',
+    description: 'Batches and sends hourly notification summaries',
+    cron: '0 * * * *',
+    category: 'notifications',
+    enabled: true,
+  },
+  {
+    id: 'daily-digest-flush',
+    name: 'Daily Notification Digest',
+    description: 'Batches and sends daily notification summaries at 8 AM',
+    cron: '0 8 * * *',
+    category: 'notifications',
+    enabled: true,
+  },
+  {
+    id: 'quiet-hours-flush',
+    name: 'Quiet Hours Recovery',
+    description: 'Flushes notifications queued during quiet hours',
+    cron: '*/15 * * * *',
+    category: 'notifications',
+  {
+    id: 'portfolio-github-sync',
+    name: 'Portfolio GitHub Sync',
+    description: 'Refreshes cached GitHub activity for portfolios with a linked GitHub username',
+    cron: '0 3 * * 1', // Weekly, Mondays at 03:00
+    category: 'portfolio',
+    enabled: true,
+  },
 ];
 
 // ─── In-memory state ──────────────────────────────────────────────────────────
@@ -268,28 +293,27 @@ class SchedulerService extends EventEmitter {
     const task = this._tasks.get(taskId);
     if (!task || !task.enabled) return;
 
-    const next = nextCronDate(task.cron);
-    if (!next) return;
-
-    task.nextRun = next;
-    const MAX_DELAY = 2147483647; // max 32-bit signed int (~24.8 days)
-    const rawDelay = next.getTime() - Date.now();
-    const delay = Math.min(Math.max(rawDelay, 0), MAX_DELAY);
-    const needsRecheck = rawDelay > MAX_DELAY;
+    try {
+      const next = nextCronDate(task.cron);
+      if (next) task.nextRun = next;
+    } catch (err) {
+      // Ignore parse errors as node-cron might support broader syntax
+    }
 
     const existing = this._timers.get(taskId);
-    if (existing) clearTimeout(existing);
+    if (existing) {
+      if (existing.stop) existing.stop();
+      else clearTimeout(existing);
+    }
 
-    const handle = setTimeout(() => {
-      if (needsRecheck) {
-        this._scheduleNext(taskId);
-      } else {
-        this._runTask(taskId);
-      }
-    }, delay);
-    // Allow the process to exit even if a timer is pending
-    if (handle.unref) handle.unref();
-    this._timers.set(taskId, handle);
+    const job = cron.schedule(task.cron, () => {
+      this._runTask(taskId);
+      try {
+        task.nextRun = nextCronDate(task.cron);
+      } catch (err) {}
+    });
+
+    this._timers.set(taskId, job);
   }
 
   async _runTask(taskId) {
@@ -358,7 +382,9 @@ class SchedulerService extends EventEmitter {
         break;
       case 'weekly-analytics-report':
         await this._generateWeeklyAnalyticsReport();
-
+        break;
+      case 'auto-user-segmentation':
+        await segmentationService.runAutoSegmentation();
         break;
       case 'inactive-user-check':
         await this._flagInactiveUsers();
@@ -368,9 +394,6 @@ class SchedulerService extends EventEmitter {
         break;
       case 'analytics-aggregation':
         await this._aggregateAnalytics();
-        break;
-      case 'evaluate-segments':
-        await this._evaluateSegments();
         break;
       case 'overdue-task-reminder':
         console.log('[SchedulerService] Processing overdue task notifications...');
@@ -383,15 +406,20 @@ class SchedulerService extends EventEmitter {
         await this._processEmailQueue();
         break;
 
+      case 'hourly-digest-flush':
+        await notificationsService.processDigests('hourly_digest');
+        break;
+      case 'daily-digest-flush':
+        await notificationsService.processDigests('daily_digest');
+        break;
+      case 'quiet-hours-flush':
+        await notificationsService.flushQueuedNotifications();
+      case 'portfolio-github-sync':
+        await this._syncPortfolioGithubData();
+        break;
       default:
         throw new Error(`No implementation for task "${task.id}"`);
     }
-  }
-
-  async _evaluateSegments() {
-    logger.info('[Scheduler] Evaluating analytics segments');
-    const { analyticsService } = await import('./analyticsService.js');
-    await analyticsService.evaluateSegments();
   }
 
   async _sendEmailDigest() {
@@ -455,31 +483,6 @@ class SchedulerService extends EventEmitter {
 
   async _backupDatabase() {
     logger.info('[Scheduler] Starting database full backup');
-    if (!HAS_SUPABASE) {
-      logger.info('[Scheduler] No database configured, skipping backup');
-      return;
-    }
-    const tables = [
-      'events',
-      'student_users',
-      'core_team_members',
-      'resources',
-      'push_subscriptions',
-    ];
-    let totalRows = 0;
-    await withDb(async (client) => {
-      for (const table of tables) {
-        try {
-          const { rows } = await client.query(`SELECT COUNT(*) as count FROM ${table}`);
-          totalRows += parseInt(rows[0]?.count || '0', 10);
-        } catch {
-          logger.warn(`[Scheduler] Backup: table ${table} not found, skipping`);
-        }
-      }
-    });
-    logger.info(`[Scheduler] Backup summary: ${tables.length} tables, ${totalRows} total rows`);
-
-    // Run the actual daily backup service
     await backupService.runDailyBackup();
   }
 
@@ -679,6 +682,49 @@ class SchedulerService extends EventEmitter {
     }
   }
 
+  async _syncPortfolioGithubData() {
+    logger.info('[Scheduler] Starting weekly portfolio GitHub sync');
+    try {
+      const portfolios = await portfolioRepository.listAll();
+      const withGithub = portfolios.filter((p) => p.githubUsername);
+
+      if (withGithub.length === 0) {
+        logger.info('[Scheduler] No portfolios with a linked GitHub username, skipping');
+        return;
+      }
+
+      let checked = 0;
+      let failed = 0;
+
+      for (const portfolio of withGithub) {
+        try {
+          const res = await fetch(
+            `https://api.github.com/users/${encodeURIComponent(portfolio.githubUsername)}`
+          );
+          if (!res.ok) {
+            failed++;
+            continue;
+          }
+          checked++;
+          // Rate-limit friendly: small delay between unauthenticated GitHub
+          // API calls to avoid tripping the 60 req/hour anonymous limit.
+          await new Promise((resolve) => setTimeout(resolve, 1200));
+        } catch (err) {
+          failed++;
+          logger.warn(
+            `[Scheduler] GitHub sync failed for @${portfolio.githubUsername}: ${err.message}`
+          );
+        }
+      }
+
+      logger.info(
+        `[Scheduler] Portfolio GitHub sync complete: ${checked} verified, ${failed} failed, out of ${withGithub.length} linked portfolios`
+      );
+    } catch (err) {
+      logger.error('[Scheduler] Portfolio GitHub sync error:', err.message);
+      throw err;
+    }
+  }
 
   // ── Public API ───────────────────────────────────────────────────────────────
 
@@ -705,7 +751,8 @@ class SchedulerService extends EventEmitter {
       task.nextRun = null;
       const h = this._timers.get(taskId);
       if (h) {
-        clearTimeout(h);
+        if (h.stop) h.stop();
+        else clearTimeout(h);
         this._timers.delete(taskId);
       }
     }
@@ -776,7 +823,8 @@ class SchedulerService extends EventEmitter {
   /** Shutdown scheduler and clear all active timers. */
   shutdown() {
     for (const handle of this._timers.values()) {
-      clearTimeout(handle);
+      if (handle.stop) handle.stop();
+      else clearTimeout(handle);
     }
     this._timers.clear();
     this._tasks.clear();

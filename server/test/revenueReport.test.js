@@ -141,4 +141,8 @@ test('Revenue Report aggregations and calculations', async () => {
 test('Revenue Report restricts access for organizers', async () => {
   const organizerUser = { id: 'usr_org', role: 'organizer' };
   await assert.rejects(() => financialService.getRevenueReport(organizerUser), /Forbidden/);
+  await assert.rejects(
+    () => financialService.getRevenueReport(organizerUser),
+    /Forbidden/
+  );
 });

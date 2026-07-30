@@ -1,5 +1,5 @@
-import { z } from 'zod';
-import { generatePrefixedId } from '../utils/uuid.js';
+import { z } from "zod";
+import { generatePrefixedId } from "../utils/uuid.js";
 
 // Parses and clamps ?page / ?limit query parameters.
 // page: positive integer, minimum 1, defaults to 1.
@@ -29,8 +29,8 @@ const tagsSchema = z
   .union([z.array(z.string()).min(0), z.string()])
   .transform((val) => {
     if (Array.isArray(val)) return val;
-    return String(val || '')
-      .split(',')
+    return String(val || "")
+      .split(",")
       .map((t) => t.trim())
       .filter(Boolean);
   })
@@ -57,6 +57,7 @@ export const eventSchema = z
     recurrencePattern: z.enum(['daily', 'weekly', 'monthly', 'custom']).optional().nullable(),
     recurrenceEndDate: z.string().optional().nullable(),
     occurrenceIndex: z.number().int().optional().nullable(),
+    capacity: z.coerce.number().int().min(1).optional().nullable(),
   })
   .transform((data) => {
     // Normalize fields to match DB expectations used previously.
@@ -83,5 +84,64 @@ export const eventSchema = z
       recurrencePattern: data.recurrencePattern || null,
       recurrenceEndDate: data.recurrenceEndDate || null,
       occurrenceIndex: data.occurrenceIndex || null,
+      capacity: data.capacity || null,
     };
   });
+const eventBaseSchema = z.object({
+  id: z.string().trim().min(1).optional(),
+  name: z.string().trim().min(1).max(120),
+  shortName: z.string().trim().min(1).max(60).optional(),
+  date: z.string().trim().min(1).max(80),
+  description: z.string().trim().min(1).max(1200),
+  status: z.enum(["upcoming", "completed"]).optional().default("completed"),
+  icon: z.string().trim().max(32).optional().default("Pin"),
+  tags: tagsSchema,
+});
+
+export const eventSchema = eventBaseSchema.transform((data) => {
+  // Normalize fields to match DB expectations used previously.
+  const status = data.status === "upcoming" ? "upcoming" : "completed";
+  const id =
+    data.id ||
+    String(data.shortName || data.name)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") ||
+    generatePrefixedId("event");
+
+export const baseEventSchema = z.object({
+  id: z.string().trim().min(1).optional(),
+  name: z.string().trim().min(1).max(120),
+  shortName: z.string().trim().min(1).max(60).optional(),
+  date: z.string().trim().min(1).max(80),
+  description: z.string().trim().min(1).max(1200),
+  status: z.enum(["upcoming", "completed"]).optional().default("completed"),
+  icon: z.string().trim().max(32).optional().default("Pin"),
+  tags: tagsSchema,
+});
+
+export const eventSchema = baseEventSchema.transform((data) => {
+  // Normalize fields to match DB expectations used previously.
+  const status = data.status === "upcoming" ? "upcoming" : "completed";
+  const id =
+    data.id ||
+    String(data.shortName || data.name)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") ||
+    generatePrefixedId("event");
+
+  return {
+    ...data,
+    id,
+    status,
+    shortName: String(data.shortName || data.name),
+    date: String(data.date),
+    name: String(data.name),
+    description: String(data.description),
+    icon: String(data.icon || "Pin").slice(0, 32),
+    tags: Array.isArray(data.tags) ? data.tags : [],
+  };
+});
+
+export const eventPatchSchema = eventBaseSchema.partial();

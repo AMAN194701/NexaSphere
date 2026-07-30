@@ -30,11 +30,29 @@ export default function Footer({ onAdmin }) {
           <p className="ns-footer-text">
             <Mail size={14} style={{ display: 'inline', verticalAlign: '-2px' }} />{' '}
             <a href={`mailto:${NEXASPHERE_EMAIL}`} className="ns-footer-email-link">
+              className="ns-footer-logo-full ns-footer-logo-desktop"
+              loading="lazy"
+            />
+            <div style={{ width: 1, height: 24, background: 'var(--bdr2)' }} />
+            <img src={GL_BAJAJ_LOGO} alt="GL Bajaj" className="ns-footer-logo-gl" loading="lazy" />
+          </div>
+          <p className="ns-footer-text">
+            © {new Date().getFullYear()} <span>NexaSphere</span> — GL Bajaj Group of Institutions,
+            Mathura
+          </p>
+          <p className="ns-footer-text">
+            <Mail size={14} style={{ display: 'inline', verticalAlign: '-2px' }} />{' '}
+            <a
+              aria-label="Interactive element"
+              href={`mailto:${NEXASPHERE_EMAIL}`}
+              className="ns-footer-email-link"
+            >
               {NEXASPHERE_EMAIL}
             </a>
           </p>
           <p className="ns-footer-text ns-footer-built">
             {t('footer.built_with')}{' '}
+            Built with{' '}
             <Heart
               size={12}
               fill="currentColor"
@@ -55,6 +73,26 @@ export default function Footer({ onAdmin }) {
               aria-label="Open Admin Dashboard"
             >
               {t('footer.admin_dashboard')}
+            by the NexaSphere Core Team ·{' '}
+            <span
+              onClick={onProjects ? onProjects : undefined}
+              style={{ cursor: 'pointer', textDecoration: 'underline' }}
+            >
+              Projects Gallery
+            </span>{' '}
+            ·{' '}
+            <span
+              onClick={onRoadmaps ? onRoadmaps : undefined}
+              style={{ cursor: 'pointer', textDecoration: 'underline' }}
+            >
+              Learning Roadmaps
+            </span>{' '}
+            ·{' '}
+            <span
+              onClick={onAdmin ? onAdmin : undefined}
+              style={{ cursor: 'pointer', textDecoration: 'underline' }}
+            >
+              Admin Dashboard
             </span>
           </p>
         </div>

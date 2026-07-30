@@ -30,6 +30,8 @@ window.addEventListener('error', (event) => {
   Sentry.captureException(event.error, { tags: { type: 'uncaughterror' } });
 });
 
+import { SocketProvider } from './context/SocketContext';
+
 // Apply saved theme before React renders — prevents flash of wrong theme
 try {
   const savedTheme = localStorage.getItem('ns-theme');
@@ -88,20 +90,26 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <HelmetProvider>
       <ThemeProvider>
-        <ErrorBoundary>
-          <App />
-        </ErrorBoundary>
+        <SocketProvider>
+          <ErrorBoundary>
+            <App />
+          </ErrorBoundary>
+        </SocketProvider>
       </ThemeProvider>
     </HelmetProvider>
   </StrictMode>
 );
 
 // Performance monitoring (Web Vitals) sent to analytics backend
-reportWebVitals((metric) => {
-  const body = JSON.stringify(metric);
-  if (navigator.sendBeacon) {
-    navigator.sendBeacon('/api/performance/vitals', body);
-  } else {
-    fetch('/api/performance/vitals', { body, method: 'POST', keepalive: true });
-  }
-});
+// Skip in E2E test runs — the /api/performance/vitals endpoint is not available
+// in CI and the constant ECONNREFUSED proxy errors prevent networkidle from settling.
+if (!navigator.userAgent.includes('Playwright')) {
+  reportWebVitals((metric) => {
+    const body = JSON.stringify(metric);
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon('/api/performance/vitals', body);
+    } else {
+      fetch('/api/performance/vitals', { body, method: 'POST', keepalive: true });
+    }
+  });
+}

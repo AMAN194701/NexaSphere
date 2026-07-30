@@ -351,6 +351,7 @@ export default function ForumPage({ onBack }) {
                       style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: 8 }}
                     >
                       by {thread.authorName} · {formatThreadDate(thread.createdAt)}
+                      by {thread.authorName} · {new Date(thread.createdAt).toLocaleDateString()}
                     </div>
                   </div>
                 </div>

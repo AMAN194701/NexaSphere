@@ -8,10 +8,7 @@ interface SocketContextProps {
   isConnected: boolean;
 }
 
-const SocketContext = createContext<SocketContextProps>({
-  socket: null,
-  isConnected: false,
-});
+const SocketContext = createContext<SocketContextProps | undefined>(undefined);
 
 export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -35,7 +32,6 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     return () => {
       socketInstance.off('connect', onConnect);
       socketInstance.off('disconnect', onDisconnect);
-      // Removed disconnectSocket() to preserve singleton connection across route changes
     };
   }, []);
 
@@ -44,4 +40,10 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   );
 };
 
-export const useSocketContext = () => useContext(SocketContext);
+export const useSocketContext = () => {
+  const context = useContext(SocketContext);
+  if (context === undefined) {
+    throw new Error('useSocketContext must be used within a SocketProvider');
+  }
+  return context;
+};

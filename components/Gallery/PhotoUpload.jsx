@@ -84,7 +84,11 @@ export default function PhotoUpload({ eventId, albumId, onUploadComplete }) {
 
       xhr.addEventListener('load', () => {
         if (xhr.status >= 200 && xhr.status < 300) {
-          resolve(JSON.parse(xhr.responseText));
+          try {
+            resolve(JSON.parse(xhr.responseText));
+          } catch (e) {
+            reject(new Error('Upload failed: Invalid server response'));
+          }
         } else {
           reject(new Error(`Upload failed: ${xhr.statusText}`));
         }
@@ -175,7 +179,7 @@ export default function PhotoUpload({ eventId, albumId, onUploadComplete }) {
           <div className="upload-preview__grid">
             {files.map((item) => (
               <div key={item.id} className="preview-item">
-                <img src={item.preview} alt={item.file.name} className="preview-item__img" />
+                <img loading="lazy" src={item.preview} alt={item.file.name} className="preview-item__img" />
                 {progress[item.id] !== undefined && (
                   <div className="preview-item__progress">
                     <div

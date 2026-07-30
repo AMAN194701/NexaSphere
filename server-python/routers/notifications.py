@@ -3,6 +3,7 @@ import hmac
 import logging
 from typing import Optional
 from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status # Added status import
 from pydantic import BaseModel
 from services.notification_service import notify_team_leader
 
@@ -15,6 +16,7 @@ class JoinRequestPayload(BaseModel):
     skills: str
     github: str
 
+# FIX ISSUE 4 ONLY: Create response layout schema contract
 class NotificationResponse(BaseModel):
     status: str
     detail: Optional[str] = None
@@ -27,6 +29,15 @@ def _verify_service_auth(
 ) -> None:
     """Dependency that validates the internal service auth header string securely."""
     if not INTERNAL_SERVICE_SECRET:
+        logger.critical("INTERNAL_SERVICE_SECRET is not configured — blocking all requests")
+        raise HTTPException(
+            status_code=500,
+            detail="Server misconfiguration: internal auth secret is not set",
+        )
+
+def _verify_service_auth(x_service_auth: Optional[str] = Header(default=None)) -> None:
+    """Dependency that validates the internal service auth header string securely."""
+    if not INTERNAL_SERVICE_SECRET:
         return
     
     if not x_service_auth or not hmac.compare_digest(x_service_auth, INTERNAL_SERVICE_SECRET):
@@ -37,6 +48,11 @@ def _verify_service_auth(
 
 
 @router.post("/join-request", response_model=NotificationResponse)
+# FIX ISSUE 4 ONLY: Declare response_model contract on the route decorator
+@router.post("/join-request", response_model=NotificationResponse)
+async def handle_join_request_notification(
+# FIX ISSUE 2 ONLY: Dropped 'async' so blocking I/O offloads to worker threads safely
+@router.post("/join-request")
 def handle_join_request_notification(
     payload: JoinRequestPayload,
     _: None = Depends(_verify_service_auth),
@@ -44,6 +60,7 @@ def handle_join_request_notification(
     """
     Webhook endpoint called by the Java backend when a new join request is created.
     """
+    # FIX ISSUE 4 ONLY: Try-Except Block to manage response delivery variations safely
     try:
         notify_team_leader(
             team_id=payload.teamId,

@@ -1,13 +1,4 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-
-// Validates a date value before formatting — avoids rendering literal
-// "Invalid Date" text when the API returns a null or malformed timestamp.
-function formatSessionDate(value) {
-  if (!value) return 'Unknown date';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return 'Unknown date';
-  return d.toLocaleDateString();
-}
 import {
   Users,
   BookOpen,
@@ -24,6 +15,14 @@ import {
   mentorships as fallbackMentorships,
   sessions as fallbackSessions,
 } from '../../data/mentorshipData.js';
+import { getApiBase } from '../../utils/runtimeConfig';
+
+function formatSessionDate(value) {
+  if (!value) return 'Unknown date';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return 'Unknown date';
+  return d.toLocaleDateString();
+}
 
 async function apiFetch(path, options = {}) {
   const base = getApiBase();
@@ -58,14 +57,18 @@ function MentorshipDashboard() {
   const toastTimeoutRef = useRef(null);
 
   const showToast = useCallback((message, type) => {
-    setToast({ message, type });
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-    toastTimeoutRef.current = setTimeout(() => setToast(null), 4000);
+    setToast({ message, type });
+    toastTimeoutRef.current = setTimeout(() => {
+      setToast(null);
+      toastTimeoutRef.current = null;
+    }, 4000);
   }, []);
 
   useEffect(() => {
     return () => {
       if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+      toastTimeoutRef.current = null;
     };
   }, []);
 
@@ -198,6 +201,22 @@ function MentorshipDashboard() {
                             <p className="text-xs text-gray-500">{m.menteeName}</p>
                           </div>
                         </div>
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded-full border ${statusColors[m.status] || 'text-gray-400'}`}
+                        >
+                          {m.status}
+                        </span>
+                      </div>
+                      {m.menteeDomain && (
+                        <p className="text-xs text-gray-500 mb-1">Domain: {m.menteeDomain}</p>
+                      )}
+                      {m.menteeGoals && (
+                        <p className="text-xs text-gray-500 line-clamp-1">{m.menteeGoals}</p>
+                      )}
+                      <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                        <span className="flex items-center gap-1">
+                          <BookOpen className="w-3 h-3" /> {m.sessionCount || 0} sessions
+                        </span>
                         <span
                           className={`text-xs px-2 py-0.5 rounded-full border ${statusColors[m.status] || 'text-gray-400'}`}
                         >

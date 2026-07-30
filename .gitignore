@@ -134,3 +134,4 @@ test_output.txt
 *_ISSUE[0-9]*.md
 PR_CONTENT_ISSUE_*.md
 PR_TEMPLATE_ISSUE_*.md
+NexaSphere/

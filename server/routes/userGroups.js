@@ -24,6 +24,10 @@ router.get('/admin/groups', async (req, res) => {
   } catch (err) {
     console.error('Error fetching groups:', err);
     sendError(req, res, 'Internal server error', 500, 'INTERNAL_ERROR');
+    res.json({ groups });
+  } catch (err) {
+    console.error('Error fetching groups:', err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -39,6 +43,18 @@ router.post('/admin/groups', validate(createGroupBodySchema), async (req, res) =
     }
     console.error('Error creating group:', err);
     sendError(req, res, 'Internal server error', 500, 'INTERNAL_ERROR');
+router.post('/admin/groups', async (req, res) => {
+  try {
+    const { name, description, permissions } = req.body;
+    if (!name) return res.status(400).json({ error: 'Name is required' });
+    const group = await userGroupsRepository.createGroup({ name, description, permissions });
+    res.status(201).json({ group });
+  } catch (err) {
+    if (err.code === '23505') {
+      return res.status(409).json({ error: 'Group name already exists' });
+    }
+    console.error('Error creating group:', err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -51,6 +67,14 @@ router.get('/admin/groups/:id', validate(groupIdParamsSchema, 'params'), async (
   } catch (err) {
     console.error('Error fetching group:', err);
     sendError(req, res, 'Internal server error', 500, 'INTERNAL_ERROR');
+router.get('/admin/groups/:id', async (req, res) => {
+  try {
+    const group = await userGroupsRepository.getGroupById(req.params.id);
+    if (!group) return res.status(404).json({ error: 'Group not found' });
+    res.json({ group });
+  } catch (err) {
+    console.error('Error fetching group:', err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -63,6 +87,14 @@ router.put('/admin/groups/:id', validate(groupIdParamsSchema, 'params'), validat
   } catch (err) {
     console.error('Error updating group:', err);
     sendError(req, res, 'Internal server error', 500, 'INTERNAL_ERROR');
+router.put('/admin/groups/:id', async (req, res) => {
+  try {
+    const group = await userGroupsRepository.updateGroup(req.params.id, req.body);
+    if (!group) return res.status(404).json({ error: 'Group not found' });
+    res.json({ group });
+  } catch (err) {
+    console.error('Error updating group:', err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -75,6 +107,14 @@ router.delete('/admin/groups/:id', validate(groupIdParamsSchema, 'params'), asyn
   } catch (err) {
     console.error('Error deleting group:', err);
     sendError(req, res, 'Internal server error', 500, 'INTERNAL_ERROR');
+router.delete('/admin/groups/:id', async (req, res) => {
+  try {
+    const success = await userGroupsRepository.deleteGroup(req.params.id);
+    if (!success) return res.status(404).json({ error: 'Group not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error deleting group:', err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -86,6 +126,13 @@ router.get('/admin/groups/:id/members', validate(groupIdParamsSchema, 'params'),
   } catch (err) {
     console.error('Error fetching group members:', err);
     sendError(req, res, 'Internal server error', 500, 'INTERNAL_ERROR');
+router.get('/admin/groups/:id/members', async (req, res) => {
+  try {
+    const members = await userGroupsRepository.getGroupMembers(req.params.id);
+    res.json({ members });
+  } catch (err) {
+    console.error('Error fetching group members:', err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -98,6 +145,17 @@ router.post('/admin/groups/:id/members', validate(groupIdParamsSchema, 'params')
   } catch (err) {
     console.error('Error adding members:', err);
     sendError(req, res, 'Internal server error', 500, 'INTERNAL_ERROR');
+router.post('/admin/groups/:id/members', async (req, res) => {
+  try {
+    const { studentIds } = req.body;
+    if (!Array.isArray(studentIds)) {
+      return res.status(400).json({ error: 'studentIds must be an array' });
+    }
+    const addedCount = await userGroupsRepository.addMembersToGroup(req.params.id, studentIds);
+    res.json({ addedCount });
+  } catch (err) {
+    console.error('Error adding members:', err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -113,6 +171,14 @@ router.delete('/admin/groups/:id/members/:studentId', validate(groupMemberParams
   } catch (err) {
     console.error('Error removing member:', err);
     sendError(req, res, 'Internal server error', 500, 'INTERNAL_ERROR');
+router.delete('/admin/groups/:id/members/:studentId', async (req, res) => {
+  try {
+    const success = await userGroupsRepository.removeMemberFromGroup(req.params.id, req.params.studentId);
+    if (!success) return res.status(404).json({ error: 'Member not found in group' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error removing member:', err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -125,6 +191,17 @@ router.post('/admin/groups/:id/email', validate(groupIdParamsSchema, 'params'), 
     const { emailCampaignRepository } = await import('../repositories/emailCampaignRepository.js');
     const { emailCampaignService } = await import('../services/emailCampaignService.js');
 
+router.post('/admin/groups/:id/email', async (req, res) => {
+  try {
+    const { subject, htmlContent } = req.body;
+    if (!subject || !htmlContent) {
+      return res.status(400).json({ error: 'Subject and htmlContent required' });
+    }
+    
+    // Import inside route to avoid circular deps if any
+    const { emailCampaignRepository } = await import('../repositories/emailCampaignRepository.js');
+    const { emailCampaignService } = await import('../services/emailCampaignService.js');
+    
     // Create a one-off campaign for this group
     const campaign = await emailCampaignRepository.createCampaign({
       name: `Group Email - ${req.params.id} - ${new Date().toISOString()}`,
@@ -141,6 +218,13 @@ router.post('/admin/groups/:id/email', validate(groupIdParamsSchema, 'params'), 
   } catch (err) {
     console.error('Error sending bulk email:', err);
     sendError(req, res, 'Internal server error', 500, 'INTERNAL_ERROR');
+    
+    // Send it immediately
+    const stats = await emailCampaignService.sendCampaign(campaign.id);
+    res.json({ success: true, campaignId: campaign.id, stats });
+  } catch (err) {
+    console.error('Error sending bulk email:', err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

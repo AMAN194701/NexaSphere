@@ -17,7 +17,6 @@ function formatThreadDate(value) {
 
 export default function ForumThreadPage({ onBack }) {
   const { id } = useParams();
-  const threadIdNum = parseInt(id, 10);
   const navigate = useNavigate();
   const [thread, setThread] = useState(null);
   const [replies, setReplies] = useState([]);
@@ -31,9 +30,9 @@ export default function ForumThreadPage({ onBack }) {
   useEffect(() => {
     const base = getApiBase();
     if (!base) {
-      const t = fallbackThreads.find((th) => th.id === threadIdNum);
+      const t = fallbackThreads.find((th) => th.id === parseInt(id, 10));
       setThread(t || null);
-      setReplies(fallbackReplies.filter((r) => r.threadId === threadIdNum));
+      setReplies(fallbackReplies.filter((r) => r.threadId === parseInt(id, 10)));
       setLoading(false);
       return;
     }
@@ -43,7 +42,7 @@ export default function ForumThreadPage({ onBack }) {
         if (data?.replies) setReplies(data.replies);
       })
       .catch(() => {
-        const t = fallbackThreads.find((th) => th.id === threadIdNum);
+        const t = fallbackThreads.find((th) => th.id === parseInt(id, 10));
         setThread(t || null);
       })
       .finally(() => setLoading(false));
@@ -236,7 +235,8 @@ export default function ForumThreadPage({ onBack }) {
             {thread.title}
           </h1>
           <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-            Posted by {thread.authorName} · {formatThreadDate(thread.createdAt)} ·{' '}
+            Posted by {thread.authorName} · {formatThreadDate(thread.createdAt)} · Posted by{' '}
+            {thread.authorName} · {new Date(thread.createdAt).toLocaleDateString()} ·{' '}
             {thread.viewCount || 0} views
           </div>
         </div>
@@ -379,6 +379,7 @@ export default function ForumThreadPage({ onBack }) {
                       </span>
                       <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
                         {formatThreadDate(reply.createdAt)}
+                        {new Date(reply.createdAt).toLocaleDateString()}
                       </span>
                       {reply.isAccepted && (
                         <span style={{ fontSize: '0.8rem', color: '#22c55e' }}>

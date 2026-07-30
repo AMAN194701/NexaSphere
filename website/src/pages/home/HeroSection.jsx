@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-
+import { apiClient } from '../../utils/apiClient';
 import { useTranslation } from 'react-i18next';
 
 import { BRAND_LOGO_ICON } from '../../shared/brandAssets';
@@ -16,6 +16,7 @@ function RippleBtn({ cls, children, href, onClick }) {
     return () => {
       current.forEach(clearTimeout);
     };
+    return () => timeoutsRef.current.forEach(clearTimeout);
   }, []);
 
   const go = (e) => {
@@ -31,6 +32,9 @@ function RippleBtn({ cls, children, href, onClick }) {
     timeoutsRef.current.push(t);
     onClick && onClick(e);
   };
+  useEffect(() => {
+    return () => timeoutsRef.current.forEach(clearTimeout);
+  }, []);
   if (href)
     return (
       <a
@@ -162,11 +166,11 @@ function Logo3D({ ready, isLight }) {
       }}
     >
       <OrbitRings isLight={isLight} />
-        <Image
-          src={BRAND_LOGO_ICON}
-          alt="NexaSphere"
-          className="hero-logo-img"
-          priority={true}
+      <Image
+        src={BRAND_LOGO_ICON}
+        alt="NexaSphere"
+        className="hero-logo-img"
+        priority={true}
         width={220}
         height={220}
       />
@@ -418,14 +422,44 @@ export default function HeroSection({ onTabChange, onApply, onJoin, theme = 'dar
       </div>
       <Atmosphere isLight={isLight} />
 
-      <div className="hero-content" style={{ position: 'relative', zIndex: 2, paddingBottom: '80px' }}>
-          {activeBanner ? (
-            <div className="mb-8 w-full max-w-4xl mx-auto cursor-pointer" onClick={() => activeBanner.linkUrl ? window.open(activeBanner.linkUrl, '_blank', 'noopener,noreferrer') : null}>
-              <img src={activeBanner.imageUrl} alt={activeBanner.title} style={{ width: '100%', borderRadius: '16px', boxShadow: '0 12px 32px rgba(0,0,0,0.4)', objectFit: 'cover', maxHeight: '400px' }} />
-            </div>
-          ) : (
-            <Logo3D ready={ready} isLight={isLight} />
-          )}
+      <div
+        className="hero-content"
+        style={{ position: 'relative', zIndex: 2, paddingBottom: '80px' }}
+      >
+        {activeBanner ? (
+          <div
+            className="mb-8 w-full max-w-4xl mx-auto cursor-pointer"
+            role="button"
+            tabIndex={0}
+            aria-label={`Banner: ${activeBanner.title}`}
+            onClick={() =>
+              activeBanner.linkUrl
+                ? window.open(activeBanner.linkUrl, '_blank', 'noopener,noreferrer')
+                : null
+            }
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                if (activeBanner.linkUrl)
+                  window.open(activeBanner.linkUrl, '_blank', 'noopener,noreferrer');
+              }
+            }}
+          >
+            <img
+              src={activeBanner.imageUrl}
+              alt={activeBanner.title}
+              style={{
+                width: '100%',
+                borderRadius: '16px',
+                boxShadow: '0 12px 32px rgba(0,0,0,0.4)',
+                objectFit: 'cover',
+                maxHeight: '400px',
+              }}
+            />
+          </div>
+        ) : (
+          <Logo3D ready={ready} isLight={isLight} />
+        )}
 
         <HeroTitle isLight={isLight} />
 

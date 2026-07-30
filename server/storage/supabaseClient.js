@@ -50,6 +50,13 @@ export function isInternalUrl(urlString) {
 export async function supabaseRequest(pathname, { method = 'GET', body } = {}) {
   if (!HAS_SUPABASE) throw new Error('Supabase is not configured');
   const res = await tracedFetch(`${SUPABASE_URL}/rest/v1/${pathname}`, {
+  
+  const fullUrl = `${SUPABASE_URL}/rest/v1/${pathname}`;
+  if (isInternalUrl(fullUrl) && !fullUrl.startsWith(SUPABASE_URL)) {
+    throw new Error('Access to internal URL is prohibited');
+  }
+
+  const res = await fetch(fullUrl, {
     method,
     headers: {
       apikey: SUPABASE_SERVICE_KEY,

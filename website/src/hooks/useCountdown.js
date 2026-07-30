@@ -41,8 +41,8 @@ export default function useCountdown({
     const startTime = start?.getTime();
     const endTime = end?.getTime();
 
-    let status;
-    let remaining;
+    let status = 'upcoming';
+    let remaining = 0;
 
     const isCompleted = endTime && now > endTime;
     const isLive = startTime && now >= startTime && (!endTime || now <= endTime);
@@ -82,9 +82,12 @@ export default function useCountdown({
   const [countdown, setCountdown] = useState(computeCountdown);
 
   useEffect(() => {
+    setCountdown(computeCountdown());
+
     const interval = window.setInterval(() => {
       setCountdown(computeCountdown());
     }, 1000);
+
     return () => window.clearInterval(interval);
   }, [computeCountdown]);
 

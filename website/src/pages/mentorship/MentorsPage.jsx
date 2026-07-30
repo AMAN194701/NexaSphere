@@ -24,8 +24,8 @@ async function apiFetch(path, options = {}) {
     ...options,
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || `Request failed (${res.status})`);
+    const err = await res.json().catch(() => ({ message: 'Request failed' }));
+    throw new Error(err.message || 'Request failed');
   }
   return res.json();
 }
@@ -104,6 +104,13 @@ function MentorsPage() {
         mentee_goals: '',
         message: '',
       });
+      setRequestForm({
+        mentee_name: '',
+        mentee_email: '',
+        mentee_domain: '',
+        mentee_goals: '',
+        message: '',
+      });
     } catch (e) {
       showToast(e.message, 'error');
     } finally {
@@ -120,7 +127,9 @@ function MentorsPage() {
           </h1>
           <p className="text-gray-400 max-w-2xl mx-auto">
             Connect with experienced mentors who can guide you through your learning journey. Browse
-            our directory and request a mentorship today.
+            our directory and request a mentorship today. Connect with experienced mentors who can
+            guide you through your learning journey. Browse our directory and request a mentorship
+            today.
           </p>
         </div>
 

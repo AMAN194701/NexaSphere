@@ -44,6 +44,7 @@ const adminAuth = adminAuthMiddleware.requireAdmin || adminAuthMiddleware;
 
 function safePagination(query) {
   const limit = Math.min(parseInt(query.limit, 10) || 50, 200);
+  const limit  = Math.min(parseInt(query.limit,  10) || 50, 200);
   const offset = Math.max(parseInt(query.offset, 10) || 0, 0);
   return { limit, offset };
 }
@@ -61,6 +62,9 @@ router.get('/documents', async (req, res) => {
     sendSuccess(res, { documents: docs });
   } catch (err) {
     sendError(req, res, err.message, 500, 'INTERNAL_ERROR');
+    res.json({ documents: docs });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -75,6 +79,13 @@ router.get('/documents/type/:type', async (req, res) => {
     sendSuccess(res, doc);
   } catch (err) {
     sendError(req, res, err.message, 500, 'INTERNAL_ERROR');
+      return res.status(400).json({ error: 'Invalid document type' });
+    }
+    const doc = await complianceService.getActiveDocument(type);
+    if (!doc) return res.status(404).json({ error: 'No active document found for this type' });
+    res.json(doc);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -86,6 +97,12 @@ router.get('/documents/:id', async (req, res) => {
     sendSuccess(res, doc);
   } catch (err) {
     sendError(req, res, err.message, 500, 'INTERNAL_ERROR');
+    if (!sanitizeId(req.params.id)) return res.status(400).json({ error: 'Invalid document id' });
+    const doc = await complianceService.getDocument(req.params.id);
+    if (!doc) return res.status(404).json({ error: 'Document not found' });
+    res.json(doc);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -96,6 +113,11 @@ router.post('/acceptances', validate(recordAcceptanceSchema), async (req, res) =
     const { userId, documentId, ipAddress } = req.body || {};
     if (!userId || !documentId) {
       return sendError(req, res, 'userId and documentId are required', 400, 'VALIDATION_ERROR');
+router.post('/acceptances', async (req, res) => {
+  try {
+    const { userId, documentId, ipAddress } = req.body || {};
+    if (!userId || !documentId) {
+      return res.status(400).json({ error: 'userId and documentId are required' });
     }
     const acceptance = await complianceService.recordAcceptance({
       userId,
@@ -106,6 +128,10 @@ router.post('/acceptances', validate(recordAcceptanceSchema), async (req, res) =
   } catch (err) {
     if (err.message === 'Document not found') return sendError(req, res, err.message, 404, 'NOT_FOUND');
     sendError(req, res, err.message, 500, 'INTERNAL_ERROR');
+    res.status(201).json(acceptance);
+  } catch (err) {
+    if (err.message === 'Document not found') return res.status(404).json({ error: err.message });
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -115,6 +141,9 @@ router.get('/acceptances/user/:userId', async (req, res) => {
     sendSuccess(res, { acceptances });
   } catch (err) {
     sendError(req, res, err.message, 500, 'INTERNAL_ERROR');
+    res.json({ acceptances });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -126,6 +155,11 @@ router.get('/acceptances/check', async (req, res) => {
     sendSuccess(res, { accepted });
   } catch (err) {
     sendError(req, res, err.message, 500, 'INTERNAL_ERROR');
+    if (!userId || !type) return res.status(400).json({ error: 'userId and type are required' });
+    const accepted = await complianceService.hasUserAccepted(userId, type);
+    res.json({ accepted });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -142,6 +176,17 @@ router.post('/gdpr', validate(gdprRequestSchema), async (req, res) => {
       return sendError(req, res, err.message, 400, 'VALIDATION_ERROR');
     }
     sendError(req, res, err.message, 500, 'INTERNAL_ERROR');
+router.post('/gdpr', async (req, res) => {
+  try {
+    const { userId, type, notes } = req.body || {};
+    if (!userId || !type) return res.status(400).json({ error: 'userId and type are required' });
+    const gdprReq = await complianceService.createGdprRequest({ userId, type, notes });
+    res.status(201).json(gdprReq);
+  } catch (err) {
+    if (err.message.includes('Invalid GDPR') || err.message.includes('already exists')) {
+      return res.status(400).json({ error: err.message });
+    }
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -165,6 +210,17 @@ router.post('/admin/documents', apiRateLimiter, validate(createDocumentSchema), 
     const { type, title, version, effectiveDate, content, summary } = req.body || {};
     if (!type || !title || !content) {
       return sendError(req, res, 'type, title, and content are required', 400, 'VALIDATION_ERROR');
+    res.json({ documents: docs });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/admin/documents', adminAuth, async (req, res) => {
+  try {
+    const { type, title, version, effectiveDate, content, summary } = req.body || {};
+    if (!type || !title || !content) {
+      return res.status(400).json({ error: 'type, title, and content are required' });
     }
     const actorId = req.adminSession?.username || 'admin';
     const doc = await complianceService.createDocument(
@@ -188,6 +244,22 @@ router.patch('/admin/documents/:id', apiRateLimiter, validate(updateDocumentSche
   } catch (err) {
     if (err.message === 'Document not found') return sendError(req, res, err.message, 404, 'NOT_FOUND');
     sendError(req, res, err.message, 500, 'INTERNAL_ERROR');
+    res.status(201).json(doc);
+  } catch (err) {
+    if (err.message.includes('Invalid document type')) return res.status(400).json({ error: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.patch('/admin/documents/:id', adminAuth, async (req, res) => {
+  try {
+    if (!sanitizeId(req.params.id)) return res.status(400).json({ error: 'Invalid document id' });
+    const actorId = req.adminSession?.username || 'admin';
+    const doc = await complianceService.updateDocument(req.params.id, req.body, actorId);
+    res.json(doc);
+  } catch (err) {
+    if (err.message === 'Document not found') return res.status(404).json({ error: err.message });
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -200,6 +272,13 @@ router.delete('/admin/documents/:id', adminAuth, async (req, res) => {
   } catch (err) {
     if (err.message === 'Document not found') return sendError(req, res, err.message, 404, 'NOT_FOUND');
     sendError(req, res, err.message, 500, 'INTERNAL_ERROR');
+    if (!sanitizeId(req.params.id)) return res.status(400).json({ error: 'Invalid document id' });
+    const actorId = req.adminSession?.username || 'admin';
+    const doc = await complianceService.archiveDocument(req.params.id, actorId);
+    res.json({ message: 'Document archived', document: doc });
+  } catch (err) {
+    if (err.message === 'Document not found') return res.status(404).json({ error: err.message });
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -218,6 +297,10 @@ router.get('/admin/acceptances', adminAuth, async (req, res) => {
     sendSuccess(res, result);
   } catch (err) {
     sendError(req, res, err.message, 500, 'INTERNAL_ERROR');
+    const result = await complianceService.listAcceptances({ documentId, documentType, limit, offset });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -252,6 +335,25 @@ router.patch('/admin/gdpr/:id', apiRateLimiter, validate(processGdprRequestSchem
     if (err.message === 'GDPR request not found')
       return sendError(req, res, err.message, 404, 'NOT_FOUND');
     sendError(req, res, err.message, 500, 'INTERNAL_ERROR');
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.patch('/admin/gdpr/:id', adminAuth, async (req, res) => {
+  try {
+    if (!sanitizeId(req.params.id)) return res.status(400).json({ error: 'Invalid request id' });
+    const { status, notes } = req.body || {};
+    if (!['completed', 'rejected'].includes(status)) {
+      return res.status(400).json({ error: 'status must be completed or rejected' });
+    }
+    const actorId = req.adminSession?.username || 'admin';
+    const gdprReq = await complianceService.processGdprRequest(req.params.id, { status, notes }, actorId);
+    res.json(gdprReq);
+  } catch (err) {
+    if (err.message === 'GDPR request not found') return res.status(404).json({ error: err.message });
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -265,6 +367,9 @@ router.get('/admin/audit', adminAuth, async (req, res) => {
     sendSuccess(res, result);
   } catch (err) {
     sendError(req, res, err.message, 500, 'INTERNAL_ERROR');
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -273,6 +378,9 @@ router.get('/admin/stats', adminAuth, async (req, res) => {
     sendSuccess(res, await complianceService.getStats());
   } catch (err) {
     sendError(req, res, err.message, 500, 'INTERNAL_ERROR');
+    res.json(await complianceService.getStats());
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

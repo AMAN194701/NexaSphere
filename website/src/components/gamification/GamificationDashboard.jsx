@@ -34,6 +34,11 @@ export default function GamificationDashboard() {
     }, 4000);
   };
 
+  const formatAchievementDate = (value) => {
+    const date = value ? new Date(value) : null;
+    return date && !Number.isNaN(date.getTime()) ? date.toLocaleDateString() : 'Unknown date';
+  };
+
   const loadData = async () => {
     const stats = gamificationService.getUserStats();
     setUserStats(stats);
@@ -440,7 +445,9 @@ export default function GamificationDashboard() {
               <tr>
                 <th style={{ padding: '12px 16px', color: '#9CA3AF', textAlign: 'left' }}>Rank</th>
                 <th style={{ padding: '12px 16px', color: '#9CA3AF', textAlign: 'left' }}>User</th>
-
+                <th style={{ padding: '12px 16px', textAlign: 'center', color: '#9CA3AF' }}>
+                  Streak
+                </th>
                 <th style={{ padding: '12px 16px', textAlign: 'right', color: '#9CA3AF' }}>
                   Level
                 </th>

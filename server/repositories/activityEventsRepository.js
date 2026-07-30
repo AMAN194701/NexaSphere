@@ -45,6 +45,30 @@ export const activityEventsRepository = {
         await client.query('ROLLBACK');
         throw e;
       }
+      const offset = (page - 1) * limit;
+      const { rows } = await client.query(
+        'select * from activity_events where activity_key=$1 order by created_at desc limit $2 offset $3',
+        [activityKey, limit, offset]
+      );
+      const countResult = await client.query(
+        'select count(*)::int as total from activity_events where activity_key=$1',
+        [activityKey]
+      );
+      const total = countResult.rows[0]?.total ?? 0;
+      return { rows: rows.map(mapRow), total };
+    });
+  },
+
+  async listAll() {
+    return withDb(async (client) => {
+      const { rows } = await client.query('select * from activity_events order by created_at desc');
+      const result = {};
+      for (const row of rows) {
+        const key = row.activity_key;
+        if (!result[key]) result[key] = [];
+        result[key].push(mapRow(row));
+      }
+      return result;
     });
   },
 

@@ -6,6 +6,9 @@ process.env.CORS_ORIGIN = 'http://localhost:3000';
 process.env.JWT_SECRET = 'secret_super_long_secret_key_that_is_safe_and_long_enough_for_256bit';
 process.env.PORT = '0';
 process.env.DATABASE_URL = 'postgresql://localhost/dummy_test_db';
+process.env.ENCRYPTION_KEY = '0123456789abcdef0123456789abcdef';
+process.env.SUPABASE_URL = 'https://dummy.supabase.co';
+process.env.SUPABASE_SERVICE_ROLE_KEY = 'dummy-key';
 
 const files = [
   './config/appContext.js',

@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from "react";
 
-export type TimeGranularity = 'daily' | 'weekly' | 'monthly';
+export type TimeGranularity = "daily" | "weekly" | "monthly";
 
 export interface FilterState {
   dateRange: {
@@ -15,7 +15,10 @@ export interface FilterState {
 interface AnalyticsFilterContextProps {
   filters: FilterState;
   setFilters: React.Dispatch<React.SetStateAction<FilterState>>;
-  updateFilter: <K extends keyof FilterState>(key: K, value: FilterState[K]) => void;
+  updateFilter: <K extends keyof FilterState>(
+    key: K,
+    value: FilterState[K]
+  ) => void;
 }
 
 const defaultFilters: FilterState = {
@@ -23,17 +26,24 @@ const defaultFilters: FilterState = {
     start: new Date(new Date().setMonth(new Date().getMonth() - 6)),
     end: new Date(),
   },
-  categories: ['Frontend', 'Backend', 'Design', 'AI/ML'],
-  metrics: ['Users', 'Activity', 'Projects'],
-  timeGranularity: 'monthly',
+  categories: ["Frontend", "Backend", "Design", "AI/ML"],
+  metrics: ["Users", "Activity", "Projects"],
+  timeGranularity: "monthly",
 };
 
-const AnalyticsFilterContext = createContext<AnalyticsFilterContextProps | undefined>(undefined);
+const AnalyticsFilterContext = createContext<
+  AnalyticsFilterContextProps | undefined
+>(undefined);
 
-export const AnalyticsFilterProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const AnalyticsFilterProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
 
-  const updateFilter = <K extends keyof FilterState>(key: K, value: FilterState[K]) => {
+  const updateFilter = <K extends keyof FilterState>(
+    key: K,
+    value: FilterState[K]
+  ) => {
     setFilters((prev) => ({
       ...prev,
       [key]: value,
@@ -41,7 +51,9 @@ export const AnalyticsFilterProvider: React.FC<{ children: ReactNode }> = ({ chi
   };
 
   return (
-    <AnalyticsFilterContext.Provider value={{ filters, setFilters, updateFilter }}>
+    <AnalyticsFilterContext.Provider
+      value={{ filters, setFilters, updateFilter }}
+    >
       {children}
     </AnalyticsFilterContext.Provider>
   );
@@ -50,7 +62,9 @@ export const AnalyticsFilterProvider: React.FC<{ children: ReactNode }> = ({ chi
 export const useAnalyticsFilters = () => {
   const context = useContext(AnalyticsFilterContext);
   if (!context) {
-    throw new Error('useAnalyticsFilters must be used within an AnalyticsFilterProvider');
+    throw new Error(
+      "useAnalyticsFilters must be used within an AnalyticsFilterProvider"
+    );
   }
   return context;
 };
