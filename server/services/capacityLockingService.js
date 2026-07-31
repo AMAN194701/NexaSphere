@@ -40,20 +40,33 @@ export const capacityLockingService = {
 
       return result;
     } catch (e) {
-      if (e.message?.includes('Event capacity has been reached')) {
+      const errMessage = String(e.message || '').toLowerCase();
+      const errDetails = String(e.details || '').toLowerCase();
+      const errDescription = String(e.error_description || '').toLowerCase();
+      const errCode = String(e.code || '').toLowerCase();
+
+      const contains = (str) =>
+        errMessage.includes(str) ||
+        errDetails.includes(str) ||
+        errDescription.includes(str) ||
+        errCode.includes(str);
+
+      if (contains('capacity has been reached') || contains('capacity')) {
         const err = new Error('Event capacity has been reached.');
         err.status = 409;
         throw err;
       }
       if (
-        e.message?.includes('duplicate key value violates unique constraint') ||
-        e.message?.includes('event_registrations_event_id_email_key')
+        contains('duplicate key') ||
+        contains('unique constraint') ||
+        contains('event_registrations_event_id_email_key') ||
+        errCode === '23505'
       ) {
         const err = new Error('You have already registered for this event.');
         err.status = 400;
         throw err;
       }
-      if (e.message?.includes('Event not found')) {
+      if (contains('not found')) {
         const err = new Error('Event not found.');
         err.status = 404;
         throw err;
