@@ -47,8 +47,9 @@ const getCampaignById = async (id) =>
 
 // Create campaign
 const createCampaign = async (data) => {
+  const nextId = campaigns.length > 0 ? Math.max(...campaigns.map((c) => c.id)) + 1 : 1;
   const campaign = {
-    id: campaigns.length + 1,
+    id: nextId,
     status: "Draft",
     createdAt: new Date().toISOString(),
     ...data,
@@ -93,6 +94,10 @@ const scheduleCampaign = async (id, scheduleData) => {
   );
 
   if (!campaign) return null;
+
+  if (scheduleData.scheduleTime && new Date(scheduleData.scheduleTime).getTime() <= Date.now()) {
+    throw new Error("Cannot schedule a campaign in the past");
+  }
 
   campaign.scheduleTime = scheduleData.scheduleTime;
   campaign.timezone = scheduleData.timezone || "UTC";
@@ -154,8 +159,9 @@ const getCampaignHistory = async () => history;
 const getTemplates = async () => templates;
 
 const createTemplate = async (data) => {
+  const nextId = templates.length > 0 ? Math.max(...templates.map((t) => t.id)) + 1 : 1;
   const template = {
-    id: templates.length + 1,
+    id: nextId,
     ...data,
   };
 
