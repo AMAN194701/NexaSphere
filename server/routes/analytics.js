@@ -170,7 +170,7 @@ router.get('/growth', async (_req, res) => {
       }
 
       growth = Object.keys(dailyCounts)
-        .sort()
+        .sort((a, b) => a - b)
         .map((date) => ({
           date,
           registrations: dailyCounts[date],
