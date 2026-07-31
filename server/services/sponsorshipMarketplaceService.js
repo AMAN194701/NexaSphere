@@ -54,9 +54,13 @@ export const sponsorshipMarketplaceService = {
       logo: null,
       testimonials: [],
       pastSponsorships: [],
+      interests: [],
       createdAt: new Date().toISOString(),
       ...data,
     };
+    if (!Array.isArray(company.interests)) {
+      company.interests = [];
+    }
     companies.push(company);
     return company;
   },
