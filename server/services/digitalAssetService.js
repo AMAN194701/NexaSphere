@@ -62,8 +62,9 @@ const getAssetById = async (id) =>
 
 // Upload Asset
 const uploadAsset = async (data) => {
+  const nextId = assets.length > 0 ? Math.max(...assets.map((a) => a.id)) + 1 : 1;
   const asset = {
-    id: assets.length + 1,
+    id: nextId,
     createdAt: new Date().toISOString(),
     ...data,
   };
@@ -120,13 +121,31 @@ const getAssetsByCategory = async (category) =>
 const getFolders = async () => folders;
 
 const createFolder = async (data) => {
+  const nextId = folders.length > 0 ? Math.max(...folders.map((f) => f.id)) + 1 : 1;
   const folder = {
-    id: folders.length + 1,
+    id: nextId,
     ...data,
   };
 
   folders.push(folder);
   return folder;
+};
+
+const deleteFolder = async (id) => {
+  const numId = Number(id);
+  const index = folders.findIndex((f) => f.id === numId);
+  if (index === -1) return null;
+
+  const folderName = folders[index].name;
+
+  // Cascade reset folder tag of assets referencing the deleted folder
+  assets.forEach((asset) => {
+    if (asset.folder === folderName) {
+      asset.folder = 'Uncategorized';
+    }
+  });
+
+  return folders.splice(index, 1)[0];
 };
 
 // Duplicate Detection
@@ -196,6 +215,7 @@ module.exports = {
   getAssetsByCategory,
   getFolders,
   createFolder,
+  deleteFolder,
   detectDuplicates,
   generateAITags,
   getVersionHistory,
