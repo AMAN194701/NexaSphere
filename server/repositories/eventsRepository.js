@@ -94,7 +94,7 @@ export const eventsRepository = {
           query += ' where ' + conditions.join(' and ');
         }
 
-        query += ` order by created_at desc limit $1 offset $2`;
+        query += ` order by created_at desc limit $${params.length + 1} offset $${params.length + 2}`;
         params.push(limit, offset);
 
         const { rows } = await client.query(query, params);
@@ -102,7 +102,8 @@ export const eventsRepository = {
         const countQuery =
           'select count(*)::int as total from events ' +
           (conditions.length > 0 ? ' where ' + conditions.join(' and ') : '');
-        const countResult = await client.query(countQuery);
+        const countParams = params.slice(0, params.length - 2);
+        const countResult = await client.query(countQuery, countParams);
 
         const total = countResult.rows[0]?.total ?? 0;
 
