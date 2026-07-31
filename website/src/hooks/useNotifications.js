@@ -342,10 +342,46 @@ export function useNotifications() {
         });
       } catch (e) {
         console.error('[useNotifications] Failed to mark all as read:', e);
-        console.error('[useNotifications] Failed to mark all notifications as read:', e);
       }
     })();
   }, []);
+
+  const markAsUnread = useCallback(
+    (id) => {
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: false } : n)));
+      (async () => {
+        try {
+          await fetch(buildUrl(getApiBase(), '/api/notifications/mark-unread'), {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ id }),
+          });
+          trackAction(id, 'marked_unread');
+        } catch (e) {
+          console.error('[useNotifications] Failed to mark as unread:', e);
+        }
+      })();
+    },
+    [trackAction]
+  );
+
+  const deleteNotification = useCallback(
+    (id) => {
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+      (async () => {
+        try {
+          await fetch(buildUrl(getApiBase(), `/api/notifications/${id}`), {
+            method: 'DELETE',
+            headers: getAuthHeaders(),
+          });
+          trackAction(id, 'deleted');
+        } catch (e) {
+          console.error('[useNotifications] Failed to delete notification:', e);
+        }
+      })();
+    },
+    [trackAction]
+  );
 
   const clearAll = useCallback(() => {
     setNotifications([]);
@@ -376,8 +412,10 @@ export function useNotifications() {
     togglePanel,
     closePanel,
     markAsRead,
+    markAsUnread,
     markAllAsRead,
     clearAll,
+    deleteNotification,
     trackAction,
   };
 }
