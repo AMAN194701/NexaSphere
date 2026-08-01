@@ -259,41 +259,4 @@ export function initSyncManager() {
   // If we're already online on init and have a queue, sync immediately
   if (navigator.onLine) {
     getQueue().then((queue) => {
-      if (queue.length > 0) {
-        logger.info(`[SyncManager] Found ${queue.length} queued request(s) on startup — syncing.`);
-        runSync();
-      }
-    });
-  }
-
-  // Listen for SW-initiated sync messages
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.addEventListener('message', (event) => {
-      if (event.data?.type === 'NS_TRIGGER_SYNC') {
-        runSync();
-      }
-    });
-  }
-
-  logger.info('[SyncManager] Initialized.');
-}
-
-/**
- * Manually triggers a sync run (e.g., user presses "Retry" button).
- */
-export function triggerSync() {
-  if (navigator.onLine) {
-    runSync();
-  } else {
-    logger.info('[SyncManager] triggerSync called but offline — skipping.');
-  }
-}
-
-/**
- * Tears down event listeners (useful for testing).
- */
-export function destroySyncManager() {
-  window.removeEventListener('online', handleOnline);
-  isInitialized = false;
-  isSyncing = false;
-}
+    .catch(err => console.error(err))
