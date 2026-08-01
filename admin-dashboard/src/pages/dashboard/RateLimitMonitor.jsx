@@ -302,13 +302,24 @@ export default function RateLimitMonitor() {
         const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         socket = new WebSocket(`${wsProtocol}//${window.location.host}/api/ws/rate-limits`);
 
+        const clearHeartbeat = () => {
+          if (heartbeat) {
+            clearInterval(heartbeat);
+            heartbeat = null;
+          }
+        };
+
         socket.onopen = () => {
+          clearHeartbeat();
           heartbeat = setInterval(() => {
             if (socket && socket.readyState === WebSocket.OPEN) {
               socket.send(JSON.stringify({ type: 'ping' }));
             }
           }, 15000);
         };
+
+        socket.onerror = () => clearHeartbeat();
+        socket.onclose = () => clearHeartbeat();
 
         socket.onmessage = (event) => {
           try {
