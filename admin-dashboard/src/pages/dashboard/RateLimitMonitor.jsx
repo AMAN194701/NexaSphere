@@ -293,6 +293,50 @@ export default function RateLimitMonitor() {
 
   useEffect(() => {
     loadStatus();
+
+    let socket = null;
+    let heartbeat = null;
+
+    try {
+      if (typeof window !== 'undefined') {
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        socket = new WebSocket(`${wsProtocol}//${window.location.host}/api/ws/rate-limits`);
+
+        socket.onopen = () => {
+          heartbeat = setInterval(() => {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+              socket.send(JSON.stringify({ type: 'ping' }));
+            }
+          }, 15000);
+        };
+
+        socket.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data?.type === 'status_update' && data?.status) {
+              setStatus(data.status);
+            }
+          } catch {
+            // Ignore parse errors
+          }
+        };
+      }
+    } catch {
+      // Fallback if WS unavailable
+    }
+
+    return () => {
+      if (heartbeat) clearInterval(heartbeat);
+      if (socket) {
+        socket.onopen = null;
+        socket.onmessage = null;
+        socket.onerror = null;
+        socket.onclose = null;
+        if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
+          socket.close(1000, 'Component unmounted');
+        }
+      }
+    };
   }, [loadStatus]);
 
   useLogoutAwareInterval(loadStatus, 30_000);
