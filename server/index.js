@@ -1561,7 +1561,7 @@ app.post('/api/notifications/unsubscribe', (req, res) => {
 // Server-side notifications API (simple in-memory store)
 import notificationsService from './services/notificationsService.js';
 
-app.get('/api/notifications', (req, res) => {
+app.get('/api/notifications', adminAuth, notificationRateLimiter, (req, res) => {
   try {
     // If user id provided via query or auth, use that; otherwise global
     const userId = req.query.userId || 'global';
