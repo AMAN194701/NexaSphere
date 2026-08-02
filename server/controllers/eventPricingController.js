@@ -19,6 +19,14 @@ export const setTiers = async (req, res) => {
       return res.status(400).json({ error: 'tiers must be an array' });
     }
     
+    // Validate all tier prices are valid non-negative numbers
+    for (const tier of tiers) {
+      const price = parseFloat(tier.price);
+      if (isNaN(price) || price < 0) {
+        return res.status(400).json({ error: 'Each tier must have a valid non-negative price' });
+      }
+    }
+
     // Ensure tiers don't decrease in price as capacity increases (prevent price decrease mid-event)
     const sortedTiers = [...tiers].sort((a, b) => a.capacityThresholdPercent - b.capacityThresholdPercent);
     for (let i = 1; i < sortedTiers.length; i++) {
