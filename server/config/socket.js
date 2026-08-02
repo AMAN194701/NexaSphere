@@ -563,6 +563,8 @@ export function _onConnection(socket) {
       connectedAt: new Date(),
     });
 
+    socket.join(`user-${String(email).toLowerCase()}`);
+
     logger.info('User identified successfully', { userId: String(userId), socketId: socket.id });
   });
 
