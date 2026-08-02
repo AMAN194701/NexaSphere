@@ -11,7 +11,7 @@ function cleanupExpired() {
   }
 }
 
-// Run cleanup periodically every 10 minutes (unreferenced to allow clean Node process exit)
+// Periodically purge expired impersonation sessions every 10 minutes
 if (typeof setInterval === 'function') {
   const interval = setInterval(cleanupExpired, 10 * 60 * 1000);
   if (interval && typeof interval.unref === 'function') {
@@ -33,12 +33,9 @@ export const impersonationService = {
   },
 
   getActive(token) {
-    const session = sessions.get(token);
-    if (!session) return null;
-    if (Date.now() - new Date(session.startedAt).getTime() > IMPERSONATION_TTL_MS) {
-      sessions.delete(token);
-      return null;
-    }
-    return session;
+    cleanupExpired();
+    return sessions.get(token) || null;
   },
+
+  cleanupExpired,
 };
