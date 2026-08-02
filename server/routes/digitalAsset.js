@@ -1,7 +1,10 @@
 const express = require("express");
 const router = express.Router();
+const { requireStudentAuth } = require("../middleware/studentAuthMiddleware.js");
 
 const digitalAssetController = require("../controllers/digitalAssetController");
+
+router.use(requireStudentAuth);
 
 // Asset CRUD
 router.get("/", digitalAssetController.getAllAssets);
