@@ -373,4 +373,434 @@ export default function PortfolioBuilder() {
     const url = getPortfolioUrl();
     if (navigator.clipboard) {
       navigator.clipboard.writeText(url).then(
-      .catch(err => console.error(err))
+        () => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        },
+        () => {
+          fallbackCopy(url);
+        }
+      );
+    } else {
+      fallbackCopy(url);
+    }
+  };
+
+  const fallbackCopy = (text) => {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+      document.execCommand('copy');
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setErrorMsg('Unable to copy link. Please copy it manually from the address bar.');
+    }
+    document.body.removeChild(textarea);
+  };
+
+  return (
+    <div className="portfolio-builder-container">
+      <div
+        className="builder-header"
+        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}
+      >
+        <div>
+          <h1 className="builder-title">Portfolio Builder</h1>
+          <p className="builder-subtitle">
+            Configure your professional showcase, connect external profiles, and customize widgets
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleLinkedInSync}
+          className="btn btn-outline"
+          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px' }}
+        >
+          <span>LN</span> Import LinkedIn Profile
+        </button>
+      </div>
+
+      <div className="builder-grid">
+        {/* Form Panel */}
+        <form onSubmit={handleSubmit} className="builder-form-panel">
+          <div className="form-section">
+            <h3 className="section-title">Showcase Profile Registry</h3>
+            <div className="form-group">
+              <label htmlFor="pf-username">Reserved Handle (Username)</label>
+              <input
+                id="pf-username"
+                type="text"
+                placeholder="e.g. johndoe"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="pf-title">Professional Title</label>
+              <input
+                id="pf-title"
+                type="text"
+                placeholder="e.g. Full Stack Architect"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="pf-bio">Creative Bio</label>
+              <textarea
+                id="pf-bio"
+                placeholder="Brief description of your expertise, achievements, and goals..."
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+
+          {/* Social Profiles */}
+          <div className="form-section">
+            <h3 className="section-title">Federated Social Handshakes</h3>
+            {['github', 'linkedin', 'twitter', 'resume'].map((soc) => (
+              <div className="form-group" key={soc}>
+                <label style={{ textTransform: 'capitalize' }}>
+                  {soc === 'resume' ? 'Resume URL' : `${soc} Link`}
+                </label>
+                <input
+                  type="url"
+                  placeholder={`https://${soc === 'resume' ? 'drive.google.com' : `${soc}.com`}/...`}
+                  value={socialLinks[soc] || ''}
+                  onChange={(e) => setSocialLinks((prev) => ({ ...prev, [soc]: e.target.value }))}
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* Widget Visibility */}
+          <div className="form-section">
+            <h3 className="section-title">Showcase Display Widgets</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <label
+                style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
+              >
+                <input
+                  type="checkbox"
+                  checked={visibleSections.skillsAndQuests}
+                  onChange={(e) =>
+                    setVisibleSections((prev) => ({
+                      ...prev,
+                      skillsAndQuests: e.target.checked,
+                    }))
+                  }
+                />
+                Skills & Quests Badge Panel
+              </label>
+              <label
+                style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
+              >
+                <input
+                  type="checkbox"
+                  checked={visibleSections.roadmaps}
+                  onChange={(e) =>
+                    setVisibleSections((prev) => ({ ...prev, roadmaps: e.target.checked }))
+                  }
+                />
+                Active Academic Learning Paths
+              </label>
+              <label
+                style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
+              >
+                <input
+                  type="checkbox"
+                  checked={visibleSections.projects}
+                  onChange={(e) =>
+                    setVisibleSections((prev) => ({ ...prev, projects: e.target.checked }))
+                  }
+                />
+                Federated Projects & Repositories
+              </label>
+            </div>
+          </div>
+
+          {/* Messages */}
+          {errorMsg && (
+            <div
+              role="alert"
+              style={{
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                color: '#ef4444',
+                padding: '12px',
+                borderRadius: 'var(--r2)',
+                fontWeight: 'bold',
+              }}
+            >
+              ⚠️ {errorMsg}
+            </div>
+          )}
+
+          {successMsg && (
+            <div
+              role="alert"
+              style={{
+                background: 'rgba(34, 197, 94, 0.1)',
+                border: '1px solid rgba(34, 197, 94, 0.3)',
+                color: '#22c55e',
+                padding: '12px',
+                borderRadius: 'var(--r2)',
+                fontWeight: 'bold',
+              }}
+            >
+              ✓ {successMsg}
+            </div>
+          )}
+
+          {/* Builder Action Toolbar */}
+          <div className="builder-actions">
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="btn btn-primary"
+              style={{
+                width: '100%',
+                padding: '14px',
+                fontSize: '1.05rem',
+                fontFamily: 'Orbitron, monospace',
+                letterSpacing: '0.05em',
+                fontWeight: 'bold',
+                textTransform: 'uppercase',
+              }}
+            >
+              {isSaving ? 'Synchronizing Workspace...' : 'Build & Publish Portfolio'}
+            </button>
+
+            {successMsg && username && (
+              <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={handleCopyLink}
+                  style={{ flex: 1, padding: '10px' }}
+                >
+                  {copied ? 'Copied Showcase Link!' : 'Copy Public URL'}
+                </button>
+                <a
+                  href={`/p/${username}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-primary"
+                  style={{
+                    flex: 1,
+                    padding: '10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  Open Showcase Page
+                </a>
+              </div>
+            )}
+          </div>
+        </form>
+
+        {/* Live Preview Panel */}
+        <div className="preview-container">
+          <span className="preview-badge">
+            <span
+              style={{
+                display: 'inline-block',
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                background: 'var(--c1b)',
+                animation: 'pulse 1.5s infinite',
+              }}
+            ></span>
+            Real-time Live Sandbox Preview
+          </span>
+
+          <div className="preview-frame">
+            <div
+              style={{ height: '100%', overflowY: 'auto', padding: '24px' }}
+              className={`theme-${theme} portfolio-shell`}
+            >
+              <div
+                className="portfolio-intro"
+                style={{ flexDirection: 'column', textAlign: 'center', gap: '12px' }}
+              >
+                <img
+                  loading="lazy"
+                  src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${username || 'preview'}`}
+                  alt="avatar"
+                  className="portfolio-avatar"
+                  style={{ width: '80px', height: '80px' }}
+                />
+                <div className="portfolio-bio-col">
+                  <h2 className="portfolio-name" style={{ fontSize: '1.6rem', margin: 0 }}>
+                    {username ? `@${username}` : 'Creative Developer'}
+                  </h2>
+                  <div
+                    className="portfolio-title"
+                    style={{ fontSize: '0.95rem', margin: '4px 0 8px 0' }}
+                  >
+                    {title || 'Tech Specialist & Builder'}
+                  </div>
+                  <p
+                    className="portfolio-bio-text"
+                    style={{
+                      fontSize: '0.85rem',
+                      lineHeight: '1.5',
+                      margin: '0 auto',
+                      maxWidth: '400px',
+                    }}
+                  >
+                    {bio ||
+                      'Define registry credentials and profiles inside the Builder on the left to see your stunning web portfolio render dynamically in this live preview frame.'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Social Link Previews */}
+              <div
+                className="portfolio-socials"
+                style={{ justifyContent: 'center', gap: '10px', margin: '14px 0' }}
+              >
+                {['github', 'linkedin', 'twitter', 'resume'].map((soc) => {
+                  const url = socialLinks[soc];
+                  if (!url) return null;
+                  return (
+                    <span
+                      key={soc}
+                      className="portfolio-social-btn"
+                      style={{ width: '32px', height: '32px', fontSize: '0.8rem' }}
+                    >
+                      {soc === 'github' && 'GH'}
+                      {soc === 'linkedin' && 'LN'}
+                      {soc === 'twitter' && 'X'}
+                      {soc === 'resume' && 'CV'}
+                    </span>
+                  );
+                })}
+              </div>
+
+              {/* Showcase list items */}
+              <div
+                style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '16px' }}
+              >
+                {visibleSections.skillsAndQuests && selectedSkills.length > 0 && (
+                  <div className="portfolio-panel" style={{ padding: '16px' }}>
+                    <div
+                      style={{
+                        fontSize: '0.9rem',
+                        fontWeight: 'bold',
+                        borderBottom: '1px solid var(--bdr2)',
+                        paddingBottom: '6px',
+                        marginBottom: '10px',
+                      }}
+                    >
+                      ⚡ Certified Tech Capabilities
+                    </div>
+                    <div className="portfolio-pills-list">
+                      {selectedSkills.map((sk) => (
+                        <span
+                          key={sk}
+                          className="portfolio-pill"
+                          style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                        >
+                          {sk}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {visibleSections.roadmaps && selectedRoadmaps.length > 0 && (
+                  <div className="portfolio-panel" style={{ padding: '16px' }}>
+                    <div
+                      style={{
+                        fontSize: '0.9rem',
+                        fontWeight: 'bold',
+                        borderBottom: '1px solid var(--bdr2)',
+                        paddingBottom: '6px',
+                        marginBottom: '10px',
+                      }}
+                    >
+                      📌 Active Academic Paths
+                    </div>
+                    <div className="portfolio-roadmaps-list" style={{ gap: '8px' }}>
+                      {selectedRoadmaps.map((rm) => (
+                        <div
+                          key={rm}
+                          className="portfolio-roadmap-card"
+                          style={{ padding: '8px 12px' }}
+                        >
+                          <span style={{ fontSize: '0.85rem', fontWeight: '600' }}>
+                            {roadmapData[rm]?.title || rm}
+                          </span>
+                          <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>In Progress</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {visibleSections.projects && selectedProjects.length > 0 && (
+                  <div className="portfolio-panel" style={{ padding: '16px' }}>
+                    <div
+                      style={{
+                        fontSize: '0.9rem',
+                        fontWeight: 'bold',
+                        borderBottom: '1px solid var(--bdr2)',
+                        paddingBottom: '6px',
+                        marginBottom: '10px',
+                      }}
+                    >
+                      ⚙️ Federated Workspaces
+                    </div>
+                    <div className="portfolio-roadmaps-list" style={{ gap: '8px' }}>
+                      {selectedProjects.map((proj) => {
+                        const project = projectsData.find((p) => p.id === proj);
+                        return (
+                          <div
+                            key={proj}
+                            className="portfolio-roadmap-card"
+                            style={{ padding: '8px 12px' }}
+                          >
+                            <span style={{ fontSize: '0.85rem', fontWeight: '600' }}>
+                              {project?.title || proj}
+                            </span>
+                            <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>
+                              {project?.category || 'Community Project'}
+                            </span>
+                          </div>
+                        );
+                      })}
+                      {customProjects.map((proj) => (
+                        <div
+                          key={proj.id}
+                          className="portfolio-roadmap-card"
+                          style={{ padding: '8px 12px' }}
+                        >
+                          <span style={{ fontSize: '0.85rem', fontWeight: '600' }}>
+                            {proj.title}
+                          </span>
+                          <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>GitHub Import</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

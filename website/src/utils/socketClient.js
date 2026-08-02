@@ -208,8 +208,6 @@ export function getSocketId() {
   return activeSocket?.id || null;
 }
 
-export const destroySocket = disconnect;
-
 export default {
   initializeSocket,
   getSocket,

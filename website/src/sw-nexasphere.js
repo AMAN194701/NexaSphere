@@ -189,6 +189,9 @@ const bgSyncPlugin = new BackgroundSyncPlugin('nexasphere-offline-queue', {
           icon: '/pwa-192x192.png',
         });
       }
+    } catch (err) {
+      console.error('[Service Worker] Sync failed', err);
+      throw err;
     }
   },
 });
