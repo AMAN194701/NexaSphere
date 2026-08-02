@@ -16,6 +16,8 @@ import {
 let warnedMissingSocketConfig = false;
 let hasAttachedGlobalListeners = false;
 
+const GLOBAL_EVENTS = ['connect', 'disconnect', 'connect_error', 'error', 'reconnect_failed'];
+
 // Track current active socket instance
 let activeSocket = null;
 
@@ -44,7 +46,7 @@ export function initializeSocket(serverUrl = getSocketServerUrl()) {
 
   // Clean previous socket before reconnecting if URL changed or socket was recreated
   if (activeSocket) {
-    activeSocket.removeAllListeners();
+    GLOBAL_EVENTS.forEach((event) => activeSocket.off(event));
 
     activeSocket.disconnect();
 
@@ -186,24 +188,7 @@ export function emit(eventName, data) {
  */
 export function disconnect() {
   if (activeSocket) {
-    activeSocket.removeAllListeners();
-
-    activeSocket.disconnect();
-
-    activeSocket = null;
-  }
-
-  hasAttachedGlobalListeners = false;
-
-  disconnectCoreSocket();
-}
-
-/**
- * Full socket destruction
- */
-export function destroySocket() {
-  if (activeSocket) {
-    activeSocket.removeAllListeners();
+    GLOBAL_EVENTS.forEach((event) => activeSocket.off(event));
 
     activeSocket.disconnect();
 
@@ -222,6 +207,8 @@ export function isConnected() {
 export function getSocketId() {
   return activeSocket?.id || null;
 }
+
+export const destroySocket = disconnect;
 
 export default {
   initializeSocket,
