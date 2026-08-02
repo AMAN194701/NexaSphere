@@ -66,8 +66,8 @@ export const waitingRoomService = {
       total: queue.length,
     });
     const io = getIO();
-    if (entry.userId) {
-      io.to(entry.userId).emit('waiting:admitted', { eventId, fullName: entry.fullName });
+    if (io && entry.userId) {
+      io.to(`user-${entry.userId}`).emit('waiting:admitted', { eventId, fullName: entry.fullName });
     }
     logger.info('Attendee admitted from waiting room', { eventId, email: entry.email });
     return entry;
