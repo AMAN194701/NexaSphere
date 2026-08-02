@@ -471,7 +471,7 @@ app.use(cookieParser());
 // Verify Redis URL protocol in production
 const redisSessionUrl = process.env.REDIS_URL || '';
 if (process.env.NODE_ENV === 'production' && !redisSessionUrl.startsWith('rediss://')) {
-  console.warn('Security Warning: Redis URL should use rediss:// for TLS in production.');
+  logger.warn('Redis TLS security warning: URL should use rediss:// for production');
 }
 // Reuse the existing getRedisClient if possible, else create a new one
 let sessionClient = getRedisClient();
@@ -503,11 +503,7 @@ app.use((req, res, next) => {
     req.session.ip &&
     req.session.ip !== (req.ip || req.connection?.remoteAddress)
   ) {
-    console.warn(
-      '[Session] Suspicious activity: Session accessed from different IP. Original:',
-      req.session.ip,
-      'New:',
-      req.ip || req.connection?.remoteAddress
+    logger.warn({ originalIp: req.session.ip, newIp: req.ip || req.connection?.remoteAddress, sessionId: req.sessionID }, 'Suspicious activity: session accessed from different IP');
   next();
 });
 // Idle timeout middleware (30 mins)
@@ -516,7 +512,7 @@ app.use((req, res, next) => {
     if (req.session.lastActive && now - req.session.lastActive > 30 * 60 * 1000) {
       logger.info('[Session] Destroying idle session:', req.sessionID);
       req.session.destroy((err) => {
-        if (err) console.error('[Session] Error destroying idle session:', err);
+        if (err) logger.error({ err: err.message }, 'Error destroying idle session');
         return res.status(401).json({ error: 'Session expired due to inactivity' });
       return;
     req.session.lastActive = now;
@@ -1436,7 +1432,7 @@ app.get('/api/admin/membership', adminAuth, async (req, res) => {
     const data = await response.json();
     return res.json({ responses: data.responses || [] });
   } catch (err) {
-    console.error('[Membership] Failed to fetch responses:', err.message);
+    logger.error({ err: err.message }, 'Failed to fetch membership responses');
     return res.status(500).json({ error: 'Failed to fetch membership responses' });
   }
 });
@@ -1457,7 +1453,7 @@ async function handleForm(formType, req, res) {
       const verifyUrl = `${process.env.CORS_ORIGIN || 'http://localhost:5173'}/verify?email=${encodeURIComponent(req.body.collegeEmail)}`;
       await sendWelcomeVerificationEmail(req.body.collegeEmail, req.body.fullName, verifyUrl);
     } catch (emailErr) {
-      console.error('[Form Handler] Failed to send welcome email:', emailErr);
+      logger.error({ err: emailErr }, 'Failed to send welcome email in form handler');
       // We don't fail the whole request if email fails, but we log it.
     }
 
@@ -1466,7 +1462,7 @@ async function handleForm(formType, req, res) {
       broadcastSSEEvent('registration', { formType, fullName: payload.fullName, timestamp: new Date().toISOString() });
       emitToRoom(getRoom('admin'), 'admin:new-registration', { formType, userName: payload.fullName, timestamp: new Date() });
     } catch (realtimeErr) {
-      console.error('[Form Handler] Failed to broadcast real-time updates:', realtimeErr);
+      logger.error({ err: realtimeErr }, 'Failed to broadcast real-time updates in form handler');
     }
 
     return res.json({ ok: true });
@@ -1661,7 +1657,7 @@ app.get('/api/portfolio/:username', async (req, res) => {
     }
     return res.json(portfolio);
   } catch (err) {
-    console.error('Error fetching portfolio:', err);
+    logger.error({ err: err.message }, 'Error fetching portfolio');
     return res.status(500).json({ error: err.message || 'Internal server error' });
     return res.status(500).json({ error: err.message });
   }
@@ -1717,7 +1713,7 @@ app.put('/api/portfolio', portfolioRateLimiter, async (req, res) => {
     const saved = await portfolioRepository.createOrUpdate(body);
     return res.json({ ok: true, portfolio: saved });
   } catch (err) {
-    console.error('Error saving portfolio:', err);
+    logger.error({ err: err.message }, 'Error saving portfolio');
     return res.status(500).json({ error: err.message || 'Internal server error' });
   }
 });
@@ -1802,7 +1798,7 @@ addSentryErrorHandler(app);
 app.use(errorHandler);
 
 process.on('unhandledRejection', (reason) => {
-  console.error('[Process] Unhandled rejection:', reason instanceof Error ? reason.message : reason);
+  logger.error({ reason: reason instanceof Error ? reason.message : String(reason) }, '[Process] Unhandled rejection');
 });
 
 
@@ -1827,7 +1823,7 @@ if (process.env.NODE_ENV !== 'test') {
         schedulerService.init();
       });
       server.on('error', (err) => {
-        console.error('SERVER LISTEN ERROR:', err.code, err.message);
+        logger.error({ code: err.code, err: err.message }, 'Server listen error');
       });
       initializeSocketIO(server);
     });
@@ -1868,11 +1864,11 @@ app.listen(port, () => {
 
 // Error handling
 process.on('uncaughtException', (err) => {
-  console.error('Uncaught exception:', err);
+  logger.error({ err: err.message, stack: err.stack }, 'Uncaught exception');
   process.exit(1);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled rejection:', reason);
+  logger.error({ reason: reason instanceof Error ? reason.message : String(reason) }, 'Unhandled rejection');
   process.exit(1);
 });
