@@ -1,3 +1,4 @@
+import './tracing.js';
 import { ApolloServer } from '@apollo/server';
 import { startStandaloneServer } from '@apollo/server/standalone';
 import { ApolloGateway, IntrospectAndCompose } from '@apollo/gateway';
