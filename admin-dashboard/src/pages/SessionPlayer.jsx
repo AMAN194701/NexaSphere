@@ -37,7 +37,7 @@ export function SessionPlayer() {
     if (playerRef.current) {
       // Destroy old player
       if (containerRef.current) {
-        containerRef.current.innerHTML = '';
+        containerRef.current.textContent = '';
       }
     }
 
