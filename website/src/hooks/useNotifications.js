@@ -64,7 +64,7 @@ export function useNotifications() {
 
         const responses = await Promise.allSettled(
           fetchUrls.map(async (url) => {
-            const res = await fetch(url, { headers: getAuthHeaders() });
+            const res = await fetch(url, { credentials: 'include' });
             if (!res.ok) {
               const error = new Error(`Failed to load notifications (${res.status})`);
               error.status = res.status;
