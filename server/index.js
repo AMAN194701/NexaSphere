@@ -109,6 +109,8 @@ import * as studentAuthController from './controllers/studentAuthController.js';
 import * as forumController from './controllers/forumController.js';
 import { requireStudentAuth } from './middleware/studentAuthMiddleware.js';
 import { loadPersistedPushSubscriptions } from './routes/notifications.js';
+import { studentAuthService } from './services/studentAuthService.js';
+import { getAdminSession } from './repositories/adminSessionsRepository.js';
 import * as mentorshipController from './controllers/mentorshipController.js';
 import { xssSanitizer } from './middleware/xssSanitizer.js';
 import { tierRateLimiter } from './middleware/tierRateLimiter.js';
@@ -478,6 +480,7 @@ if (useStructuredHttpLog) {
 app.use(apiLogger);
 app.use(performanceMonitor);
 app.use(cookieParser());
+app.use(sessionMiddleware);
 
 // Verify Redis URL protocol in production
 const redisSessionUrl = process.env.REDIS_URL || '';
@@ -1668,11 +1671,108 @@ app.post(
   }
 );
 
+function parsePositiveInt(value, fallback) {
+  const n = parseInt(value, 10);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
+const ADMIN_IDLE_TIMEOUT_MS = parsePositiveInt(process.env.ADMIN_IDLE_TIMEOUT_MS, 30 * 60 * 1000);
+
+function resolveSession(req) {
+  return (
+    req.cookies?.ns_admin_token ||
+    (req.headers.cookie
+      ? req.headers.cookie.split(';').reduce((acc, c) => {
+          const [k, v] = c.trim().split('=');
+          return k === 'ns_admin_token' ? v : acc;
+        }, null)
+      : null) ||
+    (req.headers.authorization?.startsWith('Bearer ')
+      ? req.headers.authorization.slice(7).trim()
+      : '')
+  );
+}
+
+function sessionMiddleware(req, res, next) {
+  const token = resolveSession(req);
+  if (!token) {
+    return next();
+  }
+  getAdminSession(token)
+    .then((session) => {
+      if (!session) {
+        return next();
+      }
+      const lastSeen = session.last_seen_at ? new Date(session.last_seen_at).getTime() : 0;
+      if (lastSeen && Date.now() - lastSeen > ADMIN_IDLE_TIMEOUT_MS) {
+        return next();
+      }
+      req.adminSession = session;
+      next();
+    })
+    .catch(() => next());
+}
+
 function requireNotificationAuth(req, res, next) {
-  adminAuthMiddleware.requireAdmin(req, res, (err) => {
-    if (!err && req.adminSession) {
+  if (req.adminSession) {
+    return next();
+  }
+  requireStudentAuth(req, res, (err) => {
+    if (!err && req.studentUser) {
       return next();
     }
+    return res.status(401).json({ error: 'Unauthorized: Authentication required' });
+  });
+}
+
+app.post(
+  '/api/notifications/mark-read',
+  requireNotificationAuth,
+  notificationRateLimiter,
+  async (req, res) => {
+    try {
+      const { id, userId } = req.body || {};
+      if (!id) return res.status(400).json({ error: 'id required' });
+      let uid = userId || 'global';
+      if (req.studentUser) {
+        const studentId = req.studentUser.sub || req.studentUser.id;
+        if (userId && userId !== studentId) {
+          return res
+            .status(403)
+            .json({ error: 'Forbidden: Cannot modify other users notifications' });
+        }
+        uid = studentId;
+      }
+      const ok = await notificationsService.markAsRead(uid, id);
+      return res.json({ success: ok });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+app.post(
+  '/api/notifications/mark-all-read',
+  requireNotificationAuth,
+  notificationRateLimiter,
+  async (req, res) => {
+    try {
+      const { userId } = req.body || {};
+      let uid = userId || 'global';
+      if (req.studentUser) {
+        const studentId = req.studentUser.sub || req.studentUser.id;
+        if (userId && userId !== studentId) {
+          return res.status(403).json({ error: 'Forbidden' });
+        }
+        uid = studentId;
+      }
+      await notificationsService.markAllAsRead(uid);
+      return res.json({ success: true });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+);
     requireStudentAuth(req, res, (err2) => {
       if (!err2 && req.studentUser) {
         return next();
@@ -1970,29 +2070,21 @@ process.on('uncaughtException', (err) => {
 const port = Number(process.env.PORT || 8787);
 let server;
 
-async function startServer() {
-  try {
-    if (HAS_SUPABASE) {
-      await studentUsersRepository.ensureSchema();
-    } else {
-      await ensureContentFile();
-    }
+if (process.env.NODE_ENV !== 'test') {
+  if (!process.env.VERCEL) {
+    const boot = HAS_SUPABASE ? studentUsersRepository.ensureSchema() : ensureContentFile();
+    boot.then(() => {
+      server = app.listen(port, () => {
+        console.log(`NexaSphere server listening on http://localhost:${port}`);
+      });
+    });
+  } else {
     loadPersistedPushSubscriptions();
-    slackIntegrationService.init();
     server = app.listen(port, () => {
-      logger.info(`NexaSphere server listening on http://localhost:${port}`);
-      schedulerService.init();
-      startWebhookRetryProcessor();
+      console.log(`NexaSphere server listening on http://localhost:${port}`);
     });
     initializeSocketIO(server);
-  } catch (err) {
-    console.error('[Startup] Failed to start server:', err instanceof Error ? err.message : err);
-    process.exit(1);
   }
-}
-
-if (process.env.NODE_ENV !== 'test') {
-  startServer();
 }
 
 export default app;
