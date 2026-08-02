@@ -16,7 +16,6 @@ function RippleBtn({ cls, children, href, onClick }) {
     return () => {
       current.forEach(clearTimeout);
     };
-    return () => timeoutsRef.current.forEach(clearTimeout);
   }, []);
 
   const go = (e) => {

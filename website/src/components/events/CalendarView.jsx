@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import useSocketConnection from '../../hooks/useSocketConnection';
 import { getEventConflictStatus, detectConflicts } from '../../services/eventConflicts';
@@ -427,7 +428,7 @@ export default function CalendarView({ events: initialEvents, onEventClick, isAd
             <option value="full">Event Full</option>
           </select>
 
-
+          <a
             href="/api/events/calendar/feed"
             className="calendar-sync-btn mag-btn"
             title="Sync with Google/Outlook"

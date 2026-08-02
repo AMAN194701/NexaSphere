@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useState, useEffect, useCallback } from 'react';
 import { PLATFORMS, addUtmParams, getQRUrl, copyToClipboard } from '../../utils/shareUtils';
 import useFocusTrap from '../../hooks/useFocusTrap';
 import './ShareHub.css';
@@ -9,52 +8,28 @@ export default function ShareHub({ isOpen, onClose, data }) {
   const [copyError, setCopyError] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const copiedTimeoutRef = useRef(null);
-  const copyResetRef = useRef(null);
-  const copyTimeoutRef = useRef(null);
-
-  useEffect(() => {
-    return () => {
-      if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
-    };
-  }, []);
-  const [showQR, setShowQR] = useState(false);
   const modalRef = useFocusTrap(isOpen, onClose);
 
   useEffect(() => {
     document.body.style.overflow = isOpen ? 'hidden' : '';
     return () => {
-      if (copyResetRef.current) clearTimeout(copyResetRef.current);
-      copyResetRef.current = null;
+      if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
       document.body.style.overflow = '';
     };
   }, [isOpen]);
-
-  useEffect(
-    () => () => {
-      if (copyTimeoutRef.current) {
-        clearTimeout(copyTimeoutRef.current);
-      }
-    },
-    []
-  );
 
   const shareUrl = isOpen && data ? addUtmParams(data.url || window.location.href, 'direct') : '';
   const shareTitle = data?.title || 'Check this out on NexaSphere!';
 
   const handleCopy = useCallback(async () => {
-    if (copyResetRef.current) clearTimeout(copyResetRef.current);
     const ok = await copyToClipboard(shareUrl);
     if (ok) {
       setCopied(true);
       if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
       copiedTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
-      setTimeout(() => setCopied(false), 2000);
-      copyResetRef.current = setTimeout(() => {
-        setCopied(false);
-        copyResetRef.current = null;
-      }, 2000);
-      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
-      copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
+    } else {
+      setCopyError(true);
+      setTimeout(() => setCopyError(false), 3000);
     }
   }, [shareUrl]);
 
@@ -76,16 +51,13 @@ export default function ShareHub({ isOpen, onClose, data }) {
             .writeText(shareUrl)
             .then(() => {
               setCopied(true);
-              setTimeout(() => setCopied(false), 2000);
+              if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
+              copiedTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
             })
             .catch(() => {
               setCopyError(true);
               setTimeout(() => setCopyError(false), 3000);
             });
-        }
-      });
-      navigator.share({ title: shareTitle, url: shareUrl }).catch(() => {});
-          navigator.clipboard.writeText(shareUrl).catch(() => {});
         }
       });
     }
@@ -99,8 +71,8 @@ export default function ShareHub({ isOpen, onClose, data }) {
         if (e.key === 'Escape') onClose();
       }}
     >
-      <div ref={modalRef} className="sharehub-modal" onClick={(e) => e.stopPropagation()}>
       <div
+        ref={modalRef}
         className="sharehub-modal"
         role="dialog"
         aria-modal="true"
@@ -108,7 +80,9 @@ export default function ShareHub({ isOpen, onClose, data }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sharehub-header">
-          <h2 id="sharehub-heading" className="sharehub-heading">Share</h2>
+          <h2 id="sharehub-heading" className="sharehub-heading">
+            Share
+          </h2>
           <button className="sharehub-close" onClick={onClose} aria-label="Close">
             ✕
           </button>
@@ -116,14 +90,12 @@ export default function ShareHub({ isOpen, onClose, data }) {
 
         <div className="sharehub-preview">
           {data.image && (
-            <img loading="lazy"
             <img
               src={data.image}
               alt={`Preview image for ${data.title}`}
               className="sharehub-preview-img"
             />
           )}
-          {data.image && <img src={data.image} alt="" className="sharehub-preview-img" />}
           <div>
             <p className="sharehub-preview-title">{data.title}</p>
             {data.subtitle && <p className="sharehub-preview-sub">{data.subtitle}</p>}
@@ -171,10 +143,6 @@ export default function ShareHub({ isOpen, onClose, data }) {
             Clipboard access denied. Please manually copy the link above.
           </p>
         )}
-          <button className="sharehub-copy-btn" onClick={handleCopy}>
-            {copied ? 'Copied!' : 'Copy'}
-          </button>
-        </div>
 
         <button
           className="sharehub-qr-toggle"
@@ -186,7 +154,13 @@ export default function ShareHub({ isOpen, onClose, data }) {
 
         {showQR && (
           <div className="sharehub-qr">
-            <img loading="lazy" src={getQRUrl(shareUrl)} alt="QR code for this link" width={200} height={200} />
+            <img
+              loading="lazy"
+              src={getQRUrl(shareUrl)}
+              alt="QR code for this link"
+              width={200}
+              height={200}
+            />
             <p className="sharehub-qr-hint">Scan to open on any device</p>
           </div>
         )}
