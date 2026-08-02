@@ -84,8 +84,9 @@ module.exports = {
   },
 
   createWorkflow(data) {
+    const nextId = workflows.length > 0 ? Math.max(...workflows.map((w) => w.id)) + 1 : 1;
     const workflow = {
-      id: workflows.length + 1,
+      id: nextId,
       ...data,
       status: 'Active',
     };
@@ -128,6 +129,16 @@ module.exports = {
       };
     }
 
+    const deletedWorkflow = workflows[index];
+
+    // Cancel pending requests associated with the deleted workflow
+    requests.forEach((req) => {
+      if (req.workflow === deletedWorkflow.name && req.status === "Pending") {
+        req.status = "Cancelled";
+        req.currentApprover = "-";
+      }
+    });
+
     workflows.splice(index, 1);
 
     return {
@@ -135,9 +146,10 @@ module.exports = {
       message: 'Workflow deleted successfully',
     };
   },
-  submitRequest(data) {
+    submitRequest(data) {
+    const nextId = requests.length > 0 ? Math.max(...requests.map((r) => r.id)) + 1 : 101;
     const request = {
-      id: requests.length + 101,
+      id: nextId,
       workflow: data.workflow,
       title: data.title,
       requester: data.requester,
@@ -149,7 +161,7 @@ module.exports = {
     requests.push(request);
 
     history.push({
-      id: history.length + 1,
+      id: history.length > 0 ? Math.max(...history.map((h) => h.id)) + 1 : 1,
       requestId: request.id,
       action: 'Submitted',
       by: request.requester,
