@@ -1,6 +1,7 @@
 import { sendSuccess, sendError } from '../utils/responseHelper.js';
 import { eventConflictService } from "../services/eventConflictService.js";
 
+import logger from '../utils/logger.js';
 export const getConflicts = async (req, res) => {
   try {
     const conflicts = await eventConflictService.checkConflicts();
@@ -12,7 +13,7 @@ export const getConflicts = async (req, res) => {
       conflicts,
     });
   } catch (err) {
-    console.error(err);
+    logger.error('Event conflict error: {err}', { err });
 
     return sendError(req, res, "Failed to check event conflicts.", 500, 'INTERNAL_ERROR');
     return res.status(500).json({
@@ -49,7 +50,7 @@ export const getVenueAvailability = async (req, res) => {
       data: result,
     });
   } catch (err) {
-    console.error(err);
+    logger.error('Event conflict error: {err}', { err });
 
     return sendError(req, res, "Failed to check venue availability.", 500, 'INTERNAL_ERROR');
     return res.status(500).json({
@@ -69,7 +70,7 @@ export const getAttendanceImpact = async (req, res) => {
       data: impact,
     });
   } catch (err) {
-    console.error(err);
+    logger.error('Event conflict error: {err}', { err });
 
     return sendError(req, res, "Failed to generate attendance analysis.", 500, 'INTERNAL_ERROR');
     return res.status(500).json({
@@ -92,7 +93,7 @@ export const getScheduleRecommendations = async (req, res) => {
       data: recommendations,
     });
   } catch (err) {
-    console.error(err);
+    logger.error('Event conflict error: {err}', { err });
 
     return sendError(req, res, "Failed to generate recommendations.", 500, 'INTERNAL_ERROR');
     return res.status(500).json({
@@ -112,7 +113,7 @@ export const getCalendarEvents = async (req, res) => {
       data: events,
     });
   } catch (err) {
-    console.error(err);
+    logger.error('Event conflict error: {err}', { err });
 
     return sendError(req, res, "Failed to load calendar events.", 500, 'INTERNAL_ERROR');
     return res.status(500).json({
@@ -133,7 +134,7 @@ export const getOrganizerAlerts = async (req, res) => {
       alerts,
     });
   } catch (err) {
-    console.error(err);
+    logger.error('Event conflict error: {err}', { err });
 
     return sendError(req, res, "Failed to load organizer alerts.", 500, 'INTERNAL_ERROR');
   }
