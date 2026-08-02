@@ -31,24 +31,23 @@ const templates = [
   },
 ];
 
+const scheduledReports = [];
+
 const reportHistory = [];
 
 const auditLogs = [];
 
-const dashboardSummary = {
-  totalReports: 25,
-  scheduledReports: 6,
-  exportedToday: 8,
-  totalDownloads: 134,
-};
-
 // Get All Reports
 const getReports = async () => reports;
 
+// Get Scheduled Reports
+const getScheduledReports = async () => scheduledReports;
+
 // Export Data
 const exportData = async (data) => {
+  const nextId = reports.length > 0 ? Math.max(...reports.map((r) => r.id)) + 1 : 1;
   const report = {
-    id: reports.length + 1,
+    id: nextId,
     name: data.name || "Custom Export",
     type: data.format || "CSV",
     status: "Completed",
@@ -68,12 +67,27 @@ const exportData = async (data) => {
 };
 
 // Schedule Report
-const scheduleReport = async (data) => ({
-  id: Date.now(),
-  schedule: data.schedule,
-  format: data.format,
-  status: "Scheduled",
-});
+const scheduleReport = async (data) => {
+  const nextId = scheduledReports.length > 0 ? Math.max(...scheduledReports.map((s) => s.id)) + 1 : 1;
+  const scheduled = {
+    id: nextId,
+    name: data.name || "Scheduled Report",
+    schedule: data.schedule || "0 0 * * *",
+    format: data.format || "PDF",
+    status: "Scheduled",
+    createdAt: new Date().toISOString(),
+  };
+
+  scheduledReports.push(scheduled);
+
+  auditLogs.push({
+    action: "Report Scheduled",
+    report: scheduled.name,
+    timestamp: new Date().toISOString(),
+  });
+
+  return scheduled;
+};
 
 // Generate Custom Report
 const generateCustomReport = async (data) => ({
@@ -85,8 +99,9 @@ const generateCustomReport = async (data) => ({
 
 // Save Template
 const saveTemplate = async (data) => {
+  const nextId = templates.length > 0 ? Math.max(...templates.map((t) => t.id)) + 1 : 1;
   const template = {
-    id: templates.length + 1,
+    id: nextId,
     ...data,
   };
 
@@ -107,7 +122,14 @@ const emailReport = async (data) => ({
 });
 
 // Dashboard Summary
-const getDashboardSummary = async () => dashboardSummary;
+const getDashboardSummary = async () => ({
+  totalReports: reports.length,
+  scheduledReports: scheduledReports.length,
+  exportedToday: reportHistory.filter(
+    (r) => new Date(r.exportedAt || r.createdAt).toDateString() === new Date().toDateString()
+  ).length,
+  totalDownloads: auditLogs.length,
+});
 
 // Report History
 const getReportHistory = async () => reportHistory;
@@ -146,6 +168,7 @@ const getPermissions = async () => ({
 
 module.exports = {
   getReports,
+  getScheduledReports,
   exportData,
   scheduleReport,
   generateCustomReport,
