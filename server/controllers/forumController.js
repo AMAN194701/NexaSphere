@@ -6,12 +6,8 @@ import {
   updateReplySchema,
   forumPaginationSchema,
   voteSchema,
-} from "../schemas/forumSchema.js";
-import {
-  sendSuccess,
-  sendError,
-  sendNoContent,
-} from "../utils/responseHelper.js";
+} from '../schemas/forumSchema.js';
+import { sendSuccess, sendError, sendNoContent } from '../utils/responseHelper.js';
 
 function wrapAsync(fn) {
   return (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
@@ -68,14 +64,17 @@ export const createThread = wrapAsync(async (req, res) => {
     author_email: req.studentUser.email,
   });
   const thread = await forumService.createThread(input);
-  if (!thread)
-    return sendError(
-      req,
-      res,
-      "Forum is in offline mode",
-      503,
-      "DEPENDENCY_ERROR"
+  if (!thread) return sendError(req, res, 'Forum is in offline mode', 503, 'DEPENDENCY_ERROR');
+
+  import('../utils/hashtagParser.js').then(({ parseHashtagsAndNotify }) => {
+    parseHashtagsAndNotify(
+      input.content,
+      req.studentUser.id,
+      `/forum/thread/${thread.id}`,
+      'forum_thread'
     );
+  }).catch(err => console.error('Failed to load hashtagParser', err));
+
   return sendSuccess(res, { thread }, 201);
 });
 
@@ -155,25 +154,16 @@ export const createReply = wrapAsync(async (req, res) => {
     author_email: req.studentUser.email,
   });
   const reply = await forumService.createReply(threadId, input);
-  if (!reply)
-    return sendError(
-      req,
-      res,
-      "Forum is in offline mode",
-      503,
-      "DEPENDENCY_ERROR"
-    );
+  if (!reply) return sendError(req, res, 'Forum is in offline mode', 503, 'DEPENDENCY_ERROR');
 
-  import("../utils/mentionParser.js")
-    .then(({ parseMentionsAndNotify }) => {
-      parseMentionsAndNotify(
-        input.content,
-        req.studentUser.id,
-        `/forum/thread/${threadId}`,
-        "forum_mention"
-      );
-    })
-    .catch((err) => console.error("Failed to load mentionParser", err));
+  import('../utils/hashtagParser.js').then(({ parseHashtagsAndNotify }) => {
+    parseHashtagsAndNotify(
+      input.content,
+      req.studentUser.id,
+      `/forum/thread/${threadId}`,
+      'forum_reply'
+    );
+  }).catch(err => console.error('Failed to load hashtagParser', err));
 
   return sendSuccess(res, { reply }, 201);
 });
