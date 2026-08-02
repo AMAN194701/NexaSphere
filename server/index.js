@@ -1961,33 +1961,22 @@ process.on('unhandledRejection', (reason) => {
   logger.error({ reason: reason instanceof Error ? reason.message : String(reason) }, '[Process] Unhandled rejection');
 });
 
+process.on('uncaughtException', (err) => {
+  console.error('[Process] Uncaught exception:', err instanceof Error ? err.message : err);
+  if (err && err.stack) console.error(err.stack);
+  process.exit(1);
+});
 
 const port = Number(process.env.PORT || 8787);
-if (!process.env.VERCEL) {
-  const boot = HAS_SUPABASE ? Promise.resolve() : ensureContentFile();
-  boot.then(() => {
-    const server = app.listen(port, () => {
-      // eslint-disable-next-line no-console
 let server;
 
-if (process.env.NODE_ENV !== 'test') {
-  if (!process.env.VERCEL) {
-    const boot = HAS_SUPABASE
-      ? Promise.all([studentUsersRepository.ensureSchema(), slackRepository.ensureSchema()])
-      : ensureContentFile();
-    boot.then(() => {
-      loadPersistedPushSubscriptions();
-      slackIntegrationService.init();
-      server = app.listen(port, () => {
-        logger.info(`NexaSphere server listening on http://localhost:${port}`);
-        schedulerService.init();
-      });
-      server.on('error', (err) => {
-        logger.error({ code: err.code, err: err.message }, 'Server listen error');
-      });
-      initializeSocketIO(server);
-    });
-  } else {
+async function startServer() {
+  try {
+    if (HAS_SUPABASE) {
+      await studentUsersRepository.ensureSchema();
+    } else {
+      await ensureContentFile();
+    }
     loadPersistedPushSubscriptions();
     slackIntegrationService.init();
     server = app.listen(port, () => {
@@ -1996,39 +1985,14 @@ if (process.env.NODE_ENV !== 'test') {
       startWebhookRetryProcessor();
     });
     initializeSocketIO(server);
-  });
-} else {
-  // Vercel/Render style deployments rely on the platform to start the server.
-  const server = app.listen(port, () => {
-    // eslint-disable-next-line no-console
-    console.log(`NexaSphere server listening on http://localhost:${port}`);
-  });
-  initializeSocketIO(server);
+  } catch (err) {
+    console.error('[Startup] Failed to start server:', err instanceof Error ? err.message : err);
+    process.exit(1);
+  }
+}
+
+if (process.env.NODE_ENV !== 'test') {
+  startServer();
 }
 
 export default app;
-// Set up middleware
-app.use(helmet());
-app.use(securityMiddleware);
-
-// Define routes
-app.get('/', (req, res) => {
-  res.send('Hello World!');
-});
-
-// Start the server
-const port = process.env.PORT || 8787;
-app.listen(port, () => {
-  console.log(`Server listening on port ${port}`);
-});
-
-// Error handling
-process.on('uncaughtException', (err) => {
-  logger.error({ err: err.message, stack: err.stack }, 'Uncaught exception');
-  process.exit(1);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  logger.error({ reason: reason instanceof Error ? reason.message : String(reason) }, 'Unhandled rejection');
-  process.exit(1);
-});
