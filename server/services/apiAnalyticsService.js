@@ -5,6 +5,8 @@ import crypto from 'crypto';
  * Mock implementation for Platform-Wide API Usage Analytics & Developer Portal
  */
 
+import crypto from 'crypto';
+
 const apiKeys = [
   {
     id: 1,
@@ -113,9 +115,9 @@ const generateApiKey = async (data) => {
   const nextId = apiKeys.length > 0 ? Math.max(...apiKeys.map((k) => k.id)) + 1 : 1;
   const secureRandomString = crypto.randomBytes(16).toString('hex');
   const key = {
-    id: nextId,
-    name: data?.name || 'New API Key',
-    key: `NSX_${secureRandomString}`,
+    id: apiKeys.length + 1,
+    name: data.name || 'New API Key',
+    key: `NSX_${crypto.randomUUID()}`,
     status: 'Active',
     createdAt: new Date().toISOString(),
   };
