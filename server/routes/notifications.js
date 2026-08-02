@@ -365,7 +365,7 @@ router.get('/notifications', async (req, res) => {
 
     const offset = parseInt(req.query.offset, 10) || 0;
     const limit = Math.min(parseInt(req.query.limit, 10) || 100, 500);
-    const list = await notificationsService.getNotifications(userId, offset, limit);
+    const list = await notificationsService.getNotifications({ userId, offset, limit, tab, q });
     return sendSuccess(res, { notifications: list });
   } catch (err) {
     return sendError(req, res, err.message, 500, 'INTERNAL_ERROR');
