@@ -1,3 +1,4 @@
+import logger from '../utils/logger.js';
 import { analyticsRepository } from '../repositories/analyticsRepository.js';
 import { query } from '../config/db.js';
 import { withDb } from '../repositories/db.js';
@@ -281,7 +282,7 @@ export const analyticsService = {
           });
         }
       } catch (err) {
-        console.error(`Error evaluating segment ${segment.name}:`, err);
+        logger.error(`Error evaluating segment ${segment.name}:`, { segmentName: segment.name, error: err.message });
       }
     }
   },
@@ -296,9 +297,7 @@ export const analyticsService = {
       `;
       const res = await query(q, [segmentId]);
       const users = res.rows;
-      console.log(
-        `Sending email to ${users.length} users in segment ${segmentId} with template ${actionData.template}`
-      );
+      logger.info(`Sending email to ${users.length} users in segment ${segmentId} with template ${actionData.template}`, { segmentId, template: actionData.template, userCount: users.length });
       return { success: true, count: users.length };
     }
     return { success: false, reason: 'Unknown action' };
