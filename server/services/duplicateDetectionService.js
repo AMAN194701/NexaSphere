@@ -55,13 +55,16 @@ const records = {
 };
 
 function similarity(a, b) {
-  a = a.toLowerCase();
-  b = b.toLowerCase();
+  if (!a || !b) return 0;
+  a = String(a).trim().toLowerCase().replace(/\s+/g, " ");
+  b = String(b).trim().toLowerCase().replace(/\s+/g, " ");
 
   if (a === b) return 100;
 
-  const wordsA = a.split(' ');
-  const wordsB = b.split(' ');
+  const wordsA = a.split(" ").filter(Boolean);
+  const wordsB = b.split(" ").filter(Boolean);
+
+  if (wordsA.length === 0 || wordsB.length === 0) return 0;
 
   let common = 0;
 
