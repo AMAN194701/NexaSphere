@@ -13,6 +13,7 @@
     "@apollo/server": "^4.11.0",
     "@apollo/subgraph": "^2.14.3",
     "graphql": "^16.9.0",
+    "graphql-cost-analysis": "^1.0.3",
     "node-fetch": "^3.3.2"
   },
   "devDependencies": {

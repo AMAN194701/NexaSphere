@@ -1,6 +1,7 @@
 import { ApolloServer } from '@apollo/server';
 import { startStandaloneServer } from '@apollo/server/standalone';
 import { ApolloGateway, IntrospectAndCompose } from '@apollo/gateway';
+import { costAnalysisPlugin } from './costAnalysis.js';
 
 const gateway = new ApolloGateway({
   supergraphSdl: new IntrospectAndCompose({
@@ -12,7 +13,10 @@ const gateway = new ApolloGateway({
   }),
 });
 
-const server = new ApolloServer({ gateway });
+const server = new ApolloServer({ 
+  gateway,
+  plugins: [costAnalysisPlugin]
+});
 
 const PORT = process.env.GATEWAY_PORT || 4000;
 
