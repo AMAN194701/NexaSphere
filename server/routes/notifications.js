@@ -107,7 +107,14 @@ const validatePushSubscription = [
   (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return sendError(req, res, 'Invalid subscription payload', 400, 'VALIDATION_ERROR', errors.array());
+      return sendError(
+        req,
+        res,
+        'Invalid subscription payload',
+        400,
+        'VALIDATION_ERROR',
+        errors.array()
+      );
     }
 
     // Strict sanitization: reconstruct object to drop malicious properties
@@ -190,7 +197,13 @@ router.post(
       if (req.studentUser) {
         const studentId = req.studentUser.sub || req.studentUser.id;
         if (userId && userId !== studentId) {
-          return sendError(req, res, 'Forbidden: Cannot modify other users notifications', 403, 'FORBIDDEN');
+          return sendError(
+            req,
+            res,
+            'Forbidden: Cannot modify other users notifications',
+            403,
+            'FORBIDDEN'
+          );
         }
         uid = studentId;
       }
@@ -385,55 +398,51 @@ router.get('/notifications/preferences', requireNotificationPrefAuth, async (req
   }
 });
 
-router.put('/notifications/preferences', validate(updatePreferencesSchema), requireNotificationPrefAuth, async (req, res) => {
-router.put('/notifications/preferences', requireNotificationAuth, async (req, res) => {
-  try {
-    const userId = req.body.userId || 'global';
-    const { category, email, push, in_app, sms, frequency, quiet_start, quiet_end, dnd } = req.body;
-    if (!category) return sendError(req, res, 'category is required', 400, 'VALIDATION_ERROR');
-
-router.put('/notifications/preferences', requireNotificationPrefAuth, async (req, res) => {
-  try {
-    const userId = req.body.userId || 'global';
-    const { category, email, push, in_app, sms, frequency, quiet_start, quiet_end, dnd } = req.body;
-
-router.put('/notifications/preferences', requireNotificationPrefAuth, async (req, res) => {
-  try {
-    const userId = req.body.userId || 'global';
-    const { category, email, push, in_app, sms, frequency, quiet_start, quiet_end, dnd } = req.body;
-    if (!category) return res.status(400).json({ error: 'category is required' });
-    const pref = await notificationPreferencesRepository.set(userId, category, {
-      email,
-      push,
-      in_app,
-      sms,
-      frequency,
-      quiet_start,
-      quiet_end,
-      dnd,
-    });
-    return sendSuccess(res, { preference: pref });
-  } catch (err) {
-    return sendError(req, res, err.message, 500, 'INTERNAL_ERROR');
-  }
-});
-
-router.put('/notifications/preferences/bulk', validate(bulkPreferencesSchema), requireNotificationPrefAuth, async (req, res) => {
-router.put('/notifications/preferences/bulk', requireNotificationAuth, async (req, res) => {
-
-router.put('/notifications/preferences/bulk', requireNotificationPrefAuth, async (req, res) => {
-  try {
-    const userId = req.body.userId || 'global';
-    const { preferences } = req.body;
-    if (!Array.isArray(preferences) || !preferences.length) {
-      return sendError(req, res, 'preferences array is required', 400, 'VALIDATION_ERROR');
+router.put(
+  '/notifications/preferences',
+  validate(updatePreferencesSchema),
+  requireNotificationPrefAuth,
+  async (req, res) => {
+    try {
+      const userId = req.body.userId || 'global';
+      const { category, email, push, in_app, sms, frequency, quiet_start, quiet_end, dnd } =
+        req.body;
+      if (!category) return sendError(req, res, 'category is required', 400, 'VALIDATION_ERROR');
+      const pref = await notificationPreferencesRepository.set(userId, category, {
+        email,
+        push,
+        in_app,
+        sms,
+        frequency,
+        quiet_start,
+        quiet_end,
+        dnd,
+      });
+      return sendSuccess(res, { preference: pref });
+    } catch (err) {
+      return sendError(req, res, err.message, 500, 'INTERNAL_ERROR');
     }
-    const results = await notificationPreferencesRepository.setBulk(userId, preferences);
-    return sendSuccess(res, { preferences: results });
-  } catch (err) {
-    return sendError(req, res, err.message, 500, 'INTERNAL_ERROR');
   }
-});
+);
+
+router.put(
+  '/notifications/preferences/bulk',
+  validate(bulkPreferencesSchema),
+  requireNotificationPrefAuth,
+  async (req, res) => {
+    try {
+      const userId = req.body.userId || 'global';
+      const { preferences } = req.body;
+      if (!Array.isArray(preferences) || !preferences.length) {
+        return sendError(req, res, 'preferences array is required', 400, 'VALIDATION_ERROR');
+      }
+      const results = await notificationPreferencesRepository.setBulk(userId, preferences);
+      return sendSuccess(res, { preferences: results });
+    } catch (err) {
+      return sendError(req, res, err.message, 500, 'INTERNAL_ERROR');
+    }
+  }
+);
 
 // Notification analytics (lightweight collector)
 router.post('/notifications/analytics', async (req, res) => {

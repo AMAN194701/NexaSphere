@@ -54,38 +54,12 @@ class NotificationsService {
       message,
       link,
       isRead: data.isRead || false,
-
     });
 
     if (effectiveFrequency === 'immediate') {
       await this.sendNow(userId, { ...data, id });
     } else if (effectiveFrequency !== 'disabled') {
       await this.addToDigest(userId, effectiveFrequency, { ...data, id });
-    }
-
-
-    // SMS Notifications logic (Event reminder, Event postponed, Last call)
-    const smsEligibleEvents = ['reminder', 'postponed', 'last_call'];
-    const isSmsEligible = smsEligibleEvents.includes(type) || 
-                          smsEligibleEvents.some(key => richData?.[key]);
-
-    if (isSmsEligible) {
-      const smsPref = await shouldDeliver(userId, category, 'sms', priorityClass === 'urgent');
-      if (smsPref.deliver) {
-        let user = await usersRepository.getUserById(userId);
-        if (!user) {
-          // Fallback to student_users table
-          const { studentUsersRepository } = await import('../repositories/studentUsersRepository.js');
-          const students = await studentUsersRepository.listAll();
-          user = students.find(s => String(s.id) === String(userId) || s.provider_id === String(userId));
-        }
-        
-        if (user && user.phone_number) {
-          // Truncate message for SMS if needed
-          const smsBody = `NexaSphere: ${title} - ${message}`.substring(0, 160);
-          await smsService.sendSMS(userId, user.phone_number, smsBody, type);
-        }
-      }
     }
 
     return note;

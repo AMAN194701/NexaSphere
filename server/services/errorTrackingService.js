@@ -29,10 +29,7 @@ function generateErrorFingerprint(error, context = {}) {
   const message = error?.message || 'Unknown error';
   const endpoint = `${context.method || 'UNKNOWN'} ${context.url || 'unknown'}`;
 
-  return crypto
-    .createHash('sha1')
-    .update(`${name}:${message}:${endpoint}`)
-    .digest('hex');
+  return crypto.createHash('sha1').update(`${name}:${message}:${endpoint}`).digest('hex');
 }
 
 /**

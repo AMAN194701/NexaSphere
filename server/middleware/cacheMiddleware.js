@@ -49,38 +49,3 @@ export function invalidateCache(pattern) {
     next();
   };
 }
-
-/**
- * Validate and sanitize cache invalidation pattern.
- * Restricts patterns to allowed prefixes and blocks wildcard-only patterns.
- */
-function sanitizeCachePattern(pattern) {
-  if (!pattern || typeof pattern !== "string") {
-    logger.warn({ pattern }, "Invalid cache pattern rejected");
-    return null;
-  }
-
-  const trimmed = pattern.trim();
-  if (trimmed === "" || trimmed === "*" || trimmed === ":*") {
-    logger.warn({ pattern }, "Wildcard-only cache pattern rejected");
-    return null;
-  }
-
-  const hasAllowedPrefix = ALLOWED_PREFIXES.some((prefix) =>
-    trimmed.startsWith(prefix)
-  );
-  if (!hasAllowedPrefix) {
-    logger.warn(
-      { pattern: trimmed },
-      "Cache pattern must start with an allowed prefix"
-    );
-    return null;
-  }
-
-  if (trimmed.length > 256) {
-    logger.warn("Cache pattern exceeds maximum length");
-    return null;
-  }
-
-  return trimmed;
-}

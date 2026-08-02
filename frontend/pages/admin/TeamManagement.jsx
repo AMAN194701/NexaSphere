@@ -8,5 +8,22 @@ const TeamManagement = () => {
   const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
-    api.getPending().then(res => setPendingCount(res.data.length));
-    .catch(err=>console.error(err))
+    api.getPending().then((res) => setPendingCount(res.data.length));
+  }, []);
+
+  return (
+    <div className="container mt-4">
+      <h1>Team Management</h1>
+      <Tabs defaultActiveKey="pending" className="mb-3">
+        <Tab eventKey="pending" title={`Pending (${pendingCount})`}>
+          <PendingApplications />
+        </Tab>
+        <Tab eventKey="timeline" title="Approval Timeline">
+          <ApprovalTimeline />
+        </Tab>
+      </Tabs>
+    </div>
+  );
+};
+
+export default TeamManagement;

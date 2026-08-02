@@ -4,7 +4,11 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { supabaseRequest, HAS_SUPABASE } from '../storage/supabaseClient.js';
 import { validate } from '../middleware/validate.js';
-import { customFunnelSchema, saveReportSchema, executeReportSchema } from '../validators/routes/analyticsRouteSchemas.js';
+import {
+  customFunnelSchema,
+  saveReportSchema,
+  executeReportSchema,
+} from '../validators/routes/analyticsRouteSchemas.js';
 import { sendSuccess, sendError } from '../utils/responseHelper.js';
 import {
   getDashboardSummary,

@@ -108,58 +108,14 @@ export async function getMyCertificates(req, res) {
 }
 
 export async function downloadCertificatePdf(req, res) {
-  const { code } = req.params;
-
-  try {
-    const certificate = await prisma.certificate.findUnique({
-      where: { code },
-    });
-
-    if (!certificate) {
-      return sendError(req, res, "Certificate not found", 404, "NOT_FOUND");
-    }
-
-    // Try to download from S3
-    if (certificate.pdfUrl || certificate.s3Key) {
-      try {
-        const pdfBuffer = await downloadCertificatePdfFromS3({
-          key: certificate.s3Key || certificate.pdfUrl,
-        });
-
-        res.set({
-          "Content-Type": "application/pdf",
-          "Content-Disposition": `attachment; filename="certificate-${code}.pdf"`,
-        });
-        return res.send(pdfBuffer);
-      } catch (s3Error) {
-        // Fall through to regenerate PDF
-      }
-    }
-
-    // Regenerate PDF if S3 download fails
-    const pdfBuffer = await renderCertificatePdf({
-      code: certificate.code,
-      attendeeName: certificate.attendeeName,
-      eventName: certificate.eventName,
-      issuedAt:
-        certificate.issuedAt?.toISOString() || certificate.date?.toISOString(),
-      verifyUrl: buildVerifyUrl(certificate.code),
-    });
-
-    res.set({
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="certificate-${code}.pdf"`,
-    });
-    return res.send(pdfBuffer);
-  } catch (error) {
-    return sendError(
-      req,
-      res,
-      "Failed to download certificate PDF",
-      500,
-      "DOWNLOAD_ERROR"
-    );
-  }
+  // TODO: stream from S3
+  return sendError(
+    req,
+    res,
+    'PDF download not implemented yet (S3 + storage layer TODO).',
+    501,
+    'NOT_IMPLEMENTED'
+  );
 }
 
 export async function getOpenBadge(req, res) {

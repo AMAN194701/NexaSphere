@@ -75,16 +75,6 @@ export async function renderTemplateHtml(templateName, data, customTemplateConte
   return renderTemplate(templateName, data, customTemplateContent);
 }
 
-export async function sendEmail({ to, subject, templateName, data, from = defaultFrom, customTemplateContent = null }) {
-export let sendEmailOverride = null;
-
-/**
- * Send an email with HTML generated from a template.
- */
-export async function sendEmail({ to, subject, templateName, data, from = defaultFrom }) {
-  if (sendEmailOverride) {
-    return await sendEmailOverride({ to, subject, templateName, data, from });
-  }
 export async function sendEmail({
   to,
   subject,
@@ -92,7 +82,6 @@ export async function sendEmail({
   data,
   from = defaultFrom,
   customTemplateContent = null,
-  attachments = [],
 }) {
   try {
     const html = await renderTemplate(templateName, data, customTemplateContent);

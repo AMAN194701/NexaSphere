@@ -72,13 +72,16 @@ export default function ShareHub({ isOpen, onClose, data }) {
     if (navigator.share) {
       navigator.share({ title: shareTitle, url: shareUrl }).catch((err) => {
         if (err?.name !== 'AbortError' && navigator.clipboard) {
-          navigator.clipboard.writeText(shareUrl).then(() => {
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-          }).catch(() => {
-            setCopyError(true);
-            setTimeout(() => setCopyError(false), 3000);
-          });
+          navigator.clipboard
+            .writeText(shareUrl)
+            .then(() => {
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            })
+            .catch(() => {
+              setCopyError(true);
+              setTimeout(() => setCopyError(false), 3000);
+            });
         }
       });
       navigator.share({ title: shareTitle, url: shareUrl }).catch(() => {});
@@ -158,11 +161,13 @@ export default function ShareHub({ isOpen, onClose, data }) {
             aria-label="Shareable link"
           />
           <button className={`sharehub-copy-btn ${copyError ? 'error' : ''}`} onClick={handleCopy}>
-            {copied ? 'Copied!' : (copyError ? 'Failed' : 'Copy')}
+            {copied ? 'Copied!' : copyError ? 'Failed' : 'Copy'}
           </button>
         </div>
         {copyError && (
-          <p style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '4px', textAlign: 'center' }}>
+          <p
+            style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '4px', textAlign: 'center' }}
+          >
             Clipboard access denied. Please manually copy the link above.
           </p>
         )}

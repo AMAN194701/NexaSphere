@@ -164,7 +164,8 @@ export default function SponsorsPage() {
                         }}
                       >
                         {sponsor.logoUrl ? (
-                          <img loading="lazy"
+                          <img
+                            loading="lazy"
                             src={sponsor.logoUrl}
                             alt={sponsor.companyName}
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}

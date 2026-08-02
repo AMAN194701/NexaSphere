@@ -122,9 +122,3 @@ export const activities = [
     ],
   },
 ];
-
-export const difficultyLevels = [
-  { value: 'beginner', label: 'Beginner' },
-  { value: 'intermediate', label: 'Intermediate' },
-  { value: 'advanced', label: 'Advanced' },
-];

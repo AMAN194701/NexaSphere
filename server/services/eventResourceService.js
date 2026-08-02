@@ -8,10 +8,10 @@ class EventResourceService {
       category: data.category,
       quantity: data.quantity || 1,
       availableQuantity: data.quantity || 1,
-      location: data.location || "Storage",
-      description: data.description || "",
-      status: "Available",
-      maintenanceStatus: "Good",
+      location: data.location || 'Storage',
+      description: data.description || '',
+      status: 'Available',
+      maintenanceStatus: 'Good',
       qrCode: `QR-${Date.now()}`,
       assignedTo: null,
       borrowedBy: null,
@@ -66,7 +66,7 @@ class EventResourceService {
     if (resource.availableQuantity <= 0) {
       return {
         success: false,
-        message: "Resource unavailable",
+        message: 'Resource unavailable',
       };
     }
 
@@ -116,7 +116,7 @@ class EventResourceService {
     if (!resource) return null;
 
     resource.assignedTo = assignee;
-    resource.status = "Assigned";
+    resource.status = 'Assigned';
     resource.updatedAt = new Date();
 
     return resource;
@@ -132,7 +132,7 @@ class EventResourceService {
       reportedAt: new Date(),
     });
 
-    resource.status = "Damaged";
+    resource.status = 'Damaged';
 
     return resource;
   }
@@ -168,14 +168,11 @@ class EventResourceService {
     const conflicts = [];
 
     resources.forEach((resource) => {
-      if (
-        resource.availableQuantity === 0 &&
-        resource.quantity > 0
-      ) {
+      if (resource.availableQuantity === 0 && resource.quantity > 0) {
         conflicts.push({
           id: resource.id,
           name: resource.name,
-          issue: "Fully Reserved",
+          issue: 'Fully Reserved',
         });
       }
     });
@@ -215,22 +212,13 @@ class EventResourceService {
   getInventoryAnalytics() {
     const totalResources = resources.length;
 
-    const available = resources.filter(
-      (r) => r.availableQuantity > 0
-    ).length;
+    const available = resources.filter((r) => r.availableQuantity > 0).length;
 
-    const assigned = resources.filter(
-      (r) => r.assignedTo
-    ).length;
+    const assigned = resources.filter((r) => r.assignedTo).length;
 
-    const damaged = resources.filter(
-      (r) => r.status === "Damaged"
-    ).length;
+    const damaged = resources.filter((r) => r.status === 'Damaged').length;
 
-    const reserved = resources.reduce(
-      (sum, r) => sum + r.reservationHistory.length,
-      0
-    );
+    const reserved = resources.reduce((sum, r) => sum + r.reservationHistory.length, 0);
 
     return {
       totalResources,
@@ -238,10 +226,7 @@ class EventResourceService {
       assignedResources: assigned,
       damagedResources: damaged,
       totalReservations: reserved,
-      utilizationRate:
-        totalResources === 0
-          ? 0
-          : ((assigned + reserved) / totalResources) * 100,
+      utilizationRate: totalResources === 0 ? 0 : ((assigned + reserved) / totalResources) * 100,
     };
   }
 
@@ -249,9 +234,7 @@ class EventResourceService {
     return resources.map((resource) => ({
       id: resource.id,
       name: resource.name,
-      utilization:
-        resource.reservationHistory.length +
-        resource.borrowHistory.length,
+      utilization: resource.reservationHistory.length + resource.borrowHistory.length,
       damageReports: resource.damageReports.length,
       maintenanceLogs: resource.maintenanceLogs.length,
     }));
