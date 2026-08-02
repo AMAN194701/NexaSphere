@@ -1,7 +1,9 @@
 const express = require("express");
 const router = express.Router();
+const { adminAuthMiddleware } = require("../middleware/adminAuthMiddleware.js");
 
 const controller = require("../controllers/workflowAutomationController");
+const requireAdmin = adminAuthMiddleware ? adminAuthMiddleware.requireAdmin : (req, res, next) => next();
 
 // Workflow CRUD
 router.get(
@@ -16,37 +18,44 @@ router.get(
 
 router.post(
   "/workflows",
+  requireAdmin,
   controller.createWorkflow
 );
 
 router.put(
   "/workflows/:id",
+  requireAdmin,
   controller.updateWorkflow
 );
 
 router.delete(
   "/workflows/:id",
+  requireAdmin,
   controller.deleteWorkflow
 );
 
 // Workflow Requests
 router.post(
   "/requests",
+  requireAdmin,
   controller.submitRequest
 );
 
 router.put(
   "/requests/:id/approve",
+  requireAdmin,
   controller.approveRequest
 );
 
 router.put(
   "/requests/:id/reject",
+  requireAdmin,
   controller.rejectRequest
 );
 
 router.post(
   "/requests/bulk-approve",
+  requireAdmin,
   controller.bulkApprove
 );
 
@@ -75,6 +84,7 @@ router.get(
 // Escalation
 router.post(
   "/escalate",
+  requireAdmin,
   controller.escalatePendingRequests
 );
 
