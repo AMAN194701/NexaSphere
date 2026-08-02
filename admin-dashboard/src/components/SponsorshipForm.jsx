@@ -127,7 +127,7 @@ export function SponsorshipForm({ sponsor, onClose }) {
               >
                 {TIERS.map((t) => (
                   <option key={t} value={t}>
-                    {t.charAt(0).toUpperCase() + t.slice(1)}
+                    {t[0].toUpperCase() + t.slice(1)}
                   </option>
                 ))}
               </select>
@@ -141,7 +141,7 @@ export function SponsorshipForm({ sponsor, onClose }) {
               >
                 {STATUSES.map((s) => (
                   <option key={s} value={s}>
-                    {s.charAt(0).toUpperCase() + s.slice(1)}
+                    {s[0].toUpperCase() + s.slice(1)}
                   </option>
                 ))}
               </select>

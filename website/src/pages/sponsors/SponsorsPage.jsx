@@ -172,7 +172,7 @@ export default function SponsorsPage() {
                           />
                         ) : (
                           <span style={{ fontSize: '2rem', opacity: 0.4 }}>
-                            {sponsor.companyName.charAt(0)}
+                            {sponsor.companyName[0]}
                           </span>
                         )}
                       </div>
