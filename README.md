@@ -4,6 +4,10 @@
 > Built by students, for students — featuring events, activities, team management, portfolios, and more.
 
 [![CI](https://github.com/Ayushh-Sharmaa/NexaSphere/actions/workflows/ci.yml/badge.svg)](https://github.com/Ayushh-Sharmaa/NexaSphere/actions/workflows/ci.yml)
+[![Docker Build](https://github.com/Ayushh-Sharmaa/NexaSphere/actions/workflows/docker-ci.yml/badge.svg)](https://github.com/Ayushh-Sharmaa/NexaSphere/actions/workflows/docker-ci.yml)
+[![Security Scanning](https://github.com/Ayushh-Sharmaa/NexaSphere/actions/workflows/security-scan.yml/badge.svg)](https://github.com/Ayushh-Sharmaa/NexaSphere/actions/workflows/security-scan.yml)
+[![CodeQL Analysis](https://github.com/Ayushh-Sharmaa/NexaSphere/actions/workflows/codeql.yml/badge.svg)](https://github.com/Ayushh-Sharmaa/NexaSphere/actions/workflows/codeql.yml)
+[![Production Deployment](https://github.com/Ayushh-Sharmaa/NexaSphere/actions/workflows/production-deployment.yml/badge.svg)](https://github.com/Ayushh-Sharmaa/NexaSphere/actions/workflows/production-deployment.yml)
 [![Lint Markdown](https://github.com/Ayushh-Sharmaa/NexaSphere/actions/workflows/lint-markdown.yml/badge.svg)](https://github.com/Ayushh-Sharmaa/NexaSphere/actions/workflows/lint-markdown.yml)
 [![License](https://img.shields.io/github/license/Ayushh-Sharmaa/NexaSphere)](LICENSE)
 
