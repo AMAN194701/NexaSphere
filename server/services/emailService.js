@@ -60,7 +60,7 @@ async function renderTemplate(templateName, data) {
       return ejs.render(dbTemplate.body, data);
     }
   } catch (err) {
-    console.warn(
+    logger.warn(
       `[Email Service] Failed to load DB template ${templateName}, falling back to file`,
       err.message
     );
@@ -106,11 +106,11 @@ export async function sendEmail({
     };
 
     if (!isProduction && (!process.env.SMTP_USER || !process.env.SMTP_PASS)) {
-      console.log(`[Email Service - DEV] Would send email to: ${to}`);
-      console.log(`[Email Service - DEV] Subject: ${subject}`);
-      console.log(`[Email Service - DEV] Template: ${templateName}`);
+      logger.info(`[Email Service - DEV] Would send email to: ${to}`);
+      logger.info(`[Email Service - DEV] Subject: ${subject}`);
+      logger.info(`[Email Service - DEV] Template: ${templateName}`);
       if (attachments.length > 0) {
-        console.log(
+        logger.info(
           `[Email Service - DEV] Attachments: ${attachments.map((attachment) => attachment.filename || 'attachment').join(', ')}`
         );
       }
@@ -118,13 +118,13 @@ export async function sendEmail({
     }
 
     const info = await emailBreaker.execute(mailOptions);
-    console.log(`[Email Service] Message sent successfully: ${info.messageId}`);
+    logger.info(`[Email Service] Message sent successfully: ${info.messageId}`);
     return { success: true, messageId: info.messageId };
   } catch (error) {
     if (error.code === 'CIRCUIT_OPEN') {
-      console.warn(`[Email Service] SMTP circuit breaker is OPEN, skipping email to ${to}`);
+      logger.warn(`[Email Service] SMTP circuit breaker is OPEN, skipping email to ${to}`);
     } else {
-      console.error(`[Email Service] Error sending email:`, error);
+      logger.error(`[Email Service] Error sending email:`, error);
     }
     return { success: false, error };
   }
