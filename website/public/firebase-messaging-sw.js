@@ -42,4 +42,4 @@ self.addEventListener('notificationclick', (event) => {
   
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-    .catch(err=>console.error(err))
+    .catch(err => console.error(err))
