@@ -72,10 +72,6 @@ export function initializeSocket(serverUrl = getSocketServerUrl()) {
       identifyUser();
     });
 
-    socket.on('disconnect', (reason) => {
-      console.log('Socket disconnected:', reason);
-    });
-
     socket.on('connect_error', (error) => {
       captureHandledException(error, 'Socket.IO connect_error:');
     });
