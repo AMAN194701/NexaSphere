@@ -114,7 +114,7 @@ export function SponsorshipForm({ sponsor, onClose }) {
               <select id="sponsor-tier" value={form.tier} onChange={(e) => set('tier', e.target.value)}>
                 {TIERS.map((t) => (
                   <option key={t} value={t}>
-                    {t.charAt(0).toUpperCase() + t.slice(1)}
+                    {t[0].toUpperCase() + t.slice(1)}
                   </option>
                 ))}
               </select>
@@ -124,7 +124,7 @@ export function SponsorshipForm({ sponsor, onClose }) {
               <select id="sponsor-status" value={form.status} onChange={(e) => set('status', e.target.value)}>
                 {STATUSES.map((s) => (
                   <option key={s} value={s}>
-                    {s.charAt(0).toUpperCase() + s.slice(1)}
+                    {s[0].toUpperCase() + s.slice(1)}
                   </option>
                 ))}
               </select>
