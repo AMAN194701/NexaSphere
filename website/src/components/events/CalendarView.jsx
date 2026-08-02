@@ -58,7 +58,7 @@ export default function CalendarView({ events: initialEvents, onEventClick, isAd
       normalized = `${dateStr}, ${currentDate.getFullYear()}`;
     }
     const d = new Date(normalized);
-    return isNaN(d.getTime()) ? null : d;
+    return Number.isNaN(d.getTime()) ? null : d;
   };
 
   // Filtering logic
