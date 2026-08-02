@@ -25,7 +25,7 @@ class NotificationsService {
     const { type = 'info', priority = 'normal', title, message, link = null } = data;
 
     // 1. Smart Fatigue Adjustment
-    const activity = await notificationAnalyticsRepository.getUserActivityMetrics(userId);
+    const activity = await notificationAnalyticsRepository.getUserActivityMetrics(userId) || {};
 
     // 2. Check delivery preferences (handles DND, quiet hours, channel prefs)
     const result = await shouldDeliver(userId, type, 'push', priority === 'high');
@@ -33,11 +33,11 @@ class NotificationsService {
     let effectiveFrequency = result.frequency;
 
     // Feature: If user hasn't opened app in 5 days, increase frequency (bypass digest)
-    if (activity.daysSinceLastActive >= 5 && effectiveFrequency !== 'disabled') {
+    if (activity?.daysSinceLastActive >= 5 && effectiveFrequency !== 'disabled') {
       effectiveFrequency = 'immediate';
     }
     // Feature: If user opens app 10+ times per day, reduce frequency for low-priority items
-    if (activity.dailyActiveCount >= 10 && type === 'recommendations') {
+    if (activity?.dailyActiveCount >= 10 && type === 'recommendations') {
       effectiveFrequency = 'daily_digest';
     }
 
@@ -457,7 +457,7 @@ export default {
     const { type, priority = 'normal' } = data;
 
     // 1. Smart Fatigue Adjustment
-    const activity = await notificationAnalyticsRepository.getUserActivityMetrics(userId);
+    const activity = await notificationAnalyticsRepository.getUserActivityMetrics(userId) || {};
     const prefs = await notificationPreferencesRepository.get(userId);
     const config = prefs.types[type] || { push: true, frequency: 'immediate' };
 
@@ -468,11 +468,11 @@ export default {
     let effectiveFrequency = result.frequency;
 
     // Feature: If user hasn't opened app in 5 days, increase frequency (bypass digest)
-    if (activity.daysSinceLastActive >= 5 && effectiveFrequency !== 'disabled') {
+    if (activity?.daysSinceLastActive >= 5 && effectiveFrequency !== 'disabled') {
       effectiveFrequency = 'immediate';
     }
     // Feature: If user opens app 10+ times per day, reduce frequency for low-priority items
-    if (activity.dailyActiveCount >= 10 && type === 'recommendations') {
+    if (activity?.dailyActiveCount >= 10 && type === 'recommendations') {
       effectiveFrequency = 'daily_digest';
     }
 
