@@ -408,7 +408,7 @@ export default function ModerationDashboard() {
                 borderRadius: '100px',
               }}
             >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              {tab[0].toUpperCase() + tab.slice(1)}
             </button>
           ))}
         </div>
@@ -690,7 +690,7 @@ export default function ModerationDashboard() {
               >
                 {RESOLUTIONS.map((res) => (
                   <option key={res} value={res}>
-                    {res.charAt(0).toUpperCase() + res.slice(1)}
+                    {res[0].toUpperCase() + res.slice(1)}
                   </option>
                 ))}
               </select>
