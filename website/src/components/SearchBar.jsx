@@ -26,6 +26,7 @@ function Highlight({ text, query }) {
     const clean = DOMPurify.sanitize(text, {
       ALLOWED_TAGS: ['mark'],
       ALLOWED_ATTR: [],
+      USE_PROFILES: { html: true },
     });
     return <span dangerouslySetInnerHTML={{ __html: clean }} />;
   }
