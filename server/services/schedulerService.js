@@ -16,7 +16,6 @@ import { backupService } from './backupService.js';
 import { sendEmail } from './emailService.js';
 import { segmentationService } from './segmentationService.js';
 import { portfolioRepository } from '../repositories/portfolioRepository.js';
-import { segmentationService } from './segmentationService.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -223,7 +222,7 @@ const TASK_DEFINITIONS = [
     category: 'email',
     enabled: true,
   },
-
+  {
     id: 'hourly-digest-flush',
     name: 'Hourly Notification Digest',
     description: 'Batches and sends hourly notification summaries',
@@ -245,6 +244,8 @@ const TASK_DEFINITIONS = [
     description: 'Flushes notifications queued during quiet hours',
     cron: '*/15 * * * *',
     category: 'notifications',
+    enabled: true,
+  },
   {
     id: 'portfolio-github-sync',
     name: 'Portfolio GitHub Sync',
@@ -284,7 +285,7 @@ class SchedulerService extends EventEmitter {
       if (def.enabled) this._scheduleNext(def.id);
     }
     this._initialized = true;
-    console.log('[SchedulerService] Initialized with', this._tasks.size, 'tasks');
+    logger.info('[SchedulerService] Initialized with', this._tasks.size, 'tasks');
   }
 
   // ── Internal scheduling ──────────────────────────────────────────────────────
@@ -330,7 +331,7 @@ class SchedulerService extends EventEmitter {
     } catch (err) {
       status = 'failed';
       error = err?.message ?? String(err);
-      console.error(`[SchedulerService] Task "${taskId}" failed:`, error);
+      logger.error(`[SchedulerService] Task "${taskId}" failed:`, { error });
     } finally {
       const finishedAt = new Date();
       const durationMs = finishedAt - startedAt;
@@ -396,7 +397,7 @@ class SchedulerService extends EventEmitter {
         await this._aggregateAnalytics();
         break;
       case 'overdue-task-reminder':
-        console.log('[SchedulerService] Processing overdue task notifications...');
+        logger.info('[SchedulerService] Processing overdue task notifications...');
         // logic to fetch tasks with dueDate < now and status != 'Done' and notify assignees
         break;
       case 'announcement-publisher':
