@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { amaThreads } from '../../data/amaData';
 import { AmaQuestion } from '../../components/ama/AmaQuestion';
 import Footer from '../../shared/Footer';
+import { MentionTextarea } from '../../components/common/MentionTextarea';
 import './Ama.css';
 
 export default function AmaThreadPage() {
@@ -128,12 +129,11 @@ export default function AmaThreadPage() {
         {thread.status !== 'archived' && (
           <form className="ama-question-form" onSubmit={handleSubmitQuestion}>
             <h3 style={{ marginBottom: '16px', fontSize: '1.3rem' }}>Ask a Question</h3>
-            <textarea
+            <MentionTextarea
               className="ama-q-input"
               placeholder="What would you like to ask?"
               value={newQuestion}
-              onChange={(e) => setNewQuestion(e.target.value)}
-              required
+              onChange={setNewQuestion}
             />
             <button type="submit" className="ama-submit-btn" disabled={!newQuestion.trim()}>
               Submit Question

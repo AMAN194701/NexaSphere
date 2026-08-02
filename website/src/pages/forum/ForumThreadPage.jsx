@@ -4,6 +4,7 @@ import { apiClient } from '../../utils/apiClient';
 import { getApiBase } from '../../utils/runtimeConfig';
 import { fallbackThreads, fallbackReplies } from '../../data/forumData.js';
 import { EmptyState } from '../../components/EmptyState';
+import { MentionTextarea } from '../../components/common/MentionTextarea';
 
 // Formats a date string, falling back to a safe placeholder if the value
 // is missing or cannot be parsed — avoids rendering literal "Invalid Date"
@@ -438,12 +439,12 @@ export default function ForumThreadPage({ onBack }) {
                 />
               </div>
               <div style={{ marginBottom: 12 }}>
-                <textarea
-                  required
+                <MentionTextarea
                   value={replyContent}
-                  onChange={(e) => setReplyContent(e.target.value)}
+                  onChange={setReplyContent}
                   placeholder="Write your reply..."
                   rows={4}
+                  className="ns-textarea"
                   style={{
                     width: '100%',
                     padding: '10px 12px',
