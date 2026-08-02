@@ -26,7 +26,7 @@ app.use(dynamicRateLimiter);
 app.use('/api/interview',  require('./routes/interview'));
 app.use('/api/assessment', require('./routes/assessment'));
 app.use('/api/feedback',   require('./routes/feedback'));
-app.use('/api/keys',       require('./routes/keys'));
+app.use('/api/audit',      require('./routes/audit'));
 
 // ─── Health Check ─────────────────────────────────────────
 app.get('/', (req, res) => {
